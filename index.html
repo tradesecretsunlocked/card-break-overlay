@@ -5,12 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Power Sports Card Break Overlay</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
             margin: 0;
-            padding: 10px;
+            padding: 0;
             background: transparent;
             font-family: 'Arial Black', Arial, sans-serif;
             user-select: none;
+            width: 920px;
+            height: 420px;
+            overflow: hidden;
         }
         
         .container {
@@ -18,10 +25,12 @@
             border: 4px solid #D4AF37;
             border-radius: 12px;
             padding: 15px;
-            width: 900px;
-            height: 400px;
+            width: 920px;
+            height: 420px;
             box-shadow: 0 0 20px rgba(212,175,55,0.4);
             position: relative;
+            display: flex;
+            flex-direction: column;
         }
         
         .header {
@@ -35,6 +44,7 @@
             font-size: 18px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
             position: relative;
+            flex-shrink: 0;
         }
         
         .power-logo {
@@ -57,11 +67,13 @@
         .main-content {
             display: flex;
             gap: 15px;
-            height: 320px;
+            flex: 1;
+            min-height: 0;
         }
         
         .teams-section {
             flex: 1;
+            min-width: 0;
         }
         
         .teams-grid {
@@ -69,6 +81,7 @@
             grid-template-columns: repeat(6, 1fr);
             gap: 6px;
             height: 100%;
+            width: 100%;
         }
         
         .team {
@@ -87,6 +100,7 @@
             transition: all 0.3s ease;
             text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            min-height: 45px;
         }
         
         .team:hover {
@@ -105,13 +119,14 @@
         .team.sold::after {
             content: '❌';
             position: absolute;
-            font-size: 28px;
+            font-size: 24px;
             color: white;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
         }
         
         .info-panel {
             width: 200px;
+            flex-shrink: 0;
             background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 100%);
             border: 3px solid #D4AF37;
             border-radius: 10px;
@@ -124,7 +139,8 @@
         .stats {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 15px;
+            margin-bottom: 20px;
         }
         
         .stat {
@@ -137,15 +153,16 @@
         }
         
         .stat-number {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 900;
             color: #D4AF37;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
             display: block;
+            line-height: 1;
         }
         
         .stat-label {
-            font-size: 12px;
+            font-size: 11px;
             color: white;
             font-weight: bold;
             margin-top: 5px;
@@ -154,18 +171,18 @@
         .controls {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
         
         .btn {
             background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
             color: #333;
             border: none;
-            padding: 12px;
+            padding: 10px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 11px;
             transition: all 0.3s ease;
             text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -182,30 +199,28 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
         
-        /* Mobile responsive */
-        @media (max-width: 1000px) {
+        /* Force consistent layout - no responsive changes */
+        @media (max-width: 1200px) {
             .container {
-                width: 100%;
-                max-width: 900px;
+                width: 920px;
+                height: 420px;
             }
             
             .teams-grid {
-                grid-template-columns: repeat(5, 1fr);
+                grid-template-columns: repeat(6, 1fr);
             }
             
             .main-content {
-                flex-direction: column;
+                flex-direction: row;
             }
             
             .info-panel {
-                width: 100%;
-                flex-direction: row;
-                justify-content: space-around;
+                width: 200px;
+                flex-direction: column;
             }
             
             .stats {
-                flex-direction: row;
-                gap: 10px;
+                flex-direction: column;
             }
         }
     </style>
