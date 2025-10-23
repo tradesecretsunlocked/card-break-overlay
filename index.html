@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sports Card Break Overlay</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 15px;
+            background: transparent;
+            font-family: 'Arial Black', Arial, sans-serif;
+            user-select: none;
+        }
+        
+        .container {
+            background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(20,20,20,0.9) 100%);
+            border: 4px solid #ff0000;
+            border-radius: 15px;
+            padding: 20px;
+            max-width: 700px;
+            box-shadow: 0 0 20px rgba(255,0,0,0.3);
+        }
+        
+        .header {
+            color: white;
+            text-align: center;
+            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+            padding: 12px;
+            margin: -20px -20px 20px -20px;
+            border-radius: 11px 11px 0 0;
+            font-weight: bold;
+            font-size: 16px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .teams-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .team {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #333 0%, #555 100%);
+            border: 3px solid #666;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            color: white;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+            transition: all 0.3s ease;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        
+        .team:hover {
+            transform: scale(1.05);
+            border-color: #ff0000;
+        }
+        
+        .team.sold {
+            background: linear-gradient(135deg, #ff0000 0%, #aa0000 100%);
+            border-color: #ff0000;
+            opacity: 0.8;
+        }
+        
+        .team.sold::after {
+            content: '❌';
+            position: absolute;
+            font-size: 35px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        .info-panel {
+            background: linear-gradient(135deg, #333 0%, #444 100%);
+            border-radius: 10px;
+            padding: 15px;
+            color: white;
+            text-align: center;
+            border: 2px solid #666;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 15px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff00;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(255,0,0,0.3);
+        }
+        
+        .btn.secondary {
+            background: linear-gradient(135deg, #666 0%, #444 100%);
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .team {
+                width: 60px;
+                height: 60px;
+                font-size: 10px;
+            }
+            
+            .teams-grid {
+                grid-template-columns: repeat(5, 1fr);
+                gap: 6px;
+            }
+            
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header" id="headerText">
+            🏀 NBA TEAM BREAK - ALL TEAMS AVAILABLE - $25 PER TEAM
+        </div>
+        
+        <div class="teams-grid" id="teamsGrid">
+            <!-- Teams will be populated by JavaScript -->
+        </div>
+        
+        <div class="info-panel">
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number" id="teamsLeft">30</div>
+                    <div class="stat-label">TEAMS LEFT</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="teamsSold">0</div>
+                    <div class="stat-label">TEAMS SOLD</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="totalValue">$0</div>
+                    <div class="stat-label">TOTAL VALUE</div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="resetAll()">🔄 RESET BREAK</button>
+                <button class="btn secondary" onclick="changeBreakType()">🔄 CHANGE SPORT</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Different break types
+        const breakTypes = {
+            nba: {
+                name: 'NBA',
+                icon: '🏀',
+                price: 25,
+                teams: [
+                    'ATL', 'BOS', 'BKN', 'CHA', 'CHI', 'CLE',
+                    'DAL', 'DEN', 'DET', 'GSW', 'HOU', 'IND',
+                    'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN',
+                    'NOP', 'NYK', 'OKC', 'ORL', 'PHI', 'PHX',
+                    'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS'
+                ]
+            },
+            nfl: {
+                name: 'NFL',
+                icon: '🏈',
+                price: 30,
+                teams: [
+                    'ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI',
+                    'CIN', 'CLE', 'DAL', 'DEN', 'DET', 'GB',
+                    'HOU', 'IND', 'JAX', 'KC', 'LV', 'LAC',
+                    'LAR', 'MIA', 'MIN', 'NE', 'NO', 'NYG',
+                    'NYJ', 'PHI', 'PIT', 'SF', 'SEA', 'TB',
+                    'TEN', 'WAS'
+                ]
+            },
+            mlb: {
+                name: 'MLB',
+                icon: '⚾',
+                price: 20,
+                teams: [
+                    'ARI', 'ATL', 'BAL', 'BOS', 'CHC', 'CWS',
+                    'CIN', 'CLE', 'COL', 'DET', 'HOU', 'KC',
+                    'LAA', 'LAD', 'MIA', 'MIL', 'MIN', 'NYM',
+                    'NYY', 'OAK', 'PHI', 'PIT', 'SD', 'SF',
+                    'SEA', 'STL', 'TB', 'TEX', 'TOR', 'WAS'
+                ]
+            }
+        };
+        
+        let currentBreakType = 'nba';
+        let soldTeams = new Set();
+        let teamPrice = breakTypes[currentBreakType].price;
+        
+        function initializeGrid() {
+            const grid = document.getElementById('teamsGrid');
+            const currentBreak = breakTypes[currentBreakType];
+            
+            grid.innerHTML = '';
+            soldTeams.clear();
+            
+            currentBreak.teams.forEach((team, index) => {
+                const teamDiv = document.createElement('div');
+                teamDiv.className = 'team';
+                teamDiv.textContent = team;
+                teamDiv.dataset.teamIndex = index;
+                teamDiv.onclick = () => toggleTeam(index);
+                grid.appendChild(teamDiv);
+            });
+            
+            updateHeader();
+            updateStats();
+        }
+        
+        function toggleTeam(index) {
+            const teamDiv = document.querySelector(`[data-team-index="${index}"]`);
+            
+            if (soldTeams.has(index)) {
+                soldTeams.delete(index);
+                teamDiv.classList.remove('sold');
+            } else {
+                soldTeams.add(index);
+                teamDiv.classList.add('sold');
+            }
+            
+            updateStats();
+        }
+        
+        function updateStats() {
+            const currentBreak = breakTypes[currentBreakType];
+            const totalTeams = currentBreak.teams.length;
+            const soldCount = soldTeams.size;
+            const teamsLeft = totalTeams - soldCount;
+            const totalValue = soldCount * teamPrice;
+            
+            document.getElementById('teamsLeft').textContent = teamsLeft;
+            document.getElementById('teamsSold').textContent = soldCount;
+            document.getElementById('totalValue').textContent = `$${totalValue}`;
+        }
+        
+        function updateHeader() {
+            const currentBreak = breakTypes[currentBreakType];
+            const headerText = `${currentBreak.icon} ${currentBreak.name} TEAM BREAK - ALL TEAMS AVAILABLE - $${teamPrice} PER TEAM`;
+            document.getElementById('headerText').textContent = headerText;
+        }
+        
+        function resetAll() {
+            if (confirm('Reset all teams for new break?')) {
+                soldTeams.clear();
+                document.querySelectorAll('.team').forEach(team => {
+                    team.classList.remove('sold');
+                });
+                updateStats();
+            }
+        }
+        
+        function changeBreakType() {
+            const types = Object.keys(breakTypes);
+            const currentIndex = types.indexOf(currentBreakType);
+            const nextIndex = (currentIndex + 1) % types.length;
+            
+            currentBreakType = types[nextIndex];
+            teamPrice = breakTypes[currentBreakType].price;
+            
+            initializeGrid();
+        }
+        
+        // Initialize on load
+        initializeGrid();
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'r' || e.key === 'R') {
+                resetAll();
+            } else if (e.key === 's' || e.key === 'S') {
+                changeBreakType();
+            }
+        });
+    </script>
+</body>
+</html>
