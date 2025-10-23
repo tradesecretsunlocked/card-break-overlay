@@ -101,6 +101,20 @@
             text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             min-height: 45px;
+            padding: 5px;
+        }
+        
+        .team img {
+            width: 35px;
+            height: 35px;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+        
+        .team.text-only {
+            font-size: 11px;
+            font-weight: bold;
+            padding: 5px;
         }
         
         .team:hover {
@@ -116,12 +130,17 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
         }
         
+        .team.sold img {
+            opacity: 0.3;
+        }
+        
         .team.sold::after {
             content: '❌';
             position: absolute;
             font-size: 24px;
             color: white;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 10;
         }
         
         .info-panel {
@@ -198,31 +217,6 @@
             color: white;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
-        
-        /* Force consistent layout - no responsive changes */
-        @media (max-width: 1200px) {
-            .container {
-                width: 920px;
-                height: 420px;
-            }
-            
-            .teams-grid {
-                grid-template-columns: repeat(6, 1fr);
-            }
-            
-            .main-content {
-                flex-direction: row;
-            }
-            
-            .info-panel {
-                width: 200px;
-                flex-direction: column;
-            }
-            
-            .stats {
-                flex-direction: column;
-            }
-        }
     </style>
 </head>
 <body>
@@ -260,18 +254,22 @@
     </div>
 
     <script>
-        // Different break types
+        // Different break types with image support
         const breakTypes = {
             nba: {
                 name: 'NBA',
                 icon: '🏀',
                 price: 25,
                 teams: [
-                    'ATL', 'BOS', 'BKN', 'CHA', 'CHI', 'CLE',
-                    'DAL', 'DEN', 'DET', 'GSW', 'HOU', 'IND',
-                    'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN',
-                    'NOP', 'NYK', 'OKC', 'ORL', 'PHI', 'PHX',
-                    'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS'
+                    {code: 'ATL', name: 'Hawks', image: 'C:/Users/TSU/OneDrive/cheech/Poke/TSU/Client files/Powercardshop/New folder/hawks.png'},
+                    {code: 'BOS', name: 'Celtics', image: 'C:/Users/TSU/OneDrive/cheech/Poke/TSU/Client files/Powercardshop/New folder/celtics.png'},
+                    {code: 'BKN', name: 'Nets', image: 'C:/Users/TSU/OneDrive/cheech/Poke/TSU/Client files/Powercardshop/New folder/nets.png'},
+                    {code: 'CHA', name: 'Hornets', image: 'C:/Users/TSU/OneDrive/cheech/Poke/TSU/Client files/Powercardshop/New folder/hornets.png'},
+                    {code: 'CHI', name: 'Bulls', image: 'C:/Users/TSU/OneDrive/cheech/Poke/TSU/Client files/Powercardshop/New folder/bulls.png'},
+                    {code: 'CLE', name: 'Cavaliers', image: 'C:/Users/TSU/OneDrive/cheech/Poke/TSU/Client files/Powercardshop/New folder/cavaliers.png'},
+                    // Add the rest of your teams here with their image paths
+                    {code: 'DAL', name: 'Mavericks', image: 'C:/Users/TSU/OneDrive/cheech/Poke/TSU/Client files/Powercardshop/New folder/mavericks.png'},
+                    // ... continue for all 30 NBA teams
                 ]
             },
             nfl: {
@@ -314,9 +312,27 @@
             currentBreak.teams.forEach((team, index) => {
                 const teamDiv = document.createElement('div');
                 teamDiv.className = 'team';
-                teamDiv.textContent = team;
                 teamDiv.dataset.teamIndex = index;
                 teamDiv.onclick = () => toggleTeam(index);
+                
+                // Check if team is an object with image or just text
+                if (typeof team === 'object' && team.image) {
+                    // Create image element
+                    const img = document.createElement('img');
+                    img.src = team.image;
+                    img.alt = team.name;
+                    img.onerror = function() {
+                        // Fallback to text if image doesn't load
+                        teamDiv.innerHTML = team.code;
+                        teamDiv.classList.add('text-only');
+                    };
+                    teamDiv.appendChild(img);
+                } else {
+                    // Use text (for NFL/MLB or fallback)
+                    teamDiv.textContent = typeof team === 'object' ? team.code : team;
+                    teamDiv.classList.add('text-only');
+                }
+                
                 grid.appendChild(teamDiv);
             });
             
@@ -355,13 +371,12 @@
         }
         
         function resetAll() {
-            if (confirm('Reset all teams for new break?')) {
-                soldTeams.clear();
-                document.querySelectorAll('.team').forEach(team => {
-                    team.classList.remove('sold');
-                });
-                updateStats();
-            }
+            // Fixed - removed confirm dialog for OBS compatibility
+            soldTeams.clear();
+            document.querySelectorAll('.team').forEach(team => {
+                team.classList.remove('sold');
+            });
+            updateStats();
         }
         
         function changeBreakType() {
