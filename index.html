@@ -75,11 +75,12 @@
       left: 50%; top: 50%; transform: translate(-50%,-50%);
     }
     .right-panel {
-      width: 210px;
+      width: 230px;
       display: flex;
       flex-direction: column;
       gap: 10px;
       align-items: stretch;
+      background: none;
     }
     .stat-row {
       display: flex;
@@ -91,40 +92,45 @@
       background: linear-gradient(135deg, #B22222 0%, #8B0000 100%);
       color: #fff;
       border-radius: 8px;
-      padding: 10px 0 6px 0;
+      padding: 18px 0 10px 0;
       text-align: center;
       font-weight: 900;
-      font-size: 22px;
+      font-size: 32px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.12);
       border: 2px solid #D4AF37;
       line-height: 1.1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
-    .stat-label { font-size: 12px; font-weight: bold; margin-top: 2px; letter-spacing: 0.5px; }
+    .stat-label { font-size: 14px; font-weight: bold; margin-top: 2px; letter-spacing: 0.5px; }
     .promo-box {
       background: linear-gradient(135deg, #fffbe6 0%, #ffe082 100%);
       border: 2px solid #B22222;
       border-radius: 8px;
-      padding: 7px 5px 5px 5px;
-      text-align: center;
+      padding: 7px 5px 7px 5px;
+      text-align: left;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
       margin-bottom: 2px;
-      display: flex; flex-direction: column; align-items: center;
+      display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+      gap: 8px;
     }
     .promo-title {
-      font-size: 15px; font-weight: 900; color: #B22222; margin-bottom: 2px; letter-spacing: 0.5px;
-      display: flex; align-items: center; gap: 3px;
+      font-size: 17px; font-weight: 900; color: #B22222; letter-spacing: 0.5px;
+      display: flex; flex-direction: column; align-items: flex-start; min-width: 90px;
     }
-    .promo-title .dollar { color: #388e3c; font-size: 18px; font-weight: bold; }
+    .promo-title .dollar { color: #388e3c; font-size: 18px; font-weight: bold; margin-left: 2px;}
     .promo-input {
-      width: 80%; font-size: 16px; font-weight: bold; text-align: center;
-      border: 1.5px solid #D4AF37; border-radius: 5px; padding: 3px 0;
-      background: #fffde7; color: #B22222; margin-top: 2px;
+      width: 90px; font-size: 20px; font-weight: bold; text-align: center;
+      border: 2px solid #D4AF37; border-radius: 7px; padding: 6px 0;
+      background: #fffde7; color: #B22222; margin-left: 2px;
     }
     .btn {
       background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
       color: #333;
       border: none;
-      padding: 14px 0;
+      padding: 12px 0;
       border-radius: 8px;
       cursor: pointer;
       font-weight: 900;
@@ -140,7 +146,6 @@
       color: #fff;
     }
     .btn:active { filter: brightness(0.95); }
-    /* Sold list under overlay */
     .sold-list-container {
       margin: 10px auto 0 auto;
       width: 900px;
@@ -369,7 +374,6 @@
       columns[i % cols].push(entry);
     });
 
-    // Build columns
     columns.forEach(col => {
       const colDiv = document.createElement('div');
       colDiv.style.display = 'flex';
@@ -407,12 +411,16 @@
     soldListDiv.style.gap = '6px 18px';
   }
 
-  // Init + keyboard shortcuts
-  initializeGrid();
+  // Only trigger keyboard shortcuts if NOT typing in an input
   document.addEventListener('keydown', (e) => {
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
     if (e.key === 'r' || e.key === 'R') resetAll();
     else if (e.key === 's' || e.key === 'S') changeBreakType();
   });
+
+  // Init
+  initializeGrid();
 </script>
 </body>
 </html>
