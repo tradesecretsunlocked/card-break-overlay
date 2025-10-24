@@ -1,431 +1,509 @@
+# Formatted HTML Proposal
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Power Sports Card Break Overlay</title>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-        
-        body {
-            margin: 0;
-            padding: 0;
-            background: transparent;
-            font-family: 'Arial Black', Arial, sans-serif;
-            user-select: none;
-            width: 920px;
-            height: 420px;
-            overflow: hidden;
-        }
-        
-        .container {
-            background: linear-gradient(135deg, rgba(240,240,240,0.95) 0%, rgba(220,220,220,0.95) 100%);
-            border: 4px solid #D4AF37;
-            border-radius: 12px;
-            padding: 15px;
-            width: 920px;
-            height: 420px;
-            box-shadow: 0 0 20px rgba(212,175,55,0.4);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #B22222 0%, #8B0000 50%, #D4AF37 100%);
-            color: white;
-            text-align: center;
-            padding: 12px;
-            margin: -15px -15px 15px -15px;
-            border-radius: 8px 8px 0 0;
-            font-weight: bold;
-            font-size: 18px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
-            position: relative;
-            flex-shrink: 0;
-        }
-        
-        .power-logo {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 24px;
-            font-weight: 900;
-            color: #D4AF37;
-            text-shadow: 
-                -2px -2px 0 #000,
-                2px -2px 0 #000,
-                -2px 2px 0 #000,
-                2px 2px 0 #000,
-                0 0 10px rgba(212,175,55,0.8);
-            font-style: italic;
-        }
-        
-        .main-content {
-            display: flex;
-            gap: 15px;
-            flex: 1;
-            min-height: 0;
-        }
-        
-        .teams-section {
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .teams-grid {
-            display: grid;
-            grid-template-columns: repeat(6, 1fr);
-            gap: 6px;
-            height: 100%;
-            width: 100%;
-        }
-        
-        .team {
-            background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 100%);
-            border: 3px solid #D4AF37;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            position: relative;
-            color: #333;
-            font-size: 11px;
-            font-weight: bold;
-            text-align: center;
-            transition: all 0.3s ease;
-            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            min-height: 45px;
-            padding: 2px;
-            overflow: hidden;
-        }
-        
-        .team img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 4px;
-        }
-        
-        .team.text-only {
-            font-size: 11px;
-            font-weight: bold;
-            padding: 5px;
-        }
-        
-        .team:hover {
-            transform: scale(1.05);
-            border-color: #B22222;
-            box-shadow: 0 4px 8px rgba(178,34,34,0.3);
-        }
-        
-        .team.sold {
-            border-color: #8B0000;
-        }
-        
-        .team.sold img {
-            opacity: 0.3;
-            filter: grayscale(100%) brightness(0.5);
-        }
-        
-        .team.sold::after {
-            content: '❌';
-            position: absolute;
-            font-size: 24px;
-            color: #ff0000;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            z-index: 10;
-            background: rgba(255,255,255,0.9);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .info-panel {
-            width: 200px;
-            flex-shrink: 0;
-            background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 100%);
-            border: 3px solid #D4AF37;
-            border-radius: 10px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        
-        .stats {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .stat {
-            text-align: center;
-            background: linear-gradient(135deg, #B22222 0%, #8B0000 100%);
-            border-radius: 8px;
-            padding: 15px;
-            color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        .stat-number {
-            font-size: 28px;
-            font-weight: 900;
-            color: #D4AF37;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            display: block;
-            line-height: 1;
-        }
-        
-        .stat-label {
-            font-size: 11px;
-            color: white;
-            font-weight: bold;
-            margin-top: 5px;
-        }
-        
-        .controls {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .btn {
-            background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
-            color: #333;
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 11px;
-            transition: all 0.3s ease;
-            text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(212,175,55,0.4);
-        }
-        
-        .btn.secondary {
-            background: linear-gradient(135deg, #B22222 0%, #8B0000 100%);
-            color: white;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Power Sports Card Break Overlay</title>
+  <style>
+    /* ========== GLOBAL / LAYOUT ========== */
+    * {
+      box-sizing: border-box;
+    }
+    /* IMPORTANT: Set width to 920px (as before). Height depends on whether
+       you also want the sold-list to show ON-STREAM:
+       - If ONLY the top overlay should be visible → set your OBS Browser Source
+         height to ~400–420.
+       - If you want the sold list visible under it → set OBS height to ~560 (or adjust). */
+    body {
+      margin: 0;
+      background: transparent;
+      font-family: 'Arial Black', Arial, sans-serif;
+      user-select: none;
+      width: 920px;
+    }
+    /* Main overlay container (top section) */
+    .container {
+      background: linear-gradient(135deg, rgba(240, 240, 240, 0.95) 0%, rgba(220, 220, 220, 0.95) 100%);
+      border: 4px solid #d4af37;
+      border-radius: 12px;
+      padding: 8px;
+      width: 920px;
+      height: 400px;
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+      display: flex;
+      flex-direction: column;
+    }
+    /* ========== HEADER ========== */
+    .header {
+      background: linear-gradient(135deg, #b22222 0%, #8b0000 50%, #d4af37 100%);
+      color: #fff;
+      text-align: left;
+      padding: 10px 14px;
+      margin: -8px -8px 8px -8px;
+      border-radius: 8px 8px 0 0;
+      font-weight: 900;
+      font-size: 20px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    }
+    /* ========== CONTENT LAYOUT ========== */
+    .main-content {
+      display: flex;
+      gap: 8px;
+      flex: 1;
+      min-height: 0;
+    }
+    .teams-section {
+      flex: 1;
+      min-width: 0;
+    }
+    .teams-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 4px;
+      height: 100%;
+      width: 100%;
+    }
+    /* ========== TEAM CELLS ========== */
+    .team {
+      background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 100%);
+      border: 3px solid #d4af37;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      color: #333;
+      font-size: 11px;
+      font-weight: bold;
+      text-align: center;
+      transition: all 0.3s ease;
+      text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      min-height: 44px;
+      padding: 2px;
+      overflow: hidden;
+    }
+    .team img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+    .team.text-only {
+      font-size: 11px;
+      font-weight: bold;
+      padding: 5px;
+    }
+    .team:hover {
+      transform: scale(1.04);
+      border-color: #b22222;
+      box-shadow: 0 4px 8px rgba(178, 34, 34, 0.3);
+    }
+    .team.sold {
+      border-color: #8b0000;
+    }
+    .team.sold img {
+      opacity: 0.3;
+      filter: grayscale(100%) brightness(0.5);
+    }
+    .team.sold::after {
+      content: '❌';
+      position: absolute;
+      font-size: 22px;
+      color: #ff0000;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* ========== RIGHT PANEL (stats + promos + buttons) ========== */
+    .info-panel {
+      width: 190px;
+      background: linear-gradient(135deg, #f8f8f8 0%, #e8e8e8 100%);
+      border: 3px solid #d4af37;
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .stats {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .stat {
+      text-align: center;
+      background: linear-gradient(135deg, #b22222 0%, #8b0000 100%);
+      border-radius: 8px;
+      padding: 8px;
+      color: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .stat-number {
+      font-size: 26px;
+      font-weight: 900;
+      color: #d4af37;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+      line-height: 1;
+    }
+    .stat-label {
+      font-size: 11px;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    /* Promo boxes: distinct look */
+    .promo-box {
+      background: linear-gradient(135deg, #fffbe6 0%, #ffe082 100%);
+      border: 2px solid #b22222;
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    .promo-title {
+      font-size: 14px;
+      font-weight: 900;
+      color: #b22222;
+      margin-bottom: 3px;
+      letter-spacing: 0.5px;
+    }
+    .promo-input {
+      width: 85%;
+      font-size: 15px;
+      font-weight: bold;
+      text-align: center;
+      border: 1.5px solid #d4af37;
+      border-radius: 5px;
+      padding: 3px 0;
+      background: #fffde7;
+      color: #b22222;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .btn {
+      background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+      color: #333;
+      border: none;
+      padding: 14px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 900;
+      font-size: 18px;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+      text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(212, 175, 55, 0.4);
+    }
+    .btn.secondary {
+      background: linear-gradient(135deg, #b22222 0%, #8b0000 100%);
+      color: #fff;
+    }
+    /* ========== SOLD LIST (under main overlay) ========== */
+    .sold-list-container {
+      margin: 8px auto 0 auto;
+      width: 900px;
+      background: #fffbe6;
+      border: 2px solid #d4af37;
+      border-radius: 8px;
+      padding: 8px 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+    .sold-list-title {
+      font-size: 16px;
+      font-weight: 900;
+      color: #b22222;
+      margin-bottom: 6px;
+    }
+    .sold-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .sold-team-img {
+      width: 32px;
+      height: 32px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #d4af37;
+    }
+    .sold-team-name {
+      font-weight: bold;
+      color: #333;
+      min-width: 72px;
+      text-transform: capitalize;
+    }
+    .sold-buyer-input {
+      font-size: 14px;
+      border: 1px solid #b22222;
+      border-radius: 4px;
+      padding: 3px 6px;
+      width: 200px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header" id="headerText">
-            🏀 NBA TEAM BREAK - ALL TEAMS AVAILABLE - $25 PER TEAM
-            <div class="power-logo">Power</div>
+  <!-- ======= MAIN OVERLAY (Top) ======= -->
+  <div class="container">
+    <!-- Header: left-aligned text; space on right for OBS-placed logo/scrolling text -->
+    <div class="header" id="headerText">🏀 NBA TEAM BOX BREAK 🏀</div>
+    <!-- Grid + Side Panel -->
+    <div class="main-content">
+      <!-- Team Grid -->
+      <div class="teams-section">
+        <div class="teams-grid" id="teamsGrid"></div>
+      </div>
+      <!-- Right Panel: Stats + Promos + Buttons -->
+      <div class="info-panel">
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-number" id="teamsLeft">30</span>
+            <div class="stat-label">TEAMS LEFT</div>
+          </div>
+          <div class="stat">
+            <span class="stat-number" id="teamsSold">0</span>
+            <div class="stat-label">TEAMS SOLD</div>
+          </div>
         </div>
-        
-        <div class="main-content">
-            <div class="teams-section">
-                <div class="teams-grid" id="teamsGrid">
-                    <!-- Teams will be populated by JavaScript -->
-                </div>
-            </div>
-            
-            <div class="info-panel">
-                <div class="stats">
-                    <div class="stat">
-                        <span class="stat-number" id="teamsLeft">30</span>
-                        <div class="stat-label">TEAMS LEFT</div>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-number" id="teamsSold">0</span>
-                        <div class="stat-label">TEAMS SOLD</div>
-                    </div>
-                </div>
-                
-                <div class="controls">
-                    <button class="btn" onclick="resetAll()">🔄 RESET BREAK</button>
-                    <button class="btn secondary" onclick="changeBreakType()">🔄 CHANGE SPORT</button>
-                </div>
-            </div>
+        <!-- Promo Boxes (prices are typed by client; can leave blank and add price via OBS text overlay) -->
+        <div class="promo-box">
+          <div class="promo-title">STASH OR PASS</div>
+          <input type="text" class="promo-input" placeholder="Price (e.g. $35)" />
         </div>
+        <div class="promo-box">
+          <div class="promo-title">SEE 2 PICK 1</div>
+          <input type="text" class="promo-input" placeholder="Price (e.g. $50)" />
+        </div>
+        <!-- Controls -->
+        <div class="controls">
+          <button class="btn" onclick="resetAll()">🔄 RESET BREAK</button>
+          <button class="btn secondary" onclick="changeBreakType()">🔄 CHANGE SPORT</button>
+        </div>
+      </div>
     </div>
-
-    <script>
-        // Different break types with GitHub image paths
-        const breakTypes = {
-            nba: {
-                name: 'NBA',
-                icon: '🏀',
-                price: 25,
-                teams: [
-                    {code: 'ATL', name: 'hawks', image: 'images/nba/hawks.png'},
-                    {code: 'BOS', name: 'celtics', image: 'images/nba/celtics.png'},
-                    {code: 'BKN', name: 'nets', image: 'images/nba/nets.png'},
-                    {code: 'CHA', name: 'hornets', image: 'images/nba/hornets.png'},
-                    {code: 'CHI', name: 'bulls', image: 'images/nba/bulls.png'},
-                    {code: 'CLE', name: 'cavaliers', image: 'images/nba/cavaliers.png'},
-                    {code: 'DAL', name: 'mavericks', image: 'images/nba/mavericks.png'},
-                    {code: 'DEN', name: 'nuggets', image: 'images/nba/nuggets.png'},
-                    {code: 'DET', name: 'pistons', image: 'images/nba/pistons.png'},
-                    {code: 'GSW', name: 'warriors', image: 'images/nba/warriors.png'},
-                    {code: 'HOU', name: 'rockets', image: 'images/nba/rockets.png'},
-                    {code: 'IND', name: 'pacers', image: 'images/nba/pacers.png'},
-                    {code: 'LAC', name: 'clippers', image: 'images/nba/clippers.png'},
-                    {code: 'LAL', name: 'lakers', image: 'images/nba/lakers.png'},
-                    {code: 'MEM', name: 'grizzlies', image: 'images/nba/grizzlies.png'},
-                    {code: 'MIA', name: 'heat', image: 'images/nba/heat.png'},
-                    {code: 'MIL', name: 'bucks', image: 'images/nba/bucks.png'},
-                    {code: 'MIN', name: 'timberwolves', image: 'images/nba/timberwolves.png'},
-                    {code: 'NOP', name: 'pelicans', image: 'images/nba/pelicans.png'},
-                    {code: 'NYK', name: 'knicks', image: 'images/nba/knicks.png'},
-                    {code: 'OKC', name: 'thunder', image: 'images/nba/thunder.png'},
-                    {code: 'ORL', name: 'magic', image: 'images/nba/magic.png'},
-                    {code: 'PHI', name: '76ers', image: 'images/nba/76ers.png'},
-                    {code: 'PHX', name: 'suns', image: 'images/nba/suns.png'},
-                    {code: 'POR', name: 'blazers', image: 'images/nba/blazers.png'},
-                    {code: 'SAC', name: 'kings', image: 'images/nba/kings.png'},
-                    {code: 'SAS', name: 'spurs', image: 'images/nba/spurs.png'},
-                    {code: 'TOR', name: 'raptors', image: 'images/nba/raptors.png'},
-                    {code: 'UTA', name: 'jazz', image: 'images/nba/jazz.png'},
-                    {code: 'WAS', name: 'wizards', image: 'images/nba/wizards.png'}
-                ]
-            },
-            nfl: {
-                name: 'NFL',
-                icon: '🏈',
-                price: 30,
-                teams: [
-                    'ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI',
-                    'CIN', 'CLE', 'DAL', 'DEN', 'DET', 'GB',
-                    'HOU', 'IND', 'JAX', 'KC', 'LV', 'LAC',
-                    'LAR', 'MIA', 'MIN', 'NE', 'NO', 'NYG',
-                    'NYJ', 'PHI', 'PIT', 'SF', 'SEA', 'TB',
-                    'TEN', 'WAS'
-                ]
-            },
-            mlb: {
-                name: 'MLB',
-                icon: '⚾',
-                price: 20,
-                teams: [
-                    'ARI', 'ATL', 'BAL', 'BOS', 'CHC', 'CWS',
-                    'CIN', 'CLE', 'COL', 'DET', 'HOU', 'KC',
-                    'LAA', 'LAD', 'MIA', 'MIL', 'MIN', 'NYM',
-                    'NYY', 'OAK', 'PHI', 'PIT', 'SD', 'SF',
-                    'SEA', 'STL', 'TB', 'TEX', 'TOR', 'WAS'
-                ]
-            }
+  </div>
+  <!-- ======= SOLD LIST (Under the overlay) =======
+       If you don't want this visible on-stream, keep your OBS height at ~400–420.
+       Use OBS Interact when you need to type buyer names. -->
+  <div class="sold-list-container">
+    <div class="sold-list-title">Sold Teams</div>
+    <div id="soldList"></div>
+  </div>
+  <script>
+    /* ========= IMAGES BASE PATH (Works on GitHub Pages + local + OBS) ========= */
+    const BASE = (() => {
+      const isGhPages = location.hostname.endsWith('github.io');
+      if (isGhPages) {
+        const parts = location.pathname.split('/').filter(Boolean);
+        const repo = parts.length ? parts[0] : '';
+        return `/${repo}/`;
+      }
+      return './';
+    })();
+    const imgPath = (f) => `${BASE}images/nba/${f}`;
+    /* ========= BREAK TYPES ========= */
+    const breakTypes = {
+      nba: {
+        name: 'NBA',
+        icon: '🏀',
+        price: 25,
+        teams: [
+          { code: 'ATL', name: 'hawks', image: imgPath('hawks.png') },
+          { code: 'BOS', name: 'celtics', image: imgPath('celtics.png') },
+          { code: 'BKN', name: 'nets', image: imgPath('nets.png') },
+          { code: 'CHA', name: 'hornets', image: imgPath('hornets.png') },
+          { code: 'CHI', name: 'bulls', image: imgPath('bulls.png') },
+          { code: 'CLE', name: 'cavaliers', image: imgPath('cavaliers.png') },
+          { code: 'DAL', name: 'mavericks', image: imgPath('mavericks.png') },
+          { code: 'DEN', name: 'nuggets', image: imgPath('nuggets.png') },
+          { code: 'DET', name: 'pistons', image: imgPath('pistons.png') },
+          { code: 'GSW', name: 'warriors', image: imgPath('warriors.png') },
+          { code: 'HOU', name: 'rockets', image: imgPath('rockets.png') },
+          { code: 'IND', name: 'pacers', image: imgPath('pacers.png') },
+          { code: 'LAC', name: 'clippers', image: imgPath('clippers.png') },
+          { code: 'LAL', name: 'lakers', image: imgPath('lakers.png') },
+          { code: 'MEM', name: 'grizzlies', image: imgPath('grizzlies.png') },
+          { code: 'MIA', name: 'heat', image: imgPath('heat.png') },
+          { code: 'MIL', name: 'bucks', image: imgPath('bucks.png') },
+          { code: 'MIN', name: 'timberwolves', image: imgPath('timberwolves.png') },
+          { code: 'NOP', name: 'pelicans', image: imgPath('pelicans.png') },
+          { code: 'NYK', name: 'knicks', image: imgPath('knicks.png') },
+          { code: 'OKC', name: 'thunder', image: imgPath('thunder.png') },
+          { code: 'ORL', name: 'magic', image: imgPath('magic.png') },
+          { code: 'PHI', name: '76ers', image: imgPath('76ers.png') },
+          { code: 'PHX', name: 'suns', image: imgPath('suns.png') },
+          { code: 'POR', name: 'blazers', image: imgPath('blazers.png') },
+          { code: 'SAC', name: 'kings', image: imgPath('kings.png') },
+          { code: 'SAS', name: 'spurs', image: imgPath('spurs.png') },
+          { code: 'TOR', name: 'raptors', image: imgPath('raptors.png') },
+          { code: 'UTA', name: 'jazz', image: imgPath('jazz.png') },
+          { code: 'WAS', name: 'wizards', image: imgPath('wizards.png') },
+        ],
+      },
+      nfl: {
+        name: 'NFL',
+        icon: '🏈',
+        price: 30,
+        teams: [
+          'ARI', 'ATL', 'BAL', 'BUF', 'CAR', 'CHI', 'CIN', 'CLE', 'DAL', 'DEN', 'DET', 'GB',
+          'HOU', 'IND', 'JAX', 'KC', 'LV', 'LAC', 'LAR', 'MIA', 'MIN', 'NE', 'NO', 'NYG',
+          'NYJ', 'PHI', 'PIT', 'SF', 'SEA', 'TB', 'TEN', 'WAS',
+        ],
+      },
+      mlb: {
+        name: 'MLB',
+        icon: '⚾',
+        price: 20,
+        teams: [
+          'ARI', 'ATL', 'BAL', 'BOS', 'CHC', 'CWS', 'CIN', 'CLE', 'COL', 'DET', 'HOU', 'KC',
+          'LAA', 'LAD', 'MIA', 'MIL', 'MIN', 'NYM', 'NYY', 'OAK', 'PHI', 'PIT', 'SD', 'SF',
+          'SEA', 'STL', 'TB', 'TEX', 'TOR', 'WAS',
+        ],
+      },
+    };
+    /* ========= STATE ========= */
+    let currentBreakType = 'nba';
+    let soldTeams = new Set();
+    let soldTeamsList = [];
+    /* ========= RENDER GRID ========= */
+    function initializeGrid() {
+      const grid = document.getElementById('teamsGrid');
+      const currentBreak = breakTypes[currentBreakType];
+      grid.innerHTML = '';
+      soldTeams.clear();
+      soldTeamsList = [];
+      currentBreak.teams.forEach((team, index) => {
+        const teamDiv = document.createElement('div');
+        teamDiv.className = 'team';
+        teamDiv.dataset.teamIndex = index;
+        teamDiv.onclick = () => toggleTeam(index);
+        // Render image or fallback text
+        if (typeof team === 'object' && team.image) {
+          const img = document.createElement('img');
+          img.src = team.image;
+          img.alt = team.name;
+          img.onerror = () => {
+            teamDiv.innerHTML = team.code;
+            teamDiv.classList.add('text-only');
+          };
+          teamDiv.appendChild(img);
+        } else {
+          teamDiv.textContent = typeof team === 'object' ? team.code : team;
+          teamDiv.classList.add('text-only');
+        }
+        grid.appendChild(teamDiv);
+      });
+      updateHeader();
+      updateStats();
+      updateSoldList();
+    }
+    /* ========= TOGGLE SELL / UNSOLD ========= */
+    function toggleTeam(index) {
+      const teamDiv = document.querySelector(`[data-team-index="${index}"]`);
+      const listIndex = soldTeamsList.findIndex((entry) => entry.index === index);
+      if (soldTeams.has(index)) {
+        // Un-sell
+        soldTeams.delete(index);
+        teamDiv.classList.remove('sold');
+        if (listIndex !== -1) {
+          soldTeamsList.splice(listIndex, 1);
+        }
+      } else {
+        // Sell
+        soldTeams.add(index);
+        teamDiv.classList.add('sold');
+        if (listIndex === -1) {
+          soldTeamsList.push({ index, buyer: '' });
+        }
+      }
+      updateStats();
+      updateSoldList();
+    }
+    /* ========= STATS & HEADER ========= */
+    function updateStats() {
+      const currentBreak = breakTypes[currentBreakType];
+      const totalTeams = currentBreak.teams.length;
+      const soldCount = soldTeams.size;
+      const teamsLeft = totalTeams - soldCount;
+      document.getElementById('teamsLeft').textContent = teamsLeft;
+      document.getElementById('teamsSold').textContent = soldCount;
+    }
+    function updateHeader() {
+      const currentBreak = breakTypes[currentBreakType];
+      const headerText = `${currentBreak.icon} ${currentBreak.name} BOX BREAK`;
+      document.getElementById('headerText').textContent = headerText;
+    }
+    /* ========= RESET / CHANGE ========= */
+    function resetAll() {
+      soldTeams.clear();
+      soldTeamsList = [];
+      document.querySelectorAll('.team').forEach((team) => team.classList.remove('sold'));
+      updateStats();
+      updateSoldList();
+    }
+    function changeBreakType() {
+      const types = Object.keys(breakTypes);
+      currentBreakType = types[(types.indexOf(currentBreakType) + 1) % types.length];
+      initializeGrid();
+    }
+    /* ========= SOLD LIST (UNDER OVERLAY) ========= */
+    function updateSoldList() {
+      const soldListDiv = document.getElementById('soldList');
+      soldListDiv.innerHTML = '';
+      const currentBreak = breakTypes[currentBreakType];
+      soldTeamsList.forEach((entry) => {
+        const team = currentBreak.teams[entry.index];
+        const row = document.createElement('div');
+        row.className = 'sold-row';
+        if (team.image) {
+          const img = document.createElement('img');
+          img.src = team.image;
+          img.className = 'sold-team-img';
+          row.appendChild(img);
+        }
+        const name = document.createElement('span');
+        name.className = 'sold-team-name';
+        name.textContent = team.name || team.code;
+        row.appendChild(name);
+        const input = document.createElement('input');
+        input.className = 'sold-buyer-input';
+        input.type = 'text';
+        input.placeholder = 'Buyer name';
+        input.value = entry.buyer || '';
+        input.oninput = (event) => {
+          entry.buyer = event.target.value;
         };
-        
-        let currentBreakType = 'nba';
-        let soldTeams = new Set();
-        
-        function initializeGrid() {
-            const grid = document.getElementById('teamsGrid');
-            const currentBreak = breakTypes[currentBreakType];
-            
-            grid.innerHTML = '';
-            soldTeams.clear();
-            
-            currentBreak.teams.forEach((team, index) => {
-                const teamDiv = document.createElement('div');
-                teamDiv.className = 'team';
-                teamDiv.dataset.teamIndex = index;
-                teamDiv.onclick = () => toggleTeam(index);
-                
-                // Check if team is an object with image or just text
-                if (typeof team === 'object' && team.image) {
-                    // Create image element
-                    const img = document.createElement('img');
-                    img.src = team.image;
-                    img.alt = team.name;
-                    img.onerror = function() {
-                        // Fallback to text if image doesn't load
-                        teamDiv.innerHTML = team.code;
-                        teamDiv.classList.add('text-only');
-                    };
-                    teamDiv.appendChild(img);
-                } else {
-                    // Use text (for NFL/MLB or fallback)
-                    teamDiv.textContent = typeof team === 'object' ? team.code : team;
-                    teamDiv.classList.add('text-only');
-                }
-                
-                grid.appendChild(teamDiv);
-            });
-            
-            updateHeader();
-            updateStats();
-        }
-        
-        function toggleTeam(index) {
-            const teamDiv = document.querySelector(`[data-team-index="${index}"]`);
-            
-            if (soldTeams.has(index)) {
-                soldTeams.delete(index);
-                teamDiv.classList.remove('sold');
-            } else {
-                soldTeams.add(index);
-                teamDiv.classList.add('sold');
-            }
-            
-            updateStats();
-        }
-        
-        function updateStats() {
-            const currentBreak = breakTypes[currentBreakType];
-            const totalTeams = currentBreak.teams.length;
-            const soldCount = soldTeams.size;
-            const teamsLeft = totalTeams - soldCount;
-            
-            document.getElementById('teamsLeft').textContent = teamsLeft;
-            document.getElementById('teamsSold').textContent = soldCount;
-        }
-        
-        function updateHeader() {
-            const currentBreak = breakTypes[currentBreakType];
-            const headerText = `${currentBreak.icon} ${currentBreak.name} TEAM BREAK - ALL TEAMS AVAILABLE - $${currentBreak.price} PER TEAM`;
-            document.getElementById('headerText').innerHTML = headerText + '<div class="power-logo">Power</div>';
-        }
-        
-        function resetAll() {
-            soldTeams.clear();
-            document.querySelectorAll('.team').forEach(team => {
-                team.classList.remove('sold');
-            });
-            updateStats();
-        }
-        
-        function changeBreakType() {
-            const types = Object.keys(breakTypes);
-            const currentIndex = types.indexOf(currentBreakType);
-            const nextIndex = (currentIndex + 1) % types.length;
-            
-            currentBreakType = types[nextIndex];
-            
-            initializeGrid();
-        }
-        
-        // Initialize on load
-        initializeGrid();
-        
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'r' || e.key === 'R') {
-                resetAll();
-            } else if (e.key === 's' || e.key === 'S') {
-                changeBreakType();
-            }
-        });
-    </script>
+        row.appendChild(input);
+        soldListDiv.appendChild(row);
+      });
+    }
+    /* INIT + SHORTCUTS */
+    initializeGrid();
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'r' || event.key === 'R') {
+        resetAll();
+      } else if (event.key === 's' || event.key === 'S') {
+        changeBreakType();
+      }
+    });
+  </script>
 </body>
 </html>
+```
