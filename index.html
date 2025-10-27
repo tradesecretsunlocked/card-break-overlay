@@ -251,6 +251,7 @@ border-radius: 4px;
     return './';
   })();
   const imgPath = (f) => `${BASE}images/nba/${f}`;
+  const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
 
   // NBA teams with images
   const breakTypes = {
@@ -290,10 +291,40 @@ border-radius: 4px;
       ]
     },
     nfl: { name:'NFL', icon:'🏈', price:30, teams:[
-      'ARI','ATL','BAL','BUF','CAR','CHI','CIN','CLE','DAL','DEN','DET','GB',
-      'HOU','IND','JAX','KC','LV','LAC','LAR','MIA','MIN','NE','NO','NYG','NYJ',
-      'PHI','PIT','SF','SEA','TB','TEN','WAS'
-    ]},
+     { code: 'ARI', name: 'cardinals',  image: imgPathNFL('cardinals.png') },
+    { code: 'ATL', name: 'falcons',    image: imgPathNFL('falcons.png') },
+    { code: 'BAL', name: 'ravens',     image: imgPathNFL('ravens.png') },
+    { code: 'BUF', name: 'bills',      image: imgPathNFL('bills.png') },
+    { code: 'CAR', name: 'panthers',   image: imgPathNFL('panthers.png') },
+    { code: 'CHI', name: 'bears',      image: imgPathNFL('bears.png') },
+    { code: 'CIN', name: 'bengals',    image: imgPathNFL('bengals.png') },
+    { code: 'CLE', name: 'browns',     image: imgPathNFL('browns.png') },
+    { code: 'DAL', name: 'cowboys',    image: imgPathNFL('cowboys.png') },
+    { code: 'DEN', name: 'broncos',    image: imgPathNFL('broncos.png') },
+    { code: 'DET', name: 'lions',      image: imgPathNFL('lions.png') },
+    { code: 'GB',  name: 'packers',    image: imgPathNFL('packers.png') },
+    { code: 'HOU', name: 'texans',     image: imgPathNFL('texans.png') },
+    { code: 'IND', name: 'colts',      image: imgPathNFL('colts.png') },
+    { code: 'JAX', name: 'jaguars',    image: imgPathNFL('jaguars.png') },
+    { code: 'KC',  name: 'chiefs',     image: imgPathNFL('chiefs.png') },
+    { code: 'LV',  name: 'raiders',    image: imgPathNFL('raiders.png') },
+    { code: 'LAC', name: 'chargers',   image: imgPathNFL('chargers.png') },
+    { code: 'LAR', name: 'rams',       image: imgPathNFL('rams.png') },
+    { code: 'MIA', name: 'dolphins',   image: imgPathNFL('dolphins.png') },
+    { code: 'MIN', name: 'vikings',    image: imgPathNFL('vikings.png') },
+    { code: 'NE',  name: 'patriots',   image: imgPathNFL('patriots.png') },
+    { code: 'NO',  name: 'saints',     image: imgPathNFL('saints.png') },
+    { code: 'NYG', name: 'giants',     image: imgPathNFL('giants.png') },
+    { code: 'NYJ', name: 'jets',       image: imgPathNFL('jets.png') },
+    { code: 'PHI', name: 'eagles',     image: imgPathNFL('eagles.png') },
+    { code: 'PIT', name: 'steelers',   image: imgPathNFL('steelers.png') },
+    { code: 'SF',  name: '49ers',      image: imgPathNFL('49ers.png') },
+    { code: 'SEA', name: 'seahawks',   image: imgPathNFL('seahawks.png') },
+    { code: 'TB',  name: 'buccaneers', image: imgPathNFL('buccaneers.png') },
+    { code: 'TEN', name: 'titans',     image: imgPathNFL('titans.png') },
+    { code: 'WAS', name: 'commanders', image: imgPathNFL('commanders.png') }
+    ]
+  },
     mlb: { name:'MLB', icon:'⚾', price:20, teams:[
       'ARI','ATL','BAL','BOS','CHC','CWS','CIN','CLE','COL','DET','HOU','KC','LAA',
       'LAD','MIA','MIL','MIN','NYM','NYY','OAK','PHI','PIT','SD','SF','SEA','STL',
@@ -439,5 +470,81 @@ border-radius: 4px;
   // Init
   initializeGrid();
 </script>
+<script>
+  // ===== Real-time hookup (SSE) =====
+
+  // 1) Set your Render bridge URL
+  const STREAM_URL = "https://tsu-bridge.onrender.com/stream"; // <-- change to your Render URL
+
+  // 2) Auto Break ID: YYYY-MM-DD + "-" + sport (nba/nfl/mlb)
+  function getDatePart(d = new Date()) {
+    const pad = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+  function computeBreakId(sport) {
+    return `${getDatePart()}-${sport}`.toLowerCase();
+  }
+  function getCurrentBreakId() {
+    // recompute each load; matches the extension’s logic
+    return computeBreakId(currentBreakType || "nba");
+  }
+
+  // 3) Helpers to apply updates
+  function teamCodeToIndex(code) {
+    const t = breakTypes[currentBreakType].teams;
+    return t.findIndex(x => (x.code || x) === code);
+  }
+  function setBuyerForTeamCode(teamCode, buyerName) {
+    const idx = teamCodeToIndex(teamCode);
+    if (idx === -1) return;
+    if (!soldTeams.has(idx)) toggleTeam(idx);
+    const entry = soldTeamsList.find(e => e.index === idx);
+    if (entry) { entry.buyer = buyerName; updateSoldList(); }
+  }
+
+  // 4) Subscribe to SSE
+  let es;
+  function startSSE() {
+    es = new EventSource(STREAM_URL);
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        // Filter by today's break and sport
+        const myBreakId = getCurrentBreakId();
+        if (data.breakId !== myBreakId) return;
+        if (data.breakType !== currentBreakType) return;
+
+        if (data.type === "reset") {
+          resetAll();
+          return;
+        }
+        if (data.teamCode && data.buyerName) {
+          setBuyerForTeamCode(data.teamCode, data.buyerName);
+        }
+      } catch {}
+    };
+    es.onerror = () => {
+      es.close();
+      setTimeout(startSSE, 1500);
+    };
+  }
+  startSSE();
+
+  // 5) Optional: test helper from console
+  window.__postTestSale = async (teamCode="LAL", buyerName="PMM") => {
+    const payload = {
+      breakId: getCurrentBreakId(),
+      breakType: currentBreakType,
+      teamCode,
+      buyerName,
+      ts: Date.now()
+    };
+    await fetch("https://tsu-bridge.onrender.com/events", {
+      method:"POST", headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(payload)
+    });
+  };
+</script>
+
 </body>
 </html>
