@@ -482,8 +482,31 @@ border-radius: 4px;
   // ===== Real-time hookup (SSE) =====
 
   // 1) Set your Render bridge URL
-  const STREAM_URL = "https://tsu-bridge.onrender.com/stream"; // <-- change to your Render URL
+  // 1) Dynamic bridge selection
+function param(k){ return new URLSearchParams(location.search).get(k); }
 
+// Default to PROD bridge unless overridden
+const DEFAULT_BRIDGE = "https://tsu-bridge.onrender.com";
+
+const BRIDGE_BASE =
+  param("bridge") ||
+  localStorage.getItem("tsu.bridge.base") ||
+  DEFAULT_BRIDGE;
+
+const STREAM_URL = `${BRIDGE_BASE}/stream`;
+
+// helper uses same base
+window.__postTestSale = async (teamCode="LAL", buyerName="Tester") => {
+  await fetch(`${BRIDGE_BASE}/events`, {
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify({
+      breakId: getCurrentBreakId(),
+      breakType: currentBreakType,
+      teamCode, buyerName, ts: Date.now()
+    })
+  });
+};
   // 2) Auto Break ID: YYYY-MM-DD + "-" + sport (nba/nfl/mlb)
   function getDatePart(d = new Date()) {
     const pad = n => String(n).padStart(2, "0");
