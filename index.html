@@ -230,14 +230,16 @@ border-radius: 4px;
             <div class="stat-label">SOLD</div>
           </div>
         </div>
-        <div class="promo-box">
-          <div class="promo-label">High<br>Bid</div>
-          <div class="promo-dollar">$</div>
-          <input type="text" class="promo-input" placeholder="30">
-        </div>
-        <div class="promo-box">
-         <input type="text" class="promo-input-notes" placeholder="Inactive">
-        </div>
+        <div id="promoWrap">
+  <div class="promo-box">
+    <div class="promo-label">High<br>Bid</div>
+    <div class="promo-dollar">$</div>
+    <input type="text" class="promo-input" placeholder="30">
+  </div>
+  <div class="promo-box">
+    <input type="text" class="promo-input-notes" placeholder="Inactive">
+  </div>
+</div>
         <button class="btn" onclick="resetAll()">🔄 RESET BREAK</button>
         <button class="btn secondary" onclick="changeBreakType()">🔄 CHANGE SPORT</button>
       </div>
@@ -260,6 +262,7 @@ border-radius: 4px;
   })();
   const imgPath = (f) => `${BASE}images/nba/${f}`;
   const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+  const imgPathPKM = (f) => `${BASE}images/pkm/${f}`;
 
   // NBA teams with images
   const breakTypes = {
@@ -333,6 +336,22 @@ border-radius: 4px;
     { code: 'WAS', name: 'commanders', image: imgPathNFL('commanders.png') }
     ]
   },
+    pkm: {
+  name: 'POKÉMON', icon: '🧪', price: 0,  // price is cosmetic, ignore if you want
+  gridCols: 4,          // tell the grid to be 4x2 for 8 spots
+  soldCols: 2,          // sold list in 2 columns
+  teams: [
+    { code:'GRS', name:'grass',     image: imgPathPKM('grass.png') },
+    { code:'FIR', name:'fire',      image: imgPathPKM('fire.png') },
+    { code:'WAT', name:'water',     image: imgPathPKM('water.png') },
+    { code:'LIT', name:'lightning', image: imgPathPKM('lightning.png') },
+    { code:'PSY', name:'psychic',   image: imgPathPKM('psychic.png') },
+    { code:'FIG', name:'fighting',  image: imgPathPKM('fighting.png') },
+    { code:'DRK', name:'dark',      image: imgPathPKM('dark.png') },
+    { code:'MET', name:'metal',     image: imgPathPKM('metal.png') }
+   ]
+  },
+
     mlb: { name:'MLB', icon:'⚾', price:20, teams:[
       'ARI','ATL','BAL','BOS','CHC','CWS','CIN','CLE','COL','DET','HOU','KC','LAA',
       'LAD','MIA','MIL','MIN','NYM','NYY','OAK','PHI','PIT','SD','SF','SEA','STL',
@@ -348,6 +367,9 @@ border-radius: 4px;
     const grid = document.getElementById('teamsGrid');
     const currentBreak = breakTypes[currentBreakType];
     grid.innerHTML = '';
+    // dynamic columns: prefer per-break config, else default 6
+    const cols = currentBreak.gridCols || 6;
+    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     soldTeams.clear();
     soldTeamsList = [];
 
@@ -376,6 +398,7 @@ border-radius: 4px;
     updateHeader();
     updateStats();
     updateSoldList();
+    updateControlsForBreak();
   }
 
   function toggleTeam(index) {
@@ -420,57 +443,77 @@ border-radius: 4px;
   function changeBreakType() {
     const types = Object.keys(breakTypes);
     currentBreakType = types[(types.indexOf(currentBreakType) + 1) % types.length];
+    updateControlsForBreak();
+
     initializeGrid();
   }
 
   // Sold list: 3 columns of 10
   function updateSoldList() {
-    const soldListDiv = document.getElementById('soldList');
-    soldListDiv.innerHTML = '';
-    const currentBreak = breakTypes[currentBreakType];
-    const cols = 3;
-    let columns = Array.from({length: cols}, () => []);
+  const soldListDiv = document.getElementById('soldList');
+  soldListDiv.innerHTML = '';
+  const currentBreak = breakTypes[currentBreakType];
 
-    soldTeamsList.forEach((entry, i) => {
-      columns[i % cols].push(entry);
+  // choose columns: per-break override or auto by count
+  const total = soldTeamsList.length;
+  const cols = currentBreak.soldCols || (total > 20 ? 3 : total > 10 ? 2 : 1);
+
+  let columns = Array.from({ length: cols }, () => []);
+
+  soldTeamsList.forEach((entry, i) => {
+    columns[i % cols].push(entry);
+  });
+
+  columns.forEach(col => {
+    const colDiv = document.createElement('div');
+    colDiv.style.display = 'flex';
+    colDiv.style.flexDirection = 'column';
+
+    col.forEach(entry => {
+      const team = currentBreak.teams[entry.index];
+      const row = document.createElement('div');
+      row.className = 'sold-row';
+
+      if (team.image) {
+        const img = document.createElement('img');
+        img.src = team.image;
+        img.className = 'sold-team-img';
+        row.appendChild(img);
+      }
+
+      const name = document.createElement('span');
+      name.className = 'sold-team-name';
+      name.textContent = team.name || team.code;
+      row.appendChild(name);
+
+      const input = document.createElement('input');
+      input.className = 'sold-buyer-input';
+      input.type = 'text';
+      input.placeholder = 'Buyer name';
+      input.value = entry.buyer || '';
+      input.oninput = (e) => { entry.buyer = e.target.value; };
+      row.appendChild(input);
+
+      colDiv.appendChild(row);
     });
 
-    columns.forEach(col => {
-      const colDiv = document.createElement('div');
-      colDiv.style.display = 'flex';
-      colDiv.style.flexDirection = 'column';
-      col.forEach(entry => {
-        const team = currentBreak.teams[entry.index];
-        const row = document.createElement('div');
-        row.className = 'sold-row';
+    soldListDiv.appendChild(colDiv);
+  });
 
-        if (team.image) {
-          const img = document.createElement('img');
-          img.src = team.image;
-          img.className = 'sold-team-img';
-          row.appendChild(img);
-        }
-        const name = document.createElement('span');
-        name.className = 'sold-team-name';
-        name.textContent = team.name || team.code;
-        row.appendChild(name);
+  soldListDiv.style.display = 'grid';
+  soldListDiv.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  soldListDiv.style.gap = '6px 18px';
+}
 
-        const input = document.createElement('input');
-        input.className = 'sold-buyer-input';
-        input.type = 'text';
-        input.placeholder = 'Buyer name';
-        input.value = entry.buyer || '';
-        input.oninput = (e) => { entry.buyer = e.target.value; };
-        row.appendChild(input);
+function updateControlsForBreak() {
+  const wrap = document.getElementById('promoWrap');
+  const container = document.querySelector('.container');
+  const isPKM = currentBreakType === 'pkm';
 
-        colDiv.appendChild(row);
-      });
-      soldListDiv.appendChild(colDiv);
-    });
-    soldListDiv.style.display = 'grid';
-    soldListDiv.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    soldListDiv.style.gap = '6px 18px';
-  }
+  if (wrap) wrap.style.display = isPKM ? 'none' : 'flex';
+  // shorter container when only 8 slots
+  if (container) container.style.height = isPKM ? '260px' : '340px';
+}
 
   // No keyboard shortcuts!
   // (If you want to re-enable, add a similar event listener as before)
@@ -486,7 +529,7 @@ border-radius: 4px;
 function param(k){ return new URLSearchParams(location.search).get(k); }
 
 // Default to PROD bridge unless overridden
-const DEFAULT_BRIDGE = "https://tsu-bridge.onrender.com";
+//const DEFAULT_BRIDGE = "https://tsu-bridge.onrender.com";
 
 const BRIDGE_BASE =
   param("bridge") ||
