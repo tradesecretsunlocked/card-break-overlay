@@ -522,14 +522,14 @@ function updateControlsForBreak() {
   initializeGrid();
 </script>
 <script>
-  // ===== Real-time hookup (SSE) =====
+/* ===== Real-time hookup (SSE) ===== */
 
-  // 1) Set your Render bridge URL
-  // 1) Dynamic bridge selection
+/* 1) Dynamic bridge selection */
 function param(k){ return new URLSearchParams(location.search).get(k); }
 
-// Default to PROD bridge unless overridden
-//const DEFAULT_BRIDGE = "https://tsu-bridge.onrender.com";
+// Default to PROD bridge unless overridden.
+// For the dev overlay branch you can point this at dev if you want:
+const DEFAULT_BRIDGE = "https://tsu-bridge-dev.onrender.com";
 
 const BRIDGE_BASE =
   param("bridge") ||
@@ -538,88 +538,73 @@ const BRIDGE_BASE =
 
 const STREAM_URL = `${BRIDGE_BASE}/stream`;
 
-// helper uses same base
+/* 2) Auto Break ID: YYYY-MM-DD + "-" + sport (nba/nfl/mlb) */
+function getDatePart(d = new Date()) {
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function computeBreakId(sport) {
+  return `${getDatePart()}-${sport}`.toLowerCase();
+}
+function getCurrentBreakId() {
+  return computeBreakId(currentBreakType || "nba");
+}
+
+/* 3) Helpers to apply updates */
+function teamCodeToIndex(code) {
+  const t = breakTypes[currentBreakType].teams;
+  return t.findIndex(x => (x.code || x) === code);
+}
+function setBuyerForTeamCode(teamCode, buyerName) {
+  const idx = teamCodeToIndex(teamCode);
+  if (idx === -1) return;
+  if (!soldTeams.has(idx)) toggleTeam(idx);
+  const entry = soldTeamsList.find(e => e.index === idx);
+  if (entry) { entry.buyer = buyerName; updateSoldList(); }
+}
+
+/* 4) Subscribe to SSE */
+let es;
+function startSSE() {
+  es = new EventSource(STREAM_URL);
+  es.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      const myBreakId = getCurrentBreakId();
+      if (data.breakId !== myBreakId) return;
+      if (data.breakType !== currentBreakType) return;
+
+      if (data.type === "reset") {
+        resetAll();
+        return;
+      }
+      if (data.teamCode && data.buyerName) {
+        setBuyerForTeamCode(data.teamCode, data.buyerName);
+      }
+    } catch {}
+  };
+  es.onerror = () => {
+    es.close();
+    setTimeout(startSSE, 1500);
+  };
+}
+startSSE();
+
+/* 5) Single test helper — uses the same base as the overlay */
 window.__postTestSale = async (teamCode="LAL", buyerName="Tester") => {
+  const payload = {
+    breakId: getCurrentBreakId(),
+    breakType: currentBreakType,
+    teamCode,
+    buyerName,
+    ts: Date.now()
+  };
   await fetch(`${BRIDGE_BASE}/events`, {
     method: "POST",
     headers: { "Content-Type":"application/json" },
-    body: JSON.stringify({
-      breakId: getCurrentBreakId(),
-      breakType: currentBreakType,
-      teamCode, buyerName, ts: Date.now()
-    })
+    body: JSON.stringify(payload)
   });
 };
-  // 2) Auto Break ID: YYYY-MM-DD + "-" + sport (nba/nfl/mlb)
-  function getDatePart(d = new Date()) {
-    const pad = n => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  }
-  function computeBreakId(sport) {
-    return `${getDatePart()}-${sport}`.toLowerCase();
-  }
-  function getCurrentBreakId() {
-    // recompute each load; matches the extension’s logic
-    return computeBreakId(currentBreakType || "nba");
-  }
-
-  // 3) Helpers to apply updates
-  function teamCodeToIndex(code) {
-    const t = breakTypes[currentBreakType].teams;
-    return t.findIndex(x => (x.code || x) === code);
-  }
-  function setBuyerForTeamCode(teamCode, buyerName) {
-    const idx = teamCodeToIndex(teamCode);
-    if (idx === -1) return;
-    if (!soldTeams.has(idx)) toggleTeam(idx);
-    const entry = soldTeamsList.find(e => e.index === idx);
-    if (entry) { entry.buyer = buyerName; updateSoldList(); }
-  }
-
-  // 4) Subscribe to SSE
-  let es;
-  function startSSE() {
-    es = new EventSource(STREAM_URL);
-    es.onmessage = (e) => {
-      try {
-        const data = JSON.parse(e.data);
-        // Filter by today's break and sport
-        const myBreakId = getCurrentBreakId();
-        if (data.breakId !== myBreakId) return;
-        if (data.breakType !== currentBreakType) return;
-
-        if (data.type === "reset") {
-          resetAll();
-          return;
-        }
-        if (data.teamCode && data.buyerName) {
-          setBuyerForTeamCode(data.teamCode, data.buyerName);
-        }
-      } catch {}
-    };
-    es.onerror = () => {
-      es.close();
-      setTimeout(startSSE, 1500);
-    };
-  }
-  startSSE();
-
-  // 5) Optional: test helper from console
-  window.__postTestSale = async (teamCode="LAL", buyerName="PMM") => {
-    const payload = {
-      breakId: getCurrentBreakId(),
-      breakType: currentBreakType,
-      teamCode,
-      buyerName,
-      ts: Date.now()
-    };
-    await fetch("https://tsu-bridge-dev.onrender.com/events", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(payload)
-});
-
-  };
 </script>
 
 </body>
