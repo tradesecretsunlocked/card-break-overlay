@@ -1,6 +1,29 @@
 // ===== CONFIG =====
-const BRIDGE_ENDPOINT = "https://tsu-bridge.onrender.com/events"; // <-- your Render POST /events
-const DEFAULT_SPORT = "nba"; // switch to "nfl" or "mlb" when needed
+const CUSTOMER_CONFIG = {
+  powerCardShop: {
+    endpoint: "https://luccards-card-break-overlay.onrender.com/events",
+    key: "power-secret"
+  },
+  luxCards: {
+    endpoint: "https://tsu-bridge-luxcards.onrender.com/events",
+    key: "lux-secret"
+  },
+  pmms: {
+    endpoint: "https://tsu-bridge-pmm.onrender.com/events",
+    key: "pmms-secret"
+  },
+  dev: {
+    endpoint: "https://tsu-bridge-dev.onrender.com/events",
+    key: "dev-secret"
+  }
+};
+
+const DEFAULT_CUSTOMER = "pmm";
+const DEFAULT_SPORT = "nba";
+const STORAGE_CUSTOMER = "tsu.customer";
+const STORAGE_SPORT = "tsu.break.sport";
+
+
 
 // ===== Break ID: YYYY-MM-DD + "-" + sport =====
 function pad(n){ return String(n).padStart(2,"0"); }
@@ -10,9 +33,15 @@ function datePart(d=new Date()){
 function computeBreakId(sport){
   return `${datePart()}-${sport}`.toLowerCase();
 }
+function getCurrentCustomer(){
+  return localStorage.getItem(STORAGE_CUSTOMER) || DEFAULT_CUSTOMER;
+}
+function getBridgeConfig(){
+  const customer = getCurrentCustomer();
+  return CUSTOMER_CONFIG[customer] || CUSTOMER_CONFIG[DEFAULT_CUSTOMER];
+}
 function getCurrentBreakId(){
-  // You can override via localStorage if you want: localStorage.setItem("tsu.break.sport","nfl")
-  const sport = (localStorage.getItem("tsu.break.sport") || DEFAULT_SPORT).toLowerCase();
+  const sport = (localStorage.getItem(STORAGE_SPORT) || DEFAULT_SPORT).toLowerCase();
   return computeBreakId(sport);
 }
 
@@ -59,18 +88,25 @@ function extractBuyer(text){
 
 function postSale(teamCode, buyerName) {
   if (!teamCode || !buyerName) return;
+  const { endpoint, key } = getBridgeConfig();
+  if (!endpoint) return;
+
   const payload = {
     breakId: getCurrentBreakId(),
-    breakType: (localStorage.getItem("tsu.break.sport") || DEFAULT_SPORT).toLowerCase(),
+    breakType: (localStorage.getItem(STORAGE_SPORT) || DEFAULT_SPORT).toLowerCase(),
     teamCode,
     buyerName,
     ts: Date.now()
   };
-  fetch(BRIDGE_ENDPOINT, {
+
+  fetch(endpoint, {
     method: "POST",
-    headers: { "Content-Type":"application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(key ? { "x-bridge-key": key } : {})
+    },
     body: JSON.stringify(payload)
-  }).catch(()=>{});
+  }).catch(() => {});
 }
 
 // ===== MutationObserver to detect sales =====
