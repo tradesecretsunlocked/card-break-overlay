@@ -10,7 +10,7 @@ const CUSTOMER_CONFIG = {
   },
   pmms: {
     endpoint: "https://tsu-bridge-pmm.onrender.com/events",
-    key: "pmms-secret"
+    key: "f19df96fe5697f8be7d31edcb5da689a"
   },
   dev: {
     endpoint: "https://tsu-bridge-dev.onrender.com/events",
