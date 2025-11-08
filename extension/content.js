@@ -56,20 +56,48 @@ const TEAM_MAP = {
   blazers:"POR", kings:"SAC", spurs:"SAS", raptors:"TOR",
   jazz:"UTA", wizards:"WAS"
 };
-const CITY_HINTS = {
+const TEAM_FULL_NAMES = {
+  "atlanta hawks":"ATL",
+  "boston celtics":"BOS",
+  "brooklyn nets":"BKN",
+  "charlotte hornets":"CHA",
+  "chicago bulls":"CHI",
+  "cleveland cavaliers":"CLE",
+  "dallas mavericks":"DAL",
+  "denver nuggets":"DEN",
+  "detroit pistons":"DET",
+  "golden state warriors":"GSW",
+  "houston rockets":"HOU",
+  "indiana pacers":"IND",
+  "los angeles clippers":"LAC",
   "los angeles lakers":"LAL",
-  "golden state":"GSW",
+  "memphis grizzlies":"MEM",
+  "miami heat":"MIA",
+  "milwaukee bucks":"MIL",
+  "minnesota timberwolves":"MIN",
+  "new orleans pelicans":"NOP",
   "new york knicks":"NYK",
-  "new orleans":"NOP"
+  "oklahoma city thunder":"OKC",
+  "orlando magic":"ORL",
+  "philadelphia 76ers":"PHI",
+  "phoenix suns":"PHX",
+  "portland trail blazers":"POR",
+  "sacramento kings":"SAC",
+  "san antonio spurs":"SAS",
+  "toronto raptors":"TOR",
+  "utah jazz":"UTA",
+  "washington wizards":"WAS"
 };
 
 function normalizeTeam(text){
+  if (!text) return null;
   const t = text.toLowerCase();
+  const cleaned = t.replace(/[^a-z0-9\s]/g," ").replace(/\s+/g," ").trim();
   for (const [name, code] of Object.entries(TEAM_MAP)) {
     if (t.includes(name)) return code;
   }
-  for (const [phrase, code] of Object.entries(CITY_HINTS)) {
-    if (t.includes(phrase)) return code;
+  for (const [phrase, code] of Object.entries(TEAM_FULL_NAMES)) {
+    if (cleaned.includes(phrase)) return code;
   }
   return null;
 }
