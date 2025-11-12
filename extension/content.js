@@ -1,12 +1,12 @@
 // ===== CONFIG =====
 const CUSTOMER_CONFIG = {
   powerCardShop: {
-    endpoint: "https://luccards-card-break-overlay.onrender.com/events",
+    endpoint: "https://tsu-bridge.onrender.com/events",
     key: "power-secret"
   },
   luxCards: {
-    endpoint: "https://tsu-bridge-luxcards.onrender.com/events",
-    key: "lux-secret"
+    endpoint: "https://luccards-card-break-overlay.onrender.com/events",
+    key: "a13b15c01bbe510f4e265df17be58096"
   },
   pmms: {
     endpoint: "https://tsu-bridge-pmm.onrender.com/events",
@@ -14,7 +14,7 @@ const CUSTOMER_CONFIG = {
   },
   dev: {
     endpoint: "https://tsu-bridge-dev.onrender.com/events",
-    key: "dev-secret"
+    key: "714d51bd94575ee7aa0186c86b84d5e0"
   }
 };
 
