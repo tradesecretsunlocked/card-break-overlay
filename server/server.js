@@ -5,6 +5,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const BRIDGE_KEY = process.env.BRIDGE_KEY || "";
+function assertBridgeKey(req, res, next) {
+  if (!BRIDGE_KEY) return next();                // let it run open if no key set
+  const key = req.get("x-bridge-key");
+  if (key && key === BRIDGE_KEY) return next();
+  return res.status(401).json({ error: "invalid bridge key" });
+}
+
 /**
  * SSE client pool
  */
@@ -25,7 +33,7 @@ app.get("/stream", (req, res) => {
  * Expected body:
  * { breakId, breakType, teamCode, buyerName, ts, type? }
  */
-app.post("/events", (req, res) => {
+app.post("/events", assertBridgeKey, (req, res) => {
   const event = req.body || {};
   const payload = `data: ${JSON.stringify(event)}\n\n`;
   for (const c of clients) c.write(payload);
@@ -36,7 +44,7 @@ app.post("/events", (req, res) => {
  * Optional reset endpoint (lets you fire a reset from anywhere)
  * Body: { breakId, breakType, type: "reset" }
  */
-app.post("/reset", (req, res) => {
+app.post("/reset", assertBridgeKey, (req, res) => {
   const event = { ...req.body, type: "reset", ts: Date.now() };
   const payload = `data: ${JSON.stringify(event)}\n\n`;
   for (const c of clients) c.write(payload);
