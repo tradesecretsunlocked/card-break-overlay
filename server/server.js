@@ -35,6 +35,12 @@ app.get("/stream", (req, res) => {
  */
 app.post("/events", assertBridgeKey, (req, res) => {
   const event = req.body || {};
+  console.log("POST /events", {
+    breakId: event.breakId,
+    breakType: event.breakType,
+    teamCode: event.teamCode,
+    buyerName: event.buyerName
+  });
   const payload = `data: ${JSON.stringify(event)}\n\n`;
   for (const c of clients) c.write(payload);
   res.json({ ok: true });
@@ -46,6 +52,7 @@ app.post("/events", assertBridgeKey, (req, res) => {
  */
 app.post("/reset", assertBridgeKey, (req, res) => {
   const event = { ...req.body, type: "reset", ts: Date.now() };
+  console.log("POST /reset", { breakId: event.breakId, breakType: event.breakType });
   const payload = `data: ${JSON.stringify(event)}\n\n`;
   for (const c of clients) c.write(payload);
   res.json({ ok: true });
