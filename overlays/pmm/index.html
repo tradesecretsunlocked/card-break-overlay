@@ -283,19 +283,13 @@ border-radius: 4px;
     <div id="soldList" class="sold-list-grid"></div>
   </div>
 <script>
-  // Dynamic base path for images (works on GitHub Pages, local, OBS)
-  const BASE = (() => {
-    const isGhPages = location.hostname.endsWith('github.io');
-    if (isGhPages) {
-      const parts = location.pathname.split('/').filter(Boolean);
-      const repo = parts.length ? parts[0] : '';
-      return `/${repo}/`;
-    }
-    return './';
-  })();
-  const imgPath = (f) => `${BASE}images/nba/${f}`;
-  const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
-  const imgPathPKM = (f) => `${BASE}images/pkm/${f}`;
+
+// Images live in /images at repo root.
+// Overlays are in /overlays/<client>/, so go up two levels.
+const imgPath     = (f) => `../../images/nba/${f}`;
+const imgPathNFL  = (f) => `../../images/nfl/${f}`;
+const imgPathPKM  = (f) => `../../images/pkm/${f}`;
+const imgPathMLB  = (f) => `../../images/mlb/${f}`;
 
   // NBA teams with images
   const breakTypes = {
@@ -385,13 +379,43 @@ border-radius: 4px;
    ]
   },
 
-    mlb: { name:'MLB', icon:'⚾', price:20, teams:[
-      'ARI','ATL','BAL','BOS','CHC','CWS','CIN','CLE','COL','DET','HOU','KC','LAA',
-      'LAD','MIA','MIL','MIN','NYM','NYY','OAK','PHI','PIT','SD','SF','SEA','STL',
-      'TB','TEX','TOR','WAS'
-    ]}
-  };
-
+  mlb: {
+        name: 'MLB',
+        icon: '⚾',
+        teams: [
+          { code: 'ARI', name: 'diamondbacks', image: imgPathMLB('diamondbacks.png') },
+          { code: 'ATL', name: 'braves',        image: imgPathMLB('braves.png') },
+          { code: 'BAL', name: 'orioles',       image: imgPathMLB('orioles.png') },
+          { code: 'BOS', name: 'red sox',       image: imgPathMLB('redsox.png') },
+          { code: 'CHC', name: 'cubs',          image: imgPathMLB('cubs.png') },
+          { code: 'CWS', name: 'white sox',     image: imgPathMLB('whitesox.png') },
+          { code: 'CIN', name: 'reds',          image: imgPathMLB('reds.png') },
+          { code: 'CLE', name: 'guardians',     image: imgPathMLB('guardians.png') },
+          { code: 'COL', name: 'rockies',       image: imgPathMLB('rockies.png') },
+          { code: 'DET', name: 'tigers',        image: imgPathMLB('tigers.png') },
+          { code: 'HOU', name: 'astros',        image: imgPathMLB('astros.png') },
+          { code: 'KC',  name: 'royals',        image: imgPathMLB('royals.png') },
+          { code: 'LAA', name: 'angels',        image: imgPathMLB('angels.png') },
+          { code: 'LAD', name: 'dodgers',       image: imgPathMLB('dodgers.png') },
+          { code: 'MIA', name: 'marlins',       image: imgPathMLB('marlins.png') },
+          { code: 'MIL', name: 'brewers',       image: imgPathMLB('brewers.png') },
+          { code: 'MIN', name: 'twins',         image: imgPathMLB('twins.png') },
+          { code: 'NYM', name: 'mets',          image: imgPathMLB('mets.png') },
+          { code: 'NYY', name: 'yankees',       image: imgPathMLB('yankees.png') },
+          { code: 'OAK', name: 'athletics',     image: imgPathMLB('athletics.png') },
+          { code: 'PHI', name: 'phillies',      image: imgPathMLB('phillies.png') },
+          { code: 'PIT', name: 'pirates',       image: imgPathMLB('pirates.png') },
+          { code: 'SD',  name: 'padres',        image: imgPathMLB('padres.png') },
+          { code: 'SF',  name: 'giants',        image: imgPathMLB('giants.png') },
+          { code: 'SEA', name: 'mariners',      image: imgPathMLB('mariners.png') },
+          { code: 'STL', name: 'cardinals',     image: imgPathMLB('cardinals.png') },
+          { code: 'TB',  name: 'rays',          image: imgPathMLB('rays.png') },
+          { code: 'TEX', name: 'rangers',       image: imgPathMLB('rangers.png') },
+          { code: 'TOR', name: 'blue jays',     image: imgPathMLB('bluejays.png') },
+          { code: 'WAS', name: 'nationals',     image: imgPathMLB('nationals.png') }
+        ]
+      }
+  }
   let currentBreakType = 'nba';
   let soldTeams = new Set();
   let soldTeamsList = [];
@@ -554,6 +578,12 @@ const BRIDGE_BASE =
   localStorage.getItem("tsu.bridge.base") ||
   DEFAULT_BRIDGE;
 
+  // NEW: key support
+const BRIDGE_KEY =
+  param("key") ||
+  localStorage.getItem("tsu.bridge.key") ||
+  "";
+
 const STREAM_URL = `${BRIDGE_BASE}/stream`;
 
 /* 2) Auto Break ID: YYYY-MM-DD + "-" + sport (nba/nfl/mlb) */
@@ -617,9 +647,12 @@ window.__postTestSale = async (teamCode="LAL", buyerName="Tester") => {
     buyerName,
     ts: Date.now()
   };
-  await fetch(`${BRIDGE_BASE}/events`, {
+await fetch(`${BRIDGE_BASE}/events`, {
     method: "POST",
-    headers: { "Content-Type":"application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(BRIDGE_KEY ? { "x-bridge-key": BRIDGE_KEY } : {})
+    },
     body: JSON.stringify(payload)
   });
 };
@@ -649,3 +682,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
 </body>
 </html>
+https://card-break-overlay.onrender.com/overlays/pmm/index.html?bridge=https://tsu-bridge-pmm.onrender.com&key=a13b15c01bbe510f4e265df17be58096

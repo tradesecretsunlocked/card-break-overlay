@@ -15,6 +15,10 @@ const CUSTOMER_CONFIG = {
   dev: {
     endpoint: "https://tsu-bridge-dev.onrender.com/events",
     key: "714d51bd94575ee7aa0186c86b84d5e0"
+  },
+  lenhart: {
+    endpoint: "https://tsu-bridge-lenhart.onrender.com/events",
+    key: "0caf969c504e843aaec8144d9001399a"
   }
 };
 
@@ -198,15 +202,32 @@ function normalizeTeam(text){
   return null;
 }
 
+// ===== Improved Buyer & Team Extraction =====
+
 function extractBuyer(text){
-  // Try common patterns: "purchased by USER", "won by @USER"
-  // Adjust as the Whatnot UI changes
-  const m1 = text.match(/purchased by\s+(@?[A-Za-z0-9_]+)/i);
-  if (m1) return m1[1].replace(/^@/,"");
-  const m2 = text.match(/won by\s+(@?[A-Za-z0-9_]+)/i);
-  if (m2) return m2[1].replace(/^@/,"");
-  const m3 = text.match(/buyer:\s*(@?[A-Za-z0-9_]+)/i);
-  if (m3) return m3[1].replace(/^@/,"");
+  const re = /\b(?:purchased by|won by|buyer:)\s*@?([a-z0-9._-]{2,})\b/i;
+  const m = text.match(re);
+  return m ? m[1] : null;
+}
+
+function normalizeTeam(text){
+  if (!text) return null;
+
+  const raw = text.toLowerCase();
+  const cleaned = raw.replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  const sport = getActiveSport();
+  const shortMap = TEAM_MAP[sport] || TEAM_MAP[DEFAULT_SPORT];
+  const fullMap  = TEAM_FULL_NAMES[sport] || TEAM_FULL_NAMES[DEFAULT_SPORT];
+
+  for (const [phrase, code] of Object.entries(fullMap)) {
+    if (cleaned.includes(phrase)) return code;
+  }
+
+  for (const [name, code] of Object.entries(shortMap)) {
+    const re = new RegExp(`\\b${name}\\b`, "i");
+    if (re.test(cleaned)) return code;
+  }
+
   return null;
 }
 
@@ -223,6 +244,8 @@ function postSale(teamCode, buyerName) {
     ts: Date.now()
   };
 
+  console.log("[TSU Bridge] posting sale", payload);
+
   fetch(endpoint, {
     method: "POST",
     headers: {
@@ -230,47 +253,60 @@ function postSale(teamCode, buyerName) {
       ...(key ? { "x-bridge-key": key } : {})
     },
     body: JSON.stringify(payload)
-  }).catch(() => {});
+  }).catch(err => {
+    console.warn("[TSU Bridge] fetch error", err);
+  });
 }
 
-// ===== MutationObserver to detect sales =====
-// You will need to tweak selectors once while looking at the live DOM.
-// Start with wide net, then narrow down.
+// ===== Improved MutationObserver =====
 
-const seen = new Set();
-function processNode(el){
+const seenKeys = [];
+const MAX_SEEN = 200;
+
+function markSeen(k){
+  seenKeys.push(k);
+  if (seenKeys.length > MAX_SEEN) seenKeys.shift();
+}
+function isSeen(k){ return seenKeys.includes(k); }
+
+function processTextNode(el){
   const text = (el.textContent || "").trim();
   if (!text) return;
 
-  // de-dup spammy toasts
-  const key = text.slice(0,200);
-  if (seen.has(key)) return;
-  seen.add(key);
+  if (!/purchased by|won by|buyer:/i.test(text)) return;
+
+  const key = text.slice(0, 200);
+  if (isSeen(key)) return;
 
   const buyer = extractBuyer(text);
   const code  = normalizeTeam(text);
 
-  if (buyer && code) postSale(code, buyer);
+  console.log("[TSU Bridge] candidate text:", { text, buyer, code });
+
+  if (buyer && code) {
+    markSeen(key);
+    postSale(code, buyer);
+  }
 }
 
 const obs = new MutationObserver((mutations) => {
   for (const m of mutations) {
-    if (m.addedNodes) {
-      m.addedNodes.forEach(n => {
+    if (m.type === "childList") {
+      m.addedNodes?.forEach(n => {
         if (n.nodeType === 1) {
-          // likely sale toast / order row / chat line
-          if (
-            n.matches?.("[data-test-id*=sale], .sale-toast, .toast, [data-test-id*=order-row], .order-row, .chat-line, [role=alert]")
-            || n.querySelector?.("[data-test-id*=sale], .sale-toast, .toast, [data-test-id*=order-row], .order-row, .chat-line, [role=alert]")
-          ) {
-            processNode(n);
-          }
+          processTextNode(n);
+        } else if (n.nodeType === 3) {
+          processTextNode(n.parentElement || document.body);
         }
       });
+    }
+    if (m.type === "characterData") {
+      processTextNode(m.target.parentElement || document.body);
     }
   }
 });
 
 if (document.body) {
+  console.log("[TSU Bridge] content.js loaded, starting observer");
   obs.observe(document.body, { subtree:true, childList:true, characterData:true });
 }
