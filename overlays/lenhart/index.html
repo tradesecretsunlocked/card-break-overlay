@@ -550,12 +550,12 @@
   // ===== SSE hookup (same as other overlays, dev by default) =====
   function param(k){ return new URLSearchParams(location.search).get(k); }
 
-  const DEFAULT_BRIDGE = "https://tsu-bridge-dev.onrender.com";
+  const DEFAULT_BRIDGE = "https://tsu-bridge-lenhart.onrender.com";
 
   const BRIDGE_BASE =
     param("bridge") ||
     localStorage.getItem("tsu.bridge.base") ||
-    DEFAULT_BRIDGE;
+    "0caf969c504e843aaec8144d9001399a";
 
   const STREAM_URL = `${BRIDGE_BASE}/stream`;
 
@@ -614,26 +614,42 @@
   startSSE();
 
   // quick manual test helper in console
-  window.__postTestSale = async (teamCode="TEN", buyerName="Tester") => {
-    const payload = {
-      breakId: getCurrentBreakId(),
-      breakType: currentBreakType,
-      teamCode,
-      buyerName,
-      ts: Date.now()
-    };
-    await fetch(`${BRIDGE_BASE}/events`, {
-      method: "POST",
-      headers: { "Content-Type":"application/json" },
-      body: JSON.stringify(payload)
-    });
+window.__postTestSale = async (teamCode="LAL", buyerName="Tester") => {
+  const payload = {
+    breakId: getCurrentBreakId(),
+    breakType: currentBreakType,
+    teamCode,
+    buyerName,
+    ts: Date.now()
   };
-
-  document.addEventListener("DOMContentLoaded", () => {
-    if (isDevBridge()) {
-      document.body.style.outline = "0px solid #60a5fa";
-    }
+  await fetch(`${BRIDGE_BASE}/events`, {
+    method: "POST",
+    headers: { "Content-Type":"application/json" },
+    body: JSON.stringify(payload)
   });
+};
+</script>
+<script>
+function getDatePart(d = new Date()) {
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function isDevBridge() {
+  try { return BRIDGE_BASE.includes("-dev."); } catch { return false; }
+}
+function computeBreakId(sport) {
+  const base = `${getDatePart()}-${sport}`.toLowerCase();
+  return isDevBridge() ? `${base}-dev` : base;
+}
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  if (isDevBridge()) {
+    const h = document.getElementById("headerText");
+    if (h && !h.textContent.includes("[DEV]")) h.textContent = "" + h.textContent;
+    document.body.style.outline = "0px solid #8b5cf6"; // tasteful purple guilt trip
+  }
+});
 </script>
 </body>
 </html>
