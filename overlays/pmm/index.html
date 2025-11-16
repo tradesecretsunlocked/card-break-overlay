@@ -578,11 +578,6 @@ const BRIDGE_BASE =
   localStorage.getItem("tsu.bridge.base") ||
   DEFAULT_BRIDGE;
 
-  // NEW: key support
-const BRIDGE_KEY =
-  param("key") ||
-  localStorage.getItem("tsu.bridge.key") ||
-  "f19df96fe5697f8be7d31edcb5da689a";
 
 const STREAM_URL = `${BRIDGE_BASE}/stream`;
 
@@ -647,11 +642,16 @@ window.__postTestSale = async (teamCode="LAL", buyerName="Tester") => {
     buyerName,
     ts: Date.now()
   };
-await fetch(`${BRIDGE_BASE}/events`, {
+  const TEST_KEY =
+    param("key") ||
+    localStorage.getItem("tsu.bridge.key") ||
+    "f19df96fe5697f8be7d31edcb5da689a"; // Lenhart key
+
+  await fetch(`${BRIDGE_BASE}/events`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(BRIDGE_KEY ? { "x-bridge-key": BRIDGE_KEY } : {})
+      ...(TEST_KEY ? { "x-bridge-key": TEST_KEY } : {})
     },
     body: JSON.stringify(payload)
   });

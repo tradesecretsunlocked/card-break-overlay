@@ -648,12 +648,22 @@ window.__postTestSale = async (teamCode="LAL", buyerName="Tester") => {
     buyerName,
     ts: Date.now()
   };
+  
+  const TEST_KEY =
+    param("key") ||
+    localStorage.getItem("tsu.bridge.key") ||
+    "f19df96fe5697f8be7d31edcb5da689a"; // PMM key
+
   await fetch(`${BRIDGE_BASE}/events`, {
     method: "POST",
-    headers: { "Content-Type":"application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(TEST_KEY ? { "x-bridge-key": TEST_KEY } : {})
+    },
     body: JSON.stringify(payload)
   });
 };
+
 </script>
 <script>
 function getDatePart(d = new Date()) {

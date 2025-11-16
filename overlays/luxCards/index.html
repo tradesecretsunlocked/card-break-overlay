@@ -620,7 +620,7 @@ const DEFAULT_BRIDGE = "https://luccards-card-break-overlay.onrender.com";
 const BRIDGE_BASE =
   param("bridge") ||
   localStorage.getItem("tsu.bridge.base") ||
-  "a13b15c01bbe510f4e265df17be58096";
+  DEFAULT_BRIDGE;
 
 const STREAM_URL = `${BRIDGE_BASE}/stream`;
 
@@ -629,6 +629,9 @@ function getDatePart(d = new Date()) {
   const pad = n => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
+function isDevBridge() {
+    try { return BRIDGE_BASE.includes("-dev."); } catch { return false; }
+  }
 function computeBreakId(sport) {
   return `${getDatePart()}-${sport}`.toLowerCase();
 }
