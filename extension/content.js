@@ -22,8 +22,8 @@ const CUSTOMER_CONFIG = {
   }
 };
 
-const DEFAULT_CUSTOMER = "luxCards";
-const DEFAULT_SPORT = "nba";
+const DEFAULT_CUSTOMER = "lenhart";
+const DEFAULT_SPORT = "mlb";
 const STORAGE_CUSTOMER = "tsu.customer";
 const STORAGE_SPORT = "tsu.break.sport";
 
