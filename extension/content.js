@@ -1,4 +1,9 @@
-// ===== CONFIG =====
+// ===========================================================
+//  TSU WHATNOT SALE BRIDGE — FULL REWRITE (Overlay-Synced)
+//  Version: PMM v1.0 — Stable, Fuzzy Matching, Multi-Sport
+// ===========================================================
+
+// -------- CONFIG --------
 const CUSTOMER_CONFIG = {
   powerCardShop: {
     endpoint: "https://tsu-bridge.onrender.com/events",
@@ -23,132 +28,213 @@ const CUSTOMER_CONFIG = {
 };
 
 const DEFAULT_CUSTOMER = "lenhart";
-const DEFAULT_SPORT = "mlb";
 const STORAGE_CUSTOMER = "tsu.customer";
-const STORAGE_SPORT = "tsu.break.sport";
+const STORAGE_SPORT = "tsu.break.sport"; // fallback ONLY
 
+// Debug toggle
+const DEBUG = true;
+function log(...a) { if (DEBUG) console.log("[TSU Bridge]", ...a); }
 
+// -------- SPORT SYNC (Overlay controls sport) --------
+function getActiveSport() {
+  try {
+    if (window.getTSUSport) {
+      const s = window.getTSUSport();
+      if (s) return s.toLowerCase();
+    }
+  } catch {}
 
-// ===== Break ID: YYYY-MM-DD + "-" + sport =====
-function pad(n){ return String(n).padStart(2,"0"); }
-function datePart(d=new Date()){
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  // fallback only if overlay is not visible
+  return (localStorage.getItem(STORAGE_SPORT) || "nfl").toLowerCase();
 }
-function computeBreakId(sport){
+
+// -------- DATE / BREAK ID --------
+function pad(n) { return String(n).padStart(2, "0"); }
+function datePart(d = new Date()) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+function computeBreakId(sport) {
   return `${datePart()}-${sport}`.toLowerCase();
 }
-function getCurrentCustomer(){
-  return localStorage.getItem(STORAGE_CUSTOMER) || DEFAULT_CUSTOMER;
-}
-function getBridgeConfig(){
-  const customer = getCurrentCustomer();
-  return CUSTOMER_CONFIG[customer] || CUSTOMER_CONFIG[DEFAULT_CUSTOMER];
-}
-function getCurrentBreakId(){
-  const sport = (localStorage.getItem(STORAGE_SPORT) || DEFAULT_SPORT).toLowerCase();
-  return computeBreakId(sport);
+function getCurrentBreakId() {
+  return computeBreakId(getActiveSport());
 }
 
-// ===== Mapping team names in listing titles to overlay codes =====
-const TEAM_MAP = {
-  nba: {
-    hawks:"ATL", celtics:"BOS", nets:"BKN", hornets:"CHA", bulls:"CHI",
-    cavaliers:"CLE", mavericks:"DAL", nuggets:"DEN", pistons:"DET",
-    warriors:"GSW", rockets:"HOU", pacers:"IND", clippers:"LAC",
-    lakers:"LAL", grizzlies:"MEM", heat:"MIA", bucks:"MIL",
-    timberwolves:"MIN", pelicans:"NOP", knicks:"NYK", thunder:"OKC",
-    magic:"ORL", "76ers":"PHI", sixers:"PHI", suns:"PHX",
-    blazers:"POR", kings:"SAC", spurs:"SAS", raptors:"TOR",
-    jazz:"UTA", wizards:"WAS"
-  },
-  nfl: {
-    cardinals:"ARI", cards:"ARI", falcons:"ATL", ravens:"BAL", bills:"BUF",
-    panthers:"CAR", bears:"CHI", bengals:"CIN", browns:"CLE", cowboys:"DAL",
-    broncos:"DEN", lions:"DET", packers:"GB", texans:"HOU", colts:"IND",
-    jaguars:"JAX", jags:"JAX", chiefs:"KC", raiders:"LV", chargers:"LAC",
-    rams:"LAR", dolphins:"MIA", vikings:"MIN", patriots:"NE", pats:"NE",
-    saints:"NO", giants:"NYG", jets:"NYJ", eagles:"PHI", steelers:"PIT",
-    niners:"SF", "49ers":"SF", seahawks:"SEA", buccaneers:"TB", bucs:"TB",
-    titans:"TEN", commanders:"WAS", skins:"WAS"
-  },
-  mlb: {
-    diamondbacks:"ARI", dbacks:"ARI", braves:"ATL", orioles:"BAL", sox:"BOS",
-    "red sox":"BOS", cubs:"CHC", "white sox":"CWS", reds:"CIN", guardians:"CLE",
-    rockies:"COL", tigers:"DET", astros:"HOU", royals:"KC", angels:"LAA",
-    dodgers:"LAD", marlins:"MIA", brewers:"MIL", twins:"MIN", mets:"NYM",
-    yankees:"NYY", athletics:"OAK", phillies:"PHI", pirates:"PIT",
-    padres:"SD", giants:"SF", mariners:"SEA", cardinals:"STL", rays:"TB",
-    rangers:"TEX", "blue jays":"TOR", jays:"TOR", nationals:"WAS"
+// -------- BRIDGE CONFIG --------
+function getCurrentCustomer() {
+  return localStorage.getItem(STORAGE_CUSTOMER) || DEFAULT_CUSTOMER;
+}
+function getBridgeConfig() {
+  const c = getCurrentCustomer();
+  return CUSTOMER_CONFIG[c] || CUSTOMER_CONFIG[DEFAULT_CUSTOMER];
+}
+
+// ===========================================================
+//  SANITIZATION HELPERS
+// ===========================================================
+
+// Remove emojis, symbols, funky unicode
+function cleanText(raw) {
+  if (!raw) return "";
+
+  return raw
+    .normalize("NFKD")
+    .replace(/[\u{1F300}-\u{1FAFF}]/gu, " ")     // emojis
+    .replace(/[^\w\s]/g, " ")                    // punctuation
+    .replace(/[\u0300-\u036f]/g, "")             // accents
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+// Mild Levenshtein distance
+function editDistance(a, b) {
+  if (!a || !b) return 99;
+  const dp = Array.from({ length: a.length + 1 }, () =>
+    new Array(b.length + 1).fill(0)
+  );
+
+  for (let i = 0; i <= a.length; i++) dp[i][0] = i;
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,
+        dp[i][j - 1] + 1,
+        dp[i - 1][j - 1] + cost,
+      );
+    }
   }
-};
-const TEAM_FULL_NAMES = {
-  nba: {
-    "atlanta hawks":"ATL",
-    "boston celtics":"BOS",
-    "brooklyn nets":"BKN",
-    "charlotte hornets":"CHA",
-    "chicago bulls":"CHI",
-    "cleveland cavaliers":"CLE",
-    "dallas mavericks":"DAL",
-    "denver nuggets":"DEN",
-    "detroit pistons":"DET",
-    "golden state warriors":"GSW",
-    "houston rockets":"HOU",
-    "indiana pacers":"IND",
-    "los angeles clippers":"LAC",
-    "los angeles lakers":"LAL",
-    "memphis grizzlies":"MEM",
-    "miami heat":"MIA",
-    "milwaukee bucks":"MIL",
-    "minnesota timberwolves":"MIN",
-    "new orleans pelicans":"NOP",
-    "new york knicks":"NYK",
-    "oklahoma city thunder":"OKC",
-    "orlando magic":"ORL",
-    "philadelphia 76ers":"PHI",
-    "phoenix suns":"PHX",
-    "portland trail blazers":"POR",
-    "sacramento kings":"SAC",
-    "san antonio spurs":"SAS",
-    "toronto raptors":"TOR",
-    "utah jazz":"UTA",
-    "washington wizards":"WAS"
-  },
+  return dp[a.length][b.length];
+}
+
+// ===========================================================
+//  TEAM MAPS (Short names, full names, codes)
+// ===========================================================
+const TEAM_DATA = {
   nfl: {
-    "arizona cardinals":"ARI",
-    "atlanta falcons":"ATL",
-    "baltimore ravens":"BAL",
-    "buffalo bills":"BUF",
-    "carolina panthers":"CAR",
-    "chicago bears":"CHI",
-    "cincinnati bengals":"CIN",
-    "cleveland browns":"CLE",
-    "dallas cowboys":"DAL",
-    "denver broncos":"DEN",
-    "detroit lions":"DET",
-    "green bay packers":"GB",
-    "houston texans":"HOU",
-    "indianapolis colts":"IND",
-    "jacksonville jaguars":"JAX",
-    "kansas city chiefs":"KC",
-    "las vegas raiders":"LV",
-    "los angeles chargers":"LAC",
-    "los angeles rams":"LAR",
-    "miami dolphins":"MIA",
-    "minnesota vikings":"MIN",
-    "new england patriots":"NE",
-    "new orleans saints":"NO",
-    "new york giants":"NYG",
-    "new york jets":"NYJ",
-    "philadelphia eagles":"PHI",
-    "pittsburgh steelers":"PIT",
-    "san francisco 49ers":"SF",
-    "seattle seahawks":"SEA",
-    "tampa bay buccaneers":"TB",
-    "tennessee titans":"TEN",
-    "washington commanders":"WAS"
+    codes: [
+      "ARI","ATL","BAL","BUF","CAR","CHI","CIN","CLE","DAL","DEN","DET","GB",
+      "HOU","IND","JAX","KC","LV","LAC","LAR","MIA","MIN","NE","NO","NYG","NYJ",
+      "PHI","PIT","SF","SEA","TB","TEN","WAS"
+    ],
+    short: {
+      cardinals:"ARI", cards:"ARI",
+      falcons:"ATL",
+      ravens:"BAL",
+      bills:"BUF",
+      panthers:"CAR",
+      bears:"CHI",
+      bengals:"CIN",
+      browns:"CLE",
+      cowboys:"DAL",
+      broncos:"DEN",
+      lions:"DET", lion:"DET", lionz:"DET",
+      packers:"GB",
+      texans:"HOU",
+      colts:"IND",
+      jaguars:"JAX", jags:"JAX",
+      chiefs:"KC",
+      raiders:"LV",
+      chargers:"LAC",
+      rams:"LAR",
+      dolphins:"MIA",
+      vikings:"MIN",
+      patriots:"NE", pats:"NE",
+      saints:"NO",
+      giants:"NYG",
+      jets:"NYJ",
+      eagles:"PHI",
+      steelers:"PIT",
+      niners:"SF", "49ers":"SF",
+      seahawks:"SEA",
+      buccaneers:"TB", bucs:"TB",
+      titans:"TEN",
+      commanders:"WAS", skins:"WAS"
+    },
+    full: {
+      "arizona cardinals":"ARI",
+      "atlanta falcons":"ATL",
+      "baltimore ravens":"BAL",
+      "buffalo bills":"BUF",
+      "carolina panthers":"CAR",
+      "chicago bears":"CHI",
+      "cincinnati bengals":"CIN",
+      "cleveland browns":"CLE",
+      "dallas cowboys":"DAL",
+      "denver broncos":"DEN",
+      "detroit lions":"DET",
+      "green bay packers":"GB",
+      "houston texans":"HOU",
+      "indianapolis colts":"IND",
+      "jacksonville jaguars":"JAX",
+      "kansas city chiefs":"KC",
+      "las vegas raiders":"LV",
+      "los angeles chargers":"LAC",
+      "los angeles rams":"LAR",
+      "miami dolphins":"MIA",
+      "minnesota vikings":"MIN",
+      "new england patriots":"NE",
+      "new orleans saints":"NO",
+      "new york giants":"NYG",
+      "new york jets":"NYJ",
+      "philadelphia eagles":"PHI",
+      "pittsburgh steelers":"PIT",
+      "san francisco 49ers":"SF",
+      "seattle seahawks":"SEA",
+      "tampa bay buccaneers":"TB",
+      "tennessee titans":"TEN",
+      "washington commanders":"WAS"
+    }
   },
-  mlb: {
+
+  // NBA + MLB included in PART 2 of this code
+};
+// ===========================================================
+//  TEAM DATA CONTINUED (MLB + NBA)
+// ===========================================================
+
+TEAM_DATA.mlb = {
+  codes: [
+    "ARI","ATL","BAL","BOS","CHC","CWS","CIN","CLE","COL","DET","HOU","KC",
+    "LAA","LAD","MIA","MIL","MIN","NYM","NYY","OAK","PHI","PIT","SD","SF",
+    "SEA","STL","TB","TEX","TOR","WAS"
+  ],
+  short: {
+    diamondbacks:"ARI", dbacks:"ARI",
+    braves:"ATL",
+    orioles:"BAL",
+    sox:"BOS", "red sox":"BOS",
+    cubs:"CHC",
+    whitesox:"CWS", "white sox":"CWS",
+    reds:"CIN",
+    guardians:"CLE",
+    rockies:"COL",
+    tigers:"DET",
+    astros:"HOU",
+    royals:"KC",
+    angels:"LAA",
+    dodgers:"LAD",
+    marlins:"MIA",
+    brewers:"MIL",
+    twins:"MIN",
+    mets:"NYM",
+    yankees:"NYY",
+    athletics:"OAK", "a's":"OAK", as:"OAK",
+    phillies:"PHI",
+    pirates:"PIT",
+    padres:"SD",
+    giants:"SF",
+    mariners:"SEA",
+    cardinals:"STL",
+    rays:"TB",
+    rangers:"TEX",
+    bluejays:"TOR", jays:"TOR",
+    nationals:"WAS"
+  },
+  full: {
     "arizona diamondbacks":"ARI",
     "atlanta braves":"ATL",
     "baltimore orioles":"BAL",
@@ -182,69 +268,170 @@ const TEAM_FULL_NAMES = {
   }
 };
 
-function getActiveSport(){
-  return (localStorage.getItem(STORAGE_SPORT) || DEFAULT_SPORT).toLowerCase();
-}
+TEAM_DATA.nba = {
+  codes: [
+    "ATL","BOS","BKN","CHA","CHI","CLE","DAL","DEN","DET","GSW","HOU","IND",
+    "LAC","LAL","MEM","MIA","MIL","MIN","NOP","NYK","OKC","ORL","PHI","PHX",
+    "POR","SAC","SAS","TOR","UTA","WAS"
+  ],
+  short: {
+    hawks:"ATL",
+    celtics:"BOS",
+    nets:"BKN",
+    hornets:"CHA",
+    bulls:"CHI",
+    cavaliers:"CLE",
+    mavericks:"DAL", mavs:"DAL",
+    nuggets:"DEN",
+    pistons:"DET",
+    warriors:"GSW", dubs:"GSW",
+    rockets:"HOU",
+    pacers:"IND",
+    clippers:"LAC", clips:"LAC",
+    lakers:"LAL", lakerz:"LAL", lakeerz:"LAL",
+    grizzlies:"MEM",
+    heat:"MIA",
+    bucks:"MIL",
+    timberwolves:"MIN", wolves:"MIN",
+    pelicans:"NOP", pels:"NOP",
+    knicks:"NYK",
+    thunder:"OKC",
+    magic:"ORL",
+    "76ers":"PHI", sixers:"PHI",
+    suns:"PHX",
+    blazers:"POR",
+    kings:"SAC",
+    spurs:"SAS",
+    raptors:"TOR",
+    jazz:"UTA",
+    wizards:"WAS"
+  },
+  full: {
+    "atlanta hawks":"ATL",
+    "boston celtics":"BOS",
+    "brooklyn nets":"BKN",
+    "charlotte hornets":"CHA",
+    "chicago bulls":"CHI",
+    "cleveland cavaliers":"CLE",
+    "dallas mavericks":"DAL",
+    "denver nuggets":"DEN",
+    "detroit pistons":"DET",
+    "golden state warriors":"GSW",
+    "houston rockets":"HOU",
+    "indiana pacers":"IND",
+    "los angeles clippers":"LAC",
+    "los angeles lakers":"LAL",
+    "memphis grizzlies":"MEM",
+    "miami heat":"MIA",
+    "milwaukee bucks":"MIL",
+    "minnesota timberwolves":"MIN",
+    "new orleans pelicans":"NOP",
+    "new york knicks":"NYK",
+    "oklahoma city thunder":"OKC",
+    "orlando magic":"ORL",
+    "philadelphia 76ers":"PHI",
+    "phoenix suns":"PHX",
+    "portland trail blazers":"POR",
+    "sacramento kings":"SAC",
+    "san antonio spurs":"SAS",
+    "toronto raptors":"TOR",
+    "utah jazz":"UTA",
+    "washington wizards":"WAS"
+  }
+};
 
-function normalizeTeam(text){
-  if (!text) return null;
-  const t = text.toLowerCase();
-  const cleaned = t.replace(/[^a-z0-9\s]/g," ").replace(/\s+/g," ").trim();
+
+// ===========================================================
+//  UNIVERSAL NORMALIZE TEAM ENGINE
+// ===========================================================
+
+function normalizeTeam(rawText) {
+  if (!rawText) return null;
+
   const sport = getActiveSport();
-  const sportMap = TEAM_MAP[sport] || TEAM_MAP[DEFAULT_SPORT];
-  const sportFullNames = TEAM_FULL_NAMES[sport] || TEAM_FULL_NAMES[DEFAULT_SPORT];
-  for (const [name, code] of Object.entries(sportMap)) {
-    if (t.includes(name)) return code;
+  const data = TEAM_DATA[sport];
+  if (!data) return null;
+
+  const cleaned = cleanText(rawText);
+  if (!cleaned) return null;
+
+  // ---- 1) Direct code match (DET, LAC, LAL, etc.) ----
+  for (const code of data.codes) {
+    if (cleaned.includes(code.toLowerCase())) {
+      return code;
+    }
   }
-  for (const [phrase, code] of Object.entries(sportFullNames)) {
-    if (cleaned.includes(phrase)) return code;
+
+  // ---- 2) Full name exact match ----
+  for (const [full, code] of Object.entries(data.full)) {
+    if (cleaned.includes(full)) return code;
   }
+
+  // ---- 3) Short name exact match ----
+  for (const [short, code] of Object.entries(data.short)) {
+    if (cleaned.includes(short)) return code;
+  }
+
+  // ---- 4) Mild fuzzy matching (short names only) ----
+  const MAX_DIST = 2; // mild threshold
+
+  for (const [short, code] of Object.entries(data.short)) {
+    const dist = editDistance(cleaned, short);
+    if (dist <= MAX_DIST) return code;
+
+    // fuzzy for single-word focus
+    const pieces = cleaned.split(" ");
+    for (const p of pieces) {
+      if (editDistance(p, short) <= MAX_DIST) {
+        return code;
+      }
+    }
+  }
+
+  // ---- 5) Fuzzy full-name matching (mild) ----
+  for (const [full, code] of Object.entries(data.full)) {
+    const dist = editDistance(cleaned, full);
+    if (dist <= MAX_DIST + 1) return code;
+
+    const pieces = cleaned.split(" ");
+    const fullPieces = full.split(" ");
+    for (const p of pieces) {
+      for (const f of fullPieces) {
+        if (editDistance(p, f) <= MAX_DIST) return code;
+      }
+    }
+  }
+
   return null;
 }
 
-// ===== Improved Buyer & Team Extraction =====
-
-function extractBuyer(text){
+// ===========================================================
+//  BUYER EXTRACTION
+// ===========================================================
+function extractBuyer(text) {
   const re = /\b(?:purchased by|won by|buyer:)\s*@?([a-z0-9._-]{2,})\b/i;
   const m = text.match(re);
   return m ? m[1] : null;
 }
 
-function normalizeTeam(text){
-  if (!text) return null;
-
-  const raw = text.toLowerCase();
-  const cleaned = raw.replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-  const sport = getActiveSport();
-  const shortMap = TEAM_MAP[sport] || TEAM_MAP[DEFAULT_SPORT];
-  const fullMap  = TEAM_FULL_NAMES[sport] || TEAM_FULL_NAMES[DEFAULT_SPORT];
-
-  for (const [phrase, code] of Object.entries(fullMap)) {
-    if (cleaned.includes(phrase)) return code;
-  }
-
-  for (const [name, code] of Object.entries(shortMap)) {
-    const re = new RegExp(`\\b${name}\\b`, "i");
-    if (re.test(cleaned)) return code;
-  }
-
-  return null;
-}
-
+// ===========================================================
+//  POST SALE EVENT
+// ===========================================================
 function postSale(teamCode, buyerName) {
   if (!teamCode || !buyerName) return;
+
   const { endpoint, key } = getBridgeConfig();
   if (!endpoint) return;
 
   const payload = {
     breakId: getCurrentBreakId(),
-    breakType: (localStorage.getItem(STORAGE_SPORT) || DEFAULT_SPORT).toLowerCase(),
+    breakType: getActiveSport(),
     teamCode,
     buyerName,
     ts: Date.now()
   };
 
-  console.log("[TSU Bridge] posting sale", payload);
+  log("POST →", payload);
 
   fetch(endpoint, {
     method: "POST",
@@ -253,60 +440,127 @@ function postSale(teamCode, buyerName) {
       ...(key ? { "x-bridge-key": key } : {})
     },
     body: JSON.stringify(payload)
-  }).catch(err => {
-    console.warn("[TSU Bridge] fetch error", err);
-  });
+  }).catch(err => log("Fetch error:", err));
+}
+// ===========================================================
+//  SEEN EVENT HANDLING (prevents duplicate triggers)
+// ===========================================================
+
+const seenKeys = new Set();
+function makeSeenKey(text) {
+  return cleanText(text).slice(0, 80);
+}
+function markSeen(k) {
+  if (seenKeys.size > 500) {
+    // prevent infinite growth
+    const first = seenKeys.values().next().value;
+    seenKeys.delete(first);
+  }
+  seenKeys.add(k);
+}
+function isSeen(k) {
+  return seenKeys.has(k);
 }
 
-// ===== Improved MutationObserver =====
 
-const seenKeys = [];
-const MAX_SEEN = 200;
+// ===========================================================
+//  DEBOUNCED PROCESSING
+// ===========================================================
 
-function markSeen(k){
-  seenKeys.push(k);
-  if (seenKeys.length > MAX_SEEN) seenKeys.shift();
+let processTimeout = null;
+let queue = [];
+
+function scheduleProcess() {
+  if (processTimeout) return;
+
+  processTimeout = setTimeout(() => {
+    processTimeout = null;
+    const items = [...queue];
+    queue = [];
+    items.forEach(processText);
+  }, 20); // 20ms debounce to avoid spam
 }
-function isSeen(k){ return seenKeys.includes(k); }
 
-function processTextNode(el){
-  const text = (el.textContent || "").trim();
+
+// ===========================================================
+//  CORE TEXT PROCESSOR
+// ===========================================================
+
+function processText(text) {
   if (!text) return;
 
   if (!/purchased by|won by|buyer:/i.test(text)) return;
 
-  const key = text.slice(0, 200);
+  const key = makeSeenKey(text);
   if (isSeen(key)) return;
 
   const buyer = extractBuyer(text);
-  const code  = normalizeTeam(text);
+  const teamCode = normalizeTeam(text);
 
-  console.log("[TSU Bridge] candidate text:", { text, buyer, code });
+  log("Candidate:", { text, buyer, teamCode });
 
-  if (buyer && code) {
+  if (buyer && teamCode) {
     markSeen(key);
-    postSale(code, buyer);
+    postSale(teamCode, buyer);
   }
 }
 
-const obs = new MutationObserver((mutations) => {
-  for (const m of mutations) {
+
+// ===========================================================
+//  MUTATION OBSERVER (optimized)
+// ===========================================================
+
+function handleMutations(muts) {
+  for (const m of muts) {
     if (m.type === "childList") {
       m.addedNodes?.forEach(n => {
-        if (n.nodeType === 1) {
-          processTextNode(n);
-        } else if (n.nodeType === 3) {
-          processTextNode(n.parentElement || document.body);
+        if (n.nodeType === 3) {
+          queue.push(n.textContent);
+        } else if (n.nodeType === 1) {
+          queue.push(n.innerText || n.textContent || "");
         }
       });
     }
     if (m.type === "characterData") {
-      processTextNode(m.target.parentElement || document.body);
+      queue.push(m.target.textContent || "");
     }
   }
-});
 
-if (document.body) {
-  console.log("[TSU Bridge] content.js loaded, starting observer");
-  obs.observe(document.body, { subtree:true, childList:true, characterData:true });
+  if (queue.length > 0) scheduleProcess();
+}
+
+
+// ===========================================================
+//  INIT OBSERVER
+// ===========================================================
+
+function initObserver() {
+  const obs = new MutationObserver(handleMutations);
+  obs.observe(document.body, {
+    subtree: true,
+    childList: true,
+    characterData: true
+  });
+  log("Observer started");
+}
+
+
+// ===========================================================
+//  INIT EVERYTHING
+// ===========================================================
+
+function initTSUBridge() {
+  log("content.js loaded — TSU Bridge Ready");
+
+  initObserver();
+
+  // For debugging manually:
+  window.__TSU_normalizeTeam = normalizeTeam;
+  window.__TSU_cleanText = cleanText;
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initTSUBridge);
+} else {
+  initTSUBridge();
 }
