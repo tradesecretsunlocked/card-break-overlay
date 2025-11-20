@@ -35,18 +35,26 @@ const STORAGE_SPORT = "tsu.break.sport"; // fallback ONLY
 const DEBUG = true;
 function log(...a) { if (DEBUG) console.log("[TSU Bridge]", ...a); }
 
+let __TSU_lastOverlaySport = null;
+
+window.addEventListener("message", (event) => {
+  if (!event.data || event.data.source !== "TSU_OVERLAY") return;
+  if (event.data.type === "SPORT_UPDATE") {
+    __TSU_lastOverlaySport = event.data.sport;
+  }
+});
+
+
 // -------- SPORT SYNC (Overlay controls sport) --------
 function getActiveSport() {
-  try {
-    if (window.getTSUSport) {
-      const s = window.getTSUSport();
-      if (s) return s.toLowerCase();
-    }
-  } catch {}
+  if (__TSU_lastOverlaySport) {
+    return __TSU_lastOverlaySport.toLowerCase();
+  }
 
-  // fallback only if overlay is not visible
   return (localStorage.getItem(STORAGE_SPORT) || "nfl").toLowerCase();
 }
+
+
 
 // -------- DATE / BREAK ID --------
 function pad(n) { return String(n).padStart(2, "0"); }
