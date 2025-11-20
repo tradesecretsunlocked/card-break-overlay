@@ -638,6 +638,39 @@ function setBuyerForTeamCode(teamCode, buyerName) {
 let es;
 function startSSE() {
   es = new EventSource(STREAM_URL);
+
+  // ==========================================================
+  //  SSE CONNECTED → SEND WARMUP PING (Fix Render Cold Start)
+  // ==========================================================
+  es.onopen = () => {
+    console.log("SSE connected — sending warmup ping");
+    sendWarmupPing(); // main warmup
+  };
+
+  // Backup warmup in case Render wakes slowly
+  setTimeout(() => {
+    console.log("Backup warmup ping fired");
+    sendWarmupPing();
+  }, 2000);
+
+  // ---- Warmup Ping Function ----
+  function sendWarmupPing() {
+    fetch(`${BRIDGE_BASE}/events`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        breakId: "warmup",
+        breakType: currentBreakType,
+        teamCode: "WARMUP",   // ignored
+        buyerName: "ping",
+        ts: Date.now()
+      })
+    }).catch(e => console.warn("Warmup ping failed:", e));
+  }
+  // ==========================================================
+
+
+  // -------- EXISTING ONMESSAGE HANDLER ----------
   es.onmessage = (e) => {
     try {
       const data = JSON.parse(e.data);
@@ -654,6 +687,7 @@ function startSSE() {
       }
     } catch {}
   };
+
   es.onerror = () => {
     es.close();
     setTimeout(startSSE, 1500);
