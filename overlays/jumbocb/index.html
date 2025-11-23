@@ -358,14 +358,28 @@
     background:#ffffff;
     color:#f9fafb;
   }
+
+    #breakIdDisplay {
+  color: #ffffff;
+  background: rgba(0,0,0,0.35);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.3);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+}
+
+
+  
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="header" id="headerText">
-    <div class="header-icon"></div>
-    JUMBO'S CARD BREAKS -
-  </div>
+<div class="header" id="headerText">
+  <div class="header-icon"></div>
+  <span id="headerMain">JUMBO'S CARD BREAKS - NFL</span>
+  <span id="breakIdDisplay" style="margin-left:auto; font-size:14px; font-weight:700; opacity:0.9;"></span>
+</div>
+
 
   <div class="teams-wrapper">
     <div class="top-wrap" style="grid-column: 1 / 4;">
@@ -394,21 +408,8 @@
 </div>
 
 
-
-
 <script>
   
-localStorage.setItem("tsu.customer", "jumbocb");
-localStorage.setItem("DEFAULT_CUSTOMER", "jumbocb");
-
-
-
-// Generate default structure
-if (!breakCounters[currentBreakType]) {
-    breakCounters[currentBreakType] = 1;
-}
-
-
   // Dynamic base path for images
   const BASE = (() => {
     const isGhPages = location.hostname.endsWith('github.io');
@@ -586,11 +587,9 @@ setInterval(broadcastSportUpdate, 500);
     return teamDiv;
   }
 
-function initializeGrid(){
-  const {teams} = breakTypes[currentBreakType];
-  updateHeader();
-  updateStats();
-  updateSoldList();
+function initializeGrid() {
+  const { teams } = breakTypes[currentBreakType];
+
   soldTeams = new Set();
   soldTeamsList = [];
 
@@ -602,6 +601,7 @@ function initializeGrid(){
   right.innerHTML = "";
   bottom.innerHTML = "";
 
+  // place teams
   teams.forEach((team, i) => {
     const div = makeTeamDiv(team, i);
     if (i < 8) left.appendChild(div);
@@ -609,33 +609,44 @@ function initializeGrid(){
     else bottom.appendChild(div);
   });
 
-  // Center the last row: keep full rows intact, pad only the final partial row
+  // -----------------------------
+  // FIX: Only center if remainder > 0
+  // -----------------------------
   const tiles = Array.from(bottom.children);
   const fullRows = Math.floor(tiles.length / 8);
   const remainder = tiles.length % 8;
-  if (remainder === 0) return;
 
   bottom.innerHTML = '';
   let idx = 0;
+
+  // Add full rows
   for (let r = 0; r < fullRows; r++) {
     for (let c = 0; c < 8; c++) bottom.appendChild(tiles[idx++]);
   }
-  const pads = 8 - remainder;
-  const leftPad = Math.floor(pads / 2);
-  const rightPad = pads - leftPad;
-  const makeSpacer = () => {
-    const s = document.createElement('div');
-    s.className = 'team placeholder';
-    return s;
-  };
-  for (let j = 0; j < leftPad; j++) bottom.appendChild(makeSpacer());
-  while (idx < tiles.length) bottom.appendChild(tiles[idx++]);
-  for (let j = 0; j < rightPad; j++) bottom.appendChild(makeSpacer());
+
+  // Only pad if there's a partial row
+  if (remainder > 0) {
+    const pads = 8 - remainder;
+    const leftPad = Math.floor(pads / 2);
+    const rightPad = pads - leftPad;
+
+    const makeSpacer = () => {
+      const s = document.createElement("div");
+      s.className = "team placeholder";
+      return s;
+    };
+
+    for (let j = 0; j < leftPad; j++) bottom.appendChild(makeSpacer());
+    while (idx < tiles.length) bottom.appendChild(tiles[idx++]);
+    for (let j = 0; j < rightPad; j++) bottom.appendChild(makeSpacer());
+  }
 
   updateHeader();
   updateStats();
   updateSoldList();
+  updateBreakIdDisplay();
 }
+
 
 
   function toggleTeam(index) {
@@ -665,52 +676,33 @@ function initializeGrid(){
     document.getElementById('teamsSold').textContent = soldCount;
   }
 
-  function updateHeader() {
-    const currentBreak = breakTypes[currentBreakType];
-    document.getElementById('headerText').innerHTML =
-      `<div class="header-icon"></div> JUMBO'S CARD BREAKS - ${currentBreak.name}`;
-  }
+function updateHeader() {
+  const currentBreak = breakTypes[currentBreakType];
+  document.getElementById("headerMain").textContent =
+    `JUMBO'S CARD BREAKS - ${currentBreak.name}`;
+
+  // NEW — keep break number synced with header
+  updateBreakIdDisplay();
+}
+
+
 
   
 
 
-function resetAll() {
+  function resetAll() {
+    soldTeams.clear();
+    soldTeamsList = [];
+    document.querySelectorAll('.team').forEach(team => team.classList.remove('sold'));
+    updateStats();
+    updateSoldList();
+  }
 
-  // Increment break counter for this sport
-  const sportKey = currentBreakType.toLowerCase();
-  breakCounters[sportKey] = (breakCounters[sportKey] || 0) + 1;
-  localStorage.setItem("tsu.breakCounters", JSON.stringify(breakCounters));
-
-  // Generate + store new breakId
-  const newBreakId = getCurrentBreakId();
-  localStorage.setItem("tsu.breakId", newBreakId);
-  console.log("NEW BREAK ID:", newBreakId);
-
-  // Clear all sold teams
-  soldTeams.clear();
-  soldTeamsList = [];
-
-  document.querySelectorAll('.team.sold')
-    .forEach(el => el.classList.remove('sold'));
-
-  updateStats();
-  updateSoldList();
-  initializeGrid();
-}
-
-
-function changeBreakType() {
-  const types = Object.keys(breakTypes);
-  currentBreakType = types[(types.indexOf(currentBreakType) + 1) % types.length];
-
-  // New sport → reset its counter to 1
-  const sportKey = currentBreakType.toLowerCase();
-  breakCounters[sportKey] = 1;
-  localStorage.setItem("tsu.breakCounters", JSON.stringify(breakCounters));
-
-  resetAll();  // also generates a fresh breakId
-}
-
+  function changeBreakType() {
+    const types = Object.keys(breakTypes);
+    currentBreakType = types[(types.indexOf(currentBreakType) + 1) % types.length];
+    initializeGrid();
+  }
 
   function updateSoldList() {
     const soldListDiv = document.getElementById('soldList');
@@ -750,6 +742,123 @@ function changeBreakType() {
 </script>
 
 <script>
+// ---------------- DAILY GLOBAL BREAK COUNTER ----------------
+
+// Load existing counters
+let breakDayData = JSON.parse(localStorage.getItem("breakDayData") || "{}");
+
+// Get current date YYYY-MM-DD
+function getDatePart(d = new Date()) {
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function loadOrResetDailyCounter() {
+  const today = getDatePart();
+
+  // If no data, or old date, reset counter
+  if (!breakDayData.date || breakDayData.date !== today) {
+    breakDayData = {
+      date: today,
+      counter: 1
+    };
+    saveBreakCounter();
+  }
+}
+
+function saveBreakCounter() {
+  localStorage.setItem("breakDayData", JSON.stringify(breakDayData));
+}
+
+// Ensure valid state on load
+loadOrResetDailyCounter();
+
+// ---------------- BREAK ID BUILDER ----------------
+function isDevBridge() {
+  try { return BRIDGE_BASE.includes("-dev."); } catch { return false; }
+}
+
+function computeBreakId(sport) {
+  const base = `${breakDayData.date}-${sport}-${breakDayData.counter}`.toLowerCase();
+  return isDevBridge() ? `${base}-dev` : base;
+}
+
+function getCurrentBreakId() {
+  return computeBreakId(currentBreakType);
+}
+
+// ---------------- TRIGGER NEW BREAK ----------------
+function startNewBreakCycle() {
+  const today = getDatePart();
+
+  // If a new day started, reset counter
+  if (today !== breakDayData.date) {
+    breakDayData.date = today;
+    breakDayData.counter = 1;
+  } else {
+    // Same day — increment break #
+    breakDayData.counter += 1;
+  }
+
+  saveBreakCounter();
+
+  // Clear all team states
+  soldTeams.clear();
+  soldTeamsList = [];
+  document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
+
+  updateStats();
+  updateSoldList();
+  updateBreakIdDisplay();
+
+}
+
+// ---------------- PATCH RESET BUTTON ----------------
+const originalReset = resetAll;
+resetAll = function() {
+  originalReset();       // original behavior
+  startNewBreakCycle();  // increment day counter + reset teams
+};
+
+// ---------------- PATCH SPORT BUTTON ----------------
+const originalChange = changeBreakType;
+changeBreakType = function () {
+
+  // Change sport AND rebuild grid
+  originalChange();
+
+  // FULL HARD RESET — do AFTER the rebuild
+  soldTeams.clear();
+  soldTeamsList = [];
+
+  // remove sold state on NEW grid
+  document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
+
+  updateStats();
+  updateSoldList();
+
+  // increment break number
+  startNewBreakCycle();
+
+  // final header sync
+  updateHeader();
+  updateBreakIdDisplay();
+};
+
+
+
+
+</script>
+<script>
+function updateBreakIdDisplay() {
+  const el = document.getElementById("breakIdDisplay");
+  if (!el) return;
+  el.textContent = getCurrentBreakId();
+}
+</script>
+
+
+<script>
   /* ===== Real-time hookup (SSE) ===== */
 
 /* 1) Dynamic bridge selection */
@@ -764,38 +873,20 @@ function changeBreakType() {
 
   const STREAM_URL = `${BRIDGE_BASE}/stream`;
 
-  /* 2) Auto Break ID: YYYY-MM-DD + "-" + sport (nba/nfl/mlb) */
-function getDatePart(d = new Date()) {
-  const pad = n => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-}
-
-// Load counters
-let breakCounters = JSON.parse(localStorage.getItem("tsu.breakCounters") || "{}");
-
-function computeBreakId(sport) {
-  const date = getDatePart();
-  const sportLower = sport.toLowerCase();
-
-  // Init counter if missing
-  if (!breakCounters[sportLower]) {
-    breakCounters[sportLower] = 1;
+  // ---------------- EXTENSION ↔ OVERLAY BRIDGE SYNC ----------------
+window.addEventListener("message", (e) => {
+  if (e.data === "TSU_REQUEST_BRIDGE") {
+    window.postMessage({
+      source: "TSU_OVERLAY",
+      type: "TSU_BRIDGE_INFO",
+      bridge: BRIDGE_BASE   // ← already defined in overlay
+    }, "*");
   }
+});
 
-  const counter = breakCounters[sportLower];
 
-  const base = `${date}-${sportLower}-${counter}`;
-
-  // Save updated counters
-  localStorage.setItem("tsu.breakCounters", JSON.stringify(breakCounters));
-
-  return isDevBridge() ? `${base}-dev` : base;
-}
-
-function getCurrentBreakId() {
-  return computeBreakId(currentBreakType || "nfl");
-}
-
+  /* 2) Auto Break ID: YYYY-MM-DD + "-" + sport (nba/nfl/mlb) */
+ 
 /* 3) Helpers to apply updates */
   function teamCodeToIndex(code) {
     const t = breakTypes[currentBreakType].teams;
@@ -831,7 +922,13 @@ function startSSE() {
 
   // ---- Warmup Ping Function ----
   function sendWarmupPing() {
-    fetch(`${BRIDGE_BASE}/events`, {
+    const ACTIVE_BRIDGE =
+  window.tsu_bridge ||
+  localStorage.getItem("tsu.active_bridge") ||
+  BRIDGE_BASE;
+
+fetch(`${ACTIVE_BRIDGE}/events`, {
+
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -886,7 +983,13 @@ startSSE();
   localStorage.getItem("tsu.bridge.key") ||
   "4393fb29177e139f69cf4b48bdbd51dd";
 
-await fetch(`${BRIDGE_BASE}/events`, {
+const ACTIVE_BRIDGE =
+  window.tsu_bridge ||
+  localStorage.getItem("tsu.active_bridge") ||
+  BRIDGE_BASE;
+
+await fetch(`${ACTIVE_BRIDGE}/events`, {
+
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -897,19 +1000,7 @@ await fetch(`${BRIDGE_BASE}/events`, {
 
 };
 </script>
-<script>
-function getDatePart(d = new Date()) {
-  const pad = n => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-}
-function isDevBridge() {
-  try { return BRIDGE_BASE.includes("-dev."); } catch { return false; }
-}
-function computeBreakId(sport) {
-  const base = `${getDatePart()}-${sport}`.toLowerCase();
-  return isDevBridge() ? `${base}-dev` : base;
-}
-</script>
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   if (isDevBridge()) {

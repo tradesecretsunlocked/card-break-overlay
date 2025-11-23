@@ -28,9 +28,23 @@ const CUSTOMER_CONFIG = {
   jumbocb: {
   endpoint: "https://tsu-bridge-jumbocb.onrender.com/events",
   key: "4393fb29177e139f69cf4b48bdbd51dd"
-}
+},
 
 };
+
+// ========== REQUEST BRIDGE FROM OVERLAY ==========
+// Request the bridge from the overlay
+window.postMessage("TSU_REQUEST_BRIDGE", "*");
+
+window.addEventListener("message", (e) => {
+  if (e.data?.type === "TSU_BRIDGE_INFO") {
+    console.log("TSU: Bridge received:", e.data.bridge);
+    localStorage.setItem("tsu.active_bridge", e.data.bridge);
+    window.tsu_bridge = e.data.bridge;
+  }
+});
+
+
 
 const DEFAULT_CUSTOMER = "lenhart";
 const STORAGE_CUSTOMER = "tsu.customer";
@@ -78,9 +92,25 @@ function getCurrentCustomer() {
   return localStorage.getItem(STORAGE_CUSTOMER) || DEFAULT_CUSTOMER;
 }
 function getBridgeConfig() {
+
+  // 1. Overlay-supplied bridge (highest priority)
+  const overlayBridge = window.tsu_bridge || localStorage.getItem("tsu.active_bridge");
+  if (overlayBridge) {
+    return {
+      endpoint: overlayBridge + "/events",
+      key:
+        localStorage.getItem("tsu.bridge.key") || // overlay-supplied override (optional)
+        CUSTOMER_CONFIG[getCurrentCustomer()]?.key || // fallback to old customer config
+  null
+
+    };
+  }
+
+  // 2. Fallback to old customer system
   const c = getCurrentCustomer();
   return CUSTOMER_CONFIG[c] || CUSTOMER_CONFIG[DEFAULT_CUSTOMER];
 }
+
 
 // ===========================================================
 //  SANITIZATION HELPERS
