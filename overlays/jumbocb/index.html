@@ -401,6 +401,14 @@
 localStorage.setItem("tsu.customer", "jumbocb");
 localStorage.setItem("DEFAULT_CUSTOMER", "jumbocb");
 
+
+
+// Generate default structure
+if (!breakCounters[currentBreakType]) {
+    breakCounters[currentBreakType] = 1;
+}
+
+
   // Dynamic base path for images
   const BASE = (() => {
     const isGhPages = location.hostname.endsWith('github.io');
@@ -666,19 +674,43 @@ function initializeGrid(){
   
 
 
-  function resetAll() {
-    soldTeams.clear();
-    soldTeamsList = [];
-    document.querySelectorAll('.team').forEach(team => team.classList.remove('sold'));
-    updateStats();
-    updateSoldList();
-  }
+function resetAll() {
 
-  function changeBreakType() {
-    const types = Object.keys(breakTypes);
-    currentBreakType = types[(types.indexOf(currentBreakType) + 1) % types.length];
-    initializeGrid();
-  }
+  // Increment break counter for this sport
+  const sportKey = currentBreakType.toLowerCase();
+  breakCounters[sportKey] = (breakCounters[sportKey] || 0) + 1;
+  localStorage.setItem("tsu.breakCounters", JSON.stringify(breakCounters));
+
+  // Generate + store new breakId
+  const newBreakId = getCurrentBreakId();
+  localStorage.setItem("tsu.breakId", newBreakId);
+  console.log("NEW BREAK ID:", newBreakId);
+
+  // Clear all sold teams
+  soldTeams.clear();
+  soldTeamsList = [];
+
+  document.querySelectorAll('.team.sold')
+    .forEach(el => el.classList.remove('sold'));
+
+  updateStats();
+  updateSoldList();
+  initializeGrid();
+}
+
+
+function changeBreakType() {
+  const types = Object.keys(breakTypes);
+  currentBreakType = types[(types.indexOf(currentBreakType) + 1) % types.length];
+
+  // New sport → reset its counter to 1
+  const sportKey = currentBreakType.toLowerCase();
+  breakCounters[sportKey] = 1;
+  localStorage.setItem("tsu.breakCounters", JSON.stringify(breakCounters));
+
+  resetAll();  // also generates a fresh breakId
+}
+
 
   function updateSoldList() {
     const soldListDiv = document.getElementById('soldList');
@@ -733,20 +765,36 @@ function initializeGrid(){
   const STREAM_URL = `${BRIDGE_BASE}/stream`;
 
   /* 2) Auto Break ID: YYYY-MM-DD + "-" + sport (nba/nfl/mlb) */
-  function getDatePart(d = new Date()) {
-    const pad = n => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+function getDatePart(d = new Date()) {
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+// Load counters
+let breakCounters = JSON.parse(localStorage.getItem("tsu.breakCounters") || "{}");
+
+function computeBreakId(sport) {
+  const date = getDatePart();
+  const sportLower = sport.toLowerCase();
+
+  // Init counter if missing
+  if (!breakCounters[sportLower]) {
+    breakCounters[sportLower] = 1;
   }
-  function isDevBridge() {
-    try { return BRIDGE_BASE.includes("-dev."); } catch { return false; }
-  }
-  function computeBreakId(sport) {
-    const base = `${getDatePart()}-${sport}`.toLowerCase();
-    return isDevBridge() ? `${base}-dev` : base;
-  }
-  function getCurrentBreakId() {
-    return computeBreakId(currentBreakType || "nfl");
-  }
+
+  const counter = breakCounters[sportLower];
+
+  const base = `${date}-${sportLower}-${counter}`;
+
+  // Save updated counters
+  localStorage.setItem("tsu.breakCounters", JSON.stringify(breakCounters));
+
+  return isDevBridge() ? `${base}-dev` : base;
+}
+
+function getCurrentBreakId() {
+  return computeBreakId(currentBreakType || "nfl");
+}
 
 /* 3) Helpers to apply updates */
   function teamCodeToIndex(code) {
