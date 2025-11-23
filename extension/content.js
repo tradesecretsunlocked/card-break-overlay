@@ -24,7 +24,12 @@ const CUSTOMER_CONFIG = {
   lenhart: {
     endpoint: "https://tsu-bridge-lenhart.onrender.com/events",
     key: "0caf969c504e843aaec8144d9001399a"
-  }
+  },
+  jumbocb: {
+  endpoint: "https://tsu-bridge-jumbocb.onrender.com/events",
+  key: "4393fb29177e139f69cf4b48bdbd51dd"
+}
+
 };
 
 const DEFAULT_CUSTOMER = "lenhart";
