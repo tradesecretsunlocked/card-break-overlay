@@ -92,7 +92,7 @@
     .team img {
       width: 90%;
       height: 90%;
-      object-fit: cocover;
+      object-fit:cover;
       border-radius: 7px;
     }
     .team.sold {
@@ -289,6 +289,20 @@
     <div id="soldList" class="sold-list-grid"></div>
   </div>
 <script>
+
+  // ==========================================================
+// TSU EXTENSION → REQUEST ACTIVE BRIDGE FROM OVERLAY
+// ==========================================================
+window.postMessage("TSU_REQUEST_BRIDGE", "*");
+
+window.addEventListener("message", (e) => {
+  if (e.data?.type === "TSU_BRIDGE_INFO") {
+    console.log("LuxCards: Bridge received:", e.data.bridge);
+    localStorage.setItem("tsu.active_bridge", e.data.bridge);
+    window.tsu_bridge = e.data.bridge;
+  }
+});
+
   // Dynamic base path for images (works on GitHub Pages, local, OBS)
   const BASE = (() => {
     const { hostname } = window.location;
@@ -565,6 +579,54 @@ setInterval(broadcastSportUpdate, 500);
     updateStats();
     updateSoldList();
   }
+  // ==========================================================
+// DAILY BREAK COUNTER  (Matches JumboCB logic)
+// ==========================================================
+
+let breakDayData = JSON.parse(localStorage.getItem("lux.breakDayData") || "{}");
+
+function loadOrResetDailyCounter() {
+  const today = getDatePart();
+
+  if (!breakDayData.date || breakDayData.date !== today) {
+    breakDayData = { date: today, counter: 1 };
+    saveBreakCounter();
+  }
+}
+
+function saveBreakCounter() {
+  localStorage.setItem("lux.breakDayData", JSON.stringify(breakDayData));
+}
+
+loadOrResetDailyCounter();
+
+function startNewBreakCycle() {
+  const today = getDatePart();
+
+  if (today !== breakDayData.date) {
+    breakDayData.date = today;
+    breakDayData.counter = 1;
+  } else {
+    breakDayData.counter += 1;
+  }
+
+  saveBreakCounter();
+}
+
+// PATCH RESET BUTTONobject
+const originalResetLux = resetAll;
+resetAll = function() {
+  originalResetLux();
+  startNewBreakCycle();
+};
+
+// PATCH SPORT BUTTON
+const originalChangeLux = changeBreakType;
+changeBreakType = function () {
+  originalChangeLux();
+  startNewBreakCycle();
+};
+
 
   function changeBreakType() {
     const types = Object.keys(breakTypes);
@@ -652,20 +714,7 @@ const BRIDGE_BASE =
 
 const STREAM_URL = `${BRIDGE_BASE}/stream`;
 
-/* 2) Auto Break ID: YYYY-MM-DD + "-" + sport (nba/nfl/mlb) */
-function getDatePart(d = new Date()) {
-  const pad = n => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-}
-function isDevBridge() {
-    try { return BRIDGE_BASE.includes("-dev."); } catch { return false; }
-  }
-function computeBreakId(sport) {
-  return `${getDatePart()}-${sport}`.toLowerCase();
-}
-function getCurrentBreakId() {
-  return computeBreakId(currentBreakType || "nba");
-}
+
 
 /* 3) Helpers to apply updates */
 function teamCodeToIndex(code) {
@@ -701,7 +750,14 @@ function startSSE() {
 
   // ---- Warmup Ping Function ----
   function sendWarmupPing() {
-    fetch(`${BRIDGE_BASE}/events`, {
+
+  const ACTIVE_BRIDGE =
+    window.tsu_bridge ||
+    localStorage.getItem("tsu.active_bridge") ||
+    BRIDGE_BASE;
+
+  fetch(`${ACTIVE_BRIDGE}/events`, {
+
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -771,13 +827,20 @@ function getDatePart(d = new Date()) {
   const pad = n => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 }
+
 function isDevBridge() {
   try { return BRIDGE_BASE.includes("-dev."); } catch { return false; }
 }
+
 function computeBreakId(sport) {
   const base = `${getDatePart()}-${sport}`.toLowerCase();
   return isDevBridge() ? `${base}-dev` : base;
 }
+
+function getCurrentBreakId() {
+  return computeBreakId(currentBreakType || "nba");
+}
+
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
