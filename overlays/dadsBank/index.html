@@ -1368,6 +1368,9 @@ function computeBreakId() {
    TSU BRIDGE HANDSHAKE
 ------------------------- */
 
+/* -------------------------
+   TSU BRIDGE DETECTION
+------------------------- */
 function detectBridge() {
   const url = new URLSearchParams(window.location.search);
   if (url.has("bridge")) return url.get("bridge");
@@ -1378,12 +1381,42 @@ function detectBridge() {
   const ls = localStorage.getItem("tsu.bridge.base");
   if (ls) return ls;
 
-  return null;
+  return DEFAULT_BRIDGE;  
 }
 
+/* -------------------------
+   TSU HANDSHAKE REQUEST
+------------------------- */
 function handshakeWithExtension() {
   window.postMessage("TSU_REQUEST_BRIDGE", "*");
 }
+
+
+function param(k) {
+  return new URLSearchParams(location.search).get(k);
+}
+
+const DEFAULT_BRIDGE = "https://tsu-bridge-dbdv.onrender.com";
+
+ACTIVE_BRIDGE =
+  param("bridge") ||
+  localStorage.getItem("tsu.bridge.base") ||
+  DEFAULT_BRIDGE;
+
+
+// Store bridge for future loads
+localStorage.setItem("tsu.bridge.base", ACTIVE_BRIDGE);
+
+window.addEventListener("message", (e) => {
+  if (e.data === "TSU_REQUEST_BRIDGE") {
+    window.postMessage({
+      source: "TSU_OVERLAY",
+      type: "TSU_BRIDGE_INFO",
+      bridge: ACTIVE_BRIDGE
+    }, "*");
+  }
+});
+
 
 window.addEventListener("message", (e) => {
   if (e.data?.type === "TSU_BRIDGE_INFO") {
@@ -1398,22 +1431,28 @@ window.addEventListener("message", (e) => {
 
 async function warmupPing() {
   if (!ACTIVE_BRIDGE) return;
+
+  const payload = {
+    breakId: "warmup",
+    breakType: currentBreakType,
+    division: "WARMUP",
+    buyerName: "ping",
+    ts: Date.now()
+  };
+
   try {
     await fetch(`${ACTIVE_BRIDGE}/events`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        breakId: "warmup",
-        breakType: currentBreakType,
-        teamCode: "WARMUP",
-        buyerName: "ping",
-        ts: Date.now()
-      })
+      body: JSON.stringify(payload)
     });
   } catch (err) {
     console.warn("Warmup failed:", err);
   }
 }
+
+// secondary warmup (required for Render cold start)
+setTimeout(warmupPing, 2000);
 
 /* -------------------------
    SSE LISTENER
@@ -1454,6 +1493,11 @@ function startSSE() {
 function applySaleFromSSE(evt) {
   const breakId = computeBreakId();
 
+  if (evt.type === "reset") {
+  document.getElementById("resetBtn").click();
+  return;
+}
+
   if (evt.breakId !== breakId) return;
   if (!evt.division) return;
 
@@ -1477,21 +1521,24 @@ function applySaleFromSSE(evt) {
 ------------------------- */
 
 function initOverlay() {
-  // initialize engine stats
+  // initialize stats
   initDivisionStats();
   updateUI();
+  buildProductInventory();
 
-  // detect bridge
+  // detect & store bridge
   ACTIVE_BRIDGE = detectBridge();
+  localStorage.setItem("tsu.bridge.base", ACTIVE_BRIDGE);
 
   // handshake with TSU extension
   handshakeWithExtension();
 
-  // warmup ping
+  // warmups
   setTimeout(warmupPing, 600);
+  setTimeout(warmupPing, 2000);
 
-  // start SSE after slight delay
-  setTimeout(startSSE, 1000);
+  // start SSE
+  setTimeout(startSSE, 1200);
 }
 
 initOverlay();
