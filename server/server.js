@@ -58,5 +58,10 @@ app.post("/reset", assertBridgeKey, (req, res) => {
   res.json({ ok: true });
 });
 
+// Render ALWAYS provides process.env.PORT. You MUST use it.
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("SSE server on", PORT));
+
+app.listen(PORT, () => {
+  console.log(`SSE server listening on ${PORT}`);
+});
+
