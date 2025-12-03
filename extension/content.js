@@ -25,6 +25,10 @@ const CUSTOMER_CONFIG = {
     endpoint: "https://tsu-bridge-lenhart.onrender.com/events",
     key: "0caf969c504e843aaec8144d9001399a"
   },
+  dadsBank: {
+    endpoint: "https://tsu-bridge-dbdv.onrender.com/events",
+    key: "7f9df36cb0a220415f913f6f343c7016"
+  },
   jumbocb: {
   endpoint: "https://tsu-bridge-jumbocb.onrender.com/events",
   key: "4393fb29177e139f69cf4b48bdbd51dd"
