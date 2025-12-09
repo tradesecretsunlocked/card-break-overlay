@@ -716,7 +716,104 @@
   cursor: pointer;
   color: black;
 }
+/* ===== WHEEL SYSTEM ===== */
 
+.wheel-main-toggle {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  z-index: 9999;
+  padding: 10px 16px;
+  background: var(--rq-mid);
+  color: white;
+  border: 2px solid var(--rq-navy);
+  border-radius: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.wheel-wrapper {
+  position: fixed;
+  padding: 20px;
+  background: rgba(1, 58, 99, 0.9);
+  border: 3px solid var(--rq-gold);
+  border-radius: 16px;
+  z-index: 9999;
+  cursor: grab;
+}
+
+
+
+.wheel-wrapper.hidden {
+  display: none;
+}
+
+.wheel-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.wheel-controls button {
+  padding: 8px 14px;
+  margin: 4px;
+  border-radius: 8px;
+  border: 2px solid var(--rq-white);
+  font-weight: 900;
+  background: var(--rq-mid);
+  color: white;
+  cursor: pointer;
+}
+
+.wheel-result {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--rq-gold);
+}
+
+/* ===== DRAGGABLE + RESIZABLE WHEEL ===== */
+
+#wheelWrapper {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  resize: none; /* we'll handle real resizing */
+  cursor: grab;
+}
+
+#wheelWrapper.dragging {
+  cursor: grabbing;
+}
+
+/* Resize handle */
+.wheel-resizer {
+  width: 16px;
+  height: 16px;
+  background: var(--rq-gold);
+  position: absolute;
+  right: -8px;
+  bottom: -8px;
+  border-radius: 4px;
+  cursor: se-resize;
+  border: 2px solid var(--rq-navy);
+}
+
+/* Pointer triangle (now aligned precisely at top center) */
+.wheel-pointer {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-bottom: 22px solid var(--rq-gold);
+  z-index: 20;
+}
 
 </style>
 <script>
@@ -1519,6 +1616,192 @@ function initOverlay() {
 
 initOverlay();
 
+/* ===========================================================
+   DIVISION SPIN WHEEL MODULE (SAFE LOADED VERSION)
+=========================================================== */
+document.addEventListener("DOMContentLoaded", () => {
+
+  let wheelDivisions = [...nflDivisions];
+  let wheelSelected = null;
+  let wheelAngle = 0;
+  let wheelSpinning = false;
+
+  const wheelCanvas = document.getElementById("divisionWheel");
+  const ctx = wheelCanvas.getContext("2d");
+  let wheelRadius = wheelCanvas.width / 2;
+
+  /* DRAW WHEEL */
+  function drawWheel() {
+    const count = wheelDivisions.length;
+    if (count === 0) {
+      ctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
+      return;
+    }
+
+    const sliceAngle = (2 * Math.PI) / count;
+
+    ctx.clearRect(0, 0, wheelCanvas.width, wheelCanvas.height);
+
+    wheelDivisions.forEach((division, i) => {
+      const angleStart = wheelAngle + i * sliceAngle;
+      const angleEnd = angleStart + sliceAngle;
+
+      ctx.fillStyle = (i % 2 === 0) ? "#013A63" : "#FFFFFF";
+
+      ctx.beginPath();
+      ctx.moveTo(wheelRadius, wheelRadius);
+      ctx.arc(wheelRadius, wheelRadius, wheelRadius, angleStart, angleEnd);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.save();
+      ctx.translate(wheelRadius, wheelRadius);
+      ctx.rotate(angleStart + sliceAngle / 2);
+      ctx.fillStyle = (i % 2 === 0) ? "white" : "#013A63";
+      ctx.font = "17px Arial Black";
+      ctx.textAlign = "right";
+      ctx.fillText(division, wheelRadius - 12, 6);
+      ctx.restore();
+    });
+  }
+
+  drawWheel();
+
+  /* SHUFFLE */
+  document.getElementById("wheelShuffleBtn").onclick = () => {
+    wheelDivisions = wheelDivisions
+      .map(x => ({ x, r: Math.random() }))
+      .sort((a, b) => a.r - b.r)
+      .map(o => o.x);
+
+    drawWheel();
+  };
+
+  /* SPIN LOGIC */
+  document.getElementById("wheelSpinBtn").onclick = () => {
+    if (wheelSpinning || wheelDivisions.length === 0) return;
+    wheelSpinning = true;
+
+    const spinTime = 5000 + Math.random() * 3000;
+    const start = performance.now();
+
+    function animate(now) {
+      const elapsed = now - start;
+      wheelAngle += 0.25 * (1 - elapsed / spinTime);
+
+      if (elapsed < spinTime) {
+        drawWheel();
+        requestAnimationFrame(animate);
+      } else {
+        wheelSpinning = false;
+        finalizeSpin();
+      }
+    }
+
+    requestAnimationFrame(animate);
+  };
+
+  /* DETERMINE WINNING SLICE */
+  function finalizeSpin() {
+    const slice = (2 * Math.PI) / wheelDivisions.length;
+    const pointerAngle = -Math.PI / 2; // top-center pointer
+
+    let adjusted = (wheelAngle + pointerAngle) % (2 * Math.PI);
+    if (adjusted < 0) adjusted += 2 * Math.PI;
+
+    const index = Math.floor(adjusted / slice);
+
+    wheelSelected = wheelDivisions[index];
+    document.getElementById("wheelResult").textContent =
+      `Selected: ${wheelSelected}`;
+  }
+
+  /* REMOVE SELECTED + MARK SOLD */
+  document.getElementById("wheelRemoveBtn").onclick = () => {
+    if (!wheelSelected) return;
+
+    const div = wheelSelected;
+
+    wheelDivisions = wheelDivisions.filter(x => x !== div);
+    wheelSelected = null;
+    drawWheel();
+    document.getElementById("wheelResult").textContent = "";
+
+    const row = document.querySelector(
+      `.division-row[data-division="${div}"]`
+    );
+
+    if (row) {
+      row.classList.add("sold");
+      row.classList.remove("available");
+      showDivisionPopup(div);
+    }
+  };
+
+  /* TOGGLE VISIBILITY */
+  document.getElementById("wheelToggleMain").onclick = () => {
+    wheelWrapper.classList.toggle("hidden");
+  };
+
+  document.getElementById("wheelToggleBtn").onclick = () => {
+    wheelWrapper.classList.add("hidden");
+  };
+
+  /* DRAGGABLE WHEEL */
+  let dragging = false;
+  let dragOffsetX = 0;
+  let dragOffsetY = 0;
+
+  wheelWrapper.addEventListener("mousedown", (e) => {
+    if (e.target.classList.contains("wheel-resizer")) return; // skip resize
+    dragging = true;
+    dragOffsetX = e.clientX - wheelWrapper.offsetLeft;
+    dragOffsetY = e.clientY - wheelWrapper.offsetTop;
+    wheelWrapper.classList.add("dragging");
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    wheelWrapper.style.left = `${e.clientX - dragOffsetX}px`;
+    wheelWrapper.style.top = `${e.clientY - dragOffsetY}px`;
+    wheelWrapper.style.transform = "none";
+  });
+
+  document.addEventListener("mouseup", () => {
+    dragging = false;
+    wheelWrapper.classList.remove("dragging");
+  });
+
+  /* RESIZE HANDLE */
+  const resizer = document.querySelector(".wheel-resizer");
+  let resizing = false;
+
+  resizer.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    resizing = true;
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (!resizing) return;
+
+    let newSize = Math.max(200, e.clientX - wheelWrapper.offsetLeft);
+
+    wheelCanvas.width = newSize;
+    wheelCanvas.height = newSize;
+
+    wheelRadius = newSize / 2;
+
+    wheelWrapper.style.width = `${newSize}px`;
+    wheelWrapper.style.height = `${newSize}px`;
+
+    drawWheel();
+  });
+
+  document.addEventListener("mouseup", () => {
+    resizing = false;
+  });
+
+});
 
 
 </script>
@@ -1536,6 +1819,31 @@ initOverlay();
   <button id="undoBtn">UNDO</button>
 </div>
 
+<!-- DIVISION SPIN WHEEL -->
+<div id="wheelWrapper" class="wheel-wrapper hidden">
+  <div class="wheel-pointer"></div>
+
+  <div class="wheel-container">
+    <canvas id="divisionWheel" width="350" height="350"></canvas>
+
+    <div class="wheel-controls">
+      <button id="wheelShuffleBtn">Shuffle</button>
+      <button id="wheelSpinBtn">Spin</button>
+      <button id="wheelRemoveBtn">Remove Selected</button>
+      <button id="wheelToggleBtn">Hide Wheel</button>
+    </div>
+
+    <div id="wheelResult" class="wheel-result"></div>
+  </div>
+
+  <div class="wheel-resizer"></div>
+</div>
+
+
+<!-- Button that toggles visibility -->
+<button id="wheelToggleMain" class="wheel-main-toggle">
+  Division Wheel
+</button>
 
 </body>
 </html>
