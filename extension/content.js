@@ -29,10 +29,7 @@ const CUSTOMER_CONFIG = {
     endpoint: "https://tsu-bridge-dbdv.onrender.com/events",
     key: "7f9df36cb0a220415f913f6f343c7016"
   },
-  jumbocb: {
-  endpoint: "https://tsu-bridge-jumbocb.onrender.com/events",
-  key: "4393fb29177e139f69cf4b48bdbd51dd"
-},
+
 
 };
 

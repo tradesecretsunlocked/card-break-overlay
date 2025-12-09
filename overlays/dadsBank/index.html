@@ -470,12 +470,24 @@
     <textarea id="exportDataBox" readonly></textarea>
 
     <div class="export-popup-buttons">
-      <button id="copyExportBtn">Copy JSON</button>
+      <button id="copyExportBtn">Copy CSV</button>
       <button id="closeExportBtn">Close</button>
     </div>
   </div>
 </div>
+<!-- RESET CONFIRM POPUP -->
+<div id="resetPopup" class="export-popup hidden">
+  <div class="export-popup-content">
+    <h2 style="color:#b00000;">Reset Break?</h2>
+    <p>This will remove ALL product data, buyer names, and break progress.</p>
+    <p><strong>This cannot be undone.</strong></p>
 
+    <div class="export-popup-buttons">
+      <button id="confirmResetBtn" style="background:#b00000;">YES, RESET</button>
+      <button id="cancelResetBtn">Cancel</button>
+    </div>
+  </div>
+</div>
 
   <!-- hidden import file field -->
   <input type="file" id="productFileInput" accept=".csv, .json" style="display:none;">
@@ -1089,31 +1101,33 @@ document.getElementById("productFileInput").addEventListener("change", function(
   const file = e.target.files[0];
   if (!file) return;
 
-const reader = new FileReader();
-reader.onload = function(evt) {
-  const text = evt.target.result;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const text = evt.target.result;
 
-  if (file.name.endsWith(".csv")) {
-   products = parseCSV(text);
-computeDivisionMetrics();
-buildProductInventory();
+    if (file.name.endsWith(".csv")) {
+      products = [];
+      products = parseCSV(text);
+      computeDivisionMetrics();
+      buildProductInventory();
+    } else {
+      try {
+        products = JSON.parse(text).map(item => ({
+          ...item,
+          division: normalizeDivisionName(item.division)
+        }));
+        computeDivisionMetrics();
+        buildProductInventory();
+      } catch (err) {
+        console.error("Invalid JSON:", err);
+      }
+    }
+  };
 
-  } else {
-    try {
-products = JSON.parse(text).map(item => ({
-  ...item,
-  division: normalizeDivisionName(item.division)
-}));
-computeDivisionMetrics();
-buildProductInventory();
-} catch (err) {
-  console.error("Invalid JSON:", err);
-}
+  reader.readAsText(file);
 
-  }
-};
-reader.readAsText(file);
-
+  // 🔥 IMPORTANT: allow re-importing the SAME file after reset
+  e.target.value = "";
 });
 
 // 8.5 NEXT BREAK BUTTON (keep records, no division reset)
@@ -1184,6 +1198,34 @@ document.querySelectorAll(".division-row").forEach(row => {
   });
 });
 
+function performFullReset() {
+  console.log("PERFORMING HARD RESET…");
+
+  products = [];
+  lastRemovedItem = null;
+  localStorage.removeItem("rq.products");
+
+  document.querySelectorAll(".division-row").forEach(row => {
+    row.classList.remove("sold");
+    row.classList.add("available");
+
+    const div = row.dataset.division;
+    if (divisionStats[div]) {
+      divisionStats[div].buyer = "";
+    }
+
+    const input = row.querySelector(".buyer-input");
+    if (input) input.value = "";
+  });
+
+initDivisionStats();
+computeDivisionMetrics();   // ← FORCE a clean recomputation
+buildProductInventory();
+
+
+  console.log("RESET COMPLETE");
+}
+
 let lastRemovedItem = null;
 let undoTimer = null;
 
@@ -1234,39 +1276,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // RESET BREAK HANDLER
   if (resetBtn) {
-    resetBtn.onclick = () => {
-      console.log("RESETTING BREAK…");
+resetBtn.onclick = () => {
+  document.getElementById("resetPopup").classList.remove("hidden");
+};
 
-      // 1. Clear in-memory data
-      products = [];
-      lastRemovedItem = null;
-
-      // 2. Clear local storage for products
-      localStorage.removeItem("rq.products");
-
-      // 3. Reset divisions & buyer names
-      document.querySelectorAll(".division-row").forEach(row => {
-        row.classList.remove("sold");
-        row.classList.add("available");
-
-        const div = row.dataset.division;
-        if (divisionStats[div]) {
-          divisionStats[div].buyer = "";
-        }
-
-        const input = row.querySelector(".buyer-input");
-        if (input) input.value = "";
-      });
-
-      // 4. Reset stats + UI
-      initDivisionStats();
-      updateUI();
-      buildProductInventory();
-
-      console.log("RESET COMPLETE");
-    };
   }
+
 });
+
+
 
 // EXPORT POPUP LOGIC
 const exportPopup = document.getElementById("exportPopup");
@@ -1274,6 +1292,9 @@ const exportBox = document.getElementById("exportDataBox");
 const copyExportBtn = document.getElementById("copyExportBtn");
 const closeExportBtn = document.getElementById("closeExportBtn");
 const exportBtn = document.getElementById("exportBtn");
+
+
+
 
 // Build exportable JSON
 function buildExportData() {
@@ -1293,25 +1314,47 @@ function buildExportData() {
   return JSON.stringify(grouped, null, 2);
 }
 
+function buildExportCSV() {
+  let header = "product,division,value,isChase\n";
+  let rows = products.map(p =>
+    `${p.product},${p.division},${p.value},${p.isChase}`
+  ).join("\n");
+
+  return header + rows;
+}
+
+
 // Open popup
 exportBtn.onclick = () => {
-  exportBox.value = buildExportData();
+  const csv = buildExportCSV();
+  exportBox.value = csv;
   exportPopup.classList.remove("hidden");
 };
 
-// Copy JSON
+
+
+
+// Copy CSV
 copyExportBtn.onclick = () => {
   exportBox.select();
   document.execCommand("copy");
-  copyExportBtn.textContent = "Copied!";
-  setTimeout(() => (copyExportBtn.textContent = "Copy JSON"), 1200);
+  copyExportBtn.textContent = "Copied CSV!";
+  setTimeout(() => (copyExportBtn.textContent = "Copy CSV"), 1200);
 };
+
 
 // Close popup
 closeExportBtn.onclick = () => {
   exportPopup.classList.add("hidden");
 };
 
+document.getElementById("confirmResetBtn").onclick = () => {
+  performFullReset();
+  document.getElementById("resetPopup").classList.add("hidden");
+};
+
+document.getElementById("cancelResetBtn").onclick = () =>
+  document.getElementById("resetPopup").classList.add("hidden");
 
 </script>
 <script>
@@ -1319,19 +1362,22 @@ closeExportBtn.onclick = () => {
    TSU AUTOMATION + BREAK COUNTER + BOOTSTRAP
 ------------------------------------------------------- */
 
+/* -------------------------------------------------------
+   TSU AUTOMATION + BREAK COUNTER + BOOTSTRAP (DBDV CLEAN VERSION)
+------------------------------------------------------- */
+
 let ACTIVE_BRIDGE = null;
-let currentBreakType = "nfl";  // always “nfl” for divisional breaks
+let currentBreakType = "nfl";
 
 /* -------------------------
-   BREAK COUNTER (Daily)
+   BREAK COUNTER
 ------------------------- */
-
 function getDatePart() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-let breakDayData = JSON.parse(localStorage.getItem("rq.breakDayData") || "{}");
+let breakDayData = JSON.parse(localStorage.getItem("dbdv.breakDayData") || "{}");
 
 function loadOrResetDailyCounter() {
   const today = getDatePart();
@@ -1343,19 +1389,7 @@ function loadOrResetDailyCounter() {
 }
 
 function saveBreakCounter() {
-  localStorage.setItem("rq.breakDayData", JSON.stringify(breakDayData));
-}
-
-function startNewBreakCycle() {
-  const today = getDatePart();
-
-  if (today !== breakDayData.date) {
-    breakDayData = { date: today, counter: 1 };
-  } else {
-    breakDayData.counter += 1;
-  }
-
-  saveBreakCounter();
+  localStorage.setItem("dbdv.breakDayData", JSON.stringify(breakDayData));
 }
 
 loadOrResetDailyCounter();
@@ -1365,58 +1399,24 @@ function computeBreakId() {
 }
 
 /* -------------------------
-   TSU BRIDGE HANDSHAKE
+   BRIDGE DETECTION
 ------------------------- */
+const DEFAULT_BRIDGE = "https://tsu-bridge-dbdv.onrender.com";
 
-/* -------------------------
-   TSU BRIDGE DETECTION
-------------------------- */
 function detectBridge() {
-  const url = new URLSearchParams(window.location.search);
+  const url = new URLSearchParams(location.search);
   if (url.has("bridge")) return url.get("bridge");
 
-  const ext = sessionStorage.getItem("tsu.bridge");
-  if (ext) return ext;
-
-  const ls = localStorage.getItem("tsu.bridge.base");
-  if (ls) return ls;
-
-  return DEFAULT_BRIDGE;  
+  return (
+    sessionStorage.getItem("tsu.bridge") ||
+    localStorage.getItem("tsu.bridge.base") ||
+    DEFAULT_BRIDGE
+  );
 }
 
-/* -------------------------
-   TSU HANDSHAKE REQUEST
-------------------------- */
 function handshakeWithExtension() {
   window.postMessage("TSU_REQUEST_BRIDGE", "*");
 }
-
-
-function param(k) {
-  return new URLSearchParams(location.search).get(k);
-}
-
-const DEFAULT_BRIDGE = "https://tsu-bridge-dbdv.onrender.com";
-
-ACTIVE_BRIDGE =
-  param("bridge") ||
-  localStorage.getItem("tsu.bridge.base") ||
-  DEFAULT_BRIDGE;
-
-
-// Store bridge for future loads
-localStorage.setItem("tsu.bridge.base", ACTIVE_BRIDGE);
-
-window.addEventListener("message", (e) => {
-  if (e.data === "TSU_REQUEST_BRIDGE") {
-    window.postMessage({
-      source: "TSU_OVERLAY",
-      type: "TSU_BRIDGE_INFO",
-      bridge: ACTIVE_BRIDGE
-    }, "*");
-  }
-});
-
 
 window.addEventListener("message", (e) => {
   if (e.data?.type === "TSU_BRIDGE_INFO") {
@@ -1428,60 +1428,46 @@ window.addEventListener("message", (e) => {
 /* -------------------------
    WARMUP PING
 ------------------------- */
-
 async function warmupPing() {
   if (!ACTIVE_BRIDGE) return;
-
-  const payload = {
-    breakId: "warmup",
-    breakType: currentBreakType,
-    division: "WARMUP",
-    buyerName: "ping",
-    ts: Date.now()
-  };
 
   try {
     await fetch(`${ACTIVE_BRIDGE}/events`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        breakId: "warmup",
+        breakType: currentBreakType,
+        division: "WARMUP",
+        buyerName: "ping",
+        ts: Date.now()
+      })
     });
   } catch (err) {
     console.warn("Warmup failed:", err);
   }
 }
 
-// secondary warmup (required for Render cold start)
-setTimeout(warmupPing, 2000);
-
 /* -------------------------
    SSE LISTENER
 ------------------------- */
-
 let eventSource = null;
 
 function startSSE() {
   if (!ACTIVE_BRIDGE) return;
 
-  const streamURL = `${ACTIVE_BRIDGE}/stream`;
-
-  eventSource = new EventSource(streamURL);
-
-  eventSource.onopen = () => {
-    console.log("SSE connected.");
-  };
+  eventSource = new EventSource(`${ACTIVE_BRIDGE}/stream`);
 
   eventSource.onerror = () => {
-    console.warn("SSE disconnect. Retrying in 3s...");
-    setTimeout(startSSE, 3000);
+    console.warn("SSE lost. Reconnecting...");
+    setTimeout(startSSE, 2000);
   };
 
   eventSource.onmessage = (event) => {
     try {
-      const data = JSON.parse(event.data);
-      applySaleFromSSE(data);
-    } catch (e) {
-      console.warn("Invalid SSE event:", e);
+      applySaleFromSSE(JSON.parse(event.data));
+    } catch (err) {
+      console.warn("Bad SSE event:", err);
     }
   };
 }
@@ -1489,29 +1475,25 @@ function startSSE() {
 /* -------------------------
    APPLY SALE
 ------------------------- */
-
 function applySaleFromSSE(evt) {
   const breakId = computeBreakId();
 
   if (evt.type === "reset") {
-  document.getElementById("resetBtn").click();
-  return;
-}
+    document.getElementById("resetBtn").click();
+    return;
+  }
 
   if (evt.breakId !== breakId) return;
-  if (!evt.division) return;
 
   const row = document.querySelector(`.division-row[data-division="${evt.division}"]`);
   if (!row) return;
 
-  // mark sold
-  row.classList.remove("available");
   row.classList.add("sold");
+  row.classList.remove("available");
 
-  // set buyer name
-  const buyer = row.querySelector(".buyer-input");
-  if (buyer) {
-    buyer.value = evt.buyerName || "";
+  const input = row.querySelector(".buyer-input");
+  if (input) {
+    input.value = evt.buyerName || "";
     divisionStats[evt.division].buyer = evt.buyerName || "";
   }
 }
@@ -1519,30 +1501,25 @@ function applySaleFromSSE(evt) {
 /* -------------------------
    BOOTSTRAP
 ------------------------- */
-
 function initOverlay() {
-  // initialize stats
+  ACTIVE_BRIDGE = detectBridge();
+  localStorage.setItem("tsu.bridge.base", ACTIVE_BRIDGE);
+
   initDivisionStats();
   updateUI();
   buildProductInventory();
 
-  // detect & store bridge
-  ACTIVE_BRIDGE = detectBridge();
-  localStorage.setItem("tsu.bridge.base", ACTIVE_BRIDGE);
-
-  // handshake with TSU extension
   handshakeWithExtension();
 
-  // warmups
   setTimeout(warmupPing, 600);
   setTimeout(warmupPing, 2000);
 
-  // start SSE
   setTimeout(startSSE, 1200);
 }
 
 initOverlay();
-buildProductInventory();
+
+
 
 </script>
 <div id="divisionPopup" class="division-popup hidden">
