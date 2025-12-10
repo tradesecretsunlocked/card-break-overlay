@@ -447,16 +447,26 @@
 
 
   <!-- CONTROL BAR -->
+  <!-- CONTROL BAR -->
   <div class="control-bar">
-    <button class="ctrl-btn" id="resetBtn">RESET BREAK</button>
-    <button class="ctrl-btn" id="importBtn">IMPORT PRODUCTS</button>
-    <button class="ctrl-btn" id="exportBtn">EXPORT REMAINING</button>
-    <button class="ctrl-btn" id="nextBreakBtn">NEXT BREAK</button>
+    <!-- Row 1: Break controls -->
+    <div class="control-row">
+      <button class="ctrl-btn" id="resetBtn">RESET BREAK</button>
+      <button class="ctrl-btn" id="importBtn">IMPORT PRODUCTS</button>
+      <button class="ctrl-btn" id="exportBtn">EXPORT REMAINING</button>
+      <button class="ctrl-btn" id="nextBreakBtn">NEXT BREAK</button>
+    </div>
 
-
- 
-
+    <!-- Row 2: Wheel controls -->
+    <div class="control-row">
+      <button class="ctrl-btn" id="wheelToggleMain">DIVISION WHEEL</button>
+      <button class="ctrl-btn" id="wheelSpinBtn">SPIN</button>
+      <button class="ctrl-btn" id="wheelShuffleBtn">SHUFFLE</button>
+      <button class="ctrl-btn" id="wheelRemoveBtn">REMOVE SELECTED</button>
+      <button class="ctrl-btn" id="wheelPrizeBtn">ADD PRIZE SPOT</button>
+    </div>
   </div>
+<!-- END CONTROL BAR PATCH -->
 
 <div id="productInventory" class="product-inventory">
   <!-- JS will auto-populate this -->
@@ -494,14 +504,19 @@
 
 
 <style>
-  .control-bar {
+   .control-bar {
     margin-top: 8px;
     background: var(--rq-navy);
     border: 3px solid var(--rq-mid);
     padding: 8px;
     border-radius: 10px;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .control-row {
+    display: flex;
     gap: 10px;
   }
 
@@ -518,6 +533,11 @@
     text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
     box-shadow: 0 0 8px rgba(1,58,99,0.4);
     transition: 0.2s ease;
+  }
+
+  .ctrl-btn:hover {
+    background: var(--rq-navy);
+    box-shadow: 0 0 14px rgba(1,58,99,0.8);
   }
 
   .ctrl-btn:hover {
@@ -732,15 +752,21 @@
   cursor: pointer;
 }
 
+/* START FLOATING WHEEL PATCH */
 .wheel-wrapper {
   position: fixed;
-  padding: 20px;
-  background: rgba(1, 58, 99, 0.9);
-  border: 3px solid var(--rq-gold);
-  border-radius: 16px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  background: transparent;         /* remove blue box */
+  border: none;                    /* no outer panel */
   z-index: 9999;
   cursor: grab;
+  width: 350px;                    /* starting wheel size */
+  height: 350px;
 }
+
 
 
 
@@ -773,47 +799,48 @@
   color: var(--rq-gold);
 }
 
-/* ===== DRAGGABLE + RESIZABLE WHEEL ===== */
 
-#wheelWrapper {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  resize: none; /* we'll handle real resizing */
-  cursor: grab;
+
+/* Clean circular border around the wheel */
+#wheelWrapper canvas {
+  border: 4px solid var(--rq-gold);
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(0,0,0,0.35);
 }
 
 #wheelWrapper.dragging {
   cursor: grabbing;
 }
 
-/* Resize handle */
+/* Resize handle stays visible but minimal */
 .wheel-resizer {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   background: var(--rq-gold);
-  position: absolute;
-  right: -8px;
-  bottom: -8px;
   border-radius: 4px;
-  cursor: se-resize;
   border: 2px solid var(--rq-navy);
+  position: absolute;
+  bottom: -10px;
+  right: -10px;
+  cursor: se-resize;
+  box-shadow: 0 0 6px rgba(0,0,0,0.4);
 }
 
-/* Pointer triangle (now aligned precisely at top center) */
+
+/* Pointer stays above top center of wheel */
 .wheel-pointer {
   position: absolute;
-  top: -22px;
+  top: -30px;
   left: 50%;
   transform: translateX(-50%);
   width: 0;
   height: 0;
-  border-left: 14px solid transparent;
-  border-right: 14px solid transparent;
-  border-bottom: 22px solid var(--rq-gold);
-  z-index: 20;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-top: 26px solid var(--rq-gold); /* ← THIS MAKES IT POINT UP */
+  z-index: 9999;
 }
+
 
 </style>
 <script>
@@ -1161,6 +1188,26 @@ function showDivisionPopup(divisionName) {
     setTimeout(() => popup.classList.add("hidden"), 400);
   }, 4000);
 }
+/* PRIZE POPUP */
+function showPrizePopup(prizeName) {
+  const popup = document.getElementById("divisionPopup");
+  const title = document.getElementById("popupDivision");
+  const buyer = document.getElementById("popupBuyer");
+  const list = document.getElementById("popupCardList");
+
+  title.textContent = `PRIZE WON!`;
+buyer.textContent = prizeName;
+list.innerHTML = "<li>Special Prize</li>";
+
+
+  popup.classList.remove("hidden");
+  popup.classList.add("visible");
+
+  setTimeout(() => {
+    popup.classList.remove("visible");
+    setTimeout(() => popup.classList.add("hidden"), 400);
+  }, 4000);
+}
 
 
 
@@ -1466,6 +1513,11 @@ document.getElementById("cancelResetBtn").onclick = () =>
 let ACTIVE_BRIDGE = null;
 let currentBreakType = "nfl";
 
+/* BUYER QUEUE — holds the most recent auction winner */
+let queuedBuyer = null;
+let queuedDivision = null; // whatnot events send division separately
+
+
 /* -------------------------
    BREAK COUNTER
 ------------------------- */
@@ -1579,20 +1631,13 @@ function applySaleFromSSE(evt) {
     document.getElementById("resetBtn").click();
     return;
   }
+// Store buyer for the wheel
+queuedBuyer = evt.buyerName || null;
+queuedDivision = evt.division || null;
 
-  if (evt.breakId !== breakId) return;
+console.log("Queued buyer:", queuedBuyer, "for division:", queuedDivision);
 
-  const row = document.querySelector(`.division-row[data-division="${evt.division}"]`);
-  if (!row) return;
 
-  row.classList.add("sold");
-  row.classList.remove("available");
-
-  const input = row.querySelector(".buyer-input");
-  if (input) {
-    input.value = evt.buyerName || "";
-    divisionStats[evt.division].buyer = evt.buyerName || "";
-  }
 }
 
 /* -------------------------
@@ -1617,20 +1662,36 @@ function initOverlay() {
 initOverlay();
 
 /* ===========================================================
-   DIVISION SPIN WHEEL MODULE (SAFE LOADED VERSION)
+   DIVISION SPIN WHEEL MODULE (FIXED + CLEAN)
 =========================================================== */
 document.addEventListener("DOMContentLoaded", () => {
 
+  // Core HTML elements
+  const wheelWrapper = document.getElementById("wheelWrapper");
+  const wheelCanvas  = document.getElementById("divisionWheel");
+  const toggleMainBtn = document.getElementById("wheelToggleMain");
+  const shuffleBtn    = document.getElementById("wheelShuffleBtn");
+  const spinBtn       = document.getElementById("wheelSpinBtn");
+  const removeBtn     = document.getElementById("wheelRemoveBtn");
+  const prizeBtn      = document.getElementById("wheelPrizeBtn");
+
+  if (!wheelWrapper || !wheelCanvas) {
+    console.warn("Wheel elements missing, skipping wheel init.");
+    return;
+  }
+
+  // Wheel state
   let wheelDivisions = [...nflDivisions];
   let wheelSelected = null;
   let wheelAngle = 0;
   let wheelSpinning = false;
 
-  const wheelCanvas = document.getElementById("divisionWheel");
   const ctx = wheelCanvas.getContext("2d");
   let wheelRadius = wheelCanvas.width / 2;
 
-  /* DRAW WHEEL */
+  /* ------------------------
+        DRAW WHEEL
+  ------------------------ */
   function drawWheel() {
     const count = wheelDivisions.length;
     if (count === 0) {
@@ -1644,7 +1705,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     wheelDivisions.forEach((division, i) => {
       const angleStart = wheelAngle + i * sliceAngle;
-      const angleEnd = angleStart + sliceAngle;
+      const angleEnd   = angleStart + sliceAngle;
 
       ctx.fillStyle = (i % 2 === 0) ? "#013A63" : "#FFFFFF";
 
@@ -1657,113 +1718,189 @@ document.addEventListener("DOMContentLoaded", () => {
       ctx.save();
       ctx.translate(wheelRadius, wheelRadius);
       ctx.rotate(angleStart + sliceAngle / 2);
+
+      ctx.font = "19px Arial Black";
+      ctx.textAlign = "center";
       ctx.fillStyle = (i % 2 === 0) ? "white" : "#013A63";
-      ctx.font = "17px Arial Black";
-      ctx.textAlign = "right";
-      ctx.fillText(division, wheelRadius - 12, 6);
+
+      ctx.fillText(division, wheelRadius * 0.60, 6);
       ctx.restore();
     });
   }
 
   drawWheel();
 
-  /* SHUFFLE */
-  document.getElementById("wheelShuffleBtn").onclick = () => {
-    wheelDivisions = wheelDivisions
-      .map(x => ({ x, r: Math.random() }))
-      .sort((a, b) => a.r - b.r)
-      .map(o => o.x);
+  /* ------------------------
+       SHUFFLE
+  ------------------------ */
+  if (shuffleBtn) {
+    shuffleBtn.addEventListener("click", () => {
+      wheelDivisions = wheelDivisions
+        .map(x => ({ x, r: Math.random() }))
+        .sort((a, b) => a.r - b.r)
+        .map(o => o.x);
 
-    drawWheel();
-  };
-
-  /* SPIN LOGIC */
-  document.getElementById("wheelSpinBtn").onclick = () => {
-    if (wheelSpinning || wheelDivisions.length === 0) return;
-    wheelSpinning = true;
-
-    const spinTime = 5000 + Math.random() * 3000;
-    const start = performance.now();
-
-    function animate(now) {
-      const elapsed = now - start;
-      wheelAngle += 0.25 * (1 - elapsed / spinTime);
-
-      if (elapsed < spinTime) {
-        drawWheel();
-        requestAnimationFrame(animate);
-      } else {
-        wheelSpinning = false;
-        finalizeSpin();
-      }
-    }
-
-    requestAnimationFrame(animate);
-  };
-
-  /* DETERMINE WINNING SLICE */
-  function finalizeSpin() {
-    const slice = (2 * Math.PI) / wheelDivisions.length;
-    const pointerAngle = -Math.PI / 2; // top-center pointer
-
-    let adjusted = (wheelAngle + pointerAngle) % (2 * Math.PI);
-    if (adjusted < 0) adjusted += 2 * Math.PI;
-
-    const index = Math.floor(adjusted / slice);
-
-    wheelSelected = wheelDivisions[index];
-    document.getElementById("wheelResult").textContent =
-      `Selected: ${wheelSelected}`;
+      drawWheel();
+    });
   }
 
-  /* REMOVE SELECTED + MARK SOLD */
-  document.getElementById("wheelRemoveBtn").onclick = () => {
-    if (!wheelSelected) return;
+  /* ------------------------
+         SPIN WHEEL
+  ------------------------ */
+  if (spinBtn) {
+    spinBtn.addEventListener("click", () => {
+      if (wheelSpinning || wheelDivisions.length === 0) return;
 
-    const div = wheelSelected;
+      wheelSpinning = true;
 
-    wheelDivisions = wheelDivisions.filter(x => x !== div);
-    wheelSelected = null;
-    drawWheel();
-    document.getElementById("wheelResult").textContent = "";
+      const spinTime = 5000 + Math.random() * 3000;
+      const start = performance.now();
 
-    const row = document.querySelector(
-      `.division-row[data-division="${div}"]`
-    );
+      function animate(now) {
+        const elapsed = now - start;
+        wheelAngle += 0.25 * (1 - elapsed / spinTime);
 
-    if (row) {
-      row.classList.add("sold");
-      row.classList.remove("available");
-      showDivisionPopup(div);
+        if (elapsed < spinTime) {
+          drawWheel();
+          requestAnimationFrame(animate);
+        } else {
+          wheelSpinning = false;
+          finalizeSpin();
+        }
+      }
+
+      requestAnimationFrame(animate);
+    });
+  }
+
+  /* ------------------------
+       FINALIZE SPIN
+  ------------------------ */
+  function finalizeSpin() {
+    const slice = (2 * Math.PI) / wheelDivisions.length;
+    const pointerAngle = -Math.PI / 2; // 12 o'clock
+
+    let adjusted = (pointerAngle - wheelAngle) % (2 * Math.PI);
+    if (adjusted < 0) adjusted += (2 * Math.PI);
+
+    const index = Math.floor(adjusted / slice) % wheelDivisions.length;
+
+    wheelSelected = wheelDivisions[index];
+
+    const resultBox = document.getElementById("wheelResult");
+    if (!resultBox) return;
+
+    if (wheelSelected.startsWith("PRIZE:")) {
+      const prizeName = wheelSelected.replace("PRIZE:", "").trim();
+      resultBox.textContent = `Selected Prize: ${prizeName}`;
+    } else {
+      resultBox.textContent = `Selected: ${wheelSelected}`;
     }
-  };
+  }
 
-  /* TOGGLE VISIBILITY */
-  document.getElementById("wheelToggleMain").onclick = () => {
-    wheelWrapper.classList.toggle("hidden");
-  };
+  /* ------------------------
+       REMOVE SELECTED
+  ------------------------ */
+  if (removeBtn) {
+    removeBtn.addEventListener("click", () => {
+      if (!wheelSelected) return;
 
-  document.getElementById("wheelToggleBtn").onclick = () => {
-    wheelWrapper.classList.add("hidden");
-  };
+      const slice = wheelSelected;
+      wheelDivisions = wheelDivisions.filter(x => x !== slice);
+      wheelSelected = null;
 
-  /* DRAGGABLE WHEEL */
+      drawWheel();
+      document.getElementById("wheelResult").textContent = "";
+
+      if (slice.startsWith("PRIZE:")) {
+        const prizeName = slice.replace("PRIZE:", "").trim();
+        if (queuedBuyer) {
+  showPrizePopup(`${queuedBuyer} won ${prizeName}`);
+  queuedBuyer = null;
+  queuedDivision = null;
+} else {
+  showPrizePopup(prizeName);
+}
+
+        return;
+      }
+
+// Otherwise it's a division — assign queued buyer
+const div = slice;
+const row = document.querySelector(`.division-row[data-division="${div}"]`);
+
+if (row) {
+  // assign queued buyer if we have one
+  if (queuedBuyer) {
+    divisionStats[div].buyer = queuedBuyer;
+
+    const input = row.querySelector(".buyer-input");
+    if (input) input.value = queuedBuyer;
+
+    row.classList.add("sold");
+    row.classList.remove("available");
+    showDivisionPopup(div);
+
+    // clear queue
+    queuedBuyer = null;
+    queuedDivision = null;
+  } else {
+    // fallback — no SSE buyer
+    row.classList.add("sold");
+    row.classList.remove("available");
+    showDivisionPopup(div);
+  }
+}
+
+    });
+  }
+
+  /* ------------------------
+        ADD PRIZE SPOT
+  ------------------------ */
+  if (prizeBtn) {
+    prizeBtn.addEventListener("click", () => {
+      const name = prompt("Enter Prize Name:");
+      if (!name) return;
+
+      const slice = `PRIZE:${name}`;
+      wheelDivisions.push(slice);
+      drawWheel();
+    });
+  }
+
+  /* ------------------------
+       TOGGLE WHEEL
+  ------------------------ */
+  if (toggleMainBtn) {
+    toggleMainBtn.addEventListener("click", () => {
+      wheelWrapper.classList.toggle("hidden");
+    });
+  }
+
+  /* ------------------------
+        DRAGGING
+  ------------------------ */
   let dragging = false;
   let dragOffsetX = 0;
   let dragOffsetY = 0;
 
   wheelWrapper.addEventListener("mousedown", (e) => {
-    if (e.target.classList.contains("wheel-resizer")) return; // skip resize
+    if (e.target.classList.contains("wheel-resizer")) return;
+
     dragging = true;
-    dragOffsetX = e.clientX - wheelWrapper.offsetLeft;
-    dragOffsetY = e.clientY - wheelWrapper.offsetTop;
+
+    const rect = wheelWrapper.getBoundingClientRect();
+    dragOffsetX = e.clientX - rect.left;
+    dragOffsetY = e.clientY - rect.top;
+
     wheelWrapper.classList.add("dragging");
   });
 
   document.addEventListener("mousemove", (e) => {
     if (!dragging) return;
     wheelWrapper.style.left = `${e.clientX - dragOffsetX}px`;
-    wheelWrapper.style.top = `${e.clientY - dragOffsetY}px`;
+    wheelWrapper.style.top  = `${e.clientY - dragOffsetY}px`;
     wheelWrapper.style.transform = "none";
   });
 
@@ -1772,27 +1909,31 @@ document.addEventListener("DOMContentLoaded", () => {
     wheelWrapper.classList.remove("dragging");
   });
 
-  /* RESIZE HANDLE */
+  /* ------------------------
+        RESIZE WHEEL
+  ------------------------ */
   const resizer = document.querySelector(".wheel-resizer");
   let resizing = false;
 
-  resizer.addEventListener("mousedown", (e) => {
-    e.preventDefault();
-    resizing = true;
-  });
+  if (resizer) {
+    resizer.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      resizing = true;
+    });
+  }
 
   document.addEventListener("mousemove", (e) => {
     if (!resizing) return;
 
     let newSize = Math.max(200, e.clientX - wheelWrapper.offsetLeft);
 
-    wheelCanvas.width = newSize;
+    wheelCanvas.width  = newSize;
     wheelCanvas.height = newSize;
 
-    wheelRadius = newSize / 2;
-
-    wheelWrapper.style.width = `${newSize}px`;
+    wheelWrapper.style.width  = `${newSize}px`;
     wheelWrapper.style.height = `${newSize}px`;
+
+    wheelRadius = newSize / 2;
 
     drawWheel();
   });
@@ -1802,6 +1943,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 });
+
 
 
 </script>
@@ -1819,31 +1961,22 @@ document.addEventListener("DOMContentLoaded", () => {
   <button id="undoBtn">UNDO</button>
 </div>
 
-<!-- DIVISION SPIN WHEEL -->
+
+<!-- START WHEEL HTML PATCH -->
 <div id="wheelWrapper" class="wheel-wrapper hidden">
   <div class="wheel-pointer"></div>
 
-  <div class="wheel-container">
-    <canvas id="divisionWheel" width="350" height="350"></canvas>
+  <canvas id="divisionWheel" width="350" height="350"></canvas>
 
-    <div class="wheel-controls">
-      <button id="wheelShuffleBtn">Shuffle</button>
-      <button id="wheelSpinBtn">Spin</button>
-      <button id="wheelRemoveBtn">Remove Selected</button>
-      <button id="wheelToggleBtn">Hide Wheel</button>
-    </div>
-
-    <div id="wheelResult" class="wheel-result"></div>
-  </div>
+  <div id="wheelResult" class="wheel-result"></div>
 
   <div class="wheel-resizer"></div>
 </div>
+<!-- END WHEEL HTML PATCH -->
 
 
-<!-- Button that toggles visibility -->
-<button id="wheelToggleMain" class="wheel-main-toggle">
-  Division Wheel
-</button>
+
+
 
 </body>
 </html>
