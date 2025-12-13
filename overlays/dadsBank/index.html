@@ -1621,17 +1621,31 @@ document.getElementById("cancelResetBtn").onclick = () =>
   document.getElementById("resetPopup").classList.add("hidden");
 
 </script>
+
+<!-- PRIZE MODAL (OBS-safe) -->
+<div id="prizeModal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-title">Add Prize Spot</div>
+    <input id="prizeNameInput" class="modal-input" placeholder="Prize name..." />
+    <div class="modal-actions">
+      <button id="prizeCancelBtn" class="modal-btn">Cancel</button>
+      <button id="prizeAddBtn" class="modal-btn primary">Add</button>
+    </div>
+  </div>
+</div>
+
+
 <script>
-/* -------------------------------------------------------
-   TSU AUTOMATION + BREAK COUNTER + BOOTSTRAP
-------------------------------------------------------- */
+
 
 /* -------------------------------------------------------
    TSU AUTOMATION + BREAK COUNTER + BOOTSTRAP (DBDV CLEAN VERSION)
 ------------------------------------------------------- */
 
 let ACTIVE_BRIDGE = null;
+let BRIDGE_KEY = "";
 let currentBreakType = "nfl";
+
 
 /* BUYER QUEUE — holds the most recent auction winner */
 let queuedBuyer = null;
@@ -1683,63 +1697,138 @@ function detectBridge() {
   );
 }
 
+function detectBridgeBase() {
+  const url = new URLSearchParams(location.search);
+  if (url.has("bridge")) return url.get("bridge");
+
+  return (
+    window.tsu_bridge ||
+    localStorage.getItem("tsu.active_bridge") ||
+    localStorage.getItem("tsu.bridge.base") ||
+    "https://tsu-bridge-dbdv.onrender.com"
+  );
+}
+
+function detectBridgeKey() {
+  const url = new URLSearchParams(location.search);
+  if (url.has("key")) return url.get("key");
+
+  return localStorage.getItem("tsu.bridge.key") || "";
+}
+
+
+
 function handshakeWithExtension() {
   window.postMessage("TSU_REQUEST_BRIDGE", "*");
 }
 
-window.addEventListener("message", (e) => {
-  if (e.data?.type === "TSU_BRIDGE_INFO") {
-    ACTIVE_BRIDGE = e.data.bridge;
-    localStorage.setItem("tsu.bridge.base", ACTIVE_BRIDGE);
-  }
-});
+
 
 /* -------------------------
    WARMUP PING
 ------------------------- */
-async function warmupPing() {
-  if (!ACTIVE_BRIDGE) return;
+async function warmupPing(tag = "warmup") {
+  if (!ACTIVE_BRIDGE) {
+    console.warn(`[TSU WARMUP:${tag}] No ACTIVE_BRIDGE yet`);
+    return;
+  }
+
+  const payload = {
+    breakId: "warmup",
+    breakType: currentBreakType,
+    division: "WARMUP",
+    buyerName: "ping",
+    ts: Date.now()
+  };
+
+  const headers = {
+    "Content-Type": "application/json",
+    ...(BRIDGE_KEY ? { "x-bridge-key": BRIDGE_KEY } : {})
+  };
+
+  console.groupCollapsed(
+    `%c[TSU WARMUP:${tag}] POST ${ACTIVE_BRIDGE}/events`,
+    "color:#F6C453;font-weight:900"
+  );
+  console.log("BRIDGE_KEY present?", !!BRIDGE_KEY, BRIDGE_KEY ? `(len=${BRIDGE_KEY.length})` : "(none)");
+  console.log("Headers:", headers);
+  console.log("Payload:", payload);
+  console.time(`[TSU WARMUP:${tag}] roundtrip`);
 
   try {
-    await fetch(`${ACTIVE_BRIDGE}/events`, {
+    const res = await fetch(`${ACTIVE_BRIDGE}/events`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        breakId: "warmup",
-        breakType: currentBreakType,
-        division: "WARMUP",
-        buyerName: "ping",
-        ts: Date.now()
-      })
+      headers,
+      body: JSON.stringify(payload)
     });
+
+    console.timeEnd(`[TSU WARMUP:${tag}] roundtrip`);
+
+    const contentType = res.headers.get("content-type") || "";
+    let bodyText = "";
+    try {
+      bodyText = contentType.includes("application/json")
+        ? JSON.stringify(await res.json())
+        : await res.text();
+    } catch (_) {}
+
+    console.log("Status:", res.status, res.statusText);
+    if (!res.ok) console.warn("Body:", bodyText);
+
   } catch (err) {
-    console.warn("Warmup failed:", err);
+    console.timeEnd(`[TSU WARMUP:${tag}] roundtrip`);
+    console.warn("Network/Fetch exception:", err);
+  } finally {
+    console.groupEnd();
   }
 }
+
+
 
 /* -------------------------
    SSE LISTENER
 ------------------------- */
-let eventSource = null;
-
 function startSSE() {
   if (!ACTIVE_BRIDGE) return;
 
-  eventSource = new EventSource(`${ACTIVE_BRIDGE}/stream`);
+  const sseUrl =
+    `${ACTIVE_BRIDGE}/stream` +
+    (BRIDGE_KEY ? `?key=${encodeURIComponent(BRIDGE_KEY)}` : "");
 
-  eventSource.onerror = () => {
-    console.warn("SSE lost. Reconnecting...");
+  console.groupCollapsed(
+    `%c[TSU SSE] connecting → ${sseUrl}`,
+    "color:#72b0dd;font-weight:900"
+  );
+  console.log("BRIDGE_KEY present?", !!BRIDGE_KEY, BRIDGE_KEY ? `(len=${BRIDGE_KEY.length})` : "(none)");
+  console.groupEnd();
+
+  if (eventSource) {
+    try { eventSource.close(); } catch (_) {}
+  }
+
+  eventSource = new EventSource(sseUrl);
+
+  eventSource.onopen = () => {
+    console.log("%c[TSU SSE] OPEN ✅", "color:lime;font-weight:900");
+  };
+
+  eventSource.onerror = (e) => {
+    console.warn("[TSU SSE] ERROR (will reconnect)", e);
+    try { eventSource.close(); } catch (_) {}
     setTimeout(startSSE, 2000);
   };
 
   eventSource.onmessage = (event) => {
+    console.log("[TSU SSE] message:", event.data);
     try {
       applySaleFromSSE(JSON.parse(event.data));
     } catch (err) {
-      console.warn("Bad SSE event:", err);
+      console.warn("Bad SSE payload:", err, event.data);
     }
   };
 }
+
+
 
 /* -------------------------
    APPLY SALE
@@ -1764,8 +1853,15 @@ console.log("Queued buyer:", queuedBuyer, "for division:", queuedDivision);
    BOOTSTRAP
 ------------------------- */
 function initOverlay() {
-  ACTIVE_BRIDGE = detectBridge();
+  ACTIVE_BRIDGE = detectBridgeBase();
+  BRIDGE_KEY = detectBridgeKey();
+
+  // persist for extension + reload safety
+  localStorage.setItem("tsu.active_bridge", ACTIVE_BRIDGE);
   localStorage.setItem("tsu.bridge.base", ACTIVE_BRIDGE);
+  if (BRIDGE_KEY) {
+    localStorage.setItem("tsu.bridge.key", BRIDGE_KEY);
+  }
 
   initDivisionStats();
   updateUI();
@@ -1773,10 +1869,10 @@ function initOverlay() {
 
   handshakeWithExtension();
 
-  setTimeout(warmupPing, 600);
-  setTimeout(warmupPing, 2000);
-
+  setTimeout(() => warmupPing("t+600ms"), 600);
+  setTimeout(() => warmupPing("t+2000ms"), 2000);
   setTimeout(startSSE, 1200);
+
 }
 
 initOverlay();
@@ -2248,17 +2344,6 @@ window.resetDivisionWheel = function () {
 <!-- END WHEEL HTML PATCH -->
 </div>
 
-<!-- PRIZE MODAL (OBS-safe) -->
-<div id="prizeModal" class="modal hidden">
-  <div class="modal-card">
-    <div class="modal-title">Add Prize Spot</div>
-    <input id="prizeNameInput" class="modal-input" placeholder="Prize name..." />
-    <div class="modal-actions">
-      <button id="prizeCancelBtn" class="modal-btn">Cancel</button>
-      <button id="prizeAddBtn" class="modal-btn primary">Add</button>
-    </div>
-  </div>
-</div>
 
 
 
