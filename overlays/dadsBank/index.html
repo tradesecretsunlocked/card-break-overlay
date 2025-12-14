@@ -1649,27 +1649,7 @@ let currentBreakType = "nfl";
 // ===============================
 // TSU → EXTENSION HANDSHAKE RESPONSE
 // ===============================
-window.addEventListener("message", (e) => {
-  if (e.data !== "TSU_REQUEST_BRIDGE") return;
 
-  const bridge = detectBridgeBase();
-  const key = detectBridgeKey();
-
-  console.log("[TSU OVERLAY] Responding to bridge request", {
-    bridge,
-    keyPresent: !!key,
-    keyLength: key.length
-  });
-
-  window.postMessage(
-    {
-      type: "TSU_BRIDGE_INFO",
-      bridge,
-      key
-    },
-    "*"
-  );
-});
 
 window.addEventListener("message", (e) => {
   if (!e.data || e.data.type !== "TSU_BRIDGE_INFO") return;
@@ -1912,11 +1892,19 @@ function initOverlay() {
   updateUI();
   buildProductInventory();
 
-  handshakeWithExtension();
+handshakeWithExtension();
 
-  setTimeout(() => warmupPing("t+600ms"), 600);
-  setTimeout(() => warmupPing("t+2000ms"), 2000);
-  setTimeout(startSSE, 1200);
+const waitForBridge = setInterval(() => {
+  if (ACTIVE_BRIDGE && BRIDGE_KEY) {
+    clearInterval(waitForBridge);
+
+    console.log("[TSU] Bridge + key ready, starting warmup & SSE");
+
+    warmupPing("initial");
+    startSSE();
+  }
+}, 100);
+
 
 }
 
