@@ -105,12 +105,32 @@ function pad(n) { return String(n).padStart(2, "0"); }
 function datePart(d = new Date()) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
-function computeBreakId(sport) {
-  return `${datePart()}-${sport}`.toLowerCase();
+
+const STORAGE_BREAK_COUNTER = "tsu.break.counter";
+
+function getNextBreakCounter(type) {
+  const today = datePart();
+  const key = `${today}-${type}`;
+
+  const counters = JSON.parse(
+    localStorage.getItem(STORAGE_BREAK_COUNTER) || "{}"
+  );
+
+  counters[key] = (counters[key] || 0) + 1;
+  localStorage.setItem(STORAGE_BREAK_COUNTER, JSON.stringify(counters));
+
+  return counters[key];
 }
-function getCurrentBreakId() {
-  return computeBreakId(getActiveSport());
+
+function computeBreakId(type) {
+  const count = getNextBreakCounter(type);
+  return `${datePart()}-${type}-${String(count).padStart(2, "0")}`.toLowerCase();
 }
+
+function getBreakId(type) {
+  return computeBreakId(type);
+}
+
 
 // -------- BRIDGE CONFIG --------
 function getCurrentCustomer() {
@@ -256,6 +276,9 @@ const TEAM_DATA = {
       "tennessee titans":"TEN",
       "washington commanders":"WAS"
     }
+
+    
+
   },
 
   // NBA + MLB included in PART 2 of this code
@@ -408,6 +431,47 @@ TEAM_DATA.nba = {
   }
 };
 
+const DIVISION_DATA = {
+  // NFL divisions
+  "afc east": "AFCE",
+  "afc north": "AFCN",
+  "afc south": "AFCS",
+  "afc west": "AFCW",
+  "nfc east": "NFCE",
+  "nfc north": "NFCN",
+  "nfc south": "NFCS",
+  "nfc west": "NFCW",
+
+  // extras
+  "nba": "NBA",
+  "mlb": "MLB"
+};
+
+function normalizeDivision(rawText) {
+  const cleaned = cleanText(rawText);
+  if (!cleaned) return null;
+
+  // direct contains match
+  for (const [name, code] of Object.entries(DIVISION_DATA)) {
+    if (cleaned.includes(name)) return code;
+  }
+
+  // mild fuzzy: allow "afc eaat" type nonsense
+  const keys = Object.keys(DIVISION_DATA);
+  let best = null;
+  let bestDist = 999;
+
+  for (const k of keys) {
+    const d = editDistance(cleaned, k);
+    if (d < bestDist) {
+      bestDist = d;
+      best = k;
+    }
+  }
+
+  return bestDist <= 3 ? DIVISION_DATA[best] : null;
+}
+
 
 // ===========================================================
 //  UNIVERSAL NORMALIZE TEAM ENGINE
@@ -491,13 +555,16 @@ function postSale(teamCode, buyerName) {
   const { endpoint, key } = getBridgeConfig();
   if (!endpoint) return;
 
-  const payload = {
-    breakId: getCurrentBreakId(),
-    breakType: getActiveSport(),
-    teamCode,
-    buyerName,
-    ts: Date.now()
-  };
+const breakType = getActiveSport();
+
+const payload = {
+  breakId: getBreakId(breakType),
+  breakType,
+  teamCode,
+  buyerName,
+  ts: Date.now()
+};
+
 
   log("POST →", payload);
 
@@ -510,6 +577,38 @@ function postSale(teamCode, buyerName) {
     body: JSON.stringify(payload)
   }).catch(err => log("Fetch error:", err));
 }
+
+// ===========================================================
+//  post division sale
+// ===========================================================
+function postDivisionSale(divisionCode, buyerName) {
+  if (!divisionCode || !buyerName) return;
+
+  const { endpoint, key } = getBridgeConfig();
+  if (!endpoint) return;
+
+const payload = {
+  breakId: getBreakId("division"),
+  breakType: "division",
+  divisionCode,
+  buyerName,
+  ts: Date.now()
+};
+
+
+  log("POST DIVISION →", payload);
+
+  fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(key ? { "x-bridge-key": key } : {})
+    },
+    body: JSON.stringify(payload)
+  }).catch(err => log("Fetch error:", err));
+}
+
+
 // ===========================================================
 //  SEEN EVENT HANDLING (prevents duplicate triggers)
 // ===========================================================
@@ -556,22 +655,33 @@ function scheduleProcess() {
 
 function processText(text) {
   if (!text) return;
-
   if (!/purchased by|won by|buyer:/i.test(text)) return;
 
   const key = makeSeenKey(text);
   if (isSeen(key)) return;
 
   const buyer = extractBuyer(text);
+
+  // ✅ division-first for divisional overlay
+  const divisionCode = normalizeDivision(text);
+
+  // fallback to team if division not found (keeps your extension universal)
   const teamCode = normalizeTeam(text);
 
-  log("Candidate:", { text, buyer, teamCode });
+  log("Candidate:", { text, buyer, divisionCode, teamCode });
+
+  if (buyer && divisionCode) {
+    markSeen(key);
+    postDivisionSale(divisionCode, buyer);
+    return;
+  }
 
   if (buyer && teamCode) {
     markSeen(key);
     postSale(teamCode, buyer);
   }
 }
+
 
 
 // ===========================================================
