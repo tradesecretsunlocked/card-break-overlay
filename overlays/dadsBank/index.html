@@ -1645,6 +1645,9 @@ document.getElementById("cancelResetBtn").onclick = () =>
 let ACTIVE_BRIDGE = null;
 let BRIDGE_KEY = "";
 let currentBreakType = "nfl";
+let eventSource = null; // ✅ REQUIRED for SSE reconnects
+let didBoot = false;    // ✅ prevents double boot
+
 
 // ===============================
 // TSU → EXTENSION HANDSHAKE RESPONSE
@@ -1659,6 +1662,7 @@ window.addEventListener("message", (e) => {
   if (bridge) {
     ACTIVE_BRIDGE = bridge;
     localStorage.setItem("tsu.bridge.base", bridge);
+    localStorage.setItem("tsu.active_bridge", bridge);
   }
 
   if (key) {
@@ -1667,11 +1671,20 @@ window.addEventListener("message", (e) => {
   }
 
   console.log("[TSU OVERLAY] Bridge info received", {
-    bridge,
-    keyPresent: !!key,
-    keyLength: key?.length || 0
+    bridge: ACTIVE_BRIDGE,
+    keyPresent: !!BRIDGE_KEY,
+    keyLength: BRIDGE_KEY?.length || 0
   });
+
+  // ✅ BOOT IMMEDIATELY ONCE BOTH ARE PRESENT
+  if (!didBoot && ACTIVE_BRIDGE && BRIDGE_KEY) {
+    didBoot = true;
+    console.log("[TSU] Booting warmup & SSE (post-handshake)");
+    warmupPing("post-handshake");
+    startSSE();
+  }
 });
+
 
 
 /* BUYER QUEUE — holds the most recent auction winner */
@@ -1894,16 +1907,7 @@ function initOverlay() {
 
 handshakeWithExtension();
 
-const waitForBridge = setInterval(() => {
-  if (ACTIVE_BRIDGE && BRIDGE_KEY) {
-    clearInterval(waitForBridge);
 
-    console.log("[TSU] Bridge + key ready, starting warmup & SSE");
-
-    warmupPing("initial");
-    startSSE();
-  }
-}, 100);
 
 
 }
