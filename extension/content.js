@@ -35,15 +35,39 @@ const CUSTOMER_CONFIG = {
 
 // ========== REQUEST BRIDGE FROM OVERLAY ==========
 // Request the bridge from the overlay
-window.postMessage("TSU_REQUEST_BRIDGE", "*");
-
+// ========== OVERLAY HANDSHAKE (AUTHORITATIVE) ==========
 window.addEventListener("message", (e) => {
-  if (e.data?.type === "TSU_BRIDGE_INFO") {
-    console.log("TSU: Bridge received:", e.data.bridge);
-    localStorage.setItem("tsu.active_bridge", e.data.bridge);
-    window.tsu_bridge = e.data.bridge;
+  if (e.data !== "TSU_REQUEST_BRIDGE") return;
+
+  const customer = getCurrentCustomer();
+  const cfg = CUSTOMER_CONFIG[customer];
+
+  if (!cfg) {
+    console.warn("[TSU EXT] No config for customer:", customer);
+    return;
   }
+
+  console.log("[TSU EXT] Sending bridge info to overlay", {
+    customer,
+    endpoint: cfg.endpoint,
+    keyPresent: !!cfg.key
+  });
+
+  // Persist locally for consistency
+  localStorage.setItem("tsu.active_bridge", cfg.endpoint.replace(/\/events$/, ""));
+  localStorage.setItem("tsu.bridge.key", cfg.key);
+
+  // 🔥 SEND BOTH BRIDGE + KEY
+  window.postMessage(
+    {
+      type: "TSU_BRIDGE_INFO",
+      bridge: cfg.endpoint.replace(/\/events$/, ""),
+      key: cfg.key
+    },
+    "*"
+  );
 });
+
 
 
 

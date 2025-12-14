@@ -1646,6 +1646,53 @@ let ACTIVE_BRIDGE = null;
 let BRIDGE_KEY = "";
 let currentBreakType = "nfl";
 
+// ===============================
+// TSU → EXTENSION HANDSHAKE RESPONSE
+// ===============================
+window.addEventListener("message", (e) => {
+  if (e.data !== "TSU_REQUEST_BRIDGE") return;
+
+  const bridge = detectBridgeBase();
+  const key = detectBridgeKey();
+
+  console.log("[TSU OVERLAY] Responding to bridge request", {
+    bridge,
+    keyPresent: !!key,
+    keyLength: key.length
+  });
+
+  window.postMessage(
+    {
+      type: "TSU_BRIDGE_INFO",
+      bridge,
+      key
+    },
+    "*"
+  );
+});
+
+window.addEventListener("message", (e) => {
+  if (!e.data || e.data.type !== "TSU_BRIDGE_INFO") return;
+
+  const { bridge, key } = e.data;
+
+  if (bridge) {
+    ACTIVE_BRIDGE = bridge;
+    localStorage.setItem("tsu.bridge.base", bridge);
+  }
+
+  if (key) {
+    BRIDGE_KEY = key;
+    localStorage.setItem("tsu.bridge.key", key);
+  }
+
+  console.log("[TSU OVERLAY] Bridge info received", {
+    bridge,
+    keyPresent: !!key,
+    keyLength: key?.length || 0
+  });
+});
+
 
 /* BUYER QUEUE — holds the most recent auction winner */
 let queuedBuyer = null;
@@ -1710,11 +1757,9 @@ function detectBridgeBase() {
 }
 
 function detectBridgeKey() {
-  const url = new URLSearchParams(location.search);
-  if (url.has("key")) return url.get("key");
-
   return localStorage.getItem("tsu.bridge.key") || "";
 }
+
 
 
 
