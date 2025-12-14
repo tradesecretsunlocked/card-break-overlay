@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=920, initial-scale=1.0"/>
   <title>Dad's Bank Daughters Vault Divisional Break</title>
+<div id="breakIdDisplay"
+     style="font-size:12px; opacity:0.7; text-align:center; margin-top:4px;">
+</div>
 
   <style>
     :root {
@@ -954,6 +957,32 @@ const nflDivisions = [
 
 ];
 
+const DIVISION_CODES = {
+  "AFC East": "AFCE",
+  "AFC North": "AFCN",
+  "AFC South": "AFCS",
+  "AFC West": "AFCW",
+  "NFC East": "NFCE",
+  "NFC North": "NFCN",
+  "NFC South": "NFCS",
+  "NFC West": "NFCW",
+  "NBA": "NBA",
+  "MLB": "MLB"
+};
+
+const CODE_TO_DIVISION = Object.fromEntries(
+  Object.entries(DIVISION_CODES).map(([name, code]) => [code, name])
+);
+
+function divisionNameToCode(name) {
+  return DIVISION_CODES[name] || null;
+}
+
+function divisionCodeToName(code) {
+  return CODE_TO_DIVISION[code] || null;
+}
+
+
 const divisionLogos = {
   "AFC East":    ["bills.png", "dolphins.png", "patriots.png", "jets.png"],
   "AFC North":   ["ravens.png", "bengals.png", "browns.png", "steelers.png"],
@@ -972,6 +1001,7 @@ const logoPath = "../../images/nfl/";
 const NBAlogoPath = "../../images/nba/";
 const MLBlogoPath = "../../images/mlb/";
 
+let ACTIVE_BREAK_ID = null;
 
 
 
@@ -1620,6 +1650,14 @@ document.getElementById("confirmResetBtn").onclick = () => {
 document.getElementById("cancelResetBtn").onclick = () =>
   document.getElementById("resetPopup").classList.add("hidden");
 
+
+function updateBreakIdDisplay() {
+  const el = document.getElementById("breakIdDisplay");
+  if (!el || !ACTIVE_BREAK_ID) return;
+  el.textContent = `Break ID: ${ACTIVE_BREAK_ID}`;
+}
+
+
 </script>
 
 <!-- PRIZE MODAL (OBS-safe) -->
@@ -1717,9 +1755,7 @@ function saveBreakCounter() {
 
 loadOrResetDailyCounter();
 
-function computeBreakId() {
-  return `${breakDayData.date}-${currentBreakType}-${breakDayData.counter}`;
-}
+
 
 /* -------------------------
    BRIDGE DETECTION
@@ -1750,8 +1786,11 @@ function detectBridgeBase() {
 }
 
 function detectBridgeKey() {
+  const url = new URLSearchParams(location.search);
+  if (url.has("key")) return url.get("key");     // ✅ NEW: allow URL key
   return localStorage.getItem("tsu.bridge.key") || "";
 }
+
 
 
 
@@ -1872,20 +1911,35 @@ function startSSE() {
    APPLY SALE
 ------------------------- */
 function applySaleFromSSE(evt) {
-  const breakId = computeBreakId();
+  
+  if (evt.breakId) {
+  ACTIVE_BREAK_ID = evt.breakId;
+  updateBreakIdDisplay();
+}
+
 
   if (evt.type === "reset") {
     document.getElementById("resetBtn").click();
     return;
   }
-// Store buyer for the wheel
-queuedBuyer = evt.buyerName || null;
-queuedDivision = evt.division || null;
 
-console.log("Queued buyer:", queuedBuyer, "for division:", queuedDivision);
+  // ✅ accept either divisionCode (new) OR division (old)
+  const incomingDivision =
+    evt.divisionCode ? divisionCodeToName(evt.divisionCode)
+    : evt.division ? evt.division
+    : null;
 
+  queuedBuyer = evt.buyerName || null;
+  queuedDivision = incomingDivision;
 
+  console.log("[TSU] Queued:", {
+    buyer: queuedBuyer,
+    division: queuedDivision,
+    raw: evt
+  });
 }
+
+
 
 /* -------------------------
    BOOTSTRAP
@@ -1894,25 +1948,21 @@ function initOverlay() {
   ACTIVE_BRIDGE = detectBridgeBase();
   BRIDGE_KEY = detectBridgeKey();
 
-  // persist for extension + reload safety
   localStorage.setItem("tsu.active_bridge", ACTIVE_BRIDGE);
   localStorage.setItem("tsu.bridge.base", ACTIVE_BRIDGE);
-  if (BRIDGE_KEY) {
-    localStorage.setItem("tsu.bridge.key", BRIDGE_KEY);
-  }
+  if (BRIDGE_KEY) localStorage.setItem("tsu.bridge.key", BRIDGE_KEY);
 
   initDivisionStats();
   updateUI();
   buildProductInventory();
 
-handshakeWithExtension();
-
-
-
-
+  // handshakeWithExtension(); // ❌ OBS can't use this
+  warmupPing("boot");         // ✅ wake Render
+  startSSE();                 // ✅ connect immediately
 }
 
 initOverlay();
+
 
 /* ===========================================================
    DIVISION SPIN WHEEL MODULE (FIXED + CLEAN)
