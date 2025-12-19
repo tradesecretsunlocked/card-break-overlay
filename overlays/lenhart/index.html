@@ -65,35 +65,32 @@
       border: 3px solid #ff3b1f;
     }
 
-    .top-strip {
-      display: grid;
-      grid-template-columns: 1fr 2fr 1fr;
-      gap: 4px;
-      margin-bottom: 4px;
-      align-items: stretch;
-    }
+.top-strip {
+  display: grid;
+  grid-template-columns: 82px 53px 1fr 83px 87px;
+  gap: 6px;
+  margin-bottom: 6px;
+  align-items: center;
+}
 
-    .camera-gap {
-      border-radius: 8px;
-      background: #000000;
-      border: 2px solid #444;
-      box-shadow: inset 0 0 8px rgba(0,0,0,0.8);
-    }
 
-    .camera-gap::before {
-      content: "";
-      display: block;
-      text-align: center;
-      color: #444;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      margin-top: 4px;
-    }
+
+ .top-strip .team {
+  width: 82px;
+  height: 52px;
+}
+
+.camera-gap {
+  height: 52px;
+  background: linear-gradient(180deg, #000000 0%, #111827 100%);
+  border-radius: 8px;
+  border: none;        /* kills black line */
+  box-shadow: none;    /* kills black line */
+}
 
     .teams-grid {
       display: grid;
-      grid-template-columns: repeat(10, 1fr);
+      grid-template-columns: repeat(8, 1fr);
       gap: 3px;
     }
 
@@ -117,6 +114,12 @@
       object-fit: cover;
       border-radius: 4px;
     }
+
+    .team img.nfl-small {
+  object-fit: contain;
+  padding: 6px;
+}
+
 
     .team:hover {
       transform: translateY(-1px);
@@ -156,15 +159,36 @@
       height: 52px; /* match grid tiles */
     }
 
+/* MLB scroll bar */
+.mlb-scroll {
+  width: 100%;
+  height: 52px;
+  margin-bottom: 6px;
+}
+
+
     /* ==== CONTROLS ROW ==== */
 
     .controls-row {
-      margin-top: 6px;
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0,1fr));
-      gap: 6px;
-      align-items: stretch;
+    margin-top: 6px;
+     display: grid;
+    grid-template-columns: 1fr 0.75fr minmax(120px,1fr) 0.75fr 1fr;
+    gap: 6px;
+    align-items: stretch;
     }
+
+/* Center logo placeholder (NBA) */
+.center-logo-slot {
+
+  border-radius: 10px;
+  height: 60px;
+  margin-top: -10px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
 
     .stat-box {
       background: linear-gradient(135deg,#0048b7 0%,#001635 100%);
@@ -286,27 +310,46 @@
     </div>
 
     <div class="main-content">
-      <div class="teams-wrapper">
-        <div class="top-strip">
-          <div id="topLeftSlot" class="team top-team"></div>
-          <div class="camera-gap"></div>
-          <div id="topRightSlot" class="team top-team"></div>
-        </div>
-        <div class="teams-grid" id="teamsGrid"></div>
-      </div>
+<div class="teams-wrapper">
 
-      <div class="controls-row">
-        <button class="btn" onclick="resetAll()">🔄 RESET BREAK</button>
-        <div class="stat-box">
-          <div id="teamsLeft">32</div>
-          <div class="stat-label">REMAINING</div>
-        </div>
-        <div class="stat-box">
-          <div id="teamsSold">0</div>
-          <div class="stat-label">SOLD</div>
-        </div>
-        <button class="btn secondary" onclick="changeBreakType()">⚙ CHANGE SPORT</button>
-      </div>
+  <!-- MLB scroll bar -->
+  <div class="camera-gap mlb-scroll" style="display:none;"></div>
+
+  <!-- NFL top strip -->
+<div class="top-strip">
+  <div id="topLeftSlotA" class="team top-team"></div>
+  <div id="topLeftSlotB" class="team top-team"></div>
+
+  <div class="camera-gap nfl-scroll"></div>
+
+  <div id="topRightSlotA" class="team top-team"></div>
+  <div id="topRightSlotB" class="team top-team"></div>
+</div>
+
+  <!-- Main grid -->
+  <div class="teams-grid" id="teamsGrid"></div>
+
+</div>
+
+
+<div class="controls-row">
+  <button class="btn" onclick="resetAll()">🔄 RESET BREAK</button>
+
+  <div class="stat-box">
+    <div id="teamsLeft">30</div>
+    <div class="stat-label">REMAINING</div>
+  </div>
+
+  <div class="center-logo-slot"></div>
+
+  <div class="stat-box">
+    <div id="teamsSold">0</div>
+    <div class="stat-label">SOLD</div>
+  </div>
+
+  <button class="btn secondary" onclick="changeBreakType()">⚙ CHANGE SPORT</button>
+</div>
+
     </div>
   </div>
 
@@ -485,63 +528,170 @@ setInterval(broadcastSportUpdate, 500);
     teamDiv.dataset.teamIndex = index;
     teamDiv.onclick = () => toggleTeam(index);
 
-    if (team.image) {
-      const img = document.createElement('img');
-      img.src = team.image;
-      img.alt = team.name;
-      img.onerror = () => {
-        teamDiv.textContent = team.code;
-      };
-      teamDiv.appendChild(img);
-    } else {
+if (team.image) {
+  const img = document.createElement('img');
+  img.src = team.image;
+  img.alt = team.name;
+
+
+  img.onerror = () => {
+    teamDiv.textContent = team.code;
+  };
+
+  teamDiv.appendChild(img);
+}
+ else {
       teamDiv.textContent = team.code;
     }
     return teamDiv;
   }
 
-  function initializeGrid() {
-    const grid = document.getElementById('teamsGrid');
-    const topLeft = document.getElementById('topLeftSlot');
-    const topRight = document.getElementById('topRightSlot');
-    const currentBreak = breakTypes[currentBreakType];
+function initializeGrid() {
+  const grid = document.getElementById('teamsGrid');
+const topLeftA = document.getElementById('topLeftSlotA');
+const topLeftB = document.getElementById('topLeftSlotB');
+const topRightA = document.getElementById('topRightSlotA');
+const topRightB = document.getElementById('topRightSlotB');
 
-    // Show NFL top-strip only for NFL
-const topStrip = document.querySelector('.top-strip');
-if (topStrip) topStrip.style.display = (currentBreakType === 'nfl') ? 'grid' : 'none';
+  const mlbScroll = document.querySelector('.mlb-scroll');
+  const topStrip = document.querySelector('.top-strip');
+  const currentBreak = breakTypes[currentBreakType];
 
-// NBA uses 8 columns, MLB/NFL keep current look
-grid.style.gridTemplateColumns = (currentBreakType === 'nba')
-  ? 'repeat(8, 1fr)'
-  : 'repeat(10, 1fr)';
+  // Reset UI
+  grid.innerHTML = '';
+topLeftA.innerHTML = '';
+topLeftB.innerHTML = '';
+topRightA.innerHTML = '';
+topRightB.innerHTML = '';
+
+  soldTeams.clear();
+  soldTeamsList = [];
+
+  // Visibility toggles
+  topStrip.style.display = currentBreakType === 'nfl' ? 'grid' : 'none';
+  // Visibility toggles
+topStrip.style.display = currentBreakType === 'nfl' ? 'grid' : 'none';
+
+// Show camera bar for MLB AND NBA
+mlbScroll.style.display =
+  currentBreakType === 'mlb' || currentBreakType === 'nba'
+    ? 'block'
+    : 'none';
 
 
-    grid.innerHTML = '';
-    topLeft.innerHTML = '';
-    topRight.innerHTML = '';
-    soldTeams.clear();
-    soldTeamsList = [];
+/* ================= NFL ================= */
+/* ================= NFL ================= */
+if (currentBreakType === 'nfl') {
+  grid.style.gridTemplateColumns = 'repeat(10, 1fr)';
 
-    currentBreak.teams.forEach((team, index) => {
-      if (currentBreakType === 'nfl' && team.code === 'TEN') {
-        const node = makeTeamDiv(team, index);
-        node.classList.add('top-team');
-        topLeft.replaceWith(node);
-        node.id = 'topLeftSlot';
-      } else if (currentBreakType === 'nfl' && team.code === 'WAS') {
-        const node = makeTeamDiv(team, index);
-        node.classList.add('top-team');
-        topRight.replaceWith(node);
-        node.id = 'topRightSlot';
-      } else {
-        const node = makeTeamDiv(team, index);
-        grid.appendChild(node);
-      }
-    });
+  const spacer = () => {
+    const d = document.createElement('div');
+    d.className = 'team';
+    d.style.visibility = 'hidden';
+    return d;
+  };
 
-    updateHeader();
-    updateStats();
-    updateSoldList();
+  const nodes = [];
+
+  currentBreak.teams.forEach((team, index) => {
+    const node = makeTeamDiv(team, index);
+
+    // Top-left pair
+    if (team.code === 'ARI') {
+      node.classList.add('top-team');
+      topLeftA.appendChild(node);
+      return;
+    }
+    if (team.code === 'TEN') {
+      node.classList.add('top-team');
+      topLeftB.appendChild(node);
+      return;
+    }
+
+    // Top-right pair
+    if (team.code === 'ATL') {
+      node.classList.add('top-team');
+      topRightA.appendChild(node);
+      return;
+    }
+    if (team.code === 'WAS') {
+      node.classList.add('top-team');
+      topRightB.appendChild(node);
+      return;
+    }
+
+    nodes.push(node);
+  });
+
+  // Insert 4 spacers to compensate for removed teams
+  // 2 on the left, 2 on the right of row 1
+  
+  nodes.splice(24, 0, spacer(), spacer());
+
+  nodes.forEach(n => grid.appendChild(n));
+}
+
+
+
+
+  /* ================= MLB ================= */
+  else if (currentBreakType === 'mlb') {
+    grid.style.gridTemplateColumns = 'repeat(8, 1fr)';
+
+
+  const spacer = () => {
+    const d = document.createElement('div');
+    d.className = 'team';
+    d.style.visibility = 'hidden';
+    return d;
+  };
+
+  const nodes = currentBreak.teams.map((team, index) =>
+    makeTeamDiv(team, index)
+  );
+  
+  nodes.splice(27, 0, spacer(), spacer());
+    nodes.forEach(n => grid.appendChild(n));
   }
+
+  /* ================= NBA ================= */
+else if (currentBreakType === 'nba') {
+  grid.style.gridTemplateColumns = 'repeat(8, 1fr)';
+
+  const spacer = () => {
+    const d = document.createElement('div');
+    d.className = 'team';
+    d.style.visibility = 'hidden';
+    return d;
+  };
+
+  const nodes = currentBreak.teams.map((team, index) =>
+    makeTeamDiv(team, index)
+  );
+
+  /*
+    8 columns
+    Want a 2x2 hole centered above the logo
+    Grid index math (0-based):
+
+    Row 4, Col 4 = (3 * 8) + 3 = 27
+    Row 4, Col 5 = 28
+    Row 5, Col 4 = 35
+    Row 5, Col 5 = 36
+  */
+
+  nodes.splice(27, 0, spacer(), spacer());
+ 
+
+  nodes.forEach(n => grid.appendChild(n));
+}
+
+
+  updateHeader();
+  updateStats();
+  updateSoldList();
+}
+
 
   function toggleTeam(index) {
     const teamDiv = document.querySelector(`[data-team-index="${index}"]`);
