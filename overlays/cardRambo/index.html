@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=920, initial-scale=1.0" />
+
+<title>CardRambo Pokémon Energy Break</title>
+
+<style>
+:root {
+  --blue-main: #4e9bec;     /* Blastoise blue */
+  --blue-dark: #20416b;
+  --yellow-accent: #f6c453;
+  --bg-teal: #2fa4a9;
+  --panel-bg: rgba(20,40,70,0.92);
+  --white: #ffffff;
+}
+
+body {
+  margin: 0;
+  background: transparent;
+  font-family: "Arial Black", Arial, sans-serif;
+  user-select: none;
+}
+
+/* ===== WRAPPER ===== */
+.overlay {
+  position: relative;
+  width: 880px;
+  border-radius: 18px;
+  background: linear-gradient(119deg, var(--bg-teal), var(--blue-main));
+  border: 4px solid var(--yellow-accent);
+  padding: 10px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+/* ===== HEADER ===== */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel-bg);
+  border-radius: 12px;
+  padding: 3px 14px;
+  margin-bottom: 10px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-left img {
+  height: 44px;
+}
+
+.header-title {
+  font-size: 22px;
+  color: var(--white);
+  letter-spacing: 1px;
+}
+
+.break-id {
+  font-size: 14px;
+  color: var(--yellow-accent);
+}
+
+/* ===== ENERGY GRID ===== */
+.energy-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.energy-stage {
+  position: relative;
+  padding-bottom: 40px; /* space for Blastoise to walk */
+}
+
+
+.energy-slot {
+  position: relative;
+  background: var(--panel-bg);
+  border: 3px solid var(--yellow-accent);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.energy-slot:hover {
+  transform: scale(1.04);
+}
+
+.energy-slot img {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+}
+
+/* SOLD STATE */
+.energy-slot.sold img {
+  filter: grayscale(80%) brightness(0.65);
+}
+
+
+
+.buyer-tag {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+
+  background: rgba(0,0,0,0.65);
+
+  color: #ffffff;                 /* pure white */
+  font-size: 18px;                /* slightly larger */
+  font-weight: 900;
+  text-transform: uppercase;
+
+  text-align: center;
+  padding: 6px;
+  border-radius: 10px;
+
+  text-shadow:
+    0 2px 4px rgba(0,0,0,0.9),
+    0 0 6px rgba(255,255,255,0.35); /* glow pop */
+    -webkit-text-stroke: 1px rgba(0,0,0,0.6);
+
+  display: none;
+}
+
+
+
+.energy-slot.sold .buyer-tag {
+  display: flex;
+}
+
+
+/* ===== FOOTER ===== */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--panel-bg);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.counter {
+  color: var(--white);
+  font-size: 16px;
+}
+
+button {
+  background: var(--yellow-accent);
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.1);
+}
+
+/* ===== MAIN ROW ===== */
+.main-row {
+  display: flex;
+  gap: 12px;
+}
+
+/* Shrink grid slightly */
+.energy-grid {
+  flex: 1;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* ===== SIDE PANEL ===== */
+.side-panel {
+  position: relative;
+  width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Reusable box */
+.side-box {
+  background: var(--panel-bg);
+  border: 3px solid var(--yellow-accent);
+  border-radius: 12px;
+  padding: 8px;
+  text-align: center;
+  font-weight: 900;
+  color: var(--white);
+}
+
+/* Break ID */
+.break-id {
+  font-size: 14px;
+  color: var(--yellow-accent);
+}
+
+/* Stats */
+.stat span {
+  display: block;
+  font-size: 26px;
+  margin-top: 4px;
+  color: var(--yellow-accent);
+}
+
+/* Button */
+.side-btn {
+  background: var(--yellow-accent);
+  border: none;
+  border-radius: 12px;
+  padding: 4px;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.buyer-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.buyer-modal.hidden {
+  display: none;
+}
+
+.buyer-modal-content {
+  background: var(--panel-bg);
+  border: 3px solid var(--yellow-accent);
+  border-radius: 14px;
+  padding: 16px;
+  width: 260px;
+  text-align: center;
+}
+
+.buyer-modal-title {
+  color: white;
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+#buyerInput {
+  width: 100%;
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 900;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.buyer-modal-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.buyer-modal-buttons button {
+  flex: 1;
+}
+
+
+/* ===== BLASTOISE EFFECTS ===== */
+
+#blastoiseStage {
+  position: absolute;
+  bottom: 10px; /* inside the energy grid area */
+  left: 10px;
+  width: 300px;
+  height: 90px;
+  pointer-events: none;
+  z-index: 20;
+}
+
+
+/* Walking Blastoise (ambient) */
+#blastoiseWalk {
+  position: absolute;
+  bottom: -42px;
+  left: 0;
+  width: 140px;
+  opacity: 0.9;
+  animation: blastoisePatrol 75s linear infinite;
+  transition: opacity 0.2s ease;
+  will-change: transform;
+}
+
+/* Water Cannon Blastoise (event-driven) */
+#blastoiseCannon {
+  position: absolute;
+  bottom: -20px;          /* moves it DOWN */
+  right: -499px;           /* pulls it LEFT next to REMAINING */
+  width: 180px;
+  transform: scaleX(-1);  /* mirror so it shoots left */
+  display: none;
+  z-index: 30;
+}
+
+/* Full left ↔ right patrol with flip */
+@keyframes blastoisePatrol {
+  /* Start: walking right */
+  0% {
+    transform: translateX(0) scaleX(-1);
+  }
+
+  /* Reach right edge */
+  45% {
+    transform: translateX(700px) scaleX(-1);
+  }
+
+  /* Flip direction */
+  50% {
+    transform: translateX(740px) scaleX(1);
+  }
+
+  /* Walk back left */
+  95% {
+    transform: translateX(0) scaleX(1);
+  }
+
+  /* Reset flip for next loop */
+  100% {
+    transform: translateX(0) scaleX(-1);
+  }
+}
+
+/* Remaining box hit effect */
+.blast-hit {
+  animation: blastHit 0.4s ease;
+}
+
+@keyframes blastHit {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="overlay">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <img id="logo" />
+      <div class="header-title">CardRambo’s Pokémon Energy Break</div>
+    </div>
+  </div>
+
+  <!-- ENERGY GRID -->
+<!-- MAIN ROW -->
+<div class="main-row energy-stage">
+
+
+  <!-- ENERGY GRID -->
+  <div class="energy-grid" id="energyGrid"></div>
+
+  <!-- RIGHT SIDE PANEL -->
+  <div class="side-panel">
+
+    <div class="side-box break-id" id="breakId"></div>
+
+    <button id="nextBreakBtn" class="side-btn">Next Break</button>
+
+    <div class="side-box stat">
+      SOLD
+      <span id="soldCount">0</span>
+    </div>
+
+    <div class="side-box stat">
+      REMAINING
+      <span id="remaining">8</span>
+    </div>
+
+  </div>
+
+  <!-- BLASTOISE STAGE -->
+<div id="blastoiseStage">
+  <img id="blastoiseWalk" />
+  <img id="blastoiseCannon" />
+</div>
+
+<!-- BUYER INPUT MODAL -->
+<div id="buyerModal" class="buyer-modal hidden">
+  <div class="buyer-modal-content">
+    <div class="buyer-modal-title">Enter Buyer Name</div>
+    <input id="buyerInput" type="text" placeholder="Buyer name…" />
+    <div class="buyer-modal-buttons">
+      <button id="buyerConfirmBtn">Confirm</button>
+      <button id="buyerCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+/* ===============================
+   BASE PATH LOGIC (your style)
+================================ */
+let sold = 0;
+const soldEl = document.getElementById("soldCount");
+
+  const BASE = (() => {
+    const isGhPages = location.hostname.endsWith('github.io');
+    if (isGhPages) {
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repo = parts.length ? parts[0] : '';
+      return `/${repo}/`;
+    }
+    return '../..\/'; // 
+  })();
+
+/* ===============================
+   BREAK COUNTER
+================================ */
+const today = new Date();
+const datePart =
+  String(today.getMonth()+1).padStart(2,"0") +
+  String(today.getDate()).padStart(2,"0") +
+  today.getFullYear();
+
+let breakCount = Number(localStorage.getItem("cardrambo.energyBreak") || 1);
+
+function updateBreakId() {
+  document.getElementById("breakId").textContent =
+    `${datePart}-${String(breakCount).padStart(2,"0")}`;
+}
+
+updateBreakId();
+
+/* ===============================
+   ENERGY DATA
+================================ */
+const energies = [
+  "grass","fire","water","lightning",
+  "psychic","fighting","dark","metal"
+];
+
+const grid = document.getElementById("energyGrid");
+const remainingEl = document.getElementById("remaining");
+
+let remaining = energies.length;
+
+/* ===============================
+   trigger BLASTOISE WATER BLAST
+================================ */
+
+function triggerWaterBlast(onComplete) {
+  const cannon = document.getElementById("blastoiseCannon");
+  const walker = document.getElementById("blastoiseWalk");
+
+  // Hide walking Blastoise
+  walker.style.opacity = "0";
+
+  // Show cannon Blastoise
+  cannon.style.display = "block";
+  remainingEl.parentElement.classList.add("blast-hit");
+
+  setTimeout(() => {
+    // Hide cannon
+    cannon.style.display = "none";
+
+    // Restore walking Blastoise
+    walker.style.opacity = "0.9";
+
+    remainingEl.parentElement.classList.remove("blast-hit");
+
+    if (onComplete) onComplete();
+  }, 1500); // match your GIF duration
+}
+
+
+/* ===============================
+   end BLASTOISE WATER BLAST
+================================ */
+
+energies.forEach(type => {
+  const slot = document.createElement("div");
+  slot.className = "energy-slot";
+  slot.dataset.type = type;
+
+  const img = document.createElement("img");
+  img.src = `${BASE}/images/pkm/${type}.png`;
+
+  const buyer = document.createElement("div");
+  buyer.className = "buyer-tag";
+
+  slot.appendChild(img);
+  slot.appendChild(buyer);
+
+slot.onclick = () => {
+  if (slot.classList.contains("sold")) return;
+
+  openBuyerModal((name) => {
+    if (!name) return;
+
+    slot.classList.add("sold");
+    buyer.textContent = name;
+
+    sold++;
+    soldEl.textContent = sold;
+
+    triggerWaterBlast(() => {
+      remaining--;
+      remainingEl.textContent = remaining;
+    });
+  });
+};
+
+
+  grid.appendChild(slot);
+});
+
+/* ===============================
+   NEXT BREAK
+================================ */
+document.getElementById("nextBreakBtn").onclick = () => {
+  breakCount++;
+  localStorage.setItem("cardrambo.energyBreak", breakCount);
+  sold = 0;
+  soldEl.textContent = sold;
+
+
+  document.querySelectorAll(".energy-slot").forEach(s => {
+    s.classList.remove("sold");
+    s.querySelector(".buyer-tag").textContent = "";
+  });
+
+  remaining = energies.length;
+  remainingEl.textContent = remaining;
+
+  updateBreakId();
+};
+
+/* ===============================
+   BLASTOISE ASSETS
+================================ */
+document.getElementById("blastoiseWalk").src =
+  `${BASE}/images/blastoise-wlk.gif`;
+
+document.getElementById("blastoiseCannon").src =
+  `${BASE}/images/Blastoise-water-cannon.gif`;
+
+
+/* ===============================
+   LOGO
+================================ */
+document.getElementById("logo").src =
+  `${BASE}/images/logos/cardrambo-logo.png`;
+
+let pendingBuyerCallback = null;
+
+function openBuyerModal(callback) {
+  pendingBuyerCallback = callback;
+  document.getElementById("buyerInput").value = "";
+  document.getElementById("buyerModal").classList.remove("hidden");
+  document.getElementById("buyerInput").focus();
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  const confirmBtn = document.getElementById("buyerConfirmBtn");
+  const cancelBtn  = document.getElementById("buyerCancelBtn");
+
+  confirmBtn.onclick = () => {
+    const val = document.getElementById("buyerInput").value.trim();
+    const cb = pendingBuyerCallback; // capture callback FIRST
+    closeBuyerModal();
+    if (cb) cb(val);
+  };
+
+  cancelBtn.onclick = () => closeBuyerModal();
+});
+
+
+function closeBuyerModal() {
+  document.getElementById("buyerModal").classList.add("hidden");
+  pendingBuyerCallback = null;
+}
+
+
+</script>
+
+</div>
+
+
+
+
+</body>
+</html>
