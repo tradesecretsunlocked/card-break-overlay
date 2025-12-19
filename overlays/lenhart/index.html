@@ -330,8 +330,10 @@ window.postMessage("TSU_REQUEST_BRIDGE", "*");
     return '../..\/'; // from overlays/lenhart -> repo root
   })();
 
-  const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
-  const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
+const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
+const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
+
 
   const breakTypes = {
     nfl: {
@@ -405,7 +407,43 @@ window.postMessage("TSU_REQUEST_BRIDGE", "*");
         { code: 'TOR', name: 'bluejays',      image: imgPathMLB('bluejays.png') },
         { code: 'WAS', name: 'nationals',     image: imgPathMLB('nationals.png') }
       ]
+    },
+        nba: {
+      name:'NBA', icon:'🏀',
+      teams: [
+        { code: 'ATL', name: 'hawks',        image: imgPathNBA('hawks.png') },
+        { code: 'BOS', name: 'celtics',      image: imgPathNBA('celtics.png') },
+        { code: 'BKN', name: 'nets',         image: imgPathNBA('nets.png') },
+        { code: 'CHA', name: 'hornets',      image: imgPathNBA('hornets.png') },
+        { code: 'CHI', name: 'bulls',        image: imgPathNBA('bulls.png') },
+        { code: 'CLE', name: 'cavaliers',    image: imgPathNBA('cavaliers.png') },
+        { code: 'DAL', name: 'mavericks',    image: imgPathNBA('mavericks.png') },
+        { code: 'DEN', name: 'nuggets',      image: imgPathNBA('nuggets.png') },
+        { code: 'DET', name: 'pistons',      image: imgPathNBA('pistons.png') },
+        { code: 'GSW', name: 'warriors',     image: imgPathNBA('warriors.png') },
+        { code: 'HOU', name: 'rockets',      image: imgPathNBA('rockets.png') },
+        { code: 'IND', name: 'pacers',       image: imgPathNBA('pacers.png') },
+        { code: 'LAC', name: 'clippers',     image: imgPathNBA('clippers.png') },
+        { code: 'LAL', name: 'lakers',       image: imgPathNBA('lakers.png') },
+        { code: 'MEM', name: 'grizzlies',    image: imgPathNBA('grizzlies.png') },
+        { code: 'MIA', name: 'heat',         image: imgPathNBA('heat.png') },
+        { code: 'MIL', name: 'bucks',        image: imgPathNBA('bucks.png') },
+        { code: 'MIN', name: 'timberwolves', image: imgPathNBA('timberwolves.png') },
+        { code: 'NOP', name: 'pelicans',     image: imgPathNBA('pelicans.png') },
+        { code: 'NYK', name: 'knicks',       image: imgPathNBA('knicks.png') },
+        { code: 'OKC', name: 'thunder',      image: imgPathNBA('thunder.png') },
+        { code: 'ORL', name: 'magic',        image: imgPathNBA('magic.png') },
+        { code: 'PHI', name: '76ers',        image: imgPathNBA('76ers.png') },
+        { code: 'PHX', name: 'suns',         image: imgPathNBA('suns.png') },
+        { code: 'POR', name: 'blazers',      image: imgPathNBA('blazers.png') },
+        { code: 'SAC', name: 'kings',        image: imgPathNBA('kings.png') },
+        { code: 'SAS', name: 'spurs',        image: imgPathNBA('spurs.png') },
+        { code: 'TOR', name: 'raptors',      image: imgPathNBA('raptors.png') },
+        { code: 'UTA', name: 'jazz',         image: imgPathNBA('jazz.png') },
+        { code: 'WAS', name: 'wizards',      image: imgPathNBA('wizards.png') }
+      ]
     }
+
   };
 
   let currentBreakType = 'nfl';
@@ -466,6 +504,16 @@ setInterval(broadcastSportUpdate, 500);
     const topLeft = document.getElementById('topLeftSlot');
     const topRight = document.getElementById('topRightSlot');
     const currentBreak = breakTypes[currentBreakType];
+
+    // Show NFL top-strip only for NFL
+const topStrip = document.querySelector('.top-strip');
+if (topStrip) topStrip.style.display = (currentBreakType === 'nfl') ? 'grid' : 'none';
+
+// NBA uses 8 columns, MLB/NFL keep current look
+grid.style.gridTemplateColumns = (currentBreakType === 'nba')
+  ? 'repeat(8, 1fr)'
+  : 'repeat(10, 1fr)';
+
 
     grid.innerHTML = '';
     topLeft.innerHTML = '';
@@ -589,7 +637,13 @@ setInterval(broadcastSportUpdate, 500);
     localStorage.getItem("tsu.bridge.base") ||
     DEFAULT_BRIDGE;
 
-  const STREAM_URL = `${BRIDGE_BASE}/stream`;
+  const BRIDGE_KEY =
+  param("key") ||
+  localStorage.getItem("tsu.bridge.key") ||
+  "0caf969c504e843aaec8144d9001399a"; // Lenhart key
+
+const STREAM_URL = `${BRIDGE_BASE}/stream?key=${encodeURIComponent(BRIDGE_KEY)}`;
+
   // ---------------- EXTENSION ↔ OVERLAY BRIDGE SYNC ----------------
 window.addEventListener("message", (e) => {
   if (e.data === "TSU_REQUEST_BRIDGE") {
@@ -644,18 +698,21 @@ function sendWarmupPing() {
     localStorage.getItem("tsu.active_bridge") ||
     BRIDGE_BASE;
 
-  fetch(`${ACTIVE_BRIDGE}/events`, {
+fetch(`${ACTIVE_BRIDGE}/events`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    ...(BRIDGE_KEY ? { "x-bridge-key": BRIDGE_KEY } : {})
+  },
+  body: JSON.stringify({
+    breakId: "warmup",
+    breakType: currentBreakType,
+    teamCode: "WARMUP",
+    buyerName: "ping",
+    ts: Date.now()
+  })
+}).catch(e => console.warn("Warmup ping failed:", e));
 
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        breakId: "warmup",
-        breakType: currentBreakType,
-        teamCode: "WARMUP",   // ignored
-        buyerName: "ping",
-        ts: Date.now()
-      })
-    }).catch(e => console.warn("Warmup ping failed:", e));
   }
   // ==========================================================
 
