@@ -213,12 +213,15 @@ async function sendEvent(payload){
     const res = await fetch(`${BRIDGE_BASE}/events`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "x-bridge-key": new URLSearchParams(location.search).get("key")
+          || localStorage.getItem("tsu.bridge.key")
+          || ""
       },
       body: JSON.stringify(payload)
     });
 
-    console.log("Bridge response status:", res.status);
+    console.log("Bridge response:", res.status);
 
     if (!res.ok){
       const txt = await res.text();
