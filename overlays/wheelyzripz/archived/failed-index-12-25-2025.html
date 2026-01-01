@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TikTok Break Overlay</title>
+  <!-- Import base styles for the overlay -->
+  <!-- Use a relative path to the stylesheet so it loads correctly in OBS and local previews -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!--
+    The outer container sets the fixed canvas size expected by the TikTok
+    overlay.  It also houses a simple selector which lets you toggle
+    between the different break layouts.  Only one layout section is
+    visible at a time – the rest are hidden via CSS classes.
+  -->
+  <div id="overlay-root">
+    <header class="overlay-header">
+      <h1>Break Overlay</h1>
+      <!-- Layout selector: for demo purposes only.  In production
+           the correct layout will be shown automatically based on
+           the current break type. -->
+      <label>
+        Choose layout:
+        <select id="layoutSelector">
+          <option value="conference">Conference Break</option>
+          <option value="directional">Directional Break</option>
+          <option value="division">Division Break</option>
+          <option value="team">Team Break</option>
+          <option value="nba">NBA Team Break</option>
+          <option value="mlb">MLB Team Break</option>
+        </select>
+      </label>
+    </header>
+
+    <!-- Conference layout -->
+    <section id="layout-conference" class="layout-section hidden">
+      <div class="layout-header">Conference Break — Header / Brand / Title</div>
+      <div class="layout-row conference-top">
+        <div class="conf-grid left">Conference Grid</div>
+        <!-- Facecam placeholder with 16:9 aspect ratio.  We removed the chat column to give the camera more space. -->
+        <div class="facecam" data-label="FACE CAM (16:9)"></div>
+        <div class="conf-grid right">Conference Grid</div>
+      </div>
+      <div class="layout-row conference-status">
+        <!-- Display only sold and remaining counts for conference breaks -->
+        <div class="status-box sold">Sold</div>
+        <div class="status-box remaining">Remaining</div>
+      </div>
+      <div class="layout-row conference-logo">
+        <div class="logo"><img src="../../images/logos/wripz-logo.png" alt="Logo"></div>
+      </div>
+      <div class="layout-row conference-ticker">
+        <div class="scroll">Scroll Text</div>
+      </div>
+    </section>
+
+    <!-- Directional layout -->
+    <section id="layout-directional" class="layout-section hidden">
+      <div class="layout-header">Directional Break — Header / Brand / Title</div>
+      <!-- Directional content: four grid panels around a central facecam with a status group.  Chat has been removed to give more space. -->
+      <div class="directional-content">
+        <div class="direc-grid lt">Direc. Grid</div>
+        <div class="facecam" data-label="FACE CAM (16:9)"></div>
+        <div class="direc-grid rt">Direc. Grid</div>
+        <div class="direc-grid lb">Direc. Grid</div>
+        <div class="status-group">
+          <div class="status-box sold">Sold</div>
+          <div class="status-box remaining">Remaining</div>
+        </div>
+        <div class="direc-grid rb">Direc. Grid</div>
+      </div>
+      <div class="layout-row directional-logo">
+        <div class="logo"><img src="../../images/logos/wripz-logo.png" alt="Logo"></div>
+      </div>
+      <div class="layout-row directional-ticker">
+        <div class="scroll">Scroll Text</div>
+      </div>
+    </section>
+
+    <!-- Division layout -->
+    <section id="layout-division" class="layout-section hidden">
+      <div class="layout-header">Division Break — Header / Brand / Title</div>
+      <!--
+        Redesigned division layout: 3 columns.  The left and right columns
+        contain four division tiles each (arranged in a 2×2 grid) while the
+        centre column houses the camera, status/logo row and ticker.
+      -->
+      <div class="division-content">
+        <!-- Left side: four division tiles -->
+        <div class="division-side-grid div-left">
+          <div class="division-tile">1</div><div class="division-tile">2</div><div class="division-tile">3</div><div class="division-tile">4</div>
+        </div>
+        <!-- Centre column: facecam, status/logo row and ticker -->
+        <div class="division-center">
+          <div class="facecam" data-label="FACE CAM (16:9)"></div>
+          <div class="status-logo-row">
+            <div class="status-box sold">Sold</div>
+            <div class="logo"><img src="../../images/logos/wripz-logo.png" alt="Logo"></div>
+            <div class="status-box remaining">Remaining</div>
+          </div>
+          <div class="division-ticker">
+            <div class="scroll">Scroll Text</div>
+          </div>
+        </div>
+        <!-- Right side: four division tiles -->
+        <div class="division-side-grid div-right">
+          <div class="division-tile">5</div><div class="division-tile">6</div><div class="division-tile">7</div><div class="division-tile">8</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Team layout (NFL) -->
+    <section id="layout-team" class="layout-section hidden">
+      <div class="layout-header">Team Break — Header / Brand / Title</div>
+      <!-- New team layout: left/right team grids with a central panel for camera and status -->
+      <div class="team-content">
+        <!-- Left side: 16 team tiles -->
+        <div class="team-side-grid nfl-left">
+          <!-- Left column NFL team logos (first 16 teams) -->
+          <div class="team-tile"><img src="../../images/nfl/49ers.png" alt="49ers"></div>
+          <div class="team-tile"><img src="../../images/nfl/bears.png" alt="Bears"></div>
+          <div class="team-tile"><img src="../../images/nfl/bengals.png" alt="Bengals"></div>
+          <div class="team-tile"><img src="../../images/nfl/bills.png" alt="Bills"></div>
+          <div class="team-tile"><img src="../../images/nfl/broncos.png" alt="Broncos"></div>
+          <div class="team-tile"><img src="../../images/nfl/browns.png" alt="Browns"></div>
+          <div class="team-tile"><img src="../../images/nfl/buccaneers.png" alt="Buccaneers"></div>
+          <div class="team-tile"><img src="../../images/nfl/cardinals.png" alt="Cardinals"></div>
+          <div class="team-tile"><img src="../../images/nfl/chargers.png" alt="Chargers"></div>
+          <div class="team-tile"><img src="../../images/nfl/chiefs.png" alt="Chiefs"></div>
+          <div class="team-tile"><img src="../../images/nfl/colts.png" alt="Colts"></div>
+          <div class="team-tile"><img src="../../images/nfl/commanders.png" alt="Commanders"></div>
+          <div class="team-tile"><img src="../../images/nfl/cowboys.png" alt="Cowboys"></div>
+          <div class="team-tile"><img src="../../images/nfl/dolphins.png" alt="Dolphins"></div>
+          <div class="team-tile"><img src="../../images/nfl/eagles.png" alt="Eagles"></div>
+          <div class="team-tile"><img src="../../images/nfl/falcons.png" alt="Falcons"></div>
+        </div>
+        <!-- Centre panel: facecam, scoreboard, status/logo, ticker -->
+        <div class="team-center">
+          <div class="facecam" data-label="FACE CAM (16:9)"></div>
+          <div class="status-logo-row">
+            <div class="status-box sold">Sold</div>
+            <div class="logo"><img src="../../images/logos/wripz-logo.png" alt="Logo"></div>
+            <div class="status-box remaining">Remaining</div>
+          </div>
+          <div class="team-ticker">
+            <div class="scroll">Scroll Text</div>
+          </div>
+        </div>
+        <!-- Right side: remaining 16 team tiles -->
+        <div class="team-side-grid nfl-right">
+          <!-- Right column NFL team logos (remaining 16 teams) -->
+          <div class="team-tile"><img src="../../images/nfl/giants.png" alt="Giants"></div>
+          <div class="team-tile"><img src="../../images/nfl/jaguars.png" alt="Jaguars"></div>
+          <div class="team-tile"><img src="../../images/nfl/jets.png" alt="Jets"></div>
+          <div class="team-tile"><img src="../../images/nfl/lions.png" alt="Lions"></div>
+          <div class="team-tile"><img src="../../images/nfl/packers.png" alt="Packers"></div>
+          <div class="team-tile"><img src="../../images/nfl/panthers.png" alt="Panthers"></div>
+          <div class="team-tile"><img src="../../images/nfl/patriots.png" alt="Patriots"></div>
+          <div class="team-tile"><img src="../../images/nfl/raiders.png" alt="Raiders"></div>
+          <div class="team-tile"><img src="../../images/nfl/rams.png" alt="Rams"></div>
+          <div class="team-tile"><img src="../../images/nfl/ravens.png" alt="Ravens"></div>
+          <div class="team-tile"><img src="../../images/nfl/saints.png" alt="Saints"></div>
+          <div class="team-tile"><img src="../../images/nfl/seahawks.png" alt="Seahawks"></div>
+          <div class="team-tile"><img src="../../images/nfl/steelers.png" alt="Steelers"></div>
+          <div class="team-tile"><img src="../../images/nfl/texans.png" alt="Texans"></div>
+          <div class="team-tile"><img src="../../images/nfl/titans.png" alt="Titans"></div>
+          <div class="team-tile"><img src="../../images/nfl/vikings.png" alt="Vikings"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NBA layout -->
+    <section id="layout-nba" class="layout-section hidden">
+      <div class="layout-header">NBA Team Break — Header / Brand / Title</div>
+      <div class="team-content">
+        <!-- Left side: first 15 teams -->
+        <div class="team-side-grid nba-left">
+          <div class="team-tile">1</div><div class="team-tile">2</div><div class="team-tile">3</div><div class="team-tile">4</div><div class="team-tile">5</div><div class="team-tile">6</div><div class="team-tile">7</div><div class="team-tile">8</div><div class="team-tile">9</div><div class="team-tile">10</div><div class="team-tile">11</div><div class="team-tile">12</div><div class="team-tile">13</div><div class="team-tile">14</div><div class="team-tile">15</div>
+        </div>
+        <!-- Centre panel: facecam, scoreboard, status/logo, ticker -->
+        <div class="team-center">
+          <div class="facecam" data-label="FACE CAM (16:9)"></div>
+          <div class="status-logo-row">
+            <div class="status-box sold">Sold</div>
+            <div class="logo"><img src="../../images/logos/wripz-logo.png" alt="Logo"></div>
+            <div class="status-box remaining">Remaining</div>
+          </div>
+          <div class="team-ticker">
+            <div class="scroll">Scroll Text</div>
+          </div>
+        </div>
+        <!-- Right side: remaining 15 teams -->
+        <div class="team-side-grid nba-right">
+          <div class="team-tile">16</div><div class="team-tile">17</div><div class="team-tile">18</div><div class="team-tile">19</div><div class="team-tile">20</div><div class="team-tile">21</div><div class="team-tile">22</div><div class="team-tile">23</div><div class="team-tile">24</div><div class="team-tile">25</div><div class="team-tile">26</div><div class="team-tile">27</div><div class="team-tile">28</div><div class="team-tile">29</div><div class="team-tile">30</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MLB layout -->
+    <section id="layout-mlb" class="layout-section hidden">
+      <div class="layout-header">MLB Team Break — Header / Brand / Title</div>
+      <div class="team-content">
+        <!-- Left side: first 15 teams -->
+        <div class="team-side-grid mlb-left">
+          <div class="team-tile">1</div><div class="team-tile">2</div><div class="team-tile">3</div><div class="team-tile">4</div><div class="team-tile">5</div><div class="team-tile">6</div><div class="team-tile">7</div><div class="team-tile">8</div><div class="team-tile">9</div><div class="team-tile">10</div><div class="team-tile">11</div><div class="team-tile">12</div><div class="team-tile">13</div><div class="team-tile">14</div><div class="team-tile">15</div>
+        </div>
+        <!-- Centre panel: facecam, scoreboard, status/logo, ticker -->
+        <div class="team-center">
+          <div class="facecam" data-label="FACE CAM (16:9)"></div>
+          <div class="status-logo-row">
+            <div class="status-box sold">Sold</div>
+            <div class="logo"><img src="../../images/logos/wripz-logo.png" alt="Logo"></div>
+            <div class="status-box remaining">Remaining</div>
+          </div>
+          <div class="team-ticker">
+            <div class="scroll">Scroll Text</div>
+          </div>
+        </div>
+        <!-- Right side: remaining 15 teams -->
+        <div class="team-side-grid mlb-right">
+          <div class="team-tile">16</div><div class="team-tile">17</div><div class="team-tile">18</div><div class="team-tile">19</div><div class="team-tile">20</div><div class="team-tile">21</div><div class="team-tile">22</div><div class="team-tile">23</div><div class="team-tile">24</div><div class="team-tile">25</div><div class="team-tile">26</div><div class="team-tile">27</div><div class="team-tile">28</div><div class="team-tile">29</div><div class="team-tile">30</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Script to handle layout switching -->
+  <!-- Load layout-switching script from the overlay directory.  Without this the
+       layout sections would remain hidden because the `.hidden` class is
+       never removed. -->
+  <!-- Use a relative path for the script so it loads in OBS and local previews -->
+  <script src="script.js"></script>
+</body>
+</html>

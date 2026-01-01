@@ -1,0 +1,705 @@
+/*
+ * Global variables and resets
+ *
+ * These CSS custom properties mirror the colours used in the reference
+ * overlays.  Feel free to adjust them to suit your theme.
+ */
+:root {
+  --color-bg: #0b0b0b;
+  --color-panel: #141414;
+  --color-accent: #b00000;
+  --color-text: #ffffff;
+  --color-muted: #bbbbbb;
+  --border-radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-text);
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+/*
+ * Root overlay container
+ */
+#overlay-root {
+  width: 1080px;
+  height: 1920px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  border: 2px solid var(--color-accent);
+}
+
+/* Header with layout selector */
+.overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: var(--color-panel);
+  border-bottom: 2px solid var(--color-accent);
+  font-weight: bold;
+}
+
+.overlay-header h1 {
+  font-size: 20px;
+}
+
+.overlay-header label {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.overlay-header select {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-accent);
+  padding: 4px 6px;
+  border-radius: var(--border-radius);
+}
+
+/* Utility classes */
+/*
+ * Any element with the `hidden` class should be completely removed from
+ * layout.  Using `!important` ensures it overrides any display set on
+ * other classes (e.g. `.layout-section` which sets `display: flex`).
+ */
+.hidden {
+  display: none !important;
+}
+
+.layout-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+/* Each section begins with a header band similar to the reference */
+.layout-header {
+  text-align: center;
+  background: var(--color-panel);
+  padding: 10px;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  font-weight: 800;
+  font-size: 16px;
+}
+
+/* Generic facecam and chat panels */
+.facecam,
+.chat {
+  background: var(--color-panel);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  text-align: center;
+}
+
+.facecam {
+  /* Maintain a 16:9 aspect ratio */
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.facecam::before {
+  content: attr(data-label);
+}
+
+.chat {
+  min-width: 200px;
+  flex-grow: 1;
+  padding: 8px;
+}
+
+/* Status boxes used across layouts */
+.status-box {
+  flex: 1;
+  background: #1a1a1a;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  padding: 8px 6px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 60px;
+}
+
+.status-group {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+}
+
+/* Logo placeholder */
+.logo {
+  background: #888;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  text-align: center;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+}
+
+/* Scroll ticker */
+.scroll {
+  background: #000;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  padding: 4px 8px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =============================================================================
+ * Conference Layout
+ *
+ * The conference layout aligns two conference grids on either side of a
+ * facecam, with a chat rail to the far right.  A status bar with four
+ * equally sized boxes sits beneath the grids, followed by a centred logo
+ * tile and a scrolling ticker along the bottom.
+ */
+#layout-conference .conference-top {
+  /* Remove the chat column and distribute space between the two grids and facecam */
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  /* Let the row height be determined by its tallest item (facecam's 16:9 aspect ratio). */
+  grid-auto-rows: auto;
+  gap: 8px;
+}
+
+#layout-conference .conf-grid {
+  background: var(--color-panel);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+#layout-conference .facecam {
+  grid-column: 2 / 3;
+  position: relative;
+}
+
+#layout-conference .chat {
+  grid-column: 4 / 5;
+  grid-row: 1 / 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 8px;
+}
+
+#layout-conference .conference-status {
+  display: flex;
+  gap: 8px;
+}
+
+#layout-conference .conference-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80px;
+}
+
+#layout-conference .conference-ticker {
+  display: flex;
+  align-items: center;
+}
+
+/* =============================================================================
+ * Directional Layout
+ *
+ * The directional layout organises four directional grids around a central
+ * facecam and a two‑box status group, with a chat column on the right.  The
+ * chat spans both grid rows.  A logo row and ticker row sit beneath.
+ */
+
+#layout-directional .directional-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-rows: repeat(2, 180px);
+  gap: 8px;
+  flex: 3;
+}
+
+#layout-directional .directional-content .direc-grid {
+  background: var(--color-panel);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+#layout-directional .directional-content .facecam {
+  grid-column: 2 / 3;
+  grid-row: 1 / 2;
+  position: relative;
+}
+
+#layout-directional .directional-content .status-group {
+  grid-column: 2 / 3;
+  grid-row: 2 / 3;
+}
+
+#layout-directional .directional-wrapper {
+  display: flex;
+  gap: 8px;
+}
+
+#layout-directional .chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding: 8px;
+  background: var(--color-panel);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+}
+
+#layout-directional .directional-logo,
+#layout-directional .directional-ticker {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 60px;
+}
+
+#layout-directional .directional-ticker .scroll {
+  width: 100%;
+}
+
+/* =============================================================================
+ * Division Layout
+ *
+ * This layout consists of a large division grid, a row of smaller rows,
+ * a status row with sold/remaining flanked by division labels, a logo row
+ * and a ticker.  A chat column spans all rows on the right.
+ */
+#layout-division .division-wrapper {
+  display: grid;
+  /* Allocate more horizontal space to the facecam by giving the second column a larger share */
+  grid-template-columns: 3fr 2fr;
+  grid-template-rows: auto auto auto auto auto;
+  gap: 8px;
+}
+
+#layout-division .division-grid,
+#layout-division .division-rows,
+#layout-division .division-status,
+#layout-division .division-logo,
+#layout-division .division-ticker {
+  background: var(--color-panel);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: var(--color-muted);
+  padding: 8px;
+}
+
+#layout-division .division-grid {
+  height: 200px;
+}
+
+#layout-division .division-rows {
+  height: 100px;
+}
+
+#layout-division .division-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+}
+
+#layout-division .division-status .division-label {
+  flex: 1;
+  text-align: center;
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+#layout-division .division-status .status-group {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+#layout-division .division-logo {
+  height: 80px;
+  background: #888;
+  color: #000;
+}
+
+#layout-division .division-ticker .scroll {
+  width: 100%;
+  background: #000;
+}
+
+#layout-division .chat {
+  /* no chat in division layout anymore */
+}
+
+/* Facecam inside division layout spans all rows of the second column */
+#layout-division .facecam {
+  grid-row: 1 / span 5;
+  grid-column: 2 / 3;
+  /* Inherit dimensions from the generic facecam styles.  Only adjust grid placement here. */
+}
+
+/* =============================================================================
+ * Team Layout
+ *
+ * The team layout is used for generic team breaks as well as NBA and MLB
+ * variants.  It comprises a team grid, a long list (rows), a scoreboard
+ * with five items where the centre is reserved for a logo, a status row,
+ * and a ticker.  The chat panel spans all rows on the right.
+ */
+#layout-team .team-wrapper,
+#layout-nba .team-wrapper,
+#layout-mlb .team-wrapper {
+  /*
+   * Deprecated: the old team-wrapper layout has been replaced by the new
+   * team-content container.  We leave this rule intact for backwards
+   * compatibility but it no longer affects the markup used in the updated
+   * team, NBA and MLB layouts.
+   */
+}
+
+/*
+ * New three‑column team layout
+ *
+ * Each of the team break variants (NFL, NBA, MLB) now uses a three‑column
+ * container called `.team-content`.  The first and last columns contain
+ * half of the teams while the centre column houses the facecam, scoreboard,
+ * status/logo row and ticker.  The centre column is given a larger
+ * proportion of the available width to ensure the camera and status
+ * information are clearly visible.
+ */
+#layout-team .team-content,
+#layout-nba .team-content,
+#layout-mlb .team-content {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  grid-auto-rows: auto;
+  gap: 8px;
+  width: 100%;
+  flex: 1;
+}
+
+/* Left and right side grids for team layouts.  Each grid displays its
+   teams in a 4×4 arrangement (or 4×4 minus one slot for NBA/MLB).  The
+   grids are contained within a panel that matches the look of the other
+   content boxes. */
+.team-side-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  background: var(--color-panel);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  padding: 8px;
+  /* Ensure the side grids stretch to fill the available height */
+  align-content: start;
+}
+
+/* Centre column for team layouts.  Stack the facecam, scoreboard,
+   status/logo row and ticker with consistent spacing. */
+.team-center {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  /* Fill the vertical space so the camera keeps its aspect ratio */
+  align-items: stretch;
+}
+
+/* The rows within the centre column should take up their own space */
+.team-center > .facecam {
+  /* Already defined generically */
+}
+.team-center > .scoreboard-row,
+.team-center > .status-logo-row,
+.team-center > .team-ticker {
+  width: 100%;
+}
+
+/* Place all content tiles in the left column of team layouts */
+/* Place primary content tiles in the first column of team, NBA and MLB layouts */
+#layout-team .team-wrapper .team-grid,
+#layout-team .team-wrapper .team-status,
+#layout-team .team-wrapper .team-ticker {
+  grid-column: 1 / 2;
+}
+
+#layout-nba .team-wrapper .team-grid,
+#layout-nba .team-wrapper .team-status,
+#layout-nba .team-wrapper .team-ticker {
+  grid-column: 1 / 2;
+}
+
+#layout-mlb .team-wrapper .team-grid,
+#layout-mlb .team-wrapper .team-status,
+#layout-mlb .team-wrapper .team-ticker {
+  grid-column: 1 / 2;
+}
+
+#layout-team .team-grid,
+#layout-nba .team-grid,
+#layout-mlb .team-grid,
+#layout-team .rows,
+#layout-nba .rows,
+#layout-mlb .rows,
+#layout-team .team-score,
+#layout-nba .team-score,
+#layout-mlb .team-score,
+#layout-team .team-status,
+#layout-nba .team-status,
+#layout-mlb .team-status,
+#layout-team .team-ticker,
+#layout-nba .team-ticker,
+#layout-mlb .team-ticker {
+  background: var(--color-panel);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: var(--color-muted);
+  padding: 8px;
+}
+
+#layout-team .team-grid,
+#layout-nba .team-grid,
+#layout-mlb .team-grid {
+  height: 200px;
+}
+
+#layout-team .rows,
+#layout-nba .rows,
+#layout-mlb .rows {
+  height: 100px;
+}
+
+/* Scoreboard row with five items */
+.team-score {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  background: transparent;
+  border: none;
+}
+
+.team-score .score-item {
+  background: #1a1a1a;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: var(--color-muted);
+}
+
+/* Centre item is logo */
+.team-score .logo {
+  background: #888;
+  color: #000;
+}
+
+.team-status {
+  display: flex;
+  gap: 8px;
+  background: transparent;
+  border: none;
+}
+
+#layout-team .team-ticker .scroll,
+#layout-nba .team-ticker .scroll,
+#layout-mlb .team-ticker .scroll {
+  width: 100%;
+  background: #000;
+}
+
+#layout-team .chat,
+#layout-nba .chat,
+#layout-mlb .chat {
+  grid-row: 1 / span 5;
+  grid-column: 2 / 3;
+  background: var(--color-panel);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+/*
+ * Team grid styling.  Each sport has a different number of teams, so we
+ * vary the column count using modifier classes.  Individual tiles are
+ * small boxes that will later hold team names or logos.
+ */
+.team-grid {
+  display: grid;
+  gap: 4px;
+}
+
+.team-grid.grid-32 {
+  /* 32 teams: eight columns of four rows */
+  grid-template-columns: repeat(8, 1fr);
+}
+
+.team-grid.grid-30 {
+  /* 30 teams: six columns of five rows */
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.team-tile {
+  background: #1a1a1a;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: var(--color-muted);
+  padding: 2px;
+  height: 24px;
+}
+
+/* Facecams in the team, NBA and MLB layouts occupy the entire second column */
+#layout-team .team-wrapper .facecam,
+#layout-nba .team-wrapper .facecam,
+#layout-mlb .team-wrapper .facecam {
+  grid-row: 1 / span 4;
+  grid-column: 2 / 3;
+  /* Rely on the generic facecam styles for sizing and appearance */
+}
+
+/* Ensure primary content rows occupy only the left column in team, NBA and MLB layouts */
+#layout-team .team-grid,
+#layout-team .scoreboard-row,
+#layout-team .status-logo-row,
+#layout-team .team-ticker,
+#layout-nba .team-grid,
+#layout-nba .scoreboard-row,
+#layout-nba .status-logo-row,
+#layout-nba .team-ticker,
+#layout-mlb .team-grid,
+#layout-mlb .scoreboard-row,
+#layout-mlb .status-logo-row,
+#layout-mlb .team-ticker {
+  grid-column: 1 / 2;
+}
+
+/* New scoreboard row used in team, NBA and MLB layouts.  It consists of three
+   equally sized cells to display IF 30/32 labels. */
+#layout-team .scoreboard-row,
+#layout-nba .scoreboard-row,
+#layout-mlb .scoreboard-row {
+  background: var(--color-panel);
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  align-items: center;
+  justify-items: center;
+  padding: 8px;
+  font-weight: bold;
+  /* Reserve some vertical space so the row is visible even with small text */
+  min-height: 40px;
+}
+
+/* Boxes inside the scoreboard row */
+.scoreboard-row .score-box {
+  background: #1a1a1a;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--color-muted);
+  /* Let the box size itself based on content; do not force full height/width to
+     avoid collapsing the parent row. */
+  padding: 4px 6px;
+}
+
+/* Status + logo row: three columns (sold/logo/remaining) */
+#layout-team .status-logo-row,
+#layout-nba .status-logo-row,
+#layout-mlb .status-logo-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  align-items: stretch;
+  /* Ensure the row has enough height to display its contents */
+  min-height: 60px;
+}
+
+/* Ensure logo in status row inherits proper styling */
+#layout-team .status-logo-row .logo,
+#layout-nba .status-logo-row .logo,
+#layout-mlb .status-logo-row .logo {
+  background: #888;
+  color: #000;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--border-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
