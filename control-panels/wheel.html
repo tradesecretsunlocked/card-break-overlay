@@ -145,6 +145,7 @@
 
 </div>
 
+<div id="log" style="display:none"></div>
 
 <script>
 /* =========================
@@ -194,27 +195,42 @@ const breakIdInput = document.getElementById("breakIdInput");
 const logBox = document.getElementById("log");
 
 function log(msg){
+  if (!logBox) return;
   const line = document.createElement("div");
   line.textContent = msg;
   logBox.appendChild(line);
   logBox.scrollTop = logBox.scrollHeight;
 }
 
+
 /* =========================
    SEND EVENT
    ========================= */
 async function sendEvent(payload){
+  console.log("SEND clicked → payload:", payload);
+
   try{
-    await fetch(`${BRIDGE_BASE}/events`, {
+    const res = await fetch(`${BRIDGE_BASE}/events`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json"
+      },
       body: JSON.stringify(payload)
     });
-    log("✔ Sent: " + JSON.stringify(payload));
-  }catch(e){
-    log("❌ Failed to send");
+
+    console.log("Bridge response status:", res.status);
+
+    if (!res.ok){
+      const txt = await res.text();
+      console.error("Bridge error body:", txt);
+    }
+
+  }catch(err){
+    console.error("SEND failed:", err);
   }
 }
+
+
 
 /* =========================
    DEMO SPIN (NO REAL WHEEL YET)
