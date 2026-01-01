@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wheely’s Ripz — Wheel Control</title>
+
+  <style>
+    body{
+      margin:0;
+      background:#0b0d10;
+      color:#fff;
+      font-family: Arial Black, Arial, sans-serif;
+    }
+
+    .app{
+      padding: 14px;
+      display:flex;
+      flex-direction:column;
+      gap: 14px;
+    }
+
+    h1{
+      font-size: 18px;
+      letter-spacing: 1px;
+      margin:0;
+    }
+
+    .row{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+
+    select, button, input{
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.25);
+      background:#111;
+      color:#fff;
+      padding: 0 12px;
+      font-weight: 900;
+    }
+
+    button{
+      cursor:pointer;
+      background: rgba(212,27,27,0.35);
+    }
+
+    .log{
+      font-size: 12px;
+      opacity:.8;
+      background:#050607;
+      padding: 10px;
+      border-radius: 10px;
+      max-height: 160px;
+      overflow:auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <h1>Wheely’s Ripz — Wheel Control</h1>
+
+    <!-- BASIC CONTROLS -->
+    <div class="row">
+      <label>League</label>
+     <div class="btn-group" id="leagueGroup">
+  <button data-league="NFL">NFL</button>
+  <button data-league="NBA">NBA</button>
+  <button data-league="MLB">MLB</button>
+</div>
+
+        <option>NFL</option>
+        <option>NBA</option>
+        <option>MLB</option>
+      </select>
+
+      <label>Mode</label>
+      <select id="modeSel">
+        <option>TEAM</option>
+        <option>DIVISION</option>
+        <option>CONFERENCE</option>
+        <option>DIRECTIONAL</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <label>Break #</label>
+      <input id="breakIdInput" placeholder="e.g. 1042" />
+    </div>
+
+    <div class="row">
+      <button id="spinBtn">SPIN (demo)</button>
+      <button id="sendBtn">SEND TEST EVENT</button>
+    </div>
+
+    <div class="log" id="log"></div>
+
+  </div>
+
+<script>
+/* =========================
+   CONFIG
+   ========================= */
+const BRIDGE_BASE =
+  new URLSearchParams(location.search).get("bridge")
+  || localStorage.getItem("tsu.active_bridge")
+  || "https://tsu-bridge-dbdv.onrender.com";
+
+/* =========================
+   ELEMENTS
+   ========================= */
+const leagueSel = document.getElementById("leagueSel");
+const modeSel   = document.getElementById("modeSel");
+const breakIdInput = document.getElementById("breakIdInput");
+const logBox = document.getElementById("log");
+
+function log(msg){
+  const line = document.createElement("div");
+  line.textContent = msg;
+  logBox.appendChild(line);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+/* =========================
+   SEND EVENT
+   ========================= */
+async function sendEvent(payload){
+  try{
+    await fetch(`${BRIDGE_BASE}/events`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    log("✔ Sent: " + JSON.stringify(payload));
+  }catch(e){
+    log("❌ Failed to send");
+  }
+}
+
+/* =========================
+   DEMO SPIN (NO REAL WHEEL YET)
+   ========================= */
+function fakeSpinSelection(){
+  const mode = modeSel.value;
+
+  if (mode === "CONFERENCE") return Math.random() > .5 ? "AFC" : "NFC";
+  if (mode === "DIRECTIONAL") return ["NORTH","EAST","SOUTH","WEST"][Math.floor(Math.random()*4)];
+  if (mode === "DIVISION") return ["AFCE","AFCN","AFCS","AFCW","NFCE","NFCN","NFCS","NFCW"][Math.floor(Math.random()*8)];
+
+  // TEAM fallback
+  return "BUF";
+}
+
+/* =========================
+   BUTTONS
+   ========================= */
+document.getElementById("spinBtn").addEventListener("click", () => {
+  const selection = fakeSpinSelection();
+  log("🎡 Spin landed on: " + selection);
+});
+
+document.getElementById("sendBtn").addEventListener("click", () => {
+  const selection = fakeSpinSelection();
+
+  const payload = {
+    breakId: breakIdInput.value || "—",
+    league: leagueSel.value,
+    mode: modeSel.value,
+    selectionCode: selection,
+    buyerName: "WHEEL",
+    ts: Date.now()
+  };
+
+  sendEvent(payload);
+});
+</script>
+</body>
+</html>

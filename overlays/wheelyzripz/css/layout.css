@@ -1,30 +1,45 @@
 /* Root becomes 2 columns: content + chat */
 #overlay-root {
-  width: 100%;
-  height: 100vh;
-  background: var(--bg-dark);
+  width: var(--W, 1080px);
+  height: var(--H, 1920px);     /* LOCKED for TikTok vertical */
+  background: gray;
 
   display: grid;
-  grid-template-columns: 1fr 280px;
-  grid-template-rows: auto 1fr auto;
+  grid-template-columns: 1fr;
 
-  grid-template-areas:
-    "header header"
-    "main   chat"
-    "bottom chat";
+  grid-template-rows: 72px 1fr 20px;
+grid-template-areas:
+  "header"
+  "main";
 }
 
+.overlay-ui {
+ background-color: var(--panel-dark);
+    width: var(--W, 1080px);
+  height: var(--H, 1920px);   
+
+}
 
 /* HEADER */
 .header-band {
   grid-area: header;
+
+  height: 72px;
+  min-height: 72px;
+  max-height: 72px;
+
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 14px;
+
+  padding: 0 16px;
+
   background: var(--panel-dark);
   border-bottom: 2px solid var(--red);
+
+  box-sizing: border-box;
 }
+
 
 .header-left { font-weight: 800; }
 .header-right { display: flex; gap: 16px; font-weight: 800; }
@@ -34,7 +49,7 @@
   grid-area: chat;
   background: var(--panel-dark);
   border-radius: var(--border-radius);
-  margin: 10px 10px 10px 0; /* top right bottom left */
+  margin: 12px 12px 12px 0; /* top right bottom left */
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -43,17 +58,25 @@
 
 
 .grid-slot {
+  width: 100%;
+  height: 100%;
+
   background:
     linear-gradient(
       180deg,
       rgba(255,255,255,0.06) 0%,
-      rgba(255,255,255,0.02) 100%
+      rgba(212, 15, 15, 0.044) 100%
     ),
     var(--panel-dark);
 
   border-radius: var(--border-radius);
-  padding: 8px;
+  padding: 6px;
+
+  display: flex;
 }
+
+
+
 
 
 .facecam-slot {
@@ -62,22 +85,31 @@
   justify-content: center;
 }
 
-.facecam-frame,
-.assignment-panel {
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255,255,255,0.05) 0%,
-      rgba(255,255,255,0.015) 100%
-    ),
-    #0e0e0e;
+.facecam-frame {
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
 
+  height: auto;           /* keep ratio */
+  align-self: center;     /* don’t stretch */
+
+  background: #000;
+  border: 2px solid var(--red);
   border-radius: var(--border-radius);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 
 
-
+.scroll-slot {
+  height: 20px;
+  line-height: 20px;   /* IMPORTANT */
+  white-space: nowrap;
+  overflow: hidden;
+}
 
 
 
@@ -91,51 +123,65 @@
 
 /* BOTTOM BAND */
 .bottom-band {
-  grid-area: bottom;
-  display: grid;
-  grid-template-columns: 1fr 220px 1fr;
-  gap: 10px;
-  padding: 0 10px 10px 10px;
+  height: 40px;
+  background: #000000;
+  border-top: 2px solid var(--red);
+  
+
 }
 
-.logo-gap {
-  background: transparent;
-  height: 56px;
-}
+
+
+
+
+
 
 /* ================= MAIN GRID ================= */
 
 .main-grid {
   grid-area: main;
   display: grid;
+
   grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  gap: 10px;
-  padding: 10px;
-}
+  grid-template-rows: repeat(2, 220px);
+  gap: 14px;
 
-.grid-slot {
-  background: var(--panel-dark);
-  border-radius: var(--border-radius);
-  padding: 10px;
-}
-
-/* FACECAM */
-.facecam-frame {
-  width: 100%;
   height: 100%;
-  aspect-ratio: 16 / 9;
-  border: 2px solid var(--red);
+  max-height: 100%;
+   align-content: stretch;
+  overflow: hidden;
+  position: relative;
+}
+
+.ticker {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  padding: 0 12px;
+  pointer-events: none;
+ 
 }
+
+
+.logo-gap { display: none; }
+
+
+
+
 
 /* STATUS TILE */
 .status-tile {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
+  gap: 12px;
 }
+
+
 
 .status-row {
   display: grid;

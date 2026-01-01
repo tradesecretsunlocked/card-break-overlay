@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conference Break Overlay</title>
+  <!-- Use the shared stylesheet for baseline styles -->
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Make the outside of the overlay transparent so OBS scenes show through */
+    body {
+      background: transparent;
+    }
+    /* Dark gradient background for the board area */
+    .board-wrapper {
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.6));
+      border: 2px solid var(--color-accent);
+      border-radius: var(--border-radius);
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    /* Re‑style the conference status row for larger, taller boxes */
+    #layout-conference .conference-status {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    #layout-conference .conference-status .status-box {
+      min-height: 80px;
+      font-size: 24px;
+      align-items: center;
+    }
+    /* Floating control panel for selecting the layout.  This panel is placed
+       halfway down the screen to keep it off the live area when cropping
+       for stream output. */
+    .control-panel {
+      position: absolute;
+      top: 60%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.8);
+      border: 2px solid var(--color-accent);
+      border-radius: var(--border-radius);
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 300px;
+    }
+    .control-panel label {
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+      gap: 4px;
+    }
+    .control-panel select {
+      background: var(--color-bg);
+      color: var(--color-text);
+      border: 1px solid var(--color-accent);
+      padding: 4px 6px;
+      border-radius: var(--border-radius);
+    }
+  </style>
+</head>
+<body>
+  <div id="overlay-root" style="position: relative; width: 1080px; height: 1920px; margin: 0 auto;">
+    <!-- Conference break section only -->
+    <section id="layout-conference" class="layout-section" style="flex: 1;">
+      <div class="board-wrapper">
+        <!-- Header for brand and title -->
+        <div class="layout-header">Conference Break — Header / Brand / Title</div>
+        <!-- Main top row: grids and facecam align horizontally using the base CSS grid rules -->
+        <div class="layout-row conference-top">
+          <div class="conf-grid left">Conference Grid</div>
+          <div class="facecam" data-label="FACE CAM (16:9)"></div>
+          <div class="conf-grid right">Conference Grid</div>
+        </div>
+        <!-- Logo moved directly under the facecam -->
+        <div class="layout-row conference-logo">
+          <div class="logo">Logo</div>
+        </div>
+        <!-- Status boxes with enlarged dimensions -->
+        <div class="layout-row conference-status">
+          <div class="status-box sold">Sold</div>
+          <div class="status-box remaining">Remaining</div>
+        </div>
+        <!-- Ticker stays at the bottom of the board -->
+        <div class="layout-row conference-ticker">
+          <div class="scroll">Scroll Text</div>
+        </div>
+      </div>
+    </section>
+    <!-- Control panel with layout selector placed below the board area -->
+    <div class="control-panel">
+      <label>
+        Choose layout:
+        <select id="layoutSelector">
+          <option value="conference" selected>Conference Break</option>
+          <option value="directional">Directional Break</option>
+          <option value="division">Division Break</option>
+          <option value="team">Team Break</option>
+          <option value="nba">NBA Team Break</option>
+          <option value="mlb">MLB Team Break</option>
+        </select>
+      </label>
+    </div>
+  </div>
+  <!-- Include the existing layout switching script in case other layouts are toggled -->
+  <script src="script.js"></script>
+</body>
+</html>

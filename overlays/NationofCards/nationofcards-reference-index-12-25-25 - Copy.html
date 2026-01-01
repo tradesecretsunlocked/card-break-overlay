@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Nation of Cards – Multi‑sport Break Overlay
+
+  This overlay is designed to mirror the look shown in the screenshot provided.
+  Teams are divided by conference and division (e.g. AFC/NFC in NFL) with
+  a vertical control bar separating the left and right sides.  The control
+  bar contains buttons to reset and cycle the sport, counters for sold and
+  remaining teams, and the Nation of Cards logo.  A scrolling ticker
+  displays the slogan at the bottom.  A scoreboard area sits beneath the
+  team grids and can be populated via the breakTypes configuration in the
+  script.
+
+  All assets (team logos and the NOC logo) should be placed in an
+  `images` directory relative to this file following the same folder
+  structure used by the existing TSU overlays (e.g. `images/nfl/bills.png`).
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nation of Cards – Break Overlay</title>
+  <!-- Import the Bungee Shade font for the brand mark -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee+Shade&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      /* Colour palette pulled from the provided logo */
+      --primary-color: #000041; /* dark navy */
+      --secondary-color: #8d0100; /* rich crimson */
+      --text-color: #ffffff; /* white */
+      --border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 950px;
+      min-height: 600px;
+      margin-inline: auto;
+      font-family: Arial, sans-serif;
+      color: var(--text-color);
+      background: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      user-select: none;
+    }
+
+    /* Outer container with gradient background and border */
+    .overlay-container {
+      width: 100%;
+      max-width: 950px;
+      background: linear-gradient(180deg, rgba(6, 20, 55, 0.95), rgba(0, 0, 20, 0.95));
+      border: 4px solid var(--secondary-color);
+      border-radius: 16px;
+      padding: 8px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Header with brand and sport selector */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(90deg, var(--secondary-color), var(--primary-color));
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .header .brand {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-title {
+      font-family: 'Bungee Shade', sans-serif;
+      font-size: 26px;
+      line-height: 1;
+      margin: 0;
+      text-transform: uppercase;
+    }
+
+    .brand-slogan {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: -2px;
+      opacity: 0.9;
+    }
+
+    .sport-select {
+      background: var(--primary-color);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* Main section containing team grids and scoreboard */
+    .main {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Teams section splits into left conference, control bar, right conference */
+    .teams-section {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .conference {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 4px;
+      background: rgba(0, 0, 30, 0.6);
+    }
+
+    .conference-title {
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .division {
+      margin-bottom: 4px;
+    }
+
+    .division-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--secondary-color);
+      margin: 4px 0;
+      text-transform: uppercase;
+    }
+
+    .division-teams {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+      gap: 4px;
+    }
+
+    .team {
+      position: relative;
+      background: var(--primary-color);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+
+    .team img {
+      width: 90%;
+      height: 90%;
+      object-fit: contain;
+    }
+
+    .team.sold {
+      border-color: var(--secondary-color);
+      filter: grayscale(0.5) brightness(0.7);
+    }
+
+    .team.sold::after {
+      content: '\2713'; /* check mark */
+      position: absolute;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.95);
+      color: var(--secondary-color);
+      font-size: 20px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    }
+
+    /* Vertical control bar */
+    .control-bar {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: stretch;
+      width: 120px;
+      background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 6px;
+    }
+
+    .control-bar .btn {
+      background: var(--secondary-color);
+      color: var(--text-color);
+      border: none;
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      width: 100%;
+      margin-bottom: 4px;
+    }
+
+    .control-bar .stat-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary-color);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 4px;
+    }
+
+    .stat-box .value {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .stat-box .label {
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    .control-bar .brand-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      margin-bottom: 4px;
+    }
+
+    .control-bar .brand-logo img {
+      width: 100%;
+      height: auto;
+      max-height: 60px;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+    }
+
+    /* Scoreboard area */
+    .scoreboard {
+      background: var(--primary-color);
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-height: 0;
+    }
+
+    .scoreboard-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      font-size: 14px;
+    }
+
+    .scoreboard-item .teams {
+      flex: 1;
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+    }
+
+    .scoreboard-item .score {
+      min-width: 60px;
+      text-align: center;
+      font-weight: 800;
+    }
+
+    .scoreboard-item .detail {
+      min-width: 60px;
+      font-size: 11px;
+      text-align: right;
+      opacity: 0.8;
+    }
+
+    /* Ticker area */
+    .ticker {
+      width: 100%;
+      overflow: hidden;
+      background: var(--secondary-color);
+      border-radius: 8px;
+      border: 2px solid var(--border-color);
+    }
+
+    .ticker-text {
+      display: inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: ticker-scroll 20s linear infinite;
+      font-weight: 700;
+    }
+
+    @keyframes ticker-scroll {
+      0% {
+        transform: translateX(0);
+      }
+      100% {
+        transform: translateX(-100%);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay-container">
+    <div class="header">
+      <div class="brand">
+        <div class="brand-title">Nation of Cards</div>
+        <div class="brand-slogan">Join the Nation. Build Your Collection</div>
+      </div>
+      <select id="sportSelect" class="sport-select" onchange="changeBreakTypeSelect(this.value)">
+        <option value="nfl">NFL</option>
+        <option value="nba">NBA</option>
+        <option value="mlb">MLB</option>
+        <option value="nhl">NHL</option>
+        <option value="nil">NIL</option>
+      </select>
+    </div>
+    <div class="main">
+      <div class="teams-section">
+        <!-- Left conference -->
+        <div id="conferenceLeft" class="conference"></div>
+        <!-- Vertical control bar -->
+        <div class="control-bar">
+          <button class="btn" onclick="resetAll()">Reset</button>
+          <div class="stat-box">
+            <div class="value" id="teamsSold">0</div>
+            <div class="label">Sold</div>
+          </div>
+          <div class="brand-logo">
+            <img src="/images/logos/Nation of Cards Logo Transparent.png" alt="Nation of Cards" />
+          </div>
+          <div class="stat-box">
+            <div class="value" id="teamsLeft">0</div>
+            <div class="label">Remaining</div>
+          </div>
+          <button class="btn" onclick="cycleSport()">Next</button>
+        </div>
+        <!-- Right conference -->
+        <div id="conferenceRight" class="conference"></div>
+      </div>
+      <!-- Scoreboard area -->
+      <div class="scoreboard" id="scoreboard"></div>
+    </div>
+    <!-- Ticker area -->
+    <div class="ticker">
+      <span id="tickerText" class="ticker-text">Join the Nation. Build Your Collection</span>
+    </div>
+  </div>
+  <script>
+    // Determine base path for logos so images load correctly both locally and on GitHub Pages.
+    const BASE = (() => {
+      const { hostname } = window.location;
+      if (hostname && hostname.endsWith('github.io')) {
+        const parts = location.pathname.split('/').filter(Boolean);
+        const repo = parts.length ? parts[0] : '';
+        return `/${repo}/`;
+      }
+      return '';
+    })();
+
+    // Path helper functions for each sport
+    const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+    const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
+    const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
+    const imgPathNHL = (f) => `${BASE}images/nhl/${f}`;
+    const imgPathNIL = (f) => `${BASE}images/nil/${f}`;
+
+    /*
+      breakTypes defines rosters and scoreboard entries for each sport.  Each
+      entry contains:
+        - name: display name
+        - conferences: ordered list of conference names
+        - divisions: object keyed by conference name, each containing an object
+          keyed by division name with an array of team objects (code, name, image).
+        - scoreboard: array of game objects (home, away, scores, period, time)
+    */
+    const breakTypes = {
+      nfl: {
+        name: 'NFL',
+        conferences: ['AFC', 'NFC'],
+        divisions: {
+          AFC: {
+            East: [
+              { code: 'BUF', name: 'Bills', image: imgPathNFL('bills.png') },
+              { code: 'MIA', name: 'Dolphins', image: imgPathNFL('dolphins.png') },
+              { code: 'NE', name: 'Patriots', image: imgPathNFL('patriots.png') },
+              { code: 'NYJ', name: 'Jets', image: imgPathNFL('jets.png') }
+            ],
+            North: [
+              { code: 'CIN', name: 'Bengals', image: imgPathNFL('bengals.png') },
+              { code: 'CLE', name: 'Browns', image: imgPathNFL('browns.png') },
+              { code: 'BAL', name: 'Ravens', image: imgPathNFL('ravens.png') },
+              { code: 'PIT', name: 'Steelers', image: imgPathNFL('steelers.png') }
+            ],
+            South: [
+              { code: 'HOU', name: 'Texans', image: imgPathNFL('texans.png') },
+              { code: 'IND', name: 'Colts', image: imgPathNFL('colts.png') },
+              { code: 'JAX', name: 'Jaguars', image: imgPathNFL('jaguars.png') },
+              { code: 'TEN', name: 'Titans', image: imgPathNFL('titans.png') }
+            ],
+            West: [
+              { code: 'DEN', name: 'Broncos', image: imgPathNFL('broncos.png') },
+              { code: 'KC', name: 'Chiefs', image: imgPathNFL('chiefs.png') },
+              { code: 'LV', name: 'Raiders', image: imgPathNFL('raiders.png') },
+              { code: 'LAC', name: 'Chargers', image: imgPathNFL('chargers.png') }
+            ]
+          },
+          NFC: {
+            East: [
+              { code: 'DAL', name: 'Cowboys', image: imgPathNFL('cowboys.png') },
+              { code: 'NYG', name: 'Giants', image: imgPathNFL('giants.png') },
+              { code: 'PHI', name: 'Eagles', image: imgPathNFL('eagles.png') },
+              { code: 'WAS', name: 'Commanders', image: imgPathNFL('commanders.png') }
+            ],
+            North: [
+              { code: 'CHI', name: 'Bears', image: imgPathNFL('bears.png') },
+              { code: 'DET', name: 'Lions', image: imgPathNFL('lions.png') },
+              { code: 'GB', name: 'Packers', image: imgPathNFL('packers.png') },
+              { code: 'MIN', name: 'Vikings', image: imgPathNFL('vikings.png') }
+            ],
+            South: [
+              { code: 'TB', name: 'Buccaneers', image: imgPathNFL('buccaneers.png') },
+              { code: 'ATL', name: 'Falcons', image: imgPathNFL('falcons.png') },
+              { code: 'CAR', name: 'Panthers', image: imgPathNFL('panthers.png') },
+              { code: 'NO', name: 'Saints', image: imgPathNFL('saints.png') }
+            ],
+            West: [
+              { code: 'ARI', name: 'Cardinals', image: imgPathNFL('cardinals.png') },
+              { code: 'LAR', name: 'Rams', image: imgPathNFL('rams.png') },
+              { code: 'SF', name: '49ers', image: imgPathNFL('49ers.png') },
+              { code: 'SEA', name: 'Seahawks', image: imgPathNFL('seahawks.png') }
+            ]
+          }
+        },
+        scoreboard: [
+          { home: 'Bills', away: 'Dolphins', homeScore: 0, awayScore: 0, period: 'Q1', time: '15:00' },
+          { home: 'Chiefs', away: 'Raiders', homeScore: 0, awayScore: 0, period: 'Q1', time: '15:00' }
+        ]
+      },
+      nba: {
+        name: 'NBA',
+        conferences: ['East', 'West'],
+        divisions: {
+          East: {
+            Atlantic: [
+              { code: 'BOS', name: 'Celtics', image: imgPathNBA('celtics.png') },
+              { code: 'BKN', name: 'Nets', image: imgPathNBA('nets.png') },
+              { code: 'NYK', name: 'Knicks', image: imgPathNBA('knicks.png') },
+              { code: 'PHI', name: '76ers', image: imgPathNBA('76ers.png') },
+              { code: 'TOR', name: 'Raptors', image: imgPathNBA('raptors.png') }
+            ],
+            Central: [
+              { code: 'CHI', name: 'Bulls', image: imgPathNBA('bulls.png') },
+              { code: 'CLE', name: 'Cavaliers', image: imgPathNBA('cavaliers.png') },
+              { code: 'DET', name: 'Pistons', image: imgPathNBA('pistons.png') },
+              { code: 'IND', name: 'Pacers', image: imgPathNBA('pacers.png') },
+              { code: 'MIL', name: 'Bucks', image: imgPathNBA('bucks.png') }
+            ],
+            Southeast: [
+              { code: 'ATL', name: 'Hawks', image: imgPathNBA('hawks.png') },
+              { code: 'CHA', name: 'Hornets', image: imgPathNBA('hornets.png') },
+              { code: 'MIA', name: 'Heat', image: imgPathNBA('heat.png') },
+              { code: 'ORL', name: 'Magic', image: imgPathNBA('magic.png') },
+              { code: 'WAS', name: 'Wizards', image: imgPathNBA('wizards.png') }
+            ]
+          },
+          West: {
+            Northwest: [
+              { code: 'DEN', name: 'Nuggets', image: imgPathNBA('nuggets.png') },
+              { code: 'MIN', name: 'Timberwolves', image: imgPathNBA('timberwolves.png') },
+              { code: 'OKC', name: 'Thunder', image: imgPathNBA('thunder.png') },
+              { code: 'POR', name: 'Blazers', image: imgPathNBA('blazers.png') },
+              { code: 'UTA', name: 'Jazz', image: imgPathNBA('jazz.png') }
+            ],
+            Pacific: [
+              { code: 'GSW', name: 'Warriors', image: imgPathNBA('warriors.png') },
+              { code: 'LAC', name: 'Clippers', image: imgPathNBA('clippers.png') },
+              { code: 'LAL', name: 'Lakers', image: imgPathNBA('lakers.png') },
+              { code: 'PHX', name: 'Suns', image: imgPathNBA('suns.png') },
+              { code: 'SAC', name: 'Kings', image: imgPathNBA('kings.png') }
+            ],
+            Southwest: [
+              { code: 'DAL', name: 'Mavericks', image: imgPathNBA('mavericks.png') },
+              { code: 'HOU', name: 'Rockets', image: imgPathNBA('rockets.png') },
+              { code: 'MEM', name: 'Grizzlies', image: imgPathNBA('grizzlies.png') },
+              { code: 'NOP', name: 'Pelicans', image: imgPathNBA('pelicans.png') },
+              { code: 'SAS', name: 'Spurs', image: imgPathNBA('spurs.png') }
+            ]
+          }
+        },
+        scoreboard: [
+          { home: 'Lakers', away: 'Warriors', homeScore: 0, awayScore: 0, period: 'Q1', time: '12:00' },
+          { home: 'Bulls', away: 'Celtics', homeScore: 0, awayScore: 0, period: 'Q1', time: '12:00' }
+        ]
+      },
+      mlb: {
+        name: 'MLB',
+        conferences: ['AL', 'NL'],
+        divisions: {
+          AL: {
+            East: [
+              { code: 'BAL', name: 'Orioles', image: imgPathMLB('orioles.png') },
+              { code: 'BOS', name: 'Red Sox', image: imgPathMLB('redsox.png') },
+              { code: 'NYY', name: 'Yankees', image: imgPathMLB('yankees.png') },
+              { code: 'TB', name: 'Rays', image: imgPathMLB('rays.png') },
+              { code: 'TOR', name: 'Blue Jays', image: imgPathMLB('bluejays.png') }
+            ],
+            Central: [
+              { code: 'CHW', name: 'White Sox', image: imgPathMLB('whitesox.png') },
+              { code: 'CLE', name: 'Guardians', image: imgPathMLB('guardians.png') },
+              { code: 'DET', name: 'Tigers', image: imgPathMLB('tigers.png') },
+              { code: 'KC', name: 'Royals', image: imgPathMLB('royals.png') },
+              { code: 'MIN', name: 'Twins', image: imgPathMLB('twins.png') }
+            ],
+            West: [
+              { code: 'HOU', name: 'Astros', image: imgPathMLB('astros.png') },
+              { code: 'LAA', name: 'Angels', image: imgPathMLB('angels.png') },
+              { code: 'OAK', name: 'Athletics', image: imgPathMLB('athletics.png') },
+              { code: 'SEA', name: 'Mariners', image: imgPathMLB('mariners.png') },
+              { code: 'TEX', name: 'Rangers', image: imgPathMLB('rangers.png') }
+            ]
+          },
+          NL: {
+            East: [
+              { code: 'ATL', name: 'Braves', image: imgPathMLB('braves.png') },
+              { code: 'MIA', name: 'Marlins', image: imgPathMLB('marlins.png') },
+              { code: 'NYM', name: 'Mets', image: imgPathMLB('mets.png') },
+              { code: 'PHI', name: 'Phillies', image: imgPathMLB('phillies.png') },
+              { code: 'WSH', name: 'Nationals', image: imgPathMLB('nationals.png') }
+            ],
+            Central: [
+              { code: 'CHC', name: 'Cubs', image: imgPathMLB('cubs.png') },
+              { code: 'CIN', name: 'Reds', image: imgPathMLB('reds.png') },
+              { code: 'MIL', name: 'Brewers', image: imgPathMLB('brewers.png') },
+              { code: 'PIT', name: 'Pirates', image: imgPathMLB('pirates.png') },
+              { code: 'STL', name: 'Cardinals', image: imgPathMLB('cardinals.png') }
+            ],
+            West: [
+              { code: 'ARI', name: 'Diamondbacks', image: imgPathMLB('diamondbacks.png') },
+              { code: 'COL', name: 'Rockies', image: imgPathMLB('rockies.png') },
+              { code: 'LAD', name: 'Dodgers', image: imgPathMLB('dodgers.png') },
+              { code: 'SD', name: 'Padres', image: imgPathMLB('padres.png') },
+              { code: 'SF', name: 'Giants', image: imgPathMLB('giants.png') }
+            ]
+          }
+        },
+        scoreboard: [
+          { home: 'Yankees', away: 'Red Sox', homeScore: 0, awayScore: 0, period: 'Top 1', time: '' },
+          { home: 'Dodgers', away: 'Giants', homeScore: 0, awayScore: 0, period: 'Top 1', time: '' }
+        ]
+      },
+      nhl: {
+        name: 'NHL',
+        conferences: ['Eastern', 'Western'],
+        divisions: {
+          Eastern: {
+            Atlantic: [
+              { code: 'BOS', name: 'Bruins', image: imgPathNHL('bruins.png') },
+              { code: 'BUF', name: 'Sabres', image: imgPathNHL('sabres.png') },
+              { code: 'DET', name: 'Red Wings', image: imgPathNHL('redwings.png') },
+              { code: 'FLA', name: 'Panthers', image: imgPathNHL('panthers.png') },
+              { code: 'MTL', name: 'Canadiens', image: imgPathNHL('canadiens.png') },
+              { code: 'OTT', name: 'Senators', image: imgPathNHL('senators.png') },
+              { code: 'TBL', name: 'Lightning', image: imgPathNHL('lightning.png') },
+              { code: 'TOR', name: 'Maple Leafs', image: imgPathNHL('mapleleafs.png') }
+            ],
+            Metropolitan: [
+              { code: 'CAR', name: 'Hurricanes', image: imgPathNHL('hurricanes.png') },
+              { code: 'CBJ', name: 'Blue Jackets', image: imgPathNHL('bluejackets.png') },
+              { code: 'NJD', name: 'Devils', image: imgPathNHL('devils.png') },
+              { code: 'NYI', name: 'Islanders', image: imgPathNHL('islanders.png') },
+              { code: 'NYR', name: 'Rangers', image: imgPathNHL('rangers.png') },
+              { code: 'PHI', name: 'Flyers', image: imgPathNHL('flyers.png') },
+              { code: 'PIT', name: 'Penguins', image: imgPathNHL('penguins.png') },
+              { code: 'WSH', name: 'Capitals', image: imgPathNHL('capitals.png') }
+            ]
+          },
+          Western: {
+            Central: [
+              { code: 'ARI', name: 'Coyotes', image: imgPathNHL('coyotes.png') },
+              { code: 'CHI', name: 'Blackhawks', image: imgPathNHL('blackhawks.png') },
+              { code: 'COL', name: 'Avalanche', image: imgPathNHL('avalanche.png') },
+              { code: 'DAL', name: 'Stars', image: imgPathNHL('stars.png') },
+              { code: 'MIN', name: 'Wild', image: imgPathNHL('wild.png') },
+              { code: 'NSH', name: 'Predators', image: imgPathNHL('predators.png') },
+              { code: 'STL', name: 'Blues', image: imgPathNHL('blues.png') },
+              { code: 'WPG', name: 'Jets', image: imgPathNHL('jets.png') }
+            ],
+            Pacific: [
+              { code: 'ANA', name: 'Ducks', image: imgPathNHL('ducks.png') },
+              { code: 'CGY', name: 'Flames', image: imgPathNHL('flames.png') },
+              { code: 'EDM', name: 'Oilers', image: imgPathNHL('oilers.png') },
+              { code: 'LAK', name: 'Kings', image: imgPathNHL('kings.png') },
+              { code: 'SEA', name: 'Kraken', image: imgPathNHL('kraken.png') },
+              { code: 'SJS', name: 'Sharks', image: imgPathNHL('sharks.png') },
+              { code: 'VAN', name: 'Canucks', image: imgPathNHL('canucks.png') },
+              { code: 'VGK', name: 'Golden Knights', image: imgPathNHL('goldenknights.png') }
+            ]
+          }
+        },
+        scoreboard: [
+          { home: 'Maple Leafs', away: 'Canadiens', homeScore: 0, awayScore: 0, period: '1st', time: '20:00' },
+          { home: 'Penguins', away: 'Capitals', homeScore: 0, awayScore: 0, period: '1st', time: '20:00' }
+        ]
+      },
+      nil: {
+        name: 'NIL',
+        conferences: ['Conference A', 'Conference B'],
+        divisions: {
+          'Conference A': {
+            'Group 1': [
+              { code: 'A1', name: 'Team A1', image: imgPathNIL('teamA1.png') },
+              { code: 'A2', name: 'Team A2', image: imgPathNIL('teamA2.png') }
+            ],
+            'Group 2': [
+              { code: 'A3', name: 'Team A3', image: imgPathNIL('teamA3.png') },
+              { code: 'A4', name: 'Team A4', image: imgPathNIL('teamA4.png') }
+            ]
+          },
+          'Conference B': {
+            'Group 1': [
+              { code: 'B1', name: 'Team B1', image: imgPathNIL('teamB1.png') },
+              { code: 'B2', name: 'Team B2', image: imgPathNIL('teamB2.png') }
+            ],
+            'Group 2': [
+              { code: 'B3', name: 'Team B3', image: imgPathNIL('teamB3.png') },
+              { code: 'B4', name: 'Team B4', image: imgPathNIL('teamB4.png') }
+            ]
+          }
+        },
+        scoreboard: [
+          { home: 'Team A1', away: 'Team B1', homeScore: 0, awayScore: 0, period: 'H1', time: '20:00' }
+        ]
+      }
+    };
+
+    let currentBreakType = 'nfl';
+    let soldTeams = new Set();
+    let soldTeamsList = [];
+
+    // Render teams for the current sport
+    function renderTeams() {
+      const config = breakTypes[currentBreakType];
+      const leftEl = document.getElementById('conferenceLeft');
+      const rightEl = document.getElementById('conferenceRight');
+      leftEl.innerHTML = '';
+      rightEl.innerHTML = '';
+      soldTeams.clear();
+      soldTeamsList = [];
+      const [leftConf, rightConf] = config.conferences;
+      buildConference(leftEl, leftConf, config.divisions[leftConf]);
+      buildConference(rightEl, rightConf, config.divisions[rightConf]);
+      updateStats();
+      updateScoreboard();
+    }
+
+    // Build one conference column
+    function buildConference(container, confName, divisions) {
+      const title = document.createElement('div');
+      title.className = 'conference-title';
+      title.textContent = confName;
+      container.appendChild(title);
+      Object.keys(divisions).forEach(divName => {
+        const divisionWrap = document.createElement('div');
+        divisionWrap.className = 'division';
+        const divTitle = document.createElement('div');
+        divTitle.className = 'division-name';
+        divTitle.textContent = divName;
+        divisionWrap.appendChild(divTitle);
+        const teamGrid = document.createElement('div');
+        teamGrid.className = 'division-teams';
+        divisions[divName].forEach(teamObj => {
+          const teamDiv = document.createElement('div');
+          teamDiv.className = 'team';
+          teamDiv.dataset.teamCode = teamObj.code;
+          teamDiv.onclick = () => toggleTeam(teamObj.code);
+          const img = document.createElement('img');
+          img.src = teamObj.image;
+          img.alt = teamObj.name;
+          img.onerror = () => {
+            teamDiv.textContent = teamObj.code;
+          };
+          teamDiv.appendChild(img);
+          teamGrid.appendChild(teamDiv);
+        });
+        divisionWrap.appendChild(teamGrid);
+        container.appendChild(divisionWrap);
+      });
+    }
+
+    // Toggle sold state
+    function toggleTeam(code) {
+      const sel = `[data-team-code="${code}"]`;
+      const teamDiv = document.querySelector(sel);
+      if (!teamDiv) return;
+      const existingIndex = soldTeamsList.findIndex(entry => entry.code === code);
+      if (soldTeams.has(code)) {
+        soldTeams.delete(code);
+        teamDiv.classList.remove('sold');
+        if (existingIndex !== -1) soldTeamsList.splice(existingIndex, 1);
+      } else {
+        soldTeams.add(code);
+        teamDiv.classList.add('sold');
+        if (existingIndex === -1) soldTeamsList.push({ code: code, buyer: '' });
+      }
+      updateStats();
+    }
+
+    // Update counters
+    function updateStats() {
+      const config = breakTypes[currentBreakType];
+      let total = 0;
+      config.conferences.forEach(conf => {
+        Object.values(config.divisions[conf]).forEach(div => {
+          total += div.length;
+        });
+      });
+      const sold = soldTeams.size;
+      document.getElementById('teamsLeft').textContent = total - sold;
+      document.getElementById('teamsSold').textContent = sold;
+    }
+
+    // Populate scoreboard
+    function updateScoreboard() {
+      const scoreboardEl = document.getElementById('scoreboard');
+      scoreboardEl.innerHTML = '';
+      const games = breakTypes[currentBreakType].scoreboard || [];
+      games.forEach(game => {
+          const item = document.createElement('div');
+          item.className = 'scoreboard-item';
+          const teams = document.createElement('div');
+          teams.className = 'teams';
+          teams.innerHTML = `<span>${game.home}</span> <span>${game.away}</span>`;
+          const score = document.createElement('div');
+          score.className = 'score';
+          score.textContent = `${game.homeScore} - ${game.awayScore}`;
+          const detail = document.createElement('div');
+          detail.className = 'detail';
+          detail.textContent = `${game.period}${game.time ? ' ' + game.time : ''}`;
+          item.appendChild(teams);
+          item.appendChild(score);
+          item.appendChild(detail);
+          scoreboardEl.appendChild(item);
+      });
+    }
+
+    // Cycle through sports via Next button
+    function cycleSport() {
+      const types = Object.keys(breakTypes);
+      const idx = types.indexOf(currentBreakType);
+      currentBreakType = types[(idx + 1) % types.length];
+      document.getElementById('sportSelect').value = currentBreakType;
+      renderTeams();
+    }
+
+    // Change sport via dropdown
+    function changeBreakTypeSelect(value) {
+      if (!breakTypes[value]) return;
+      currentBreakType = value;
+      renderTeams();
+    }
+
+    // Reset all sold teams
+    function resetAll() {
+      soldTeams.clear();
+      soldTeamsList = [];
+      document.querySelectorAll('.team').forEach(team => team.classList.remove('sold'));
+      updateStats();
+    }
+
+    // Update ticker text
+    function updateTicker(text) {
+      const tickerSpan = document.getElementById('tickerText');
+      tickerSpan.textContent = text;
+      tickerSpan.style.animation = 'none';
+      void tickerSpan.offsetWidth;
+      tickerSpan.style.animation = '';
+    }
+
+    // Initialise on load
+    window.addEventListener('DOMContentLoaded', () => {
+      renderTeams();
+      updateTicker('Join the Nation. Build Your Collection');
+    });
+  </script>
+</body>
+</html>
