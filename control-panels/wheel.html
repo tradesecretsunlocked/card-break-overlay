@@ -43,19 +43,22 @@
     }
 
 .topbar{
-  display:flex;
-  align-items:center;
-  gap:14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
   padding:12px;
   background:#050607;
   border-bottom:1px solid rgba(255,255,255,.12);
 }
 
+
 .group{
   display:flex;
   align-items:center;
   gap:8px;
+  flex-wrap:wrap;
 }
+
 
 .group-label{
   font-size:12px;
@@ -112,8 +115,9 @@
     <h1>Wheely’s Ripz — Wheel Control</h1>
 
     <!-- BASIC CONTROLS -->
-   <div class="topbar">
+<div class="topbar">
 
+  <!-- ROW 1 -->
   <div class="group">
     <div class="group-label">League</div>
     <div class="btn-group" id="leagueGroup">
@@ -133,6 +137,7 @@
     </div>
   </div>
 
+  <!-- ROW 2 -->
   <div class="group">
     <div class="group-label">Break #</div>
     <input id="breakIdInput" placeholder="1042" />
@@ -141,9 +146,11 @@
   <div class="group">
     <button id="spinBtn" class="btn red">SPIN</button>
     <button id="sendBtn" class="btn">SEND</button>
+    <button id="resetBtn" class="btn red">RESET</button>
   </div>
 
 </div>
+
 
 <div id="log" style="display:none"></div>
 
@@ -156,6 +163,7 @@ let STATE = {
   league: "NFL",
   mode: "TEAM"
 };
+let CURRENT_SELECTION = null;
 
 
    const BRIDGE_BASE =
@@ -174,6 +182,14 @@ document.querySelectorAll("[data-league]").forEach(btn => {
     log("League set → " + STATE.league);
   });
 });
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  sendEvent({
+    type: "reset",
+    ts: Date.now()
+  });
+});
+
 
 document.querySelectorAll("[data-mode]").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -254,18 +270,22 @@ function fakeSpinSelection(){
    BUTTONS
    ========================= */
 document.getElementById("spinBtn").addEventListener("click", () => {
-  const selection = fakeSpinSelection();
-  log("🎡 Spin landed on: " + selection);
+  CURRENT_SELECTION = fakeSpinSelection();
+  console.log("🎡 Wheel landed on:", CURRENT_SELECTION);
 });
 
+
 document.getElementById("sendBtn").addEventListener("click", () => {
-  const selection = fakeSpinSelection();
+  if (!CURRENT_SELECTION){
+    console.warn("SEND blocked: spin first");
+    return;
+  }
 
   const payload = {
     breakId: breakIdInput.value || "—",
     league: STATE.league,
     mode: STATE.mode,
-    selectionCode: selection,
+    selectionCode: CURRENT_SELECTION,
     buyerName: "WHEEL",
     ts: Date.now()
   };
