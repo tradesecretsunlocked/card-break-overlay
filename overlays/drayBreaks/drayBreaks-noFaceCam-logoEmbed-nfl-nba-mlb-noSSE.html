@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=920, initial-scale=1.0"/>
+  <title>DrayBreaks Box Break Overlay</title>
+  <style>
+    :root{
+      /* DrayBreaks vibe (navy + cyan) */
+      --bg0:#050b14;
+      --bg1:#0b1a2f;
+      --panel:#0a1426;
+      --tile:#050b14;
+
+      --accent:#3aa0d8;     /* cyan */
+      --accent2:#1f6ea8;    /* deeper */
+      --text:#ffffff;
+      --muted: rgba(255,255,255,0.75);
+
+      --tileH: 52px;
+      --gap: 3px;
+
+      --cols: 8;            /* changes per sport */
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      background:transparent;
+      font-family: "Arial Black", Arial, sans-serif;
+      width:920px;
+      min-height:520px;
+      user-select:none;
+    }
+
+    .container{
+      background: linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 100%);
+      border: 4px solid var(--accent);
+      border-radius: 12px;
+      padding: 6px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* ===== HEADER ===== */
+    .header{
+      background: linear-gradient(90deg, #071226 0%, #0c2442 45%, #071226 100%);
+      color: var(--text);
+      padding: 6px 10px;
+      margin: -6px -6px 6px -6px;
+      border-radius: 6px 6px 0 0;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap:10px;
+      border-bottom: 2px solid rgba(255,255,255,0.12);
+    }
+
+    .header-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 0;
+    }
+
+    .header-icon{
+      width:18px;height:18px;border-radius:50%;
+      border:2px solid #fff;
+      background: var(--accent2);
+      box-shadow: 0 0 8px rgba(0,0,0,0.6);
+      flex: 0 0 auto;
+    }
+
+    .header-text{
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-banner{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      flex: 0 0 auto;
+      max-width: 360px;
+    }
+    .header-banner img{
+      max-height: 34px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.55));
+    }
+
+    /* ===== MAIN WRAPPER ===== */
+    .main-content{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+
+    .teams-wrapper{
+      background: linear-gradient(180deg,#0c1220 0%, #03060c 100%);
+      border-radius: 8px;
+      padding: 6px;
+      border: 3px solid var(--accent);
+    }
+
+    /* ===== GENERIC ROW GRID ===== */
+    .row-grid{
+      display:grid;
+      gap: var(--gap);
+      margin-bottom: 6px;
+      grid-template-columns: repeat(var(--cols), 1fr);
+      align-items: stretch;
+    }
+
+    .team{
+      background: #000;
+      border: 2px solid var(--accent);
+      border-radius: 6px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      position:relative;
+      height: var(--tileH);
+      overflow:hidden;
+      transition: transform 0.1s, box-shadow 0.1s, border-color 0.2s;
+    }
+
+    .team:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 0 7px rgba(255,255,255,0.18);
+    }
+
+    .team img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    .team img.nfl-small{
+      object-fit: cover;
+      
+    }
+
+    .team .fallback-code{
+      color:#fff;
+      font-size: 14px;
+      letter-spacing: 1px;
+      opacity: 0.9;
+    }
+
+    .team.sold img{
+      opacity: 0.25;
+      filter: grayscale(100%) brightness(0.4);
+    }
+
+    /* subtle sold flash */
+    .team.flash{
+      animation: soldFlash 260ms ease;
+    }
+    @keyframes soldFlash{
+      0%{ box-shadow: 0 0 0 rgba(58,160,216,0.0); }
+      50%{ box-shadow: 0 0 18px rgba(58,160,216,0.65); }
+      100%{ box-shadow: 0 0 0 rgba(58,160,216,0.0); }
+    }
+
+    .team.sold::after{
+      content:"X";
+      position:absolute;
+      font-size: 20px;
+      color: #ffffff;
+      text-shadow: 0 0 3px #000;
+      z-index: 10;
+      background: rgba(31,110,168,0.95);
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid #ffffff;
+    }
+
+    /* ===== LOGO SLOT (IN GRID) ===== */
+    .logo-slot{
+      grid-column: span 2; /* equals 2 tiles */
+      border-radius: 10px;
+      height: calc(var(--tileH) * 1);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border: 2px solid rgba(255,255,255,0.15);
+      overflow:hidden;
+    }
+    .logo-slot img{
+      max-height: 85%;
+      max-width: 92%;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.55));
+    }
+
+    /* ===== TICKER ROW ===== */
+    .ticker-slot{
+      border-radius: 10px;
+      height: var(--tileH);
+      display:flex;
+      align-items:center;
+      overflow:hidden;
+      background: linear-gradient(90deg, rgba(58,160,216,0.18), rgba(31,110,168,0.10));
+      border: 2px solid rgba(255,255,255,0.18);
+      padding: 0 10px;
+    }
+
+    .ticker-text{
+      display:inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: tickerScroll 18s linear infinite;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.55);
+    }
+    @keyframes tickerScroll{
+      0%{ transform: translateX(0); }
+      100%{ transform: translateX(-100%); }
+    }
+
+    /* ===== CONTROLS ROW ===== */
+    .controls-row{
+      margin-top: 6px;
+      display:grid;
+      grid-template-columns: 1fr 0.75fr minmax(120px,1fr) 0.75fr 1fr;
+      gap: 6px;
+      align-items: stretch;
+    }
+
+    .stat-box{
+      background: linear-gradient(135deg, #0b2240 0%, #071226 100%);
+      color:#fff;
+      border-radius: 8px;
+      text-align:center;
+      font-weight:900;
+      padding: 4px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      font-size: 18px;
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    .stat-label{
+      font-size: 11px;
+      letter-spacing: 1px;
+      margin-top: 2px;
+      opacity: 0.95;
+    }
+
+    .btn{
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      color:#fff;
+      border:none;
+      border-radius: 8px;
+      cursor:pointer;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 6px;
+      padding: 10px 10px;
+    }
+
+    .btn.secondary{
+      background: linear-gradient(135deg, #0b2240 0%, #071226 100%);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .btn:active{
+      transform: translateY(1px);
+      box-shadow:none;
+    }
+
+
+    /* ===== SOLD LIST ===== */
+    .sold-list-container{
+      margin: 8px auto 0 auto;
+      width: 100%;
+      background: linear-gradient(180deg, #050b14 0%, #0b1a2f 100%);
+      border: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 4px 7px 6px;
+      text-align:center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    .sold-list-title{
+      font-size: 16px;
+      font-weight: 900;
+      color:#ffffff;
+      margin-bottom: 4px;
+      letter-spacing: 1px;
+    }
+
+    .sold-list-grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px 12px;
+    }
+
+
+
+    .sold-row{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      margin-bottom: 2px;
+      background: rgba(0,0,0,0.60);
+      border-radius: 7px;
+      padding: 2px 4px;
+      border: 2px solid var(--accent);
+    }
+
+    .sold-team-img{
+      width: 24px;
+      height: 24px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #ffffff;
+      background:#000;
+    }
+
+    .sold-team-name{
+      font-weight: 900;
+      color:#f9fafb;
+      min-width: 60px;
+      text-transform: capitalize;
+      font-size: 13px;
+      opacity: 0.95;
+    }
+
+    .sold-buyer-input{
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      font-weight: 800;
+      padding: 2px 4px;
+      width: 100%;
+      background: rgba(0,0,0,0.35);
+      color:#f9fafb;
+      outline:none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header" id="header">
+      <div class="header-left">
+        <div class="header-icon"></div>
+        <div class="header-text" id="headerText">DRAYBREAKS · NBA BOX BREAK</div>
+      </div>
+    
+      <div class="header-banner">
+        <img id="bannerLogo" alt="DrayBreaks" />
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="teams-wrapper" id="teamsWrapper">
+        <!-- rows injected here -->
+      </div>
+
+      <div class="controls-row">
+        <button class="btn" onclick="resetAll()">🔄 RESET</button>
+
+        <div class="stat-box">
+          <div id="teamsLeft">0</div>
+          <div class="stat-label">REMAINING</div>
+        </div>
+
+        <div class="center-spacer"></div>
+
+        <div class="stat-box">
+          <div id="teamsSold">0</div>
+          <div class="stat-label">SOLD</div>
+        </div>
+
+        <button class="btn secondary" onclick="cycleSport()">⚙ CHANGE SPORT</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sold-list-container">
+    <div class="sold-list-title">SOLD TEAMS</div>
+    <div id="soldList" class="sold-list-grid"></div>
+  </div>
+
+<script>
+  // Dynamic base path (works on GitHub Pages + local folders)
+  const BASE = (() => {
+    const isGhPages = location.hostname.endsWith('github.io');
+    if (isGhPages) {
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repo = parts.length ? parts[0] : '';
+      return `/${repo}/`;
+    }
+    return '../..\/';
+  })();
+
+  const LOGO_PRIMARY = `${BASE}images/logos/dray-breaks-logo.png`;
+  const LOGO_BANNER  = `${BASE}images/logos/dray-breaks-logo-2.png`;
+
+  const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+  const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
+  const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
+
+  // Ticker phrases (from your form)
+  const TICKER_LINES = [
+    "BREAK STARTING NOW",
+    "STASH OR PASS ACTIVE"
+  ];
+
+  const breakTypes = {
+    nba: {
+      name: "NBA",
+      icon: "🏀",
+      cols: 8,
+      teams: [
+        { code:'ATL', name:'hawks', image: imgPathNBA('hawks.png') },
+        { code:'BOS', name:'celtics', image: imgPathNBA('celtics.png') },
+        { code:'BKN', name:'nets', image: imgPathNBA('nets.png') },
+        { code:'CHA', name:'hornets', image: imgPathNBA('hornets.png') },
+        { code:'CHI', name:'bulls', image: imgPathNBA('bulls.png') },
+        { code:'CLE', name:'cavaliers', image: imgPathNBA('cavaliers.png') },
+        { code:'DAL', name:'mavericks', image: imgPathNBA('mavericks.png') },
+        { code:'DEN', name:'nuggets', image: imgPathNBA('nuggets.png') },
+        { code:'DET', name:'pistons', image: imgPathNBA('pistons.png') },
+        { code:'GSW', name:'warriors', image: imgPathNBA('warriors.png') },
+        { code:'HOU', name:'rockets', image: imgPathNBA('rockets.png') },
+        { code:'IND', name:'pacers', image: imgPathNBA('pacers.png') },
+        { code:'LAC', name:'clippers', image: imgPathNBA('clippers.png') },
+        { code:'LAL', name:'lakers', image: imgPathNBA('lakers.png') },
+        { code:'MEM', name:'grizzlies', image: imgPathNBA('grizzlies.png') },
+        { code:'MIA', name:'heat', image: imgPathNBA('heat.png') },
+        { code:'MIL', name:'bucks', image: imgPathNBA('bucks.png') },
+        { code:'MIN', name:'timberwolves', image: imgPathNBA('timberwolves.png') },
+        { code:'NOP', name:'pelicans', image: imgPathNBA('pelicans.png') },
+        { code:'NYK', name:'knicks', image: imgPathNBA('knicks.png') },
+        { code:'OKC', name:'thunder', image: imgPathNBA('thunder.png') },
+        { code:'ORL', name:'magic', image: imgPathNBA('magic.png') },
+        { code:'PHI', name:'76ers', image: imgPathNBA('76ers.png') },
+        { code:'PHX', name:'suns', image: imgPathNBA('suns.png') },
+        { code:'POR', name:'blazers', image: imgPathNBA('blazers.png') },
+        { code:'SAC', name:'kings', image: imgPathNBA('kings.png') },
+        { code:'SAS', name:'spurs', image: imgPathNBA('spurs.png') },
+        { code:'TOR', name:'raptors', image: imgPathNBA('raptors.png') },
+        { code:'UTA', name:'jazz', image: imgPathNBA('jazz.png') },
+        { code:'WAS', name:'wizards', image: imgPathNBA('wizards.png') }
+      ]
+    },
+
+    mlb: {
+      name: "MLB",
+      icon: "⚾",
+      cols: 8,
+      teams: [
+        { code:'ARI', name:'diamondbacks', image: imgPathMLB('diamondbacks.png') },
+        { code:'ATL', name:'braves', image: imgPathMLB('braves.png') },
+        { code:'BAL', name:'orioles', image: imgPathMLB('orioles.png') },
+        { code:'BOS', name:'red sox', image: imgPathMLB('redsox.png') },
+        { code:'CHC', name:'cubs', image: imgPathMLB('cubs.png') },
+        { code:'CHW', name:'white sox', image: imgPathMLB('whitesox.png') },
+        { code:'CIN', name:'reds', image: imgPathMLB('reds.png') },
+        { code:'CLE', name:'guardians', image: imgPathMLB('guardians.png') },
+        { code:'COL', name:'rockies', image: imgPathMLB('rockies.png') },
+        { code:'DET', name:'tigers', image: imgPathMLB('tigers.png') },
+        { code:'HOU', name:'astros', image: imgPathMLB('astros.png') },
+        { code:'KC', name:'royals', image: imgPathMLB('royals.png') },
+        { code:'LAA', name:'angels', image: imgPathMLB('angels.png') },
+        { code:'LAD', name:'dodgers', image: imgPathMLB('dodgers.png') },
+        { code:'MIA', name:'marlins', image: imgPathMLB('marlins.png') },
+        { code:'MIL', name:'brewers', image: imgPathMLB('brewers.png') },
+        { code:'MIN', name:'twins', image: imgPathMLB('twins.png') },
+        { code:'NYM', name:'mets', image: imgPathMLB('mets.png') },
+        { code:'NYY', name:'yankees', image: imgPathMLB('yankees.png') },
+        { code:'OAK', name:'athletics', image: imgPathMLB('athletics.png') },
+        { code:'PHI', name:'phillies', image: imgPathMLB('phillies.png') },
+        { code:'PIT', name:'pirates', image: imgPathMLB('pirates.png') },
+        { code:'SD', name:'padres', image: imgPathMLB('padres.png') },
+        { code:'SF', name:'giants', image: imgPathMLB('giants.png') },
+        { code:'SEA', name:'mariners', image: imgPathMLB('mariners.png') },
+        { code:'STL', name:'cardinals', image: imgPathMLB('cardinals.png') },
+        { code:'TB', name:'rays', image: imgPathMLB('rays.png') },
+        { code:'TEX', name:'rangers', image: imgPathMLB('rangers.png') },
+        { code:'TOR', name:'blue jays', image: imgPathMLB('bluejays.png') },
+        { code:'WSH', name:'nationals', image: imgPathMLB('nationals.png') }
+      ]
+    },
+
+    nfl: {
+      name: "NFL",
+      icon: "🏈",
+      cols: 10,
+      teams: [
+        { code:'ARI', name:'cardinals', image: imgPathNFL('cardinals.png') },
+        { code:'ATL', name:'falcons', image: imgPathNFL('falcons.png') },
+        { code:'BAL', name:'ravens', image: imgPathNFL('ravens.png') },
+        { code:'BUF', name:'bills', image: imgPathNFL('bills.png') },
+        { code:'CAR', name:'panthers', image: imgPathNFL('panthers.png') },
+        { code:'CHI', name:'bears', image: imgPathNFL('bears.png') },
+        { code:'CIN', name:'bengals', image: imgPathNFL('bengals.png') },
+        { code:'CLE', name:'browns', image: imgPathNFL('browns.png') },
+        { code:'DAL', name:'cowboys', image: imgPathNFL('cowboys.png') },
+        { code:'DEN', name:'broncos', image: imgPathNFL('broncos.png') },
+
+        { code:'DET', name:'lions', image: imgPathNFL('lions.png') },
+        { code:'GB', name:'packers', image: imgPathNFL('packers.png') },
+        { code:'HOU', name:'texans', image: imgPathNFL('texans.png') },
+        { code:'IND', name:'colts', image: imgPathNFL('colts.png') },
+        { code:'JAX', name:'jaguars', image: imgPathNFL('jaguars.png') },
+        { code:'KC', name:'chiefs', image: imgPathNFL('chiefs.png') },
+        { code:'LV', name:'raiders', image: imgPathNFL('raiders.png') },
+        { code:'LAC', name:'chargers', image: imgPathNFL('chargers.png') },
+        { code:'LAR', name:'rams', image: imgPathNFL('rams.png') },
+        { code:'MIA', name:'dolphins', image: imgPathNFL('dolphins.png') },
+
+        { code:'MIN', name:'vikings', image: imgPathNFL('vikings.png') },
+        { code:'NE', name:'patriots', image: imgPathNFL('patriots.png') },
+        { code:'NO', name:'saints', image: imgPathNFL('saints.png') },
+        { code:'NYG', name:'giants', image: imgPathNFL('giants.png') },
+        { code:'NYJ', name:'jets', image: imgPathNFL('jets.png') },
+        { code:'PHI', name:'eagles', image: imgPathNFL('eagles.png') },
+        { code:'PIT', name:'steelers', image: imgPathNFL('steelers.png') },
+        { code:'SF', name:'49ers', image: imgPathNFL('49ers.png') },
+        { code:'SEA', name:'seahawks', image: imgPathNFL('seahawks.png') },
+        { code:'TB', name:'buccaneers', image: imgPathNFL('buccaneers.png') },
+
+        { code:'TEN', name:'titans', image: imgPathNFL('titans.png') },
+        { code:'WAS', name:'commanders', image: imgPathNFL('commanders.png') }
+      ]
+    }
+  };
+
+  let currentBreakType = "nba";
+  let soldTeams = new Set();        // indexes
+  let soldTeamsList = [];           // {index,buyer}
+
+  function setHeader(){
+    const b = breakTypes[currentBreakType];
+    document.getElementById("headerText").textContent = `DRAYBREAKS · ${b.name} BOX BREAK`;
+  }
+
+  function makeTeamDiv(team, index){
+    const d = document.createElement("div");
+    d.className = "team";
+    d.dataset.teamIndex = String(index);
+    d.onclick = () => toggleTeam(index);
+
+    if (team.image){
+      const img = document.createElement("img");
+      img.src = team.image;
+      img.alt = team.name || team.code || "";
+
+      // NFL logos often look better contained
+      if (currentBreakType === "nfl") img.classList.add("nfl-small");
+
+      img.onerror = () => {
+        d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
+      };
+      d.appendChild(img);
+    } else {
+      d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
+    }
+    return d;
+  }
+
+  function makeLogoSlot(){
+    const slot = document.createElement("div");
+    slot.className = "logo-slot";
+    const img = document.createElement("img");
+    img.src = LOGO_PRIMARY;
+    img.alt = "DrayBreaks Logo";
+    slot.appendChild(img);
+    return slot;
+  }
+
+  function makeTickerSlot(colSpan){
+    const slot = document.createElement("div");
+    slot.className = "ticker-slot";
+    if (colSpan && colSpan > 1) slot.style.gridColumn = `span ${colSpan}`;
+
+    const text = document.createElement("span");
+    text.className = "ticker-text";
+    text.textContent = ` ${TICKER_LINES.join("   •   ")} `;
+    slot.appendChild(text);
+    return slot;
+  }
+
+  function buildLayout(){
+    const wrap = document.getElementById("teamsWrapper");
+    wrap.innerHTML = "";
+
+    const config = breakTypes[currentBreakType];
+    document.documentElement.style.setProperty("--cols", String(config.cols));
+
+    // Reset sold state for new sport (keeps behavior like Lenhart)
+    soldTeams.clear();
+    soldTeamsList = [];
+
+    const teams = config.teams;
+
+    if (currentBreakType === "nba" || currentBreakType === "mlb"){
+      // ===== MLB/NBA SPEC =====
+      // Header
+      // 5 rows:
+      // Row1: 3 tiles, logo (2 tiles), 3 tiles
+      // Row2: 8 teams
+      // Row3: 8 teams
+      // Row4: 8 teams
+      // Row5: ticker (8 tiles)
+      //
+      // total teams = 30 => 6 in row1 + 24 in rows2-4
+
+      let idx = 0;
+
+      // Row 1
+      const r1 = document.createElement("div");
+      r1.className = "row-grid";
+      // left 3
+      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx], idx++));
+      // logo span 2
+      r1.appendChild(makeLogoSlot());
+      // right 3
+      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx], idx++));
+      wrap.appendChild(r1);
+
+      // Row 2-4 (8 each)
+      for (let r=0;r<3;r++){
+        const row = document.createElement("div");
+        row.className = "row-grid";
+        for (let i=0;i<8;i++){
+          row.appendChild(makeTeamDiv(teams[idx], idx++));
+        }
+        wrap.appendChild(row);
+      }
+
+      // Row 5 ticker (span 8)
+      const r5 = document.createElement("div");
+      r5.className = "row-grid";
+      r5.appendChild(makeTickerSlot(8));
+      wrap.appendChild(r5);
+    }
+
+    if (currentBreakType === "nfl"){
+      // ===== NFL SPEC =====
+      // 4 rows:
+      // Row1: 4 tiles, logo (2 tiles), 4 tiles  => 8 teams in row1
+      // Row2: 10 teams
+      // Row3: 10 teams
+      // Row4: 2 teams, ticker (6), 2 teams => 4 teams in row4
+      //
+      // total teams 32 => 8 + 10 + 10 + 4
+
+      let idx = 0;
+
+      // Row1 (10 cols)
+      const r1 = document.createElement("div");
+      r1.className = "row-grid";
+
+      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx], idx++));
+      r1.appendChild(makeLogoSlot()); // spans 2 cols
+      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx], idx++));
+      wrap.appendChild(r1);
+
+      // Row2
+      const r2 = document.createElement("div");
+      r2.className = "row-grid";
+      for (let i=0;i<10;i++) r2.appendChild(makeTeamDiv(teams[idx], idx++));
+      wrap.appendChild(r2);
+
+      // Row3
+      const r3 = document.createElement("div");
+      r3.className = "row-grid";
+      for (let i=0;i<10;i++) r3.appendChild(makeTeamDiv(teams[idx], idx++));
+      wrap.appendChild(r3);
+
+      // Row4: 2 teams, ticker span 6, 2 teams
+      const r4 = document.createElement("div");
+      r4.className = "row-grid";
+
+      r4.appendChild(makeTeamDiv(teams[idx], idx++));
+      r4.appendChild(makeTeamDiv(teams[idx], idx++));
+      r4.appendChild(makeTickerSlot(6));
+      r4.appendChild(makeTeamDiv(teams[idx], idx++));
+      r4.appendChild(makeTeamDiv(teams[idx], idx++));
+      wrap.appendChild(r4);
+    }
+
+    setHeader();
+    updateStats();
+    updateSoldList();
+  }
+
+  function toggleTeam(index){
+    const tile = document.querySelector(`[data-team-index="${index}"]`);
+    if (!tile) return;
+
+    const listIndex = soldTeamsList.findIndex(e => e.index === index);
+
+    if (soldTeams.has(index)){
+      soldTeams.delete(index);
+      tile.classList.remove("sold");
+      if (listIndex !== -1) soldTeamsList.splice(listIndex, 1);
+    } else {
+      soldTeams.add(index);
+      tile.classList.add("sold");
+      tile.classList.add("flash");
+      setTimeout(()=>tile.classList.remove("flash"), 280);
+
+      if (listIndex === -1) soldTeamsList.push({ index, buyer: "" });
+    }
+
+    updateStats();
+    updateSoldList();
+  }
+
+  function updateStats(){
+    const total = breakTypes[currentBreakType].teams.length;
+    const sold = soldTeams.size;
+    document.getElementById("teamsLeft").textContent = String(total - sold);
+    document.getElementById("teamsSold").textContent = String(sold);
+  }
+
+  function updateSoldList(){
+    const soldListDiv = document.getElementById("soldList");
+    soldListDiv.innerHTML = "";
+    const currentBreak = breakTypes[currentBreakType];
+
+    soldTeamsList.forEach(entry => {
+      const team = currentBreak.teams[entry.index];
+      const row = document.createElement("div");
+      row.className = "sold-row";
+
+      if (team.image){
+        const img = document.createElement("img");
+        img.src = team.image;
+        img.className = "sold-team-img";
+        row.appendChild(img);
+      }
+
+      const name = document.createElement("span");
+      name.className = "sold-team-name";
+      name.textContent = team.name || team.code;
+      row.appendChild(name);
+
+      const input = document.createElement("input");
+      input.className = "sold-buyer-input";
+      input.type = "text";
+      input.placeholder = "Buyer";
+      input.value = entry.buyer || "";
+      input.oninput = (e) => { entry.buyer = e.target.value; };
+      row.appendChild(input);
+
+      soldListDiv.appendChild(row);
+    });
+  }
+
+  function resetAll(){
+    soldTeams.clear();
+    soldTeamsList = [];
+    document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
+    updateStats();
+    updateSoldList();
+  }
+
+  function cycleSport(){
+    const types = Object.keys(breakTypes);
+    const idx = types.indexOf(currentBreakType);
+    currentBreakType = types[(idx + 1) % types.length];
+    buildLayout();
+  }
+
+  // init
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("bannerLogo").src = LOGO_BANNER;
+    buildLayout();
+  });
+</script>
+</body>
+</html>

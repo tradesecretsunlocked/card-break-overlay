@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAKSPAKS – Box Breaks</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee+Shade&display=swap" rel="stylesheet" />
+
+  <style>
+   :root {
+  --primary-color: #0b0b0b;        /* near-black */
+  --secondary-color: #c40000;      /* MAKSPAKS red */
+  --text-color: #ffffff;
+  --border-color: rgba(196, 0, 0, 0.65);
+}
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      max-width: 1080px;
+      min-height: 500px;
+      margin-inline: auto;
+      font-family: Arial, sans-serif;
+      color: var(--text-color);
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      user-select: none;
+    }
+
+    .overlay-container {
+      width: 1080px;
+      height: auto;
+      position: relative;
+      background: radial-gradient(
+  circle at top,
+  #1a1a1a 0%,
+  #050505 55%,
+  #000000 100%
+);
+box-shadow:
+  0 0 0 1px rgba(255,255,255,0.06),
+  0 0 28px rgba(196,0,0,0.35),
+  0 18px 40px rgba(0,0,0,0.9);
+
+      border: 3px solid #ff3d698a;
+      border-radius: 16px;
+      padding: 8px;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.08),
+        0 12px 28px rgba(0,0,0,0.55);
+      display: flex;
+      flex-direction: column;
+      margin: 2px;
+      gap: 2px;
+    }
+
+    .header {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      padding: 2px 12px;
+      min-height: 58px;
+      padding-right: 16px;
+      overflow: visible;
+      position: relative;
+      
+    }
+
+    .brand-logo {
+      position: absolute;
+      left: 51%;
+      top: 66%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .brand-logo img {
+      height: 140px;
+      width: auto;
+      max-width: none;
+      object-fit: contain;
+      filter:
+        drop-shadow(0 6px 18px rgba(0,0,0,0.55))
+        drop-shadow(0 0 22px rgba(255,158,181,0.45));
+    }
+
+    .brand-title {
+      font-family: 'Impact', 'Arial Black', sans-serif;
+      font-weight: 900;
+      font-size: 45px;
+      line-height: 1.1;
+      letter-spacing: 2px;
+     text-transform: uppercase;
+      color: white;
+      text-shadow:
+        0 4px 0 rgba(0,0,0,0.9),
+        0 8px 12px rgba(0,0,0,2.6);
+    }
+
+    .header-right{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      justify-self: end;
+    }
+
+    .break-id-box{
+      display:flex;
+      align-items:center;
+      gap: 16px;
+      padding: 10px 10px;
+      padding-left:40px;
+      padding-right:40px;
+      border-radius: 10px;
+      background: #000014;
+      border: 2px solid var(--border-color);
+      box-shadow: inset 0 0 10px rgba(255,255,255,0.04);
+    }
+
+    .break-id-label{
+      font-size: 18px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .break-id-value{
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+
+    .main {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow: visible;
+    }
+
+    .teams-section {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 6px;
+      align-items: center;
+      margin-top: 11px;
+    }
+
+    .conference {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 4px;
+      border: 2px solid var(--text-color);
+      border-radius: 12px;
+      background: rgba(0, 7, 46, 0.452);
+      min-height: 255px;
+      margin-top: -2px;
+      position: relative;
+      overflow: visible;
+      justify-content: space-around;
+    }
+
+   .conference::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 14px;
+  pointer-events: none;
+  z-index: 0;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 60, 60, 0.0) 15%,
+      rgba(255, 80, 80, -2.1) 28%,
+      rgba(241, 149, 149, 0.6) 40%,
+      rgba(255, 60, 60, -1) 52%,
+      transparent 100%
+    );
+
+  background-size: 200% 100%;
+  background-position: 0% 50%;
+
+  /* mask to border only */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 1);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 1);
+  mask-composite: exclude;
+
+  padding: 2px;
+  filter: blur(6px);
+
+  animation: borderWick 5s linear infinite;
+}
+
+#conferenceLeft::before {
+  animation-direction: normal;
+}
+
+#conferenceRight::before {
+  animation-direction: reverse;
+}
+
+.conference > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes borderWick {
+  0% {
+    background-position: 0% 50%;
+    opacity: 0.4;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 0.85;
+  }
+  100% {
+    background-position: 200% 50%;
+    opacity: 0.4;
+  }
+}
+
+
+    .conference-title,
+    .division-name { display: none; }
+
+    .division-teams{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+    }
+
+    .team{
+      position: relative;
+      z-index: 2;
+      cursor: pointer;
+      max-height:70px;
+      padding:1px;
+    }
+
+    .team img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      padding: 0px;
+      position: relative;
+      z-index: 1;
+      border-radius: 12px;
+      border-style: solid;
+  
+  border: 2px solid rgba(196,0,0,0.75);
+
+    }
+
+    .team.sold img {
+      filter: grayscale(1) brightness(0.45);
+    }
+
+    /* ===============================
+   AMBIENT MOVING GLOW (TEAM TILE)
+================================ */
+
+.team::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 16px;
+  z-index: 0;
+  pointer-events: none;
+
+  background: radial-gradient(
+    circle at 55% 77%,
+    rgba(175, 6, 6, 0.85),
+    rgba(206, 78, 78, 0.479),
+    transparent 70%
+  );
+
+  filter: blur(18px);
+  opacity: 0.7;
+
+  animation: teamGlowDrift 4s ease-in-out infinite;
+}
+
+
+/* keep logo above glow */
+.team img {
+  position: relative;
+  z-index: 1;
+}
+
+/* kill glow when sold */
+.team.sold::before {
+  opacity: 0.15;
+  animation: none;
+}
+
+@keyframes teamGlowDrift {
+  0% {
+    background-position: 0% 50%;
+    transform: scale(0.95);
+    opacity: 0.45;
+  }
+  50% {
+    background-position: 100% 50%;
+    transform: scale(1.05);
+    opacity: 0.75;
+  }
+  100% {
+    background-position: 0% 50%;
+    transform: scale(0.95);
+    opacity: 0.45;
+  }
+}
+
+
+    .team.sold::after {
+      content: "✕";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 64px;
+      font-weight: 900;
+      line-height: 1;
+      color: #ff1f1f;
+      text-shadow:
+        0 0 6px rgba(255, 31, 31, 0.95),
+        0 0 14px rgba(255, 31, 31, 0.85),
+        0 6px 18px rgba(0,0,0,0.9);
+      z-index: 999;
+      pointer-events: none;
+      mix-blend-mode: normal;
+    }
+
+    .control-bar {
+      display:flex;
+      flex-direction:column;
+      justify-content: space-evenly;
+      align-items: stretch;
+      width: 120px;
+      border: 2px solid var(--border-color);
+      background: linear-gradient(
+      
+    180deg,
+    #1a1a1a,
+    #000000
+  );
+      border-radius: 12px;
+      padding: 2px;
+      min-height: 280px;
+    }
+
+    .control-bar .btn {
+      background: linear-gradient(315deg, #5dbae180 10%, #db617e 90%);
+      color: var(--text-color);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 27px;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow:
+        inset 0 1px 0 rgba(0, 0, 0, 0.89),
+        0 4px 10px rgba(0,0,0,0.89);
+      width: 100%;
+      margin-top: 4px;
+        border-color: #ff2a2a;
+    }
+
+    .control-bar .stat-box {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      background: var(--primary-color);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: 2px;
+      margin-bottom: 4px;
+    }
+
+    .stat-box .value { font-size: 27px; font-weight: 700; }
+    .stat-box .label { font-size: 14px; letter-spacing: 1px; text-transform: uppercase; }
+
+    .sold-stat { cursor: pointer; }
+
+    .ticker {
+      width: 100%;
+      border-radius: 10px;
+      padding: 6px 10px;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.25);
+      overflow: hidden;
+      min-height: 40px;
+    }
+
+    .ticker-text {
+      display: inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: ticker-scroll 20s linear infinite;
+      font-weight: 700;
+    }
+
+    @keyframes ticker-scroll {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-100%); }
+    }
+
+    /* SOLD PANEL */
+    .sold-panel-wrap {
+      width: 1080px;
+      margin-top: 10px;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      transform-origin: top;
+    }
+    .sold-panel-wrap.hidden {
+      opacity: 0;
+      transform: translateY(-8px);
+      pointer-events: none;
+    }
+    .sold-control-bar {
+      display:flex;
+      gap: 8px;
+      justify-content:center;
+      padding: 6px 8px;
+      margin-bottom: 6px;
+      background: rgba(0,0,0,0.25);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .pill-toggle {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      cursor: pointer;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      border: 2px solid rgba(255,255,255,0.25);
+    }
+.pill-toggle.active {
+  background: #c40000;
+  border-color: #ff2a2a;
+  box-shadow: 0 0 0 2px rgba(196,0,0,0.35);
+}
+
+    .sold-panel-title {
+      text-align:center;
+      font-weight:900;
+      letter-spacing:2px;
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 6px;
+      padding-right: 35px;
+      align-content: flex-end;
+    }
+
+    .sold-panel {
+      padding: 10px;
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+        background: linear-gradient(
+    90deg,
+    #1a1a1a,
+    #000000
+  );
+      border-radius: 14px;
+      border: 2px solid var(--border-color);
+    }
+
+    .sold-item{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.15);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.15);
+    }
+
+    .sold-item img{
+      max-width: 100%;
+      max-height: 36px;
+      object-fit: contain;
+    }
+
+    .sold-item .buyer{
+      font-size: 18px;
+      font-weight: 900;
+      text-align: left;
+      background: var(--primary-color);
+      border: none;
+      outline: none;
+      color: #ffffff;
+      width: 100%;
+    }
+
+    /* EXPORT POPUP */
+    .export-popup {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 99999;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .export-popup.hidden { display:none; }
+
+    .export-popup-content{
+      width: 680px;
+      max-width: 92%;
+      background: linear-gradient(135deg, rgba(40,40,60,0.98), rgba(20,20,30,0.98));
+      border-radius: 16px;
+      padding: 20px;
+      border: 2px solid var(--border-color);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.85);
+      display:flex;
+      flex-direction:column;
+      gap: 12px;
+    }
+
+    .export-popup-content h2{
+      margin:0;
+      font-size:20px;
+      letter-spacing:1px;
+      text-align:center;
+    }
+
+    #exportAssignmentsBox{
+      width:100%;
+      height:220px;
+      resize:none;
+      background:#000;
+      color:#00ff9c;
+      border: 2px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 13px;
+    }
+
+    .export-popup-buttons{
+      display:flex;
+      justify-content:space-between;
+      gap: 12px;
+    }
+
+    .export-popup-buttons button{
+      flex:1;
+      padding:10px;
+      font-weight:900;
+      cursor:pointer;
+      border-radius:10px;
+      border:none;
+      background: var(--secondary-color);
+      color:#000;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="overlay-container">
+
+    <div class="header">
+      <div class="brand">
+        <div class="brand-title">MAKSPAKS</div>
+
+      </div>
+
+      <div class="brand-logo">
+        <img id="brandLogo" alt="MaksPaks" />
+      </div>
+
+      <div class="header-right">
+        <div id="breakIdBox" class="break-id-box">
+          <span class="break-id-label">Break #</span>
+          <span id="breakIdDisplay" class="break-id-value">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="teams-section">
+        <div id="conferenceLeft" class="conference"></div>
+
+        <div class="control-bar">
+          <button class="btn" onclick="resetAll()">Reset</button>
+
+          <div class="stat-box sold-stat" onclick="toggleSoldPanel()">
+            <div class="value" id="teamsSold">0</div>
+            <div class="label">Sold</div>
+          </div>
+
+          <div class="stat-box">
+            <div class="value" id="teamsLeft">0</div>
+            <div class="label">Remaining</div>
+          </div>
+
+          <button class="btn" onclick="startNewBreakCycle()">Next</button>
+        </div>
+
+        <div id="conferenceRight" class="conference"></div>
+      </div>
+    </div>
+
+    <div class="ticker">
+      
+    </div>
+  </div>
+
+  <div id="soldPanelWrap" class="sold-panel-wrap hidden">
+    <div class="sold-control-bar">
+      <div class="sold-panel-title">SOLD TEAMS</div>
+      <button class="pill-toggle" id="setBreakBtn">Set Break #</button>
+      <button class="pill-toggle" id="exportAssignmentsBtn">Export CSV</button>
+    </div>
+
+    
+    <div id="soldPanel" class="sold-panel"></div>
+  </div>
+
+  <div id="exportAssignmentsPopup" class="export-popup hidden">
+    <div class="export-popup-content">
+      <h2>Buyer Assignments</h2>
+      <textarea id="exportAssignmentsBox"></textarea>
+      <div class="export-popup-buttons">
+        <button id="copyAssignmentsBtn">Copy CSV</button>
+        <button id="closeAssignmentsBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="breakEditPopup" class="export-popup hidden">
+    <div class="export-popup-content">
+      <h2>Set Break Number</h2>
+
+      <input id="breakEditInput" type="number" min="1" style="padding:10px;font-size:16px;" />
+
+      <div class="export-popup-buttons">
+        <button id="applyBreakEdit">Apply</button>
+        <button id="closeBreakEdit">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Dynamic base path for images
+  const BASE = (() => {
+    const isGhPages = location.hostname.endsWith('github.io');
+    if (isGhPages) {
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repo = parts.length ? parts[0] : '';
+      return `/${repo}/`;
+    }
+    return '../..\/';
+  })();
+
+  const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+
+  // NFL ONLY
+const breakTypes = {
+  nfl: {
+    name: 'NFL',
+    conferences: ['AFC', 'NFC'],
+    divisions: {
+      AFC: {
+        East: [
+          { code: 'BUF', image: imgPathNFL('bills.png') },
+          { code: 'MIA', image: imgPathNFL('dolphins.png') },
+          { code: 'NE',  image: imgPathNFL('patriots.png') },
+          { code: 'NYJ', image: imgPathNFL('jets.png') }
+        ],
+        North: [
+          { code: 'BAL', image: imgPathNFL('ravens.png') },
+          { code: 'CIN', image: imgPathNFL('bengals.png') },
+          { code: 'CLE', image: imgPathNFL('browns.png') },
+          { code: 'PIT', image: imgPathNFL('steelers.png') }
+        ],
+        South: [
+          { code: 'HOU', image: imgPathNFL('texans.png') },
+          { code: 'IND', image: imgPathNFL('colts.png') },
+          { code: 'JAX', image: imgPathNFL('jaguars.png') },
+          { code: 'TEN', image: imgPathNFL('titans.png') }
+        ],
+        West: [
+          { code: 'KC',  image: imgPathNFL('chiefs.png') },
+          { code: 'DEN', image: imgPathNFL('broncos.png') },
+          { code: 'LV',  image: imgPathNFL('raiders.png') },
+          { code: 'LAC', image: imgPathNFL('chargers.png') }
+        ]
+      },
+      NFC: {
+        East: [
+          { code: 'DAL', image: imgPathNFL('cowboys.png') },
+          { code: 'NYG', image: imgPathNFL('giants.png') },
+          { code: 'PHI', image: imgPathNFL('eagles.png') },
+          { code: 'WAS', image: imgPathNFL('commanders.png') }
+        ],
+        North: [
+          { code: 'CHI', image: imgPathNFL('bears.png') },
+          { code: 'DET', image: imgPathNFL('lions.png') },
+          { code: 'GB',  image: imgPathNFL('packers.png') },
+          { code: 'MIN', image: imgPathNFL('vikings.png') }
+        ],
+        South: [
+          { code: 'ATL', image: imgPathNFL('falcons.png') },
+          { code: 'CAR', image: imgPathNFL('panthers.png') },
+          { code: 'NO',  image: imgPathNFL('saints.png') },
+          { code: 'TB',  image: imgPathNFL('buccaneers.png') }
+        ],
+        West: [
+          { code: 'ARI', image: imgPathNFL('cardinals.png') },
+          { code: 'LAR', image: imgPathNFL('rams.png') },
+          { code: 'SF',  image: imgPathNFL('49ers.png') },
+          { code: 'SEA', image: imgPathNFL('seahawks.png') }
+        ]
+      }
+    }
+  }
+};
+
+
+  let currentBreakType = 'nfl';
+  let soldPanelEnabled = false;
+
+  let soldTeams = new Set();
+  let soldTeamsList = [];
+  let currentBreakNumber = 1;
+
+  // Brand logo
+  const brandLogo = document.getElementById('brandLogo');
+  if (brandLogo) brandLogo.src = `${BASE}images/logos/makspaks-noname.png`;
+
+  function renderTeams() {
+    const config = breakTypes[currentBreakType];
+    const leftEl = document.getElementById('conferenceLeft');
+    const rightEl = document.getElementById('conferenceRight');
+
+    leftEl.innerHTML = '';
+    rightEl.innerHTML = '';
+    soldTeams.clear();
+    soldTeamsList = [];
+
+    const [leftConf, rightConf] = config.conferences;
+    buildConference(leftEl, leftConf, config.divisions[leftConf]);
+    buildConference(rightEl, rightConf, config.divisions[rightConf]);
+
+    updateStats();
+    renderSoldPanel();
+  }
+
+  function buildConference(container, confName, divisions) {
+    const title = document.createElement('div');
+    title.className = 'conference-title';
+    title.textContent = confName;
+    container.appendChild(title);
+
+    Object.keys(divisions).forEach(divName => {
+      const divisionWrap = document.createElement('div');
+      divisionWrap.className = 'division';
+
+      const divTitle = document.createElement('div');
+      divTitle.className = 'division-name';
+      divTitle.textContent = divName;
+      divisionWrap.appendChild(divTitle);
+
+      const teamGrid = document.createElement('div');
+      teamGrid.className = 'division-teams';
+
+      divisions[divName].forEach(teamObj => {
+        const teamDiv = document.createElement('div');
+        teamDiv.className = 'team';
+        teamDiv.dataset.teamCode = teamObj.code;
+        teamDiv.onclick = () => toggleTeam(teamObj.code);
+
+        const img = document.createElement('img');
+        img.src = teamObj.image;
+        img.alt = teamObj.name;
+        img.onerror = () => { teamDiv.textContent = teamObj.code; };
+
+        teamDiv.appendChild(img);
+        teamGrid.appendChild(teamDiv);
+      });
+
+      divisionWrap.appendChild(teamGrid);
+      container.appendChild(divisionWrap);
+    });
+  }
+
+  function toggleTeam(code) {
+    soldTeams.has(code) ? markUnsold(code) : markSold(code);
+    updateStats();
+    renderSoldPanel();
+  }
+
+  // SSE-ready hooks
+  function markSold(code) {
+    const el = document.querySelector(`[data-team-code="${code}"]`);
+    if (!el) return;
+    soldTeams.add(code);
+    el.classList.add('sold');
+    if (!soldTeamsList.some(x => x.code === code)) soldTeamsList.push({ code, buyer: '' });
+  }
+
+  function markUnsold(code) {
+    const el = document.querySelector(`[data-team-code="${code}"]`);
+    if (!el) return;
+    soldTeams.delete(code);
+    el.classList.remove('sold');
+    const idx = soldTeamsList.findIndex(x => x.code === code);
+    if (idx !== -1) soldTeamsList.splice(idx, 1);
+  }
+
+  function handleSSEEvent(data) {
+    // expected: { type: 'team_sold'|'team_unsold', code:'BUF', buyer:'name'? }
+    if (!data || !data.type) return;
+    if (data.type === 'team_sold') markSold(data.code);
+    if (data.type === 'team_unsold') markUnsold(data.code);
+    updateStats();
+    renderSoldPanel();
+  }
+
+  function updateStats() {
+    const config = breakTypes[currentBreakType];
+    let total = 0;
+    config.conferences.forEach(conf => {
+      Object.values(config.divisions[conf]).forEach(div => total += div.length);
+    });
+
+    document.getElementById('teamsLeft').textContent = total - soldTeams.size;
+    document.getElementById('teamsSold').textContent = soldTeams.size;
+  }
+
+  function toggleSoldPanel() {
+    const wrap = document.getElementById('soldPanelWrap');
+    if (!wrap) return;
+    soldPanelEnabled = !soldPanelEnabled;
+    wrap.classList.toggle('hidden', !soldPanelEnabled);
+  }
+
+  function renderSoldPanel() {
+    const panel = document.getElementById('soldPanel');
+    const wrap = document.getElementById('soldPanelWrap');
+    if (!panel || !wrap) return;
+
+    panel.innerHTML = '';
+
+    if (soldTeamsList.length === 0) {
+      soldPanelEnabled = false;
+      wrap.classList.add('hidden');
+      return;
+    }
+
+    soldTeamsList.forEach(entry => {
+      const teamDiv = document.querySelector(`[data-team-code="${entry.code}"]`);
+      if (!teamDiv) return;
+
+      const img = teamDiv.querySelector('img');
+      const src = img?.src || '';
+
+      const item = document.createElement('div');
+      item.className = 'sold-item';
+
+      if (src) {
+        const logo = document.createElement('img');
+        logo.src = src;
+        item.appendChild(logo);
+      }
+
+      const buyerInput = document.createElement('input');
+      buyerInput.className = 'buyer';
+      buyerInput.type = 'text';
+      buyerInput.placeholder = 'Buyer';
+      buyerInput.value = entry.buyer || '';
+
+      buyerInput.addEventListener("input", e => entry.buyer = e.target.value);
+      buyerInput.addEventListener("keydown", e => {
+        if (e.key === "Enter") { e.preventDefault(); e.target.blur(); }
+      });
+
+      item.appendChild(buyerInput);
+      panel.appendChild(item);
+    });
+
+    soldPanelEnabled = true;
+    wrap.classList.remove('hidden');
+  }
+
+  function exportBuyerAssignmentsCSV() {
+    const breakNum = document.getElementById("breakIdDisplay")?.textContent?.trim() || "";
+    let csv = "Name,Break#,Team\n";
+    soldTeamsList.forEach(entry => {
+      const buyer = (entry.buyer || "").replace(/,/g, " ");
+      const team = entry.code;
+      csv += `${buyer},${breakNum},${team}\n`;
+    });
+    return csv;
+  }
+
+  function resetAll() {
+    soldTeams.clear();
+    soldTeamsList = [];
+    document.querySelectorAll('.team').forEach(t => t.classList.remove('sold'));
+    updateStats();
+    renderSoldPanel();
+  }
+
+  function startNewBreakCycle() {
+    resetAll();
+    currentBreakNumber += 1;
+    localStorage.setItem('bgs.breakNumber', String(currentBreakNumber));
+    const out = document.getElementById('breakIdDisplay');
+    if (out) out.textContent = currentBreakNumber;
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    renderTeams();
+
+    const saved = parseInt(localStorage.getItem('bgs.breakNumber'), 10);
+    currentBreakNumber = Number.isInteger(saved) ? saved : 1;
+    document.getElementById('breakIdDisplay').textContent = currentBreakNumber;
+
+    // Set Break popup wires
+    const setBreakBtn = document.getElementById('setBreakBtn');
+    const breakEditPopup = document.getElementById('breakEditPopup');
+    const breakEditInput = document.getElementById('breakEditInput');
+    const applyBreakEdit = document.getElementById('applyBreakEdit');
+    const closeBreakEdit = document.getElementById('closeBreakEdit');
+
+    setBreakBtn.addEventListener('click', () => {
+      breakEditInput.value = currentBreakNumber;
+      breakEditPopup.classList.remove('hidden');
+    });
+
+    applyBreakEdit.addEventListener('click', () => {
+      const val = parseInt(breakEditInput.value, 10);
+      if (!Number.isInteger(val) || val < 1) return;
+      currentBreakNumber = val;
+      localStorage.setItem('bgs.breakNumber', String(currentBreakNumber));
+      document.getElementById('breakIdDisplay').textContent = currentBreakNumber;
+      breakEditPopup.classList.add('hidden');
+    });
+
+    closeBreakEdit.addEventListener('click', () => breakEditPopup.classList.add('hidden'));
+
+    // Export popup wires
+    const exportAssignmentsBtn = document.getElementById("exportAssignmentsBtn");
+    const exportAssignmentsPopup = document.getElementById("exportAssignmentsPopup");
+    const exportAssignmentsBox = document.getElementById("exportAssignmentsBox");
+    const copyAssignmentsBtn = document.getElementById("copyAssignmentsBtn");
+    const closeAssignmentsBtn = document.getElementById("closeAssignmentsBtn");
+
+    exportAssignmentsBtn?.addEventListener("click", () => {
+      exportAssignmentsBox.value = exportBuyerAssignmentsCSV();
+      exportAssignmentsPopup.classList.remove("hidden");
+    });
+
+    copyAssignmentsBtn?.addEventListener("click", () => {
+      exportAssignmentsBox.focus();
+      exportAssignmentsBox.select();
+      try {
+        const success = document.execCommand("copy");
+        copyAssignmentsBtn.textContent = success ? "Copied!" : "Select + Copy";
+        setTimeout(() => (copyAssignmentsBtn.textContent = "Copy CSV"), 1000);
+      } catch (err) {
+        copyAssignmentsBtn.textContent = "Select + Copy";
+      }
+    });
+
+    closeAssignmentsBtn?.addEventListener("click", () => {
+      exportAssignmentsPopup.classList.add("hidden");
+    });
+  });
+</script>
+
+</body>
+</html>
