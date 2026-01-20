@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wheely’s Ripz — Wheel Control</title>
+
+  <style>
+    body{
+      margin:0;
+      background:#0b0d10;
+      color:#fff;
+      font-family: Arial Black, Arial, sans-serif;
+    }
+
+    .app{
+      padding: 14px;
+      display:flex;
+      flex-direction:column;
+      gap: 14px;
+    }
+
+    h1{
+      font-size: 18px;
+      letter-spacing: 1px;
+      margin:0;
+    }
+
+    .row{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+
+    select, button, input{
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.25);
+      background:#111;
+      color:#fff;
+      padding: 0 12px;
+      font-weight: 900;
+    }
+
+.topbar{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding:12px;
+  background:#050607;
+  border-bottom:1px solid rgba(255,255,255,.12);
+}
+
+
+.group{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+
+.group-label{
+  font-size:12px;
+  opacity:.7;
+  letter-spacing:1px;
+}
+
+.btn-group{
+  display:flex;
+  gap:6px;
+}
+
+.btn{
+  height:40px;
+  padding:0 14px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,.25);
+  background:#111;
+  color:#fff;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.btn.active{
+  background:rgba(212,27,27,.45);
+  border-color:rgba(212,27,27,.75);
+}
+
+.btn.red{
+  background:rgba(212,27,27,.55);
+}
+
+
+    button{
+      cursor:pointer;
+      background: rgba(212,27,27,0.35);
+    }
+
+    .log{
+      font-size: 12px;
+      opacity:.8;
+      background:#050607;
+      padding: 10px;
+      border-radius: 10px;
+      max-height: 160px;
+      overflow:auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <h1>Wheely’s Ripz — Wheel Control</h1>
+
+    <!-- BASIC CONTROLS -->
+<div class="topbar">
+
+  <!-- ROW 1 -->
+  <div class="group">
+    <div class="group-label">League</div>
+    <div class="btn-group" id="leagueGroup">
+      <button data-league="NFL" class="btn active">NFL</button>
+      <button data-league="NBA" class="btn">NBA</button>
+      <button data-league="MLB" class="btn">MLB</button>
+    </div>
+  </div>
+
+  <div class="group">
+    <div class="group-label">Mode</div>
+    <div class="btn-group" id="modeGroup">
+      <button data-mode="TEAM" class="btn active">TEAM</button>
+      <button data-mode="DIVISION" class="btn">DIVISION</button>
+      <button data-mode="CONFERENCE" class="btn">CONF</button>
+      <button data-mode="DIRECTIONAL" class="btn">DIR</button>
+    </div>
+  </div>
+
+  <!-- ROW 2 -->
+  <div class="group">
+    <div class="group-label">Break #</div>
+    <input id="breakIdInput" placeholder="1042" />
+  </div>
+
+  <div class="group">
+    <button id="spinBtn" class="btn red">SPIN</button>
+    <button id="sendBtn" class="btn">SEND</button>
+    <button id="resetBtn" class="btn red">RESET</button>
+  </div>
+
+</div>
+
+
+<div id="log" style="display:none"></div>
+
+<script>
+/* =========================
+   CONFIG
+   ========================= */
+
+let STATE = {
+  league: "NFL",
+  mode: "TEAM"
+};
+let CURRENT_SELECTION = null;
+
+
+   const BRIDGE_BASE =
+  new URLSearchParams(location.search).get("bridge")
+  || localStorage.getItem("tsu.active_bridge")
+  || "https://tsu-bridge-dbdv.onrender.com";
+
+
+document.querySelectorAll("[data-league]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    STATE.league = btn.dataset.league;
+
+    document.querySelectorAll("[data-league]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    log("League set → " + STATE.league);
+  });
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  sendEvent({
+    type: "reset",
+    ts: Date.now()
+  });
+});
+
+
+document.querySelectorAll("[data-mode]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    STATE.mode = btn.dataset.mode;
+
+    document.querySelectorAll("[data-mode]").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+
+    log("Mode set → " + STATE.mode);
+  });
+});
+
+
+/* =========================
+   ELEMENTS
+   ========================= */
+
+const breakIdInput = document.getElementById("breakIdInput");
+const logBox = document.getElementById("log");
+
+function log(msg){
+  if (!logBox) return;
+  const line = document.createElement("div");
+  line.textContent = msg;
+  logBox.appendChild(line);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+
+/* =========================
+   SEND EVENT
+   ========================= */
+async function sendEvent(payload){
+  console.log("SEND clicked → payload:", payload);
+
+  try{
+    const res = await fetch(`${BRIDGE_BASE}/events`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-bridge-key": new URLSearchParams(location.search).get("key")
+          || localStorage.getItem("tsu.bridge.key")
+          || ""
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log("Bridge response:", res.status);
+
+    if (!res.ok){
+      const txt = await res.text();
+      console.error("Bridge error body:", txt);
+    }
+
+  }catch(err){
+    console.error("SEND failed:", err);
+  }
+}
+
+
+
+/* =========================
+   DEMO SPIN (NO REAL WHEEL YET)
+   ========================= */
+function fakeSpinSelection(){
+  const mode = STATE.mode;
+
+  if (mode === "CONFERENCE") return Math.random() > .5 ? "AFC" : "NFC";
+  if (mode === "DIRECTIONAL") return ["NORTH","EAST","SOUTH","WEST"][Math.floor(Math.random()*4)];
+  if (mode === "DIVISION") return ["AFCE","AFCN","AFCS","AFCW","NFCE","NFCN","NFCS","NFCW"][Math.floor(Math.random()*8)];
+
+  // TEAM fallback
+  return "BUF";
+}
+
+
+/* =========================
+   BUTTONS
+   ========================= */
+document.getElementById("spinBtn").addEventListener("click", () => {
+  CURRENT_SELECTION = fakeSpinSelection();
+  console.log("🎡 Wheel landed on:", CURRENT_SELECTION);
+});
+
+
+document.getElementById("sendBtn").addEventListener("click", () => {
+  if (!CURRENT_SELECTION){
+    console.warn("SEND blocked: spin first");
+    return;
+  }
+
+  const payload = {
+    breakId: breakIdInput.value || "—",
+    league: STATE.league,
+    mode: STATE.mode,
+    selectionCode: CURRENT_SELECTION,
+    buyerName: "WHEEL",
+    ts: Date.now()
+  };
+
+  sendEvent(payload);
+});
+
+</script>
+</body>
+</html>

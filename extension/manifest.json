@@ -1,19 +1,21 @@
 {
   "manifest_version": 3,
-  "name": "TSU Whatnot Sale Bridge",
-  "version": "1.0",
-  "description": "Scrape Whatnot sale UI and push to the TSU SSE bridge.",
-"host_permissions": [
-  "https://*.whatnot.com/*",
-  "https://tsu-bridge*.onrender.com/*",
-  "https://*card-break-overlay.onrender.com/*",
-  "https://tradesecretsunlocked.github.io/*"
-],
-"content_scripts": [{
-  "matches": ["https://*.whatnot.com/*"],
-  "js": ["content.js"],
-  "run_at": "document_idle",
-  "all_frames": true
-}]
-
+  "name": "TSU Bridge (Whatnot)",
+  "version": "1.0.0",
+  "description": "Reads Whatnot livestream sales data and forwards to TSU bridge.",
+  "permissions": ["storage"],
+  "host_permissions": ["https://www.whatnot.com/*", "https://*.whatnot.com/*", "https://*.onrender.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.whatnot.com/*", "https://*.whatnot.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["injected.js"],
+      "matches": ["https://www.whatnot.com/*", "https://*.whatnot.com/*"]
+    }
+  ]
 }

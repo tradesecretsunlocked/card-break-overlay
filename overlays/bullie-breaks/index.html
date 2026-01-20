@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=920, initial-scale=1.0"/>
+  <title>Bullie Breaks — NFL / MLB Box Break</title>
+
+  <style>
+    body {
+      margin: 0;
+      background: transparent;
+      font-family: 'Arial Black', Arial, sans-serif;
+      width: 920px;
+      min-height: 520px;
+      user-select: none;
+    }
+
+    .container {
+      /* Lenhart base + subtle stone texture */
+   background: linear-gradient(180deg, #000000 0%, #111827 100%);
+  position: relative;
+  overflow: hidden;
+      border: 4px solid #040c7e;
+      border-radius: 12px;
+      padding: 6px;
+      width: auto;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+      display: flex;
+      flex-direction: column;
+      z-index: 1;
+    }
+
+    .container::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../../images/textures/cracked-stone.jpeg");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.85;              /* 👈 subtle, not busy */
+  mix-blend-mode: overlay;   /* keeps highlights only */
+  pointer-events: none;
+  z-index: 0;
+}
+
+
+    .header {
+      background:linear-gradient(90deg, #1702cdf2 25%, rgb(47 44 223) 30%, #a39696fc 90%);
+      color: #fff;
+      text-align: left;
+      padding: 4px 10px;
+      margin: -6px -6px 6px -6px;
+      border-radius: 6px 6px 0 0;
+      font-weight: 900;
+      font-size: 20px;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+      display:flex;
+      align-items:center;
+      gap:10px;
+        position: relative;
+  overflow: hidden;
+    }
+
+    .header::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background-image: url("../../images/textures/cracked-stone-3.jpg");
+  background-size: 50%;
+  background-position: initial;
+
+  
+  mix-blend-mode: overlay;
+
+  pointer-events: none;
+  z-index: 0;
+}
+
+.header > * {
+  position: relative;
+  z-index: 1;
+}
+
+
+
+    .header-icon {
+      width:20px;
+      height:20px;
+      border-radius:50%;
+      border:2px solid #fff;
+      background:#b30000;
+      box-shadow:0 0 6px rgba(0,0,0,0.6);
+      flex: 0 0 auto;
+    }
+
+    .brand-logo {
+      height: 26px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.55));
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: linear-gradient(
+179deg, #4b556336, transparent);
+    }
+
+    /* ==== TEAM AREA ==== */
+
+    .teams-wrapper {
+      background: linear-gradient(180deg,#151515 0%,#000000 100%);
+      border-radius: 8px;
+      padding: 6px;
+      border: 3px solid #ffffff;
+      
+    }
+
+    .top-strip {
+      display: grid;
+      grid-template-columns: 82px 53px 1fr 83px 87px;
+      gap: 6px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+
+    .top-strip .team {
+      width: 82px;
+      height: 52px;
+    }
+
+    .camera-gap {
+      height: 52px;
+      background: linear-gradient(180deg, #000000 0%, #111827 100%);
+      opacity: 10%;
+      border-radius: 8px;
+      border: none;
+      box-shadow: none;
+    }
+
+    .teams-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 3px;
+    }
+
+    .team {
+      background: #000;
+      border: 2px solid #ffffff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      height: 52px;
+      overflow: hidden;
+      transition: transform 0.1s, box-shadow 0.1s, border-color 0.2s;
+    }
+
+    .team img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    .team img.nfl-small {
+      object-fit: cover;
+      
+    }
+
+.team::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../../images/textures/crack-overlay.png");
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+@keyframes crackHit {
+  0% {
+    opacity: 0;
+    transform: scale(1.05);
+    filter: brightness(1.4);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  100% {
+    opacity: 0.85;
+    transform: scale(1);
+  }
+}
+
+@keyframes crackShake {
+  0% { transform: translate(0); }
+  25% { transform: translate(-1px, 1px); }
+  50% { transform: translate(1px, -1px); }
+  75% { transform: translate(-1px, 0); }
+  100% { transform: translate(0); }
+}
+
+
+.team.crack-anim::before {
+  animation: crackHit 380ms ease-out forwards;
+}
+
+
+    .team:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 6px rgba(255,255,255,0.2);
+    }
+
+    .team.sold img {
+      opacity: 0.75;
+      filter: grayscale(100%) brightness(0.4);
+    }
+
+    .team.sold::after {
+      content: "X";
+      position: absolute;
+      font-size: 20px;
+      color: #ffffff;
+      text-shadow: 0 0 3px #000;
+      z-index: 10;
+      background: rgba(179,0,0,0.95);
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid #ffffff;
+    }
+
+    .top-team { height: 52px; }
+
+    /* MLB scroll bar */
+    .mlb-scroll {
+      width: 100%;
+      height: 52px;
+      margin-bottom: 6px;
+    }
+
+    /* Placeholder tiles (MLB bottom-middle empties) */
+    .team.placeholder{
+      cursor: default;
+      pointer-events: none;
+      border:none;
+    }
+    .team.placeholder::after{ content:""; }
+
+    /* ==== CONTROLS ROW ==== */
+
+    .controls-row {
+      margin-top: 6px;
+      display: grid;
+      grid-template-columns: 1fr 0.75fr minmax(120px,1fr) 0.75fr 1fr;
+      gap: 6px;
+      align-items: stretch;
+    }
+
+   .brand-logo{
+      height: 126px;
+      width: 178px;
+      object-fit: cover;
+      position:absolute;
+
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.55));
+    }
+
+@keyframes logoBreath {
+  0% {
+    filter: drop-shadow(0 0 6px rgba(255,255,255,0.15));
+  }
+  50% {
+    filter: drop-shadow(0 0 14px rgba(255,255,255,0.35));
+  }
+  100% {
+    filter: drop-shadow(0 0 6px rgba(255,255,255,0.15));
+  }
+}
+
+.brand-logo {
+  animation: logoBreath 6.5s ease-in-out infinite;
+}
+
+.logo-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  background-image: url("../../images/textures/cracked-stone-3.jpg");
+  background-size: 200%;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  animation: stoneDrift 28s linear infinite;
+}
+
+@keyframes stoneDrift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+@keyframes logoPulse {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
+  }
+  50% {
+    transform: scale(1.03);
+    filter: drop-shadow(0 0 18px rgba(255,255,255,0.6));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.3));
+  }
+}
+
+.brand-logo.pulse {
+  animation: logoPulse 420ms ease-out;
+}
+
+
+    .stat-box {
+      background: linear-gradient(135deg,#0048b7 0%,#001635 100%);
+      color: #fff;
+      border-radius: 8px;
+      text-align: center;
+      border:2px solid #ffffff;
+      font-weight: 900;
+      padding: 4px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      font-size:18px;
+    }
+
+.logo-wrapper{
+      position:relative;    
+      width:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content: flex-end;
+
+}
+
+    .stat-label {
+      font-size: 11px;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #ff3b1f 0%, #b30000 .05%);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      border: 2px solid #ffffff;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:4px;
+        position: relative;
+  overflow: hidden;
+    }
+
+    .btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background-image: url("../../images/textures/cracked-stone2.jpeg");
+  background-size: 250px;
+  background-position: top;;
+
+  opacity: 1;
+  mix-blend-mode: overlay;
+
+  pointer-events: none;
+  z-index: 0;
+}
+
+.btn > * {
+  position: relative;
+  z-index: 1;
+}
+
+
+
+    .btn.secondary {
+    
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+      box-shadow:none;
+    }
+
+    /* ==== SOLD LIST ==== */
+
+    .sold-list-container {
+      margin: 8px auto 0 auto;
+      width: 98%;
+      background: linear-gradient(180deg, #000000 0%, #111827 100%);
+      border: 3px solid #ffffff;
+      border-radius: 8px;
+      padding: 4px 7px 6px;
+      text-align:center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    .sold-list-title {
+      font-size: 16px;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 4px;
+      letter-spacing: 1px;
+    }
+
+    .sold-list-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px 4px;
+    }
+
+    .sold-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 2px;
+      background: #000;
+      border-radius: 7px;
+      padding: 2px 4px;
+      border: 2px solid #ff3b1f;
+    }
+
+    .sold-team-img {
+      width: 24px;
+      height: 24px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #ffffff;
+    }
+
+    .sold-team-name {
+      font-weight: bold;
+      color: #f9fafb;
+      min-width: 60px;
+      text-transform: capitalize;
+      font-size: 13px;
+    }
+
+    .sold-buyer-input {
+      font-size: 13px;
+      border: 1px solid #4b5563;
+      border-radius: 4px;
+      font-weight: 600;
+      padding: 2px 4px;
+      width: 100%;
+      background:#111827;
+      color:#f9fafb;
+    }
+
+    /* ==== TICKER ==== */
+    .ticker-wrap{
+      margin-top: 8px;
+      width: 100%;
+      background: linear-gradient(180deg, #000000 0%, #111827 100%);
+      border: 3px solid #ff3b1f;
+      border-radius: 8px;
+      padding: 6px 10px;
+      overflow:hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+    .ticker-line{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      white-space:nowrap;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color:#fff;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+    }
+    
+    @keyframes tickerScroll{
+      0%{ transform: translateX(0); }
+      100%{ transform: translateX(-100%); }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header" id="headerText">
+      <div class="header-icon"></div>
+      
+      <span id="headerTitle">BULLIE BREAKS · NFL BOX BREAK</span>
+    </div>
+
+    <div class="main-content">
+      <div class="teams-wrapper">
+
+        <!-- MLB scroll bar -->
+        <div class="camera-gap mlb-scroll" style="display:none;"></div>
+
+        <!-- NFL top strip -->
+        <div class="top-strip" id="topStrip">
+          <div id="topLeftSlotA" class="team top-team"></div>
+          <div id="topLeftSlotB" class="team top-team"></div>
+          <div class="camera-gap nfl-scroll"></div>
+          <div id="topRightSlotA" class="team top-team"></div>
+          <div id="topRightSlotB" class="team top-team"></div>
+        </div>
+
+        <!-- Main grid -->
+        <div class="teams-grid" id="teamsGrid"></div>
+
+      </div>
+
+      <div class="controls-row">
+        <button class="btn" onclick="resetAll()">🔄 RESET BREAK</button>
+
+        <div class="stat-box">
+          <div id="teamsLeft">30</div>
+          <div class="stat-label">REMAINING</div>
+        </div>
+
+        <div class="logo-wrapper">
+          <img class="brand-logo" id="brandLogo" alt="Bullie Breaks" src="../../images/logos/bullie-breaks-logo1.png" />
+        </div>
+
+        <div class="stat-box">
+          <div id="teamsSold">0</div>
+          <div class="stat-label">SOLD</div>
+        </div>
+
+        <button class="btn secondary" onclick="changeBreakType()">⚙ CHANGE SPORT</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sold-list-container">
+    <div class="sold-list-title">SOLD TEAMS</div>
+  
+    <div id="soldList" class="sold-list-grid"></div>
+  </div>
+
+
+
+<script>
+  // Dynamic base path for images (Lenhart-standard)
+  const BASE = (() => {
+    const isGhPages = location.hostname.endsWith('github.io');
+    if (isGhPages) {
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repo = parts.length ? parts[0] : '';
+      return `/${repo}/`;
+    }
+    return '../..\/'; // from overlays/client -> repo root
+  })();
+
+  // Fix logo + texture paths to be BASE-aware
+  document.getElementById('brandLogo').src = `${BASE}images/logos/bullie-breaks-logo1.png`;
+
+  const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+  const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
+
+  // Only NFL + MLB
+  const breakTypes = {
+    nfl: {
+      name:'NFL', icon:'🏈',
+      teams: [
+        { code: 'ARI', name: 'cardinals',  image: imgPathNFL('cardinals.png') },
+        { code: 'ATL', name: 'falcons',    image: imgPathNFL('falcons.png') },
+        { code: 'BAL', name: 'ravens',     image: imgPathNFL('ravens.png') },
+        { code: 'BUF', name: 'bills',      image: imgPathNFL('bills.png') },
+        { code: 'CAR', name: 'panthers',   image: imgPathNFL('panthers.png') },
+        { code: 'CHI', name: 'bears',      image: imgPathNFL('bears.png') },
+        { code: 'CIN', name: 'bengals',    image: imgPathNFL('bengals.png') },
+        { code: 'CLE', name: 'browns',     image: imgPathNFL('browns.png') },
+        { code: 'DAL', name: 'cowboys',    image: imgPathNFL('cowboys.png') },
+        { code: 'DEN', name: 'broncos',    image: imgPathNFL('broncos.png') },
+        { code: 'DET', name: 'lions',      image: imgPathNFL('lions.png') },
+        { code: 'GB',  name: 'packers',    image: imgPathNFL('packers.png') },
+        { code: 'HOU', name: 'texans',     image: imgPathNFL('texans.png') },
+        { code: 'IND', name: 'colts',      image: imgPathNFL('colts.png') },
+        { code: 'JAX', name: 'jaguars',    image: imgPathNFL('jaguars.png') },
+        { code: 'KC',  name: 'chiefs',     image: imgPathNFL('chiefs.png') },
+        { code: 'LV',  name: 'raiders',    image: imgPathNFL('raiders.png') },
+        { code: 'LAC', name: 'chargers',   image: imgPathNFL('chargers.png') },
+        { code: 'LAR', name: 'rams',       image: imgPathNFL('rams.png') },
+        { code: 'MIA', name: 'dolphins',   image: imgPathNFL('dolphins.png') },
+        { code: 'MIN', name: 'vikings',    image: imgPathNFL('vikings.png') },
+        { code: 'NE',  name: 'patriots',   image: imgPathNFL('patriots.png') },
+        { code: 'NO',  name: 'saints',     image: imgPathNFL('saints.png') },
+        { code: 'NYG', name: 'giants',     image: imgPathNFL('giants.png') },
+        { code: 'NYJ', name: 'jets',       image: imgPathNFL('jets.png') },
+        { code: 'PHI', name: 'eagles',     image: imgPathNFL('eagles.png') },
+        { code: 'PIT', name: 'steelers',   image: imgPathNFL('steelers.png') },
+        { code: 'SF',  name: '49ers',      image: imgPathNFL('49ers.png') },
+        { code: 'SEA', name: 'seahawks',   image: imgPathNFL('seahawks.png') },
+        { code: 'TB',  name: 'buccaneers', image: imgPathNFL('buccaneers.png') },
+        { code: 'TEN', name: 'titans',     image: imgPathNFL('titans.png') },
+        { code: 'WAS', name: 'commanders', image: imgPathNFL('commanders.png') }
+      ]
+    },
+    mlb: {
+      name:'MLB', icon:'⚾',
+      teams: [
+        { code: 'ARI', name: 'diamondbacks', image: imgPathMLB('diamondbacks.png') },
+        { code: 'ATL', name: 'braves',        image: imgPathMLB('braves.png') },
+        { code: 'BAL', name: 'orioles',       image: imgPathMLB('orioles.png') },
+        { code: 'BOS', name: 'redsox',        image: imgPathMLB('redsox.png') },
+        { code: 'CHC', name: 'cubs',          image: imgPathMLB('cubs.png') },
+        { code: 'CWS', name: 'whitesox',      image: imgPathMLB('whitesox.png') },
+        { code: 'CIN', name: 'reds',          image: imgPathMLB('reds.png') },
+        { code: 'CLE', name: 'guardians',     image: imgPathMLB('guardians.png') },
+        { code: 'COL', name: 'rockies',       image: imgPathMLB('rockies.png') },
+        { code: 'DET', name: 'tigers',        image: imgPathMLB('tigers.png') },
+        { code: 'HOU', name: 'astros',        image: imgPathMLB('astros.png') },
+        { code: 'KC',  name: 'royals',        image: imgPathMLB('royals.png') },
+        { code: 'LAA', name: 'angels',        image: imgPathMLB('angels.png') },
+        { code: 'LAD', name: 'dodgers',       image: imgPathMLB('dodgers.png') },
+        { code: 'MIA', name: 'marlins',       image: imgPathMLB('marlins.png') },
+        { code: 'MIL', name: 'brewers',       image: imgPathMLB('brewers.png') },
+        { code: 'MIN', name: 'twins',         image: imgPathMLB('twins.png') },
+        { code: 'NYM', name: 'mets',          image: imgPathMLB('mets.png') },
+        { code: 'NYY', name: 'yankees',       image: imgPathMLB('yankees.png') },
+        { code: 'OAK', name: 'athletics',     image: imgPathMLB('athletics.png') },
+        { code: 'PHI', name: 'phillies',      image: imgPathMLB('phillies.png') },
+        { code: 'PIT', name: 'pirates',       image: imgPathMLB('pirates.png') },
+        { code: 'SD',  name: 'padres',        image: imgPathMLB('padres.png') },
+        { code: 'SF',  name: 'giants',        image: imgPathMLB('giants.png') },
+        { code: 'SEA', name: 'mariners',      image: imgPathMLB('mariners.png') },
+        { code: 'STL', name: 'cardinals',     image: imgPathMLB('cardinals.png') },
+        { code: 'TB',  name: 'rays',          image: imgPathMLB('rays.png') },
+        { code: 'TEX', name: 'rangers',       image: imgPathMLB('rangers.png') },
+        { code: 'TOR', name: 'bluejays',      image: imgPathMLB('bluejays.png') },
+        { code: 'WAS', name: 'nationals',     image: imgPathMLB('nationals.png') }
+      ]
+    }
+  };
+
+  let currentBreakType = 'nfl';  // starts like your screenshot
+  let soldTeams = new Set();
+  let soldTeamsList = [];
+
+  function makeTeamDiv(team, index) {
+    const teamDiv = document.createElement('div');
+    teamDiv.className = 'team';
+    teamDiv.dataset.teamIndex = index;
+    teamDiv.onclick = () => toggleTeam(index);
+
+    if (team.image) {
+      const img = document.createElement('img');
+      img.src = team.image;
+      img.alt = team.name;
+
+      if (currentBreakType === 'nfl') img.classList.add('nfl-small');
+
+      img.onerror = () => { teamDiv.textContent = team.code; };
+
+      teamDiv.appendChild(img);
+    } else {
+      teamDiv.textContent = team.code || '';
+    }
+
+    return teamDiv;
+  }
+
+  function placeholderDiv(){
+    const d = document.createElement('div');
+    d.className = 'team placeholder';
+    return d;
+  }
+
+  function initializeGrid() {
+    const grid = document.getElementById('teamsGrid');
+    const topLeftA = document.getElementById('topLeftSlotA');
+    const topLeftB = document.getElementById('topLeftSlotB');
+    const topRightA = document.getElementById('topRightSlotA');
+    const topRightB = document.getElementById('topRightSlotB');
+
+    const mlbScroll = document.querySelector('.mlb-scroll');
+    const topStrip = document.getElementById('topStrip');
+    const currentBreak = breakTypes[currentBreakType];
+
+    // Reset UI
+    grid.innerHTML = '';
+    topLeftA.innerHTML = '';
+    topLeftB.innerHTML = '';
+    topRightA.innerHTML = '';
+    topRightB.innerHTML = '';
+    soldTeams.clear();
+    soldTeamsList = [];
+
+    // Visibility toggles
+    topStrip.style.display = currentBreakType === 'nfl' ? 'grid' : 'none';
+    mlbScroll.style.display = currentBreakType === 'mlb' ? 'block' : 'none';
+
+    // Layout rules
+    if (currentBreakType === 'nfl') {
+      grid.style.gridTemplateColumns = 'repeat(10, 1fr)';
+
+      const spacer = () => {
+        const d = document.createElement('div');
+        d.className = 'team placeholder';
+        d.style.visibility = 'hidden';
+        return d;
+      };
+
+      const nodes = [];
+
+      currentBreak.teams.forEach((team, index) => {
+        const node = makeTeamDiv(team, index);
+
+        // Top-left pair
+        if (team.code === 'ARI') { node.classList.add('top-team'); topLeftA.appendChild(node); return; }
+        if (team.code === 'TEN') { node.classList.add('top-team'); topLeftB.appendChild(node); return; }
+
+        // Top-right pair
+        if (team.code === 'ATL') { node.classList.add('top-team'); topRightA.appendChild(node); return; }
+        if (team.code === 'WAS') { node.classList.add('top-team'); topRightB.appendChild(node); return; }
+
+        nodes.push(node);
+      });
+
+      // Lenhart-style compensation spacers
+      nodes.splice(24, 0, spacer(), spacer());
+      nodes.forEach(n => grid.appendChild(n));
+    }
+
+    if (currentBreakType === 'mlb') {
+      grid.style.gridTemplateColumns = 'repeat(8, 1fr)';
+
+      const nodes = currentBreak.teams.map((team, index) => makeTeamDiv(team, index));
+
+      // Lenhart MLB: 2 empty slots in bottom middle
+      // Insert before the last 2 teams in the bottom row placement area
+      nodes.splice(27, 0, placeholderDiv(), placeholderDiv());
+
+      nodes.forEach(n => grid.appendChild(n));
+    }
+
+    updateHeader();
+    updateStats();
+    updateSoldList();
+  }
+
+  function toggleTeam(index) {
+
+const logo = document.getElementById('brandLogo');
+logo.classList.add('pulse');
+setTimeout(() => logo.classList.remove('pulse'), 450);
+
+
+    const teamDiv = document.querySelector(`[data-team-index="${index}"]`);
+    if (!teamDiv) return;
+
+    const listIndex = soldTeamsList.findIndex(e => e.index === index);
+
+    if (soldTeams.has(index)) {
+      soldTeams.delete(index);
+      teamDiv.classList.remove('sold');
+      if (listIndex !== -1) soldTeamsList.splice(listIndex, 1);
+    } else {
+      soldTeams.add(index);
+      teamDiv.classList.add('sold', 'crack-anim');
+
+setTimeout(() => {
+  teamDiv.classList.remove('crack-anim');
+}, 400);
+
+      if (listIndex === -1) soldTeamsList.push({ index, buyer: '' });
+    }
+
+    updateStats();
+    updateSoldList();
+  }
+
+  function updateStats() {
+    const totalTeams = breakTypes[currentBreakType].teams.length;
+    const soldCount = soldTeams.size;
+    const teamsLeft = totalTeams - soldCount;
+    document.getElementById('teamsLeft').textContent = teamsLeft;
+    document.getElementById('teamsSold').textContent = soldCount;
+  }
+
+  function updateHeader() {
+    const currentBreak = breakTypes[currentBreakType];
+    document.getElementById('headerTitle').textContent =
+      `BULLIE BREAKS · ${currentBreak.name} BOX BREAK`;
+  }
+
+  function resetAll() {
+    soldTeams.clear();
+    soldTeamsList = [];
+    document.querySelectorAll('.team').forEach(team => team.classList.remove('sold'));
+    updateStats();
+    updateSoldList();
+  }
+
+  function changeBreakType() {
+    currentBreakType = currentBreakType === 'nfl' ? 'mlb' : 'nfl';
+    initializeGrid();
+  }
+
+  function updateSoldList() {
+    const soldListDiv = document.getElementById('soldList');
+    soldListDiv.innerHTML = '';
+    const currentBreak = breakTypes[currentBreakType];
+
+    soldTeamsList.forEach(entry => {
+      const team = currentBreak.teams[entry.index];
+      const row = document.createElement('div');
+      row.className = 'sold-row';
+
+      if (team.image) {
+        const img = document.createElement('img');
+        img.src = team.image;
+        img.className = 'sold-team-img';
+        row.appendChild(img);
+      }
+
+
+      const input = document.createElement('input');
+      input.className = 'sold-buyer-input';
+      input.type = 'text';
+      input.placeholder = 'Buyer';
+      input.value = entry.buyer || '';
+      input.oninput = (e) => { entry.buyer = e.target.value; };
+      row.appendChild(input);
+
+      soldListDiv.appendChild(row);
+    });
+  }
+
+
+
+
+
+ 
+  initializeGrid();
+</script>
+
+</body>
+</html>
