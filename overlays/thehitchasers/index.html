@@ -1157,72 +1157,58 @@ function updateBuyerStats(buyer, amount){
        {type:'banner_set', index: 1}
   ========================== */
   function handleSSEEvent(data){
-    if (!data || !data.type) return;
+  if (!data || !data.type) return;
 
+  if (data.type === "team_sold"){
+    const code = data.code || inferNBACodeFromTitle(data.title);
 
+    if (code) markSold(code);
 
-    
- /*   ------TEST REMOVING DUPLICATE TEAM SOLD -------
- 
-      if (data.type === 'team_sold'){
-      if (data.code) markSold(data.code);
-      if (data.buyer){
-        const row = soldList.find(x => x.code === data.code);
-        if (row) row.buyer = data.buyer;
-      }
-      if (Number.isFinite(data.amount)) {
-  setHighBid(Math.max(highBid, data.amount));
-  
-  } */
-  
-if (data.type === "team_sold"){
-  // If the extension didn’t send a code, infer it from the sale title
-  const code = data.code || inferNBACodeFromTitle(data.title);
+    if (data.buyer && code){
+      const row = soldList.find(x => x.code === code);
+      if (row) row.buyer = data.buyer;
+    }
 
-  if (code) markSold(code);
+    if (Number.isFinite(data.amount)) {
+      setHighBid(Math.max(highBid, data.amount));
+    }
 
-  if (data.buyer && code){
-    const row = soldList.find(x => x.code === code);
-    if (row) row.buyer = data.buyer;
+    updateBuyerStats(data.buyer, data.amount);
   }
 
-  if (Number.isFinite(data.amount)) {
-    setHighBid(Math.max(highBid, data.amount));
+  if (data.type === "team_unsold"){
+    const code = data.code || inferNBACodeFromTitle(data.title);
+    if (code) markUnsold(code);
   }
 
-updateBuyerStats(data.buyer, data.amount);
+  if (data.type === "reset") resetAll();
 
+  if (data.type === "set_break" && Number.isInteger(data.value) && data.value > 0){
+    breakNum = data.value;
+    saveBreakNum();
+    elBreak.textContent = breakNum;
+  }
 
+  if (data.type === "banner_set" && Number.isInteger(data.index)){
+    bannerIdx = ((data.index % BANNERS.length) + BANNERS.length) % BANNERS.length;
+    const slides = document.querySelectorAll('.banner-inner');
+    slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
+  }
+
+  if (data.type === "scores" && Array.isArray(data.games)){
+    setScoreboard(data.games);
+  }
+
+  if (data.type === "stream_stats"){
+    if (typeof data.topBuyer === "string") document.getElementById('topBuyerText').textContent = data.topBuyer || '—';
+    if (typeof data.lastSale === "string") document.getElementById('lastSaleText').textContent = data.lastSale || '—';
+  }
+
+  updateStats();
+  renderSoldPanel();
 }
 
-
-    }
-    if (data.type === 'team_unsold' && data.code) markUnsold(data.code);
-    if (data.type === 'reset') resetAll();
-    if (data.type === 'set_break' && Number.isInteger(data.value) && data.value > 0){
-      breakNum = data.value;
-      saveBreakNum();
-      elBreak.textContent = breakNum;
-    }
-    if (data.type === 'banner_set' && Number.isInteger(data.index)){
-      bannerIdx = ((data.index % BANNERS.length) + BANNERS.length) % BANNERS.length;
-      const slides = document.querySelectorAll('.banner-inner');
-      slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
-    }
-
-    if (data.type === 'scores' && Array.isArray(data.games)){
-  setScoreboard(data.games);
-}
-if (data.type === 'stream_stats'){
-  if (typeof data.topBuyer === 'string') document.getElementById('topBuyerText').textContent = data.topBuyer || '—';
-  //if (typeof data.highBid === 'string') document.getElementById('highBidText').textContent = data.highBid || '—';
-  if (typeof data.lastSale === 'string') document.getElementById('lastSaleText').textContent = data.lastSale || '—';
-}
-
-
-    updateStats();
-    renderSoldPanel();
-  
+// ---- THESE MUST BE OUTSIDE handleSSEEvent ----
 
 let _es = null;
 function connectSSE(url){
@@ -1243,21 +1229,18 @@ function connectSSE(url){
 function inferNBACodeFromTitle(title){
   const t = String(title || "").toLowerCase();
 
-  // handle common nickname phrases first
   if (t.includes("sixers") || t.includes("76ers")) return "PHI";
   if (t.includes("trail blazers") || t.includes("blazers")) return "POR";
 
-  // try direct code/name match
   for (const team of NBA){
     const code = team.code.toLowerCase();
     const name = team.name.toLowerCase();
-
-    if (t.includes(code)) return team.code;              // "LAL", "BOS", etc.
-    if (t.includes(name)) return team.code;              // "lakers", "celtics"
+    if (t.includes(code)) return team.code;
+    if (t.includes(name)) return team.code;
   }
-
   return null;
 }
+
 
 
 
