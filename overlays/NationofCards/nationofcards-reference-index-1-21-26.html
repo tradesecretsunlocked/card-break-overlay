@@ -33,7 +33,7 @@
       --border-color: rgba(255, 255, 255, 0.45);
       --team-cols: 5;
       --team-height: 45px;
-      
+       --teams-h: 350px;
 
 
     }
@@ -46,7 +46,7 @@
   margin: 0;
   padding: 0;
   width: 100%;
-  
+  max-width: 1080px;
   min-height: 600px;
   margin-inline: auto;
   font-family: Arial, sans-serif;
@@ -63,7 +63,11 @@
 
     /* Outer container with gradient background and border */
 .overlay-container {
-  width: 100%;
+    width: 100%;
+  height: 100%;
+  max-width:1080px;
+  max-height: 750px; /* or whatever your OBS scene height is */
+  overflow: hidden;
   
 
   /* change this */
@@ -140,48 +144,61 @@
 }
 
 .break-id-label{
-  font-size: 14px;
+  font-size: 20px;
   opacity: 0.8;
   letter-spacing: 1px;
   text-transform: uppercase;
 }
 
 .break-id-value{
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 900;
   letter-spacing: 0.5px;
 }
 
 
     /* Main section containing team grids and scoreboard */
-    .main {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
+  .main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+
+  width: 100%;
+  min-height: 0;       /* KEY: lets the grid use its fixed height */
+}
+
 
     /* Teams section splits into left conference, control bar, right conference */
-    .teams-section {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      gap: 12px;
-     align-items: stretch;
-     background:linear-gradient(
-82deg, #7a1e13d6, #ffffff47, #03013f);
-    }
+.teams-section {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
 
-    .conference {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      border: 2px solid var(--border-color);
-      border-radius: 12px;
-      padding: 4px;
-      background: rgba(0, 0, 30, 0.6);
-      max-height: 100%;
-      overflow: visible;
-      
-    }
+ height: var(--teams-h);       /* KEY: real height so children can scroll */
+  min-height: 0;       /* KEY: allows overflow children to shrink */
+
+  align-items: stretch;
+  background: linear-gradient(82deg, #7a1e13d6, #ffffff47, #03013f);
+}
+
+
+ .conference {
+  display: flex;
+  flex-direction: column;
+  
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 4px;
+  background: rgba(0, 0, 30, 0.6);
+
+  max-height: 100%;
+  min-height: 0;          /* IMPORTANT: allows inner scrolling in flex/grid */
+  overflow-y: auto;       /* scroll vertically */
+  overflow-x: hidden;     /* no sideways nonsense */
+  flex-wrap: nowrap;      /* DO NOT wrap into extra columns */
+}
+
 
     .conference-title {
       font-size: 18px;
@@ -192,9 +209,7 @@
       border-bottom: 1px solid var(--border-color);
     }
 
-    .division {
-      
-    }
+    
 
     .division-name {
       font-size: 15px;
@@ -226,7 +241,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: visible;
+      overflow: hidden;
       cursor: pointer;
       transition: transform 0.1s, box-shadow 0.2s;
     
@@ -364,11 +379,44 @@
   }
 }
 
+.sse-status{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.25);
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sse-status .dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #666;
+  box-shadow: 0 0 8px rgba(255,255,255,0.15);
+}
+
+.sse-status.connected .dot{
+  background: #3cff8a;
+  box-shadow: 0 0 10px rgba(60,255,138,0.7);
+}
+
+.sse-status.error .dot{
+  background: #ff2f2f;
+  box-shadow: 0 0 10px rgba(255,47,47,0.7);
+}
 
 
 /* NFL: most teams → smallest tiles */
 .overlay-container.sport-nfl {
-  --team-height: 55px;
+  --teams-h: 350px;     /* bigger grid area */
+  --team-height: 60px;  /* bigger tiles */
 }
 
 /* NBA / MLB: medium density */
@@ -384,11 +432,13 @@
 
 /* NIL: very few tiles → make them feel important */
 .overlay-container.sport-nil {
-  --team-height: 132px;
+  --team-height: 65px;
+  --team-cols:4;
+  
+  
 }
 
 
- 
 
 .team:hover::before {
   opacity: 1;
@@ -413,10 +463,20 @@
   flex-wrap: wrap;
 }
 
+.overlay-container.titles-off .division {
+  margin-top: 0;
+  height:100px;
+  ;
+}
+
+
 .overlay-container.sport-nil .division-teams .team {
   flex: 1 1 48%;     /* 2 per row */
-  min-width: 90px;
+  min-width: 110px;
      /* slightly taller so badges breathe */
+}
+.overlay-container.titles-off .division-teams {
+  gap: 6px; /* slightly more breathing room */
 }
 
 
@@ -429,6 +489,10 @@
   .team.sold img {
   filter: grayscale(1) brightness(0.45);
 }
+.team.sold .team-label {
+  opacity: 0.45;
+}
+
 
 .team.sold {
   background: #2a2a2a;
@@ -436,7 +500,7 @@
 }
 
 .team.sold::after {
-  content: "✕";
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -616,6 +680,84 @@ transform-origin: center;
   outline: none;
 }
 
+.top-rotator{
+  position:absolute;
+  left:50%;
+  top:41px;
+  transform:translate(-50%,-50%);
+  width:420px;
+  height:80px;
+
+
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+}
+
+.top-rotator img{
+  max-height:140%;
+  max-width:90%;
+  object-fit:contain;
+}
+
+.rotator-text{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:25px;
+  font-weight:900;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  animation:rotatorFade 6s infinite;
+}
+
+.rotator-text.hidden,
+.top-rotator img.hidden{
+  display:none;
+}
+
+@keyframes rotatorFade{
+  0%{opacity:0}
+  10%{opacity:1}
+  90%{opacity:1}
+  100%{opacity:0}
+}
+
+#rotatorInput {
+  width: 100%;
+  height: 160px;
+  resize: none;
+
+  border-radius: 12px;
+  padding: 14px;
+
+  background: #0b1028;
+  color: #fff;
+
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+
+  border: 2px solid rgba(255,255,255,0.25);
+  outline: none;
+}
+
+#rotatorInput::placeholder {
+  color: rgba(255,255,255,0.45);
+  font-weight: 700;
+}
+.nil-modal-inner h2 {
+  margin-bottom: 6px;
+}
+
+.nil-modal-inner h2 {
+  margin-bottom: 6px;
+}
 /* ===============================
    SOLD PANEL TOGGLE BUTTON
 ================================ */
@@ -749,6 +891,48 @@ transform-origin: center;
 /* ===============================
    SOLD PANEL (STATIC SLOT)
 ================================ */
+/* ===============================
+   SOLD HEADER ROW
+================================ */
+
+.sold-header-row{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  padding: 6px 10px;
+  margin-top: 6px;
+
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.35),
+    rgba(0,0,0,0.15)
+  );
+
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.sold-header-controls{
+  display: flex;
+  align-items: center;
+  gap: 140px;
+}
+
+/* tighten title since it now lives in a row */
+.sold-panel-title{
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  white-space: nowrap;
+}
+.sse-status{
+  font-size: 11px;
+  padding: 4px 8px;
+}
 
 
 .sold-panel-title {
@@ -771,15 +955,13 @@ transform-origin: center;
   display: none;
 }
 .sold-panel-slot {
-  width: 100%;
+  width: 95%;
   height: 160px; /* 🔒 fixed height prevents layout shift */
   position: relative;
   overflow:  visible;
 }
 
-.sold-panel-slot {
-  display: none;
-}
+
 
 
 .sold-panel {
@@ -813,9 +995,7 @@ transform-origin: center;
   border-color: transparent;
 }
 
-.sold-panel-slot {
-  display: none;
-}
+
 
 
 .sold-item {
@@ -862,12 +1042,117 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
         transform: translateX(-100%);
       }
     }
+
+.nil-tools button{
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+
+/* ===============================
+   NIL MODAL (OBS friendly)
+================================ */
+.nil-modal{
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+}
+
+.nil-modal.hidden{
+  display: none;
+}
+
+.nil-modal-inner{
+  width: min(520px, 92vw);
+  border-radius: 14px;
+  border: 2px solid rgba(255,255,255,0.35);
+  background: linear-gradient(180deg, rgba(8,14,40,0.98), rgba(0,0,20,0.98));
+  box-shadow: 0 18px 60px rgba(0,0,0,0.65);
+  padding: 14px;
+}
+
+.nil-modal-inner h2{
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+#nilTextInput{
+  width: 100%;
+  height: 220px;
+  resize: none;
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(255,255,255,0.95);
+  color: #000;
+  font-weight: 800;
+  border: 2px solid rgba(255,255,255,0.35);
+  outline: none;
+}
+
+.nil-modal-actions{
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.nil-modal-actions button{
+  background: var(--secondary-color);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.nil-modal-actions button.secondary{
+  background: rgba(255,255,255,0.14);
+  border: 2px solid rgba(255,255,255,0.25);
+}
+.nil-modal-actions button:active{
+  transform: translateY(1px);
+}
+
+/* NIL label overlay (for text tiles) */
+.team-label{
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  text-align: center;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  font-size: 18px;
+  line-height: 1.05;
+  text-shadow: 0 3px 10px rgba(0,0,0,0.65);
+}
+
+
+
   </style>
 </head>
 <body>
   <div class="overlay-container">
     <div class="header">
       <div class="brand">
+        <div class="top-rotator">
+  <img id="rotatorLogo" src="" />
+  <div id="rotatorText" class="rotator-text hidden"></div>
+</div>
+
         <div class="brand-title">Nation of Cards</div>
         <div class="brand-slogan">Join the Nation. Build Your Collection</div>
       </div>
@@ -912,9 +1197,66 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
     </div>
          <div class="control-panel">
   <div class="breaktype-buttons" id="breakTypeButtons"></div>
-<button class="sold-toggle-btn" onclick="toggleSoldPanel()">
-  Toggle Sold
+
+
+<div class="nil-tools" id="nilTools" style="display:none; gap:6px; align-items:center;">
+  <input id="nilCsvInput" type="file" accept=".csv,text/csv" style="display:none;" />
+<button class="breaknum-apply" onclick="openNilModal()">Edit NIL Items</button>
+
+</div>
+
+<div id="rotatorModal" class="nil-modal hidden">
+  <div class="nil-modal-inner">
+    <h2>Top Box Content</h2>
+
+    <textarea id="rotatorInput"
+      placeholder="One line per side (logo hides automatically)"></textarea>
+
+    <div class="nil-modal-actions">
+      <button onclick="applyRotatorText()">Apply</button>
+      <button onclick="closeRotatorModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+<button class="btn" onclick="openRotatorModal()">Top Box</button>
+
+
+<!-- NIL button (shown only when NIL is selected) -->
+<button id="nilItemsBtn" class="breaknum-apply" style="display:none;" onclick="openNilModal()">
+  NIL Items
 </button>
+
+
+
+<!-- NIL Modal -->
+<div id="nilModal" class="nil-modal hidden">
+  <div class="nil-modal-inner">
+    <h2>NIL Items</h2>
+
+    <textarea id="nilTextInput" placeholder="Paste or type one item per line"></textarea>
+
+    <div class="nil-modal-actions">
+      <button class="secondary" onclick="triggerNilCsv()">Import CSV</button>
+      <button onclick="applyNilText()">Apply</button>
+      <button class="secondary" onclick="closeNilModal()">Close</button>
+      <button class="secondary" onclick="clearNilEntries()">Clear</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+<button class="breaknum-apply" onclick="toggleMock()">Mock</button>
+
+
 
   <div class="breaknum-wrap">
     <label class="breaknum-label" for="breakNumInput"></label>
@@ -925,7 +1267,25 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
 
 </div>
     
-     <div class="sold-panel-title">SOLD TEAMS</div>
+<div class="sold-header-row">
+  
+
+  <div class="sold-header-controls">
+    <div class="sold-panel-title">SOLD TEAMS</div>
+    <button class="sold-toggle-btn" onclick="toggleSoldPanel()">
+      Toggle Sold
+    </button>
+
+<button class="sold-toggle-btn" onclick="toggleTitles()">Titles</button>
+
+    <div class="sse-status" id="sseStatus">
+      SSE:
+      <span class="dot" id="sseDot"></span>
+      <span id="sseText">disconnected</span>
+    </div>
+  </div>
+</div>
+
 
 
 
@@ -956,8 +1316,121 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
   return new URLSearchParams(window.location.search).get(name);
 }
 
-let bridgeURL = getQueryParam('bridge');
-const bridgeKey = getQueryParam('key');
+function setNilEntries(entries){
+  saveNilEntries(entries);
+  breakTypes.nil = buildNilBreakTypeFromEntries(entries);
+  setBreakType('nil');
+}
+function applyNilText(){
+  const raw = document.getElementById('nilTextInput').value;
+  const lines = raw.split('\n')
+    .map(l => l.trim())
+    .filter(Boolean);
+
+  const entries = lines.map((name, i) => ({
+    name,
+    code: makeCodeFromName(name, i)
+  }));
+
+  setNilEntries(entries);
+  closeNilModal();
+}
+
+function importNilCsv(){
+  const file = document.getElementById('nilCsvInput').files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n');
+    const entries = lines
+      .map(l => l.split(',')[0]?.trim())
+      .filter(Boolean)
+      .map((name, i) => ({ name, code: makeCodeFromName(name, i) }));
+
+    setNilEntries(entries);
+    closeNilModal();
+  };
+  reader.readAsText(file);
+}
+
+// ===============================
+// SSE Bridge (supports /stream AND legacy /events?key=...)
+// ===============================
+let sse = null;
+
+// Read from URL first, then localStorage fallback (so OBS can reload cleanly)
+const BRIDGE_URL = (() => {
+  const q = new URLSearchParams(location.search).get('bridge');
+  if (q) {
+    const cleaned = q.replace(/\/$/, '');
+    localStorage.setItem('noc.bridge', cleaned);
+    return cleaned;
+  }
+  const saved = localStorage.getItem('noc.bridge');
+  return saved ? saved.replace(/\/$/, '') : "";
+})();
+
+const BRIDGE_KEY = (() => {
+  const q = new URLSearchParams(location.search).get('key');
+  if (q) {
+    localStorage.setItem('noc.key', q);
+    return q;
+  }
+  return localStorage.getItem('noc.key') || "";
+})();
+
+// Reconnect loop like your working overlay
+function connectSSE(url){
+  if (sse) { try { sse.close(); } catch(_){} }
+  setSSEStatus('error', 'connecting');
+
+  try{
+    sse = new EventSource(url);
+
+    sse.onopen = () => {
+      console.log('[SSE] open');
+      setSSEStatus('connected', 'connected');
+    };
+
+    sse.onmessage = (e) => {
+      try{
+        const data = JSON.parse(e.data);
+        console.log('[SSE] message', data);
+        handleSSEEvent(data);
+      }catch(err){
+        console.warn('[SSE] bad payload', e.data);
+      }
+    };
+
+    sse.onerror = (err) => {
+      console.warn('[SSE] error', err);
+      setSSEStatus('error', 'reconnecting');
+      try { sse.close(); } catch(_) {}
+      sse = null;
+      setTimeout(() => connectSSE(url), 2500);
+    };
+  }catch(e){
+    console.warn('[SSE] failed to create EventSource', e);
+    setSSEStatus('error', 'failed');
+  }
+}
+
+function initSSE(){
+  if (!BRIDGE_URL){
+    setSSEStatus('error', 'missing bridge');
+    return;
+  }
+
+  // If a key exists, use legacy endpoint. Otherwise use /stream (new bridge style).
+  const url = BRIDGE_KEY
+    ? `${BRIDGE_URL}/events?key=${encodeURIComponent(BRIDGE_KEY)}`
+    : `${BRIDGE_URL}/stream`;
+
+  console.log('[SSE] connecting:', url);
+  connectSSE(url);
+}
+
 
 
     // Path helper functions for each sport
@@ -1205,34 +1678,22 @@ const bridgeKey = getQueryParam('key');
           { home: 'Penguins', away: 'Capitals', homeScore: 0, awayScore: 0, period: '1st', time: '20:00' }
         ]
       },
-      nil: {
-  name: 'NIL',
-  conferences: ['Tier A', 'Tier B'],
-  divisions: {
-    'Tier A': {
-      'NIL Spots': [
-        { code: 'P1', name: 'Power 1', image: imgPathNIL('power1.png') },
-        { code: 'P2', name: 'Power 2', image: imgPathNIL('power2.png') },
-        { code: 'P3', name: 'Power 3', image: imgPathNIL('power3.png') },
-        { code: 'P4', name: 'Power 4', image: imgPathNIL('power4.png') }
-      ]
-    },
-    'Tier B': {
-      'NIL Spots': [
-        { code: 'G5', name: 'Group of 5', image: imgPathNIL('group_of_5.png') },
-        { code: 'TP', name: 'Transfer Portal', image: imgPathNIL('transfer_portal.png') },
-        { code: 'PR', name: 'Prospects', image: imgPathNIL('prospects.png') },
-        { code: 'WC', name: 'Wildcard', image: imgPathNIL('wildcard.png') }
-      ]
-    }
-  },
-  scoreboard: []
-}
-
+   
 
     };
 
-let sse = null;
+let titlesVisible = true;
+
+function toggleTitles(){
+  titlesVisible = !titlesVisible;
+
+  document.querySelectorAll('.conference-title,.division-name')
+    .forEach(el=>{
+      el.style.display = titlesVisible ? '' : 'none';
+    });
+}
+
+
 
 
 
@@ -1241,22 +1702,34 @@ let sse = null;
     let soldTeamsList = [];
 let soldPanelVisible = false;
 
-
-    // Render teams for the current sport
-    function renderTeams() {
-  const container = document.querySelector('.overlay-container');
 const colsBySport = {
   nfl: 4,
   nba: 5,
   mlb: 5,
   nhl: 4,
-  nil: 2
+  nil: 4 // base, will be overridden dynamically
 };
 
-document.documentElement.style.setProperty(
-  '--team-cols',
-  colsBySport[currentBreakType] || 5
-);
+    // Render teams for the current sport
+    function renderTeams() {
+  const container = document.querySelector('.overlay-container');
+
+
+
+let cols = colsBySport[currentBreakType] || 5;
+
+if (currentBreakType === 'nil') {
+  const total = loadNilEntries().length;
+
+  if (total <= 8) cols = 2;
+  else if (total <= 16) cols = 3;
+  else if (total <= 24) cols = 4;
+  else if (total <= 40) cols = 5;
+  else cols = 6;
+}
+
+document.documentElement.style.setProperty('--team-cols', cols);
+
 
   // clear previous sport classes
   container.classList.remove('sport-nfl', 'sport-nba', 'sport-mlb', 'sport-nhl', 'sport-nil');
@@ -1371,14 +1844,20 @@ panel.classList.remove('hidden');
           teamDiv.className = 'team';
           teamDiv.dataset.teamCode = teamObj.code;
           teamDiv.onclick = () => toggleTeam(teamObj.code);
-          const img = document.createElement('img');
-          img.src = teamObj.image;
-          img.alt = teamObj.name;
+      if (teamObj.image) {
+  const img = document.createElement('img');
+  img.src = teamObj.image;
+  img.alt = teamObj.name;
+  img.onerror = () => { /* fall through to label */ };
+  teamDiv.appendChild(img);
+}
 
-          img.onerror = () => {
-            teamDiv.textContent = teamObj.code;
-          };
-          teamDiv.appendChild(img);
+// Always add a readable label (great for NIL)
+const label = document.createElement('div');
+label.className = 'team-label';
+label.textContent = teamObj.code || teamObj.name || '';
+teamDiv.appendChild(label);
+
 
 const soldX = document.createElement('div');
 soldX.className = 'sold-x';
@@ -1442,19 +1921,148 @@ teamGrid.appendChild(teamDiv);
   });
 }
 
+let rotatorLines = [];
+let rotatorIndex = 0;
+let rotatorTimer = null;
+
+function openRotatorModal(){
+  document.getElementById('rotatorModal').classList.remove('hidden');
+}
+
+function closeRotatorModal(){
+  document.getElementById('rotatorModal').classList.add('hidden');
+}
+
+function applyRotatorText(){
+  const raw = document.getElementById('rotatorInput')?.value || '';
+  rotatorLines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+
+  const img = document.getElementById('rotatorLogo');
+  const text = document.getElementById('rotatorText');
+
+  if (!img || !text) return;
+
+  if (rotatorLines.length) {
+    img.classList.add('hidden');
+    text.classList.remove('hidden');
+    rotatorIndex = 0;
+    startRotator();
+  } else {
+    stopRotator();
+    text.classList.add('hidden');
+    img.classList.remove('hidden');
+  }
+
+  closeRotatorModal();
+}
+
+
+function startRotator(){
+  stopRotator();
+
+  const text = document.getElementById('rotatorText');
+  if (!text || !rotatorLines.length) return;
+
+  // show first line immediately
+  rotatorIndex = 0;
+  text.textContent = rotatorLines[rotatorIndex];
+
+  // advance index so the next tick shows the NEXT line (not the same one)
+  rotatorIndex = 1;
+
+  rotatorTimer = setInterval(() => {
+    text.textContent = rotatorLines[rotatorIndex % rotatorLines.length];
+    rotatorIndex++;
+  }, 6000);
+}
+
+
+function stopRotator(){
+  clearInterval(rotatorTimer);
+  rotatorTimer = null;
+}
+
+
 function setBreakType(type) {
   if (!breakTypes[type]) return;
   currentBreakType = type;
 
-  // refresh active button UI
   renderBreakTypeButtons();
-
-  // re-render the grid
+  updateNilToolsVisibility();
   renderTeams();
-
-  // optional: you might also want to reset break # display when switching sports
-  // document.getElementById('breakIdDisplay').textContent = '—';
 }
+
+function openNilModal(){
+  const modal = document.getElementById('nilModal');
+  if (!modal) return;
+
+  // preload textarea from storage
+  const entries = loadNilEntries();
+  const textarea = document.getElementById('nilTextInput');
+  if (textarea) textarea.value = entries.map(e => e.name).join('\n');
+
+  modal.classList.remove('hidden');
+}
+
+function closeNilModal(){
+  const modal = document.getElementById('nilModal');
+  if (!modal) return;
+  modal.classList.add('hidden');
+}
+
+function triggerNilCsv(){
+  const input = document.getElementById('nilCsvInput');
+  if (!input) return;
+  input.value = ''; // allow re-upload same file
+  input.click();
+}
+
+function clearNilEntries(){
+  saveNilEntries([]);
+  breakTypes.nil = buildNilBreakTypeFromEntries([]);
+  if (currentBreakType === 'nil') renderTeams();
+}
+
+function setNilEntries(entries){
+  saveNilEntries(entries);
+  breakTypes.nil = buildNilBreakTypeFromEntries(entries);
+  setBreakType('nil');
+}
+
+function applyNilText(){
+  const raw = (document.getElementById('nilTextInput')?.value || '');
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+
+  const entries = lines.map((name, i) => ({
+    name,
+    code: makeCodeFromName(name, i),
+    image: '' // optional later
+  }));
+
+  setNilEntries(entries);
+  closeNilModal();
+}
+
+// CSV handler (first column = name; skips header if it smells like one)
+function parseNilCsv(text){
+  const rows = text.split(/\r?\n/).map(r => r.trim()).filter(Boolean);
+  if (!rows.length) return [];
+
+  // If header row contains "name" or "item" assume it's a header
+  const first = rows[0].toLowerCase();
+  const startIndex = (first.includes('name') || first.includes('item')) ? 1 : 0;
+
+  const names = rows.slice(startIndex)
+    .map(r => r.split(',')[0]?.trim())
+    .filter(Boolean);
+
+  return names.map((name, i) => ({
+    name,
+    code: makeCodeFromName(name, i),
+    image: ''
+  }));
+}
+
 
 function applyBreakNumber() {
   const input = document.getElementById('breakNumInput');
@@ -1499,6 +2107,69 @@ function applyBreakNumber() {
       document.getElementById('sportSelect').value = currentBreakType;
       renderTeams();
     }
+
+
+const NIL_STORE_KEY = 'noc.nil.entries';
+
+function loadNilEntries(){
+  try{
+    const raw = localStorage.getItem(NIL_STORE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch{
+    return [];
+  }
+}
+
+function saveNilEntries(entries){
+  localStorage.setItem(NIL_STORE_KEY, JSON.stringify(entries || []));
+}
+
+function makeCodeFromName(name, idx){
+  const cleaned = (name || '').toUpperCase().replace(/[^A-Z0-9]+/g,'').slice(0,8);
+  const n = String(idx+1).padStart(3,'0');
+  return cleaned ? `${cleaned}${n}` : `NIL${n}`;
+}
+
+function buildNilBreakTypeFromEntries(entries){
+  const safe = (entries || []).filter(e => (e?.name || '').trim().length);
+
+  // split evenly into two sides
+  const mid = Math.ceil(safe.length / 2);
+  const left = safe.slice(0, mid);
+  const right = safe.slice(mid);
+
+  const leftTeams = left.map((e, i) => ({
+    code: e.code || makeCodeFromName(e.name, i),
+    name: e.name,
+    image: e.image || '' // optional
+  }));
+
+  const rightTeams = right.map((e, i) => ({
+    code: e.code || makeCodeFromName(e.name, mid + i),
+    name: e.name,
+    image: e.image || ''
+  }));
+
+  return {
+    name: 'NIL',
+    conferences: ['Left', 'Right'],
+    divisions: {
+      Left: { Spots: leftTeams },
+      Right: { Spots: rightTeams }
+    },
+    scoreboard: []
+  };
+}
+function updateNilToolsVisibility(){
+  const tools = document.getElementById('nilTools');
+  if (!tools) return;
+  tools.style.display = currentBreakType === 'nil' ? 'flex' : 'none';
+}
+
+
+
+
 
     // Change sport via dropdown
     function changeBreakTypeSelect(value) {
@@ -1545,49 +2216,110 @@ function applyBreakNumber() {
       tickerSpan.style.animation = '';
     }
 
-    function initSSE() {
-  if (!bridgeURL || sse) return;
+function setSSEStatus(state, msg){
+  const wrap = document.getElementById('sseStatus');
+  const text = document.getElementById('sseText');
+  if (!wrap || !text) return;
 
-  const sseURL = `${bridgeURL.replace(/\/$/, '')}/events?key=${bridgeKey}`;
+  wrap.classList.remove('connected', 'error');
 
-  sse = new EventSource(sseURL);
+  if (state === 'connected') wrap.classList.add('connected');
+  if (state === 'error') wrap.classList.add('error');
 
-  sse.onmessage = (e) => {
-    try {
-      const data = JSON.parse(e.data);
-      handleSSEEvent(data);
-    } catch (err) {
-      console.warn('Invalid SSE payload', e.data);
-    }
-  };
-
-  sse.onerror = () => {
-    console.warn('SSE connection lost');
-  };
+  text.textContent = msg || state;
 }
+
+
+
+function getAnyVisibleTeamCode(){
+  const el = document.querySelector('.team[data-team-code]');
+  return el?.dataset?.teamCode || null;
+}
+
+
+
+
+
+let mockEnabled = false;
+let mockInterval = null;
+
+function toggleMock(){
+  mockEnabled = !mockEnabled;
+
+  if (mockEnabled) {
+    mockInterval = setInterval(mockToggleRandom, 1200);
+  } else {
+    clearInterval(mockInterval);
+    mockInterval = null;
+
+    // FULL CLEANUP when turning mock OFF
+    [...soldTeams].forEach(code => {
+      sseMarkUnsold(code);
+    });
+  }
+}
+
+function mockToggleRandom(){
+  const teams = [...document.querySelectorAll('.team[data-team-code]')];
+  if (!teams.length) return;
+
+  const random = teams[Math.floor(Math.random() * teams.length)];
+  const code = random.dataset.teamCode;
+
+  if (soldTeams.has(code)) {
+    handleSSEEvent({ type: 'team_unsold', code });
+  } else {
+    handleSSEEvent({
+      type: 'team_sold',
+      sport: currentBreakType,
+      code,
+      buyer: 'TEST'
+    });
+  }
+}
+
+document.getElementById('rotatorLogo').src =
+  `${BASE}images/logos/ratedrookiesURL.png`;
+
+
+function mockUnsold(){
+  const code = getAnyVisibleTeamCode();
+  if (!code) return;
+  handleSSEEvent({ type: 'team_unsold', code });
+}
+breakTypes.nil = buildNilBreakTypeFromEntries(loadNilEntries());
+renderBreakTypeButtons();
+updateNilToolsVisibility();
+renderTeams();
 
     // Initialise on load
-    window.addEventListener('DOMContentLoaded', () => {
-      renderTeams();
-initSSE();
+ window.addEventListener('DOMContentLoaded', () => {
+  breakTypes.nil = buildNilBreakTypeFromEntries(loadNilEntries());
 
-      const saved = localStorage.getItem('noc.breakNumber') || '';
-      const brandLogo = document.getElementById('brandLogo');
-if (brandLogo) {
-  brandLogo.src = `${BASE}images/logos/Nation of Cards Logo Transparent.png`;
-}
+  renderBreakTypeButtons();
+  updateNilToolsVisibility();
+  renderTeams();
+
+  initSSE();
+
+  const saved = localStorage.getItem('noc.breakNumber') || '';
+  const brandLogo = document.getElementById('brandLogo');
+  if (brandLogo) brandLogo.src = `${BASE}images/logos/NoC-logo.png`;
+
+  if (saved) {
+    const input = document.getElementById('breakNumInput');
+    if (input) input.value = saved;
+    const out = document.getElementById('breakIdDisplay');
+    if (out) out.textContent = saved;
+  }
+});
+
+document.getElementById('rotatorLogo').src =
+  `${BASE}images/logos/NoC-logo.png`;
 
 
-if (saved) {
-  const input = document.getElementById('breakNumInput');
-  if (input) input.value = saved;
-  const out = document.getElementById('breakIdDisplay');
-  if (out) out.textContent = saved;
-}
-renderBreakTypeButtons();
+updateNilToolsVisibility();
 
-
-    });
 
     function handleSSEEvent(data) {
   switch (data.type) {
@@ -1632,6 +2364,23 @@ function sseMarkSold(code, buyer = '') {
   updateStats();
   renderSoldPanel();
 }
+
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.id === 'nilCsvInput') {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = String(ev.target.result || '');
+      const entries = parseNilCsv(text);
+      setNilEntries(entries);
+      closeNilModal();
+    };
+    reader.readAsText(file);
+  }
+});
+
 
 function sseMarkUnsold(code) {
   soldTeams.delete(code);

@@ -1745,15 +1745,6 @@ body[data-layout="X"] .ticker.on{
     <button class="pill-btn" data-mode="CONFERENCE">Conference</button>
     <button class="pill-btn" data-mode="DIRECTIONAL">Directional</button>
 
-<div class="pill pill-group" id="layoutPills" style="width:auto;">
-  <label>View</label>
-  <div class="pill-buttons">
-    <button class="pill-btn" data-layout="DEFAULT">Full</button>
-    <button class="pill-btn" data-layout="X">Layout X</button>
-  </div>
-</div>
-
-
     <!-- future layouts -->
     <button class="pill-btn disabled">Layout X</button>
     <button class="pill-btn disabled">Layout Y</button>
@@ -2184,40 +2175,6 @@ const DIRECTION_MAP = {
 
     // ---------- UI ELEMENTS ----------
 const leagueDisplay = document.getElementById("leagueDisplay");
-// ===== HOTFIX: missing element refs =====
-const headerBreakId = document.getElementById("headerBreakId");
-
-// ===== HOTFIX: missing helpers =====
-function detectBridgeKey(){
-  // supports: ?key=XXXX or ?bridgeKey=XXXX
-  return (
-    params.get("key") ||
-    params.get("bridgeKey") ||
-    localStorage.getItem("tsu.bridge.key") ||
-    ""
-  );
-}
-
-function syncLayoutButtonLabels(){
-  const wantX = isLayoutX();
-  const btnA = document.getElementById("toggleLayoutBtn");
-  const btnX = document.getElementById("toggleLayoutBtnX");
-  if (btnA) btnA.textContent = wantX ? "Full View" : "Layout X";
-  if (btnX) btnX.textContent = wantX ? "Full View" : "Layout X";
-}
-
-function cycleLeague(){
-  const idx = LEAGUES.indexOf(STATE.league);
-  const next = LEAGUES[(idx + 1) % LEAGUES.length];
-  setState(next, null, { persist:true, rebuild:true });
-}
-
-function cycleMode(){
-  const modes = MODES_BY_LEAGUE[STATE.league] || ["TEAM"];
-  const idx = modes.indexOf(STATE.mode);
-  const next = modes[(idx + 1) % modes.length];
-  setState(null, next, { persist:true, rebuild:true });
-}
 
 
 function syncHeader() {
@@ -2275,20 +2232,22 @@ if (breakPillWrap){
 
     const mode = btn.dataset.mode;
 
+    // guard against invalid combos
     const validModes = MODES_BY_LEAGUE[STATE.league] || ["TEAM"];
     if (!validModes.includes(mode)) return;
 
-    const wasOpen = soldPanel && soldPanel.classList.contains("open");
+    const wasOpen = soldPanel.classList.contains("open");
 
-    setState(STATE.league, mode, { persist:true, rebuild:true });
-    syncBreakPills();
+setState(STATE.league, mode, { persist:true, rebuild:true });
+syncBreakPills();
 
-    if (wasOpen && soldPanel){
-      soldPanel.classList.add("open");
-      frame && frame.classList.add("sold-open");
-    }
-  });
+if (wasOpen){
+  soldPanel.classList.add("open");
+  frame.classList.add("sold-open");
 }
+
+}
+  });
 
 
 
@@ -3419,29 +3378,6 @@ function setLayout(next){
   }
 }
 
-function syncLayoutPills(){
-  const wrap = document.getElementById("layoutPills");
-  if (!wrap) return;
-  wrap.querySelectorAll(".pill-btn[data-layout]").forEach(b => {
-    const want = (b.dataset.layout || "").toUpperCase();
-    const cur  = isLayoutX() ? "X" : "DEFAULT";
-    b.classList.toggle("active", want === cur);
-  });
-}
-
-function wireLayoutPills(){
-  const wrap = document.getElementById("layoutPills");
-  if (!wrap) return;
-  wrap.addEventListener("click", (e) => {
-    const btn = e.target.closest(".pill-btn[data-layout]");
-    if (!btn) return;
-    setLayout(btn.dataset.layout);
-    syncLayoutPills();
-    syncLayoutButtonLabels();
-  });
-}
-
-
 function wireLayoutButtons(){
   const btnA = document.getElementById("toggleLayoutBtn");
   const btnX = document.getElementById("toggleLayoutBtnX");
@@ -3463,10 +3399,6 @@ function boot(){
   // Always wire layout buttons
   wireLayoutButtons();
   syncLayoutButtonLabels();
-wireLayoutPills();
-syncLayoutPills();
-
-
 
   // Show/hide admin bar
   if (adminBar){

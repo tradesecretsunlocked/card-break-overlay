@@ -21,7 +21,7 @@
       --tickerSpeed: 30s; /* default */
       --stroke: rgba(255,255,255,0.50);
       --stroke2: rgba(255,255,255,0.08);
---tickerSpeed: 30s;
+
       --glowR: rgba(212,27,27,0.55);
       --glowW: rgba(255,255,255,0.10);
 
@@ -83,9 +83,6 @@
      overflow: visible !important;
     }
 
-
-
-    
     .header{
       height: 75px;
       display:flex;
@@ -1391,282 +1388,6 @@ body[data-layout="X"] .ticker.on{
   pointer-events: auto;
 }
 
-/* ===========================
-   SOLD STATE (TILE + GROUP)
-   =========================== */
-.tile.sold{
-  opacity: 0.28;
-  filter: grayscale(35%) brightness(0.9);
-  animation:none !important;
-  transform:none !important;
-}
-.tile.sold::before{
-  content: "✕";
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 1000;
-  font-size: 64px;
-  color: rgb(212, 27, 27);
-  text-shadow:
-    0 0 18px rgba(212,27,27,0.55),
-    0 0 36px rgba(212,27,27,0.35);
-  pointer-events: none;
-  z-index: 20;
-}
-.tile.sold::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background: rgba(0,0,0,0.45);
-  pointer-events:none;
-  z-index: 15;
-}
-
-.group.sold::before{
-  content:"✕";
-  position:absolute;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:1000;
-  font-size: 96px;
-  color: rgb(212, 27, 27);
-  text-shadow:
-    0 0 18px rgba(212,27,27,0.55),
-    0 0 36px rgba(212,27,27,0.35);
-  pointer-events:none;
-  z-index:20;
-}
-.group.sold::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background: rgba(0,0,0,0.45);
-  pointer-events:none;
-  z-index:15;
-}
-body[data-break="CONFERENCE"] .group.sold::before{ font-size: 120px; }
-.group.sold .division-buyer{ background: rgba(212,27,27,0.86); }
-
-/* ===========================
-   SOLD PANEL (BOTTOM DRAWER)
-   =========================== */
-.sold-panel{
-  position:absolute;
-  left:0;
-  right:0;
-  top: 100%;
-  margin-top: 2px;
-
-  max-height: 0;
-  overflow: hidden;
-
-  background: rgba(0,0,0,0.92);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 16px;
-
-  transition: max-height .35s ease;
-  z-index: 40;
-  pointer-events: none;
-}
-.sold-panel.open{
-  max-height: var(--soldPanelH);
-  pointer-events: auto;
-}
-.sold-panel-close{
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 1000;
-  letter-spacing: 1px;
-  font-size: 13px;
-  color: #fff;
-  background: rgba(212,27,27,0.35);
-  cursor: pointer;
-  border-bottom: 1px solid rgba(255,255,255,0.14);
-  pointer-events: auto;
-  z-index: 1;
-}
-.sold-actions{
-  display:flex;
-  gap:10px;
-  padding: 10px 12px 0 12px;
-}
-.sold-action-btn{
-  height: 38px;
-  padding: 0 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(0,0,0,0.35);
-  color: rgba(255,255,255,0.92);
-  font-weight: 1000;
-  letter-spacing: .8px;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.sold-action-btn:hover{
-  background: rgba(212,27,27,0.25);
-  box-shadow: 0 0 14px rgba(212,27,27,0.25);
-}
-.sold-action-btn.red{
-  border-color: rgba(212,27,27,0.55);
-  background: rgba(212,27,27,0.30);
-  box-shadow: 0 0 18px rgba(212,27,27,0.16);
-}
-.sold-panel-inner{
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px,1fr));
-  gap: 10px;
-  padding: 12px;
-}
-.sold-item{
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.14);
-  border-radius: 12px;
-  padding: 8px;
-}
-.sold-item img{
-  width: 36px;
-  height: 36px;
-  object-fit: contain;
-}
-.sold-item .buyer{
-  font-size: 13px;
-  font-weight: 900;
-  color: #fff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ===========================
-   MODALS (BUYER + TICKER)
-   =========================== */
-.buyer-modal{
-  position:absolute;
-  inset:0;
-  display:none;
-  align-items:center;
-  justify-content:center;
-  background: rgba(0,0,0,0.65);
-  z-index: 9999;
-  pointer-events: auto;
-}
-.buyer-modal.open{ display:flex; }
-
-.buyer-modal-card{
-  width: min(520px, 92%);
-  border-radius: 18px;
-  border: 2px solid rgba(255,255,255,0.18);
-  background: linear-gradient(180deg, rgba(18,18,20,0.98), rgba(8,8,10,0.98));
-  box-shadow: 0 28px 80px rgba(0,0,0,0.65), 0 0 24px rgba(212,27,27,0.20);
-  padding: 16px;
-}
-.buyer-modal-hd{
-  display:flex;
-  align-items:baseline;
-  justify-content:space-between;
-  gap: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.10);
-}
-.buyer-modal-title{
-  font-size: 18px;
-  font-weight: 1000;
-  letter-spacing: 0.8px;
-  color: #fff;
-  text-transform: uppercase;
-}
-.buyer-modal-sub{
-  font-size: 12px;
-  opacity: .75;
-  letter-spacing: .8px;
-  text-transform: uppercase;
-}
-.buyer-modal-input{
-  margin-top: 12px;
-  width: 100%;
-  height: 46px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.22);
-  background: rgba(0,0,0,0.55);
-  color: #fff;
-  padding: 0 12px;
-  font-size: 16px;
-  font-weight: 900;
-  outline: none;
-}
-.buyer-modal-input:focus{
-  border-color: rgba(212,27,27,0.70);
-  box-shadow: 0 0 0 3px rgba(212,27,27,0.18);
-}
-.buyer-modal-actions{
-  margin-top: 12px;
-  display:flex;
-  gap: 10px;
-  justify-content:flex-end;
-}
-.buyer-btn{
-  height: 40px;
-  padding: 0 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.18);
-  background: rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.92);
-  font-weight: 1000;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.buyer-btn-ghost{ background: rgba(0,0,0,0.30); }
-.buyer-btn-primary{
-  border-color: rgba(212,27,27,0.55);
-  background: rgba(212,27,27,0.35);
-  box-shadow: 0 0 18px rgba(212,27,27,0.18);
-}
-.buyer-modal-hint{
-  margin-top: 10px;
-  font-size: 12px;
-  opacity: .75;
-  line-height: 1.2;
-}
-
-/* ===========================
-   LAYOUT X (HEADER-ONLY MODE)
-   =========================== */
-body[data-layout="X"]{ --H: 220px; }
-body[data-layout="X"] .main{ display:none !important; }
-body[data-layout="X"] #soldPanel{ display:none !important; }
-body[data-layout="X"] #buyerModal{ display:none !important; }
-body[data-layout="X"] #adminBar{ display:none !important; }
-
-#simpleBar{ display:none; }
-body[data-layout="X"] #simpleBar{
-  display:flex !important;
-  position:absolute;
-  left:0; right:0;
-  bottom: 6px;
-  padding: 0 var(--pad);
-  justify-content:center;
-  flex-direction: row-reverse;
-  z-index: 60;
-}
-body[data-layout="X"] .ticker{ display:none; }
-body[data-layout="X"] .ticker.on{
-  display:flex;
-  position:absolute;
-  left:0; right:0;
-  bottom: 58px;
-  z-index: 55;
-}
 
 
   </style>
@@ -1737,28 +1458,7 @@ body[data-layout="X"] .ticker.on{
           <div class="side">
             <div class="panel cam">
               
-                <div class="pill pill-group" id="breakModePills">
-  <label>Break</label>
-  <div class="pill-buttons">
-    <button class="pill-btn" data-mode="TEAM">Team</button>
-    <button class="pill-btn" data-mode="DIVISION">Division</button>
-    <button class="pill-btn" data-mode="CONFERENCE">Conference</button>
-    <button class="pill-btn" data-mode="DIRECTIONAL">Directional</button>
-
-<div class="pill pill-group" id="layoutPills" style="width:auto;">
-  <label>View</label>
-  <div class="pill-buttons">
-    <button class="pill-btn" data-layout="DEFAULT">Full</button>
-    <button class="pill-btn" data-layout="X">Layout X</button>
-  </div>
-</div>
-
-
-    <!-- future layouts -->
-    <button class="pill-btn disabled">Layout X</button>
-    <button class="pill-btn disabled">Layout Y</button>
-  </div>
-</div>
+              
                 <div class="camBox">
                     </div>
                </div>
@@ -1799,8 +1499,14 @@ body[data-layout="X"] .ticker.on{
           <div class="board-body" id="boardRight">
             <div class="grid" id="gridRight"></div>
 
-                   </div>
-        </div>      
+         
+
+
+
+          </div>
+        </div>
+
+        
           
 </div>
         </div>
@@ -1813,29 +1519,6 @@ body[data-layout="X"] .ticker.on{
             </div>
           </div>
         </div>
-
-<!-- TICKER EDIT MODAL -->
-<div class="buyer-modal" id="tickerModal" aria-hidden="true">
-  <div class="buyer-modal-card" role="dialog" aria-modal="true">
-    <div class="buyer-modal-hd">
-      <div class="buyer-modal-title">Ticker Text</div>
-      <div class="buyer-modal-sub">OBS: right-click source → Interact</div>
-    </div>
-
-    <input id="tickerModalInput" class="buyer-modal-input" type="text"
-      placeholder="Type ticker text…" autocomplete="off" spellcheck="false" />
-
-    <div class="buyer-modal-actions">
-      <button class="buyer-btn" id="tickerModalCancel">Cancel</button>
-      <button class="buyer-btn buyer-btn-ghost" id="tickerModalClear">Clear</button>
-      <button class="buyer-btn buyer-btn-primary" id="tickerModalSave">Save</button>
-    </div>
-
-    <div class="buyer-modal-hint">Tip: Keep it short. Humans read at dial-up speeds.</div>
-  </div>
-</div>
-
-
 
                 <!-- LAYOUT X SIMPLE BAR (only visible in Layout X) -->
 <div class="admin" id="simpleBar">
@@ -1853,23 +1536,58 @@ body[data-layout="X"] .ticker.on{
 </div>
 <div class="sold-panel" id="soldPanel">
   <div class="sold-panel-close" id="soldPanelClose">✕ SOLD LIST</div>
-  <div class="sold-actions">
+    <div class="sold-actions">
     <button class="sold-action-btn red" id="resetAllBtn">Reset All</button>
     <button class="sold-action-btn" id="nextBreakBtn">Next Break</button>
   </div>
 
-  <div class="sold-panel-inner" id="soldPanelInner"></div>
+  <div class="pill pill-group" id="breakModePills">
+  <label>Break</label>
+  <div class="pill-buttons">
+    <button class="pill-btn" data-mode="TEAM">Team</button>
+    <button class="pill-btn" data-mode="DIVISION">Division</button>
+    <button class="pill-btn" data-mode="CONFERENCE">Conference</button>
+    <button class="pill-btn" data-mode="DIRECTIONAL">Directional</button>
+
+    <!-- future layouts -->
+    <button class="pill-btn disabled">Layout X</button>
+    <button class="pill-btn disabled">Layout Y</button>
+  </div>
 </div>
-
-
-
-
+  <div class="sold-panel-inner" id="soldPanelInner"></div>
   
 </div>
 
 
 
+   <!-- LAYOUT X: TICKER EDIT MODAL (reuses buyer modal styling) -->
+<div class="buyer-modal" id="tickerModal" aria-hidden="true">
+  <div class="buyer-modal-card" role="dialog" aria-modal="true">
+    <div class="buyer-modal-hd">
+      <div class="buyer-modal-title">Ticker Text</div>
+      <div class="buyer-modal-sub">OBS: right-click source → Interact</div>
+    </div>
 
+    <input
+      id="tickerModalInput"
+      class="buyer-modal-input"
+      type="text"
+      placeholder="Type ticker text…"
+      autocomplete="off"
+      spellcheck="false"
+    />
+
+    <div class="buyer-modal-actions">
+      <button class="buyer-btn" id="tickerModalCancel">Cancel</button>
+      <button class="buyer-btn buyer-btn-ghost" id="tickerModalClear">Clear</button>
+      <button class="buyer-btn buyer-btn-primary" id="tickerModalSave">Save</button>
+    </div>
+
+    <div class="buyer-modal-hint">
+      Tip: Keep it short. Humans read at dial-up speeds.
+    </div>
+  </div>
+</div>
 <!-- BUYER INPUT MODAL (OBS-friendly) -->
 <div class="buyer-modal" id="buyerModal" aria-hidden="true">
   <div class="buyer-modal-card" role="dialog" aria-modal="true">
@@ -1910,25 +1628,12 @@ body[data-layout="X"] .ticker.on{
      ************************************************************/
 
     // ---------- URL FLAGS ----------
- const params = new URLSearchParams(location.search);
+   const params = new URLSearchParams(location.search);
+// Define ADMIN in a real way (URL driven)
+const ADMIN = params.get("admin") === "1";
 
-// ADMIN can be enabled by:
-// 1) URL: ?admin=1 (still allowed)
-// 2) localStorage: wripz.admin=1 (toggle, no URL needed)
-let ADMIN =
-  params.get("admin") === "1" ||
-  localStorage.getItem("wripz.admin") === "1";
-
+// Allow clicking only if admin (matches your intent)
 const CAN_CLICK = ADMIN;
-
-// Hotkey toggle: CTRL + SHIFT + A
-window.addEventListener("keydown", (e) => {
-  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "a"){
-    localStorage.setItem("wripz.admin", ADMIN ? "0" : "1");
-    location.reload();
-  }
-});
-
 
 
 
@@ -2184,40 +1889,6 @@ const DIRECTION_MAP = {
 
     // ---------- UI ELEMENTS ----------
 const leagueDisplay = document.getElementById("leagueDisplay");
-// ===== HOTFIX: missing element refs =====
-const headerBreakId = document.getElementById("headerBreakId");
-
-// ===== HOTFIX: missing helpers =====
-function detectBridgeKey(){
-  // supports: ?key=XXXX or ?bridgeKey=XXXX
-  return (
-    params.get("key") ||
-    params.get("bridgeKey") ||
-    localStorage.getItem("tsu.bridge.key") ||
-    ""
-  );
-}
-
-function syncLayoutButtonLabels(){
-  const wantX = isLayoutX();
-  const btnA = document.getElementById("toggleLayoutBtn");
-  const btnX = document.getElementById("toggleLayoutBtnX");
-  if (btnA) btnA.textContent = wantX ? "Full View" : "Layout X";
-  if (btnX) btnX.textContent = wantX ? "Full View" : "Layout X";
-}
-
-function cycleLeague(){
-  const idx = LEAGUES.indexOf(STATE.league);
-  const next = LEAGUES[(idx + 1) % LEAGUES.length];
-  setState(next, null, { persist:true, rebuild:true });
-}
-
-function cycleMode(){
-  const modes = MODES_BY_LEAGUE[STATE.league] || ["TEAM"];
-  const idx = modes.indexOf(STATE.mode);
-  const next = modes[(idx + 1) % modes.length];
-  setState(null, next, { persist:true, rebuild:true });
-}
 
 
 function syncHeader() {
@@ -2275,20 +1946,22 @@ if (breakPillWrap){
 
     const mode = btn.dataset.mode;
 
+    // guard against invalid combos
     const validModes = MODES_BY_LEAGUE[STATE.league] || ["TEAM"];
     if (!validModes.includes(mode)) return;
 
-    const wasOpen = soldPanel && soldPanel.classList.contains("open");
+    const wasOpen = soldPanel.classList.contains("open");
 
-    setState(STATE.league, mode, { persist:true, rebuild:true });
-    syncBreakPills();
+setState(STATE.league, mode, { persist:true, rebuild:true });
+syncBreakPills();
 
-    if (wasOpen && soldPanel){
-      soldPanel.classList.add("open");
-      frame && frame.classList.add("sold-open");
-    }
-  });
+if (wasOpen){
+  soldPanel.classList.add("open");
+  frame.classList.add("sold-open");
 }
+
+}
+  });
 
 
 
@@ -2443,19 +2116,20 @@ if (buyerModalInput){
     logoBox.appendChild(img);
     tile.appendChild(logoBox);
 
-if (CAN_CLICK){
-  tile.style.cursor = "pointer";
-  tile.addEventListener("click", () => {
-    const cur = boardState[key] || { sold:false, buyer:"" };
-    const next = !cur.sold;
+tile.style.cursor = "pointer";
+tile.addEventListener("click", () => {
+  const cur = boardState[key] || { sold:false, buyer:"" };
+  const next = !cur.sold;
 
-    if (next){
-      openBuyerModal(key, true);
-    } else {
-      applySale({ selectionCode: key, buyerName:"", sold:false, source:"tile-click" });
-    }
-  });
-}
+  if (next){
+    openBuyerModal(key, true);
+  } else {
+    applySale({ selectionCode: key, buyerName:"", sold:false, source:"tile-click" });
+  }
+
+
+
+});
 
 
 
@@ -3259,7 +2933,10 @@ function wireLayoutX(){
       );
     }
 
-
+    function detectBridgeKey(){
+      if (params.has("key")) return params.get("key");
+      return localStorage.getItem("tsu.bridge.key") || "";
+    }
 
     async function warmupPing(tag="warmup"){
       if (!ACTIVE_BRIDGE) return;
@@ -3419,29 +3096,6 @@ function setLayout(next){
   }
 }
 
-function syncLayoutPills(){
-  const wrap = document.getElementById("layoutPills");
-  if (!wrap) return;
-  wrap.querySelectorAll(".pill-btn[data-layout]").forEach(b => {
-    const want = (b.dataset.layout || "").toUpperCase();
-    const cur  = isLayoutX() ? "X" : "DEFAULT";
-    b.classList.toggle("active", want === cur);
-  });
-}
-
-function wireLayoutPills(){
-  const wrap = document.getElementById("layoutPills");
-  if (!wrap) return;
-  wrap.addEventListener("click", (e) => {
-    const btn = e.target.closest(".pill-btn[data-layout]");
-    if (!btn) return;
-    setLayout(btn.dataset.layout);
-    syncLayoutPills();
-    syncLayoutButtonLabels();
-  });
-}
-
-
 function wireLayoutButtons(){
   const btnA = document.getElementById("toggleLayoutBtn");
   const btnX = document.getElementById("toggleLayoutBtnX");
@@ -3460,59 +3114,58 @@ function wireLayoutButtons(){
 }
 
 function boot(){
-  // Always wire layout buttons
-  wireLayoutButtons();
-  syncLayoutButtonLabels();
-wireLayoutPills();
-syncLayoutPills();
+  // Layout X: header-only. Do not rebuild boards, do not start SSE, do not bind break controls.
+// Always wire layout buttons so you can switch views
+wireLayoutButtons();
+syncLayoutButtonLabels();
+
+// If starting in Layout X, just wire Layout X controls and stop there
+if (isLayoutX()){
+  wireLayoutX();
+  return;
+}
 
 
+  // Admin hint onnHint){
+  connHint.textContent = "SSE: hidden (admin=0)";
+}
+state
+if (!ADMIN && c
 
-  // Show/hide admin bar
-  if (adminBar){
-    adminBar.classList.toggle("on", ADMIN);
-  }
 
-  // Layout X: header-only mode
-  if (isLayoutX()){
-    stopSSE();
-    wireLayoutX();
-    if (connHint) connHint.textContent = ADMIN ? "SSE: stopped (Layout X)" : "SSE: off";
-    return;
-  }
+  syncHeader();
 
-  // Normal overlay mode
-  if (connHint) connHint.textContent = ADMIN ? "SSE: connecting…" : "SSE: connected";
-
-  // Restore last league/mode unless URL overrides
   const lastLeague = localStorage.getItem("wripz.lastLeague");
   const lastMode   = localStorage.getItem("wripz.lastMode");
 
+  // defaults
+  STATE.league = "NFL";
+  STATE.mode   = "TEAM";
+
+  // localStorage (only if URL isn't setting it)
   if (!params.get("league") && lastLeague) STATE.league = lastLeague;
-  if (!params.get("mode") && lastMode)     STATE.mode = lastMode;
+  if (!params.get("mode") && lastMode)     STATE.mode   = lastMode;
 
+  // URL wins (if provided)
   if (params.get("league")) STATE.league = params.get("league").toUpperCase();
-  if (params.get("mode"))   STATE.mode = params.get("mode").toUpperCase();
+  if (params.get("mode"))   STATE.mode   = params.get("mode").toUpperCase();
 
-  normalizeState();
-  setBreakModeClass();
-  syncHeader();
-
-  // Build boards
+  // normalize + persist + rebuild
   setState(STATE.league, STATE.mode, { persist:true, rebuild:true });
 
-  // Buttons (admin-only actions)
-  if (resetBtn && ADMIN) resetBtn.addEventListener("click", resetBoard);
+  // Buttons
+  if (resetBtn) resetBtn.addEventListener("click", resetBoard);
 
-  if (demoSaleBtn && ADMIN){
+  if (demoSaleBtn){
     demoSaleBtn.addEventListener("click", () => {
       const items = getActiveItems();
-      const pick = items[Math.floor(Math.random() * items.length)];
+      const pick = items[Math.floor(Math.random()*items.length)];
       applySale({ selectionCode: pick.code, buyerName: "demoBuyer", sold:true });
+      pushChat("demoBuyer", `Bought ${pick.code}`);
     });
   }
 
-  if (resetAllBtn && ADMIN){
+  if (resetAllBtn){
     resetAllBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -3522,7 +3175,7 @@ syncLayoutPills();
     });
   }
 
-  if (nextBreakBtn && ADMIN){
+  if (nextBreakBtn){
     nextBreakBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -3530,19 +3183,10 @@ syncLayoutPills();
     });
   }
 
-  if (cycleLeagueBtn && ADMIN) cycleLeagueBtn.addEventListener("click", cycleLeague);
-  if (cycleModeBtn && ADMIN)   cycleModeBtn.addEventListener("click", cycleMode);
+  if (cycleLeagueBtn) cycleLeagueBtn.addEventListener("click", cycleLeague);
+  if (cycleModeBtn)   cycleModeBtn.addEventListener("click", cycleMode);
 
-  // Sold drawer toggle (allowed for anyone)
-  if (soldMetric){
-    soldMetric.addEventListener("click", () => {
-      soldPanel.classList.toggle("open");
-      frame.classList.toggle("sold-open", soldPanel.classList.contains("open"));
-      renderSoldPanel();
-    });
-  }
-
-  // Start SSE (viewers still need updates)
+  // Bridge boot
   ACTIVE_BRIDGE = detectBridgeBase();
   BRIDGE_KEY = detectBridgeKey();
 
@@ -3555,10 +3199,55 @@ syncLayoutPills();
     warmupPing("boot");
     startSSE();
   }
+
+  if (soldMetric){
+    soldMetric.addEventListener("click", () => {
+      soldPanel.classList.toggle("open");
+      frame.classList.toggle("sold-open", soldPanel.classList.contains("open"));
+      renderSoldPanel();
+    });
+  }
 }
 
-boot();
 
+    function cycleLeague(){
+  const idx = LEAGUES.indexOf(STATE.league);
+  const nextLeague = LEAGUES[(idx + 1) % LEAGUES.length];
+  const nextMode = (MODES_BY_LEAGUE[nextLeague] || ["TEAM"])[0];
+  setState(nextLeague, nextMode, { persist:true, rebuild:true });
+}
+
+function cycleMode(){
+  const modes = MODES_BY_LEAGUE[STATE.league] || ["TEAM"];
+  const idx = modes.indexOf(STATE.mode);
+  const nextMode = modes[(idx + 1) % modes.length];
+  setState(STATE.league, nextMode, { persist:true, rebuild:true });
+}
+
+const rotatorSlides = document.querySelectorAll(".rotator-slide");
+const headerBreakId = document.getElementById("headerBreakId");
+
+let rotatorIndex = 0;
+
+function cycleHeader(){
+  rotatorSlides.forEach(s => s.classList.remove("active"));
+  rotatorSlides[rotatorIndex].classList.add("active");
+  rotatorIndex = (rotatorIndex + 1) % rotatorSlides.length;
+}
+
+function syncLayoutButtonLabels(){
+  const wantX = isLayoutX();
+  const btnA = document.getElementById("toggleLayoutBtn");
+  const btnX = document.getElementById("toggleLayoutBtnX");
+  if (btnA) btnA.textContent = wantX ? "Full View" : "Layout X";
+  if (btnX) btnX.textContent = wantX ? "Full View" : "Layout X";
+}
+
+
+cycleHeader();
+setInterval(cycleHeader, 8000);
+
+boot();
 
 
   </script>
