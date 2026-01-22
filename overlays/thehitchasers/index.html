@@ -878,6 +878,9 @@ const BRIDGE_URL = (() => {
   let bannerIdx = 0;
   let soldOpen = false;
   let highBid = 0;
+  let buyerTotals = new Map();  // buyer -> total spent
+  let lastSaleBuyer = '';
+
 
 
   const elBreak = document.getElementById('breakId');
@@ -1030,6 +1033,33 @@ function setScoreboard(games){
   });
 }
 
+function setTopBuyer(name){
+  document.getElementById('topBuyerText').textContent = name || '—';
+}
+function setLastSale(name){
+  document.getElementById('lastSaleText').textContent = name || '—';
+}
+
+function updateBuyerStats(buyer, amount){
+  if (!buyer) return;
+
+  // last sale = most recent buyer we saw
+  lastSaleBuyer = buyer;
+  setLastSale(lastSaleBuyer);
+
+  const amt = Number.isFinite(amount) ? amount : 0;
+  if (amt > 0){
+    buyerTotals.set(buyer, (buyerTotals.get(buyer) || 0) + amt);
+
+    // compute top buyer
+    let topName = '';
+    let topTotal = -1;
+    for (const [name, total] of buyerTotals.entries()){
+      if (total > topTotal){ topTotal = total; topName = name; }
+    }
+    setTopBuyer(topName);
+  }
+}
 
 
   function resetAll(){
@@ -1039,7 +1069,8 @@ function setScoreboard(games){
     updateStats();
     renderSoldPanel();
     setHighBid(0);
-
+    setTopBuyer('');
+    setLastSale('');
   }
 
   function nextBreak(){
@@ -1128,7 +1159,12 @@ function setScoreboard(games){
   function handleSSEEvent(data){
     if (!data || !data.type) return;
 
-    if (data.type === 'team_sold'){
+
+
+    
+ /*   ------TEST REMOVING DUPLICATE TEAM SOLD -------
+ 
+      if (data.type === 'team_sold'){
       if (data.code) markSold(data.code);
       if (data.buyer){
         const row = soldList.find(x => x.code === data.code);
@@ -1136,7 +1172,7 @@ function setScoreboard(games){
       }
       if (Number.isFinite(data.amount)) {
   setHighBid(Math.max(highBid, data.amount));
-}
+} */
 
 if (data.type === "team_sold"){
   // If the extension didn’t send a code, infer it from the sale title
@@ -1152,6 +1188,10 @@ if (data.type === "team_sold"){
   if (Number.isFinite(data.amount)) {
     setHighBid(Math.max(highBid, data.amount));
   }
+
+updateBuyerStats(data.buyer, data.amount);
+
+
 }
 
 
