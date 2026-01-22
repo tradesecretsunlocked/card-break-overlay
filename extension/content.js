@@ -71,7 +71,7 @@
       chrome.storage.sync.get(DEFAULTS, (cfg) => {
         resolve({
           bridgeUrl: cleanUrl(cfg.bridgeUrl),
-          bridgeKey: String(cfg.bridgeKey || "")
+          bridgeKey: String(cfg.bridgeKey || "").trim()
         });
       });
     });

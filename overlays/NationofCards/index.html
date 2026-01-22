@@ -1416,20 +1416,26 @@ function connectSSE(url){
   }
 }
 
+function normalizeBridge(u){
+  return String(u||'')
+    .trim()
+    .replace(/\/$/, '')
+    .replace(/\/(events|stream)(\/.*)?$/,''); // strips accidental /events or /stream
+}
+
 function initSSE(){
   if (!BRIDGE_URL){
     setSSEStatus('error', 'missing bridge');
     return;
   }
 
-  // If a key exists, use legacy endpoint. Otherwise use /stream (new bridge style).
-  const url = BRIDGE_KEY
-    ? `${BRIDGE_URL}/events?key=${encodeURIComponent(BRIDGE_KEY)}`
-    : `${BRIDGE_URL}/stream`;
+  const base = normalizeBridge(BRIDGE_URL);
+  const url = `${base}/stream`;
 
   console.log('[SSE] connecting:', url);
   connectSSE(url);
 }
+
 
 
 
