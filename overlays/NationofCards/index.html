@@ -126,6 +126,20 @@
       cursor: pointer;
     }
 
+/* Header Text button: matches pill controls but slightly beefier */
+.header-text-btn{
+  font-size: 13px;
+  padding: 10px 14px;
+  letter-spacing: 1px;
+}
+
+/* Optional: keep it aligned nicely in the control panel row */
+.control-panel .header-text-btn{
+  align-self: center;
+}
+
+
+
     .header-right{
   display:flex;
   align-items:center;
@@ -191,7 +205,7 @@
   border-radius: 12px;
   padding: 4px;
   background: rgba(0, 0, 30, 0.6);
-
+min-width:450px;
   max-height: 100%;
   min-height: 0;          /* IMPORTANT: allows inner scrolling in flex/grid */
   overflow-y: auto;       /* scroll vertically */
@@ -1140,6 +1154,11 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
   text-shadow: 0 3px 10px rgba(0,0,0,0.65);
 }
 
+/* NIL: no conference/division titles */
+.overlay-container.sport-nil .conference-title,
+.overlay-container.sport-nil .division-name {
+  display: none !important;
+}
 
 
   </style>
@@ -1207,7 +1226,8 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
 
 <div id="rotatorModal" class="nil-modal hidden">
   <div class="nil-modal-inner">
-    <h2>Top Box Content</h2>
+   <h2>Header Text</h2>
+
 
     <textarea id="rotatorInput"
       placeholder="One line per side (logo hides automatically)"></textarea>
@@ -1222,7 +1242,10 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
 
 
 
-<button class="btn" onclick="openRotatorModal()">Top Box</button>
+<button id="headerTextBtn" class="sold-toggle-btn header-text-btn" onclick="openRotatorModal()">
+  Header Text
+</button>
+
 
 
 <!-- NIL button (shown only when NIL is selected) -->
@@ -1254,7 +1277,10 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
 
 
 
-<button class="breaknum-apply" onclick="toggleMock()">Mock</button>
+<button id="mockBtn" class="breaknum-apply admin-only" onclick="toggleMock()" style="display:none;">
+  Mock
+</button>
+
 
 
 
@@ -1316,25 +1342,33 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
   return new URLSearchParams(window.location.search).get(name);
 }
 
-function setNilEntries(entries){
-  saveNilEntries(entries);
-  breakTypes.nil = buildNilBreakTypeFromEntries(entries);
-  setBreakType('nil');
+function isAdminMode(){
+  const v = (getQueryParam('admin') || '').toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on';
 }
+
+function applyAdminVisibility(){
+  const show = isAdminMode();
+  const btn = document.getElementById('mockBtn');
+  if (btn) btn.style.display = show ? 'inline-flex' : 'none';
+}
+
+
 function applyNilText(){
-  const raw = document.getElementById('nilTextInput').value;
-  const lines = raw.split('\n')
-    .map(l => l.trim())
-    .filter(Boolean);
+  const el = document.getElementById('nilTextInput');
+  const raw = el ? el.value : '';
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
 
   const entries = lines.map((name, i) => ({
     name,
-    code: makeCodeFromName(name, i)
+    code: makeCodeFromName(name, i),
+    image: ''
   }));
 
   setNilEntries(entries);
   closeNilModal();
 }
+
 
 function importNilCsv(){
   const file = document.getElementById('nilCsvInput').files[0];
@@ -1940,7 +1974,9 @@ function closeRotatorModal(){
 }
 
 function applyRotatorText(){
-  const raw = document.getElementById('rotatorInput')?.value || '';
+  const rotEl = document.getElementById('rotatorInput');
+const raw = rotEl ? rotEl.value : '';
+
   rotatorLines = raw.split('\n').map(l => l.trim()).filter(Boolean);
 
   const img = document.getElementById('rotatorLogo');
@@ -2035,19 +2071,7 @@ function setNilEntries(entries){
   setBreakType('nil');
 }
 
-function applyNilText(){
-  const raw = (document.getElementById('nilTextInput')?.value || '');
-  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
 
-  const entries = lines.map((name, i) => ({
-    name,
-    code: makeCodeFromName(name, i),
-    image: '' // optional later
-  }));
-
-  setNilEntries(entries);
-  closeNilModal();
-}
 
 // CSV handler (first column = name; skips header if it smells like one)
 function parseNilCsv(text){
@@ -2072,7 +2096,7 @@ function parseNilCsv(text){
 
 function applyBreakNumber() {
   const input = document.getElementById('breakNumInput');
-  const val = (input?.value || '').trim();
+  const val = (input && input.value ? input.value : '').trim();
 
   const out = document.getElementById('breakIdDisplay');
   if (out) out.textContent = val || '—';
@@ -2138,9 +2162,8 @@ function makeCodeFromName(name, idx){
 }
 
 function buildNilBreakTypeFromEntries(entries){
-  const safe = (entries || []).filter(e => (e?.name || '').trim().length);
+  const safe = (entries || []).filter(e => e && (e.name || '').trim().length);
 
-  // split evenly into two sides
   const mid = Math.ceil(safe.length / 2);
   const left = safe.slice(0, mid);
   const right = safe.slice(mid);
@@ -2148,7 +2171,7 @@ function buildNilBreakTypeFromEntries(entries){
   const leftTeams = left.map((e, i) => ({
     code: e.code || makeCodeFromName(e.name, i),
     name: e.name,
-    image: e.image || '' // optional
+    image: e.image || ''
   }));
 
   const rightTeams = right.map((e, i) => ({
@@ -2159,7 +2182,7 @@ function buildNilBreakTypeFromEntries(entries){
 
   return {
     name: 'NIL',
-    conferences: ['Left', 'Right'],
+    conferences: ['Left', 'Right'],          // ✅ must be real keys
     divisions: {
       Left: { Spots: leftTeams },
       Right: { Spots: rightTeams }
@@ -2167,6 +2190,7 @@ function buildNilBreakTypeFromEntries(entries){
     scoreboard: []
   };
 }
+
 function updateNilToolsVisibility(){
   const tools = document.getElementById('nilTools');
   if (!tools) return;
@@ -2239,7 +2263,8 @@ function setSSEStatus(state, msg){
 
 function getAnyVisibleTeamCode(){
   const el = document.querySelector('.team[data-team-code]');
-  return el?.dataset?.teamCode || null;
+  return (el && el.dataset && el.dataset.teamCode) ? el.dataset.teamCode : null;
+
 }
 
 
@@ -2307,6 +2332,7 @@ renderTeams();
   renderTeams();
 
   initSSE();
+applyAdminVisibility();
 
   const saved = localStorage.getItem('noc.breakNumber') || '';
   const brandLogo = document.getElementById('brandLogo');
