@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=920, initial-scale=1.0"/>
+  <title>True Card Breaks – Box Break Overlay</title>
+  <style>
+    :root{
+      /* ===== TRUE CARD BREAKS (logo-matched) =====
+         Navy/steel + ice-blue + red banner + gold highlight
+      */
+      --bg0:#060b16;
+      --bg1:#0a1630;
+      --panel:#081225;
+      --tile:#050a14;
+    --goldBorder: rgba(245,200,75,0.85);
+      --ice:#7fd8ff;       /* bright ice blue */
+      --ice2:#2b8fca;      /* deeper blue */
+      --red:#c01821;       /* banner red */
+      --gold:#f5c84b;      /* cross/star gold accent */
+
+      --border: rgba(255,255,255,0.14);
+      --text:#ffffff;
+      --muted: rgba(255,255,255,0.78);
+
+      --tileH: 52px;
+      --gap: 3px;
+
+      --cols: 8;           /* changes per sport */
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      background:transparent;
+      font-family: "Arial Black", Arial, sans-serif;
+      width:920px;
+      min-height:520px;
+      user-select:none;
+    }
+
+    .container{
+      background: radial-gradient(1200px 600px at 30% 0%, rgba(127,216,255,0.10), transparent 55%),
+                  linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 100%);
+      border: 4px solid rgba(127,216,255,0.75);
+      border-radius: 12px;
+      padding: 6px;
+      box-shadow: 0 0 22px rgba(0,0,0,0.65);
+      display:flex;
+      flex-direction:column;
+    }
+
+    /* ===== HEADER ===== */
+    .header{
+      background: linear-gradient(90deg, rgba(8,18,40,1) 0%, rgb(48, 123, 228) 53%, rgba(8,18,40,1) 100%);
+      color: var(--text);
+      padding: 6px 10px;
+      margin: -6px -6px 6px -6px;
+      border-radius: 6px 6px 0 0;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap:10px;
+      border-bottom: 2px solid rgba(255,255,255,0.10);
+    }
+
+    .header-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 0;
+    }
+
+    .header-icon{
+      width:18px;height:18px;border-radius:50%;
+      border:2px solid rgba(255,255,255,0.92);
+      background: radial-gradient(circle at 30% 30%, var(--gold), var(--red));
+      box-shadow: 0 0 10px rgba(0,0,0,0.7);
+      flex: 0 0 auto;
+    }
+
+    .header-text{
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-right{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex: 0 0 auto;
+    }
+
+    .break-pill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 2px solid var(--goldBorder);
+      background: rgba(0,0,0,0.25);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .break-pill .label{
+      opacity: 0.95;
+      font-size: 19px;
+    }
+    .break-pill .value{
+      font-size: 19px;
+      color: #fff;
+    }
+
+    .header-banner{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      max-width: 220px;
+    }
+    .header-banner img{
+      max-height: 34px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 7px rgba(0,0,0,0.6));
+    }
+
+    /* ===== MAIN WRAPPER ===== */
+    .main-content{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+
+    .teams-wrapper{
+      background: linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.55) 100%);
+      border-radius: 8px;
+      padding: 6px;
+      border: 3px solid rgba(127,216,255,0.65);
+    }
+
+    /* ===== GENERIC ROW GRID ===== */
+    .row-grid{
+      display:grid;
+      gap: var(--gap);
+      margin-bottom: 6px;
+      grid-template-columns: repeat(var(--cols), 1fr);
+      align-items: stretch;
+    }
+
+    .team{
+      background: #000;
+      border: 2px solid rgba(127,216,255,0.70);
+      border-radius: 6px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      position:relative;
+      height: var(--tileH);
+      overflow:hidden;
+      transition: transform 0.1s, box-shadow 0.1s, border-color 0.2s;
+    }
+
+    .team:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 0 9px rgba(255,255,255,0.18);
+      border-color: rgba(245,200,75,0.65);
+    }
+
+    .team img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    .team img.nfl-small,
+    .team img.nhl-small{
+      object-fit: cover;
+    }
+
+    .team .fallback-code{
+      color:#fff;
+      font-size: 14px;
+      letter-spacing: 1px;
+      opacity: 0.9;
+    }
+
+    .team.sold img{
+      opacity: 0.22;
+      filter: grayscale(100%) brightness(0.35);
+    }
+
+    .team.flash{
+      animation: soldFlash 260ms ease;
+    }
+    @keyframes soldFlash{
+      0%{ box-shadow: 0 0 0 rgba(127,216,255,0.0); }
+      50%{ box-shadow: 0 0 18px rgba(127,216,255,0.65); }
+      100%{ box-shadow: 0 0 0 rgba(127,216,255,0.0); }
+    }
+
+    .team.sold::after{
+      content:"X";
+      position:absolute;
+      font-size: 20px;
+      color: #ffffff;
+      text-shadow: 0 0 3px #000;
+      z-index: 10;
+      background: rgba(192,24,33,0.95);
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid #ffffff;
+    }
+
+    /* ===== LOGO SLOT (IN GRID) ===== */
+    .logo-slot{
+      border-radius: 10px;
+      height: calc(var(--tileH) * 1);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+      border: 2px solid rgba(255,255,255,0.14);
+      overflow:hidden;
+    }
+    .logo-slot img{
+      max-height: 85%;
+      max-width: 11%;
+      object-fit: cover;
+      position:absolute;
+      top: 0px;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.55));
+    }
+
+    /* ===== TICKER ROW ===== */
+    .ticker-slot{
+      border-radius: 10px;
+      height: var(--tileH);
+      display:flex;
+      align-items:center;
+      overflow:hidden;
+      background: linear-gradient(90deg, rgba(127,216,255,0.16), rgba(245,200,75,0.10), rgba(192,24,33,0.10));
+      border: 2px solid var(--goldBorder);
+      padding: 0 10px;
+    }
+
+    .ticker-text{
+      display:inline-block;
+      white-space: nowrap;
+      padding-left: 100%;
+      animation: tickerScroll 22s linear infinite;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      color: #fff;
+      font-size: 22px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.55);
+    }
+    @keyframes tickerScroll{
+      0%{ transform: translateX(0); }
+      100%{ transform: translateX(-100%); }
+    }
+
+    /* ===== CONTROLS ROW ===== */
+    .controls-row{
+      margin-top: 6px;
+      display:flex;
+      grid-template-columns: 1fr 0.75fr minmax(120px,1fr) 0.75fr 1fr;
+      gap: 6px;
+      align-items: stretch;
+      flex-direction: row;
+      justify-content: space-evenly;
+    }
+
+    .stat-box{
+      background: linear-gradient(135deg, rgba(10,32,62,1) 0%, rgba(8,18,40,1) 100%);
+      color:#fff;
+      border-radius: 8px;
+      text-align:center;
+      font-weight:900;
+      padding: 4px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      display:flex;
+      flex-direction:column;
+      min-width:150px;
+      justify-content:center;
+      font-size: 18px;
+      border: 2px solid var(--goldBorder);
+    }
+
+    .stat-label{
+      font-size: 11px;
+      letter-spacing: 1px;
+      margin-top: 2px;
+      opacity: 0.95;
+    }
+
+    .btn{
+      background: linear-gradient(135deg, rgba(127,216,255,1) 0%, rgba(43,143,202,1) 100%);
+      color:#fff;
+      border: 2px solid var(--goldBorder);
+      border-radius: 8px;
+      cursor:pointer;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 6px;
+      padding: 10px 10px;
+    }
+
+    .btn.secondary{
+      background: linear-gradient(135deg, rgba(192,24,33,0.95) 0%, rgba(110,10,14,0.95) 100%);
+      border: 2px solid var(--goldBorder);
+    }
+
+    .btn.ghost{
+      background: linear-gradient(135deg, rgba(10,32,62,1) 0%, rgba(8,18,40,1) 100%);
+      border: 2px solid var(--goldBorder);
+    }
+
+    .btn:active{
+      transform: translateY(1px);
+      box-shadow:none;
+    }
+
+    /* ===== SOLD LIST ===== */
+    .sold-list-container{
+      margin: 8px auto 0 auto;
+      width: 100%;
+      background: linear-gradient(180deg, rgba(6,11,22,1) 0%, rgba(10,22,48,1) 100%);
+      border: 3px solid rgba(127,216,255,0.65);
+      border-radius: 8px;
+      padding: 6px 7px 8px;
+      text-align:center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+    }
+
+    .sold-top-row{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .sold-list-title{
+      font-size: 16px;
+      font-weight: 900;
+      color:#ffffff;
+      letter-spacing: 1px;
+      text-align:left;
+      padding-left: 2px;
+    }
+
+    .sold-controls{
+      display:flex;
+      gap: 6px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap: wrap;
+    }
+
+    .break-set{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      padding: 4px 6px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.25);
+    }
+
+    .break-set input{
+      width: 90px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.30);
+      color:#fff;
+      font-weight: 900;
+      outline:none;
+      text-align:center;
+    }
+
+    .sold-list-grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px 12px;
+    }
+
+    .sold-row{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      margin-bottom: 2px;
+      background: rgba(0,0,0,0.60);
+      border-radius: 7px;
+      padding: 2px 4px;
+      border: 2px solid rgba(127,216,255,0.65);
+    }
+
+    .sold-team-img{
+      width: 24px;
+      height: 24px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #ffffff;
+      background:#000;
+    }
+
+    .sold-team-name{
+      font-weight: 900;
+      color:#f9fafb;
+      min-width: 60px;
+      text-transform: capitalize;
+      font-size: 13px;
+      opacity: 0.95;
+    }
+
+    .sold-buyer-input{
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      font-weight: 800;
+      padding: 2px 4px;
+      width: 100%;
+      background: rgba(0,0,0,0.35);
+      color:#f9fafb;
+      outline:none;
+    }
+
+.ticker-edit{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(0,0,0,0.25);
+}
+
+.ticker-edit input{
+  width: 200px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 2px solid var(--goldBorder);
+  background: rgba(0,0,0,0.30);
+  color:#fff;
+  font-weight: 900;
+  outline:none;
+}
+
+
+    /* ===== SSE STATUS (optional) ===== */
+    .sse{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0.95;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.18);
+    }
+    .sse .dot{
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #666;
+      box-shadow: 0 0 8px rgba(255,255,255,0.15);
+    }
+    .sse.connected .dot{ background: #3cff8a; box-shadow: 0 0 10px rgba(60,255,138,0.7); }
+    .sse.error .dot{ background: #ff2f2f; box-shadow: 0 0 10px rgba(255,47,47,0.7); }
+
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header" id="header">
+      <div class="header-left">
+        <div class="header-icon"></div>
+        <div class="header-text" id="headerText">NBA BOX BREAK</div>
+
+      </div>
+
+      <div class="header-right">
+        <div class="break-pill">
+          <span class="label">Break #</span>
+          <span class="value" id="breakNumberDisplay">1</span>
+        </div>
+
+        
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="teams-wrapper" id="teamsWrapper">
+        <!-- rows injected here -->
+      </div>
+
+      <div class="controls-row">
+        <button class="btn secondary" onclick="newBreak()">🧾 NEW BREAK</button>
+
+        <div class="stat-box">
+          <div id="teamsLeft">0</div>
+          <div class="stat-label">REMAINING</div>
+        </div>
+
+        
+
+        <div class="stat-box">
+          <div id="teamsSold">0</div>
+          <div class="stat-label">SOLD</div>
+        </div>
+
+        <button class="btn ghost" onclick="cycleSport()">⚙ CHANGE SPORT</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sold-list-container">
+    <div class="sold-top-row">
+      <div class="sold-list-title">SOLD TEAMS</div>
+
+      <div class="sold-controls">
+        <div class="break-set">
+          <input id="breakSetInput" type="text" placeholder="Break #" />
+          <button class="btn" style="padding:8px 10px; font-size:12px;" onclick="applyBreakNumber()">SET</button>
+          <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="incrementBreak()">+1</button>
+        </div>
+
+<div class="ticker-edit">
+  <input id="tickerInput" type="text" placeholder="Ticker text..." />
+  <button class="btn ghost" style="padding:8px 10px; font-size:14px;" onclick="applyTicker()">APPLY</button>
+</div>
+
+
+
+        <div class="sse" id="sseStatus">
+          SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="soldList" class="sold-list-grid"></div>
+  </div>
+
+<script>
+  // ===== Base path (GitHub Pages + local folders) =====
+  const BASE = (() => {
+    const isGhPages = location.hostname.endsWith('github.io');
+    if (isGhPages) {
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repo = parts.length ? parts[0] : '';
+      return `/${repo}/`;
+    }
+    return '../..\/';
+  })();
+
+  // ===== File structure you should use =====
+  // ../../images/logos/true-card-breaks-logo.png
+  // ../../images/nfl/*.png
+  // ../../images/nba/*.png
+  // ../../images/mlb/*.png
+  // ../../images/nhl/*.png
+
+  const LOGO_PRIMARY = `${BASE}images/logos/true-card-breaks-logo.png`;
+
+  const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+  const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
+  const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
+  const imgPathNHL = (f) => `${BASE}images/nhl/${f}`;
+
+ const TICKER_KEY = "tcb.tickerLines";
+const DEFAULT_TICKER_LINES = [
+  "TRUE CARD BREAKS",
+  "LIVE BREAKS • FAST SHIPPING • GOOD LUCK"
+];
+
+function loadTickerLines(){
+  try{
+    const raw = localStorage.getItem(TICKER_KEY);
+    if (!raw) return DEFAULT_TICKER_LINES.slice();
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr) && arr.length) return arr.map(s => String(s));
+  }catch(_){}
+  return DEFAULT_TICKER_LINES.slice();
+}
+
+function saveTickerLines(lines){
+  localStorage.setItem(TICKER_KEY, JSON.stringify(lines));
+}
+
+let TICKER_LINES = loadTickerLines();
+// keep the OBS input populated
+document.addEventListener("DOMContentLoaded", syncTickerInput);
+
+
+function refreshTickerText(){
+  const t = ` ${TICKER_LINES.join("   •   ")} `;
+  document.querySelectorAll(".ticker-text").forEach(el => {
+    el.textContent = t;
+    // restart animation so changes show immediately
+    el.style.animation = "none";
+    void el.offsetHeight;
+    el.style.animation = "tickerScroll 22s linear infinite";
+  });
+}
+
+function setTickerLines(lines){
+  TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
+  saveTickerLines(TICKER_LINES);
+  refreshTickerText();
+  syncTickerInput();
+}
+
+
+function applyTicker(){
+  const raw = (document.getElementById("tickerInput")?.value || "").trim();
+  // support either bullets or plain text
+  const parts = raw.includes("•")
+    ? raw.split("•").map(s => s.trim()).filter(Boolean)
+    : [raw].filter(Boolean);
+
+  setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+}
+
+function syncTickerInput(){
+  const inp = document.getElementById("tickerInput");
+  if (!inp) return;
+  inp.value = TICKER_LINES.join(" • ");
+}
+
+
+
+  // ===== Break number persistence =====
+  const BREAK_KEY = "tcb.breakNumber";
+  function loadBreakNumber(){
+    const raw = localStorage.getItem(BREAK_KEY);
+    const n = parseInt(raw || "1", 10);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  }
+  function saveBreakNumber(n){
+    localStorage.setItem(BREAK_KEY, String(n));
+  }
+  function setBreakNumber(n){
+    const safe = Number.isFinite(n) && n > 0 ? n : 1;
+    document.getElementById("breakNumberDisplay").textContent = String(safe);
+    const setInput = document.getElementById("breakSetInput");
+    if (setInput) setInput.value = String(safe);
+    saveBreakNumber(safe);
+  }
+  function incrementBreak(){
+    setBreakNumber(loadBreakNumber() + 1);
+  }
+  function applyBreakNumber(){
+    const val = (document.getElementById("breakSetInput")?.value || "").trim();
+    const n = parseInt(val, 10);
+    setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
+  }
+
+  // ===== Sport configs (layout matches DrayBreaks logic) =====
+  const breakTypes = {
+    nba: {
+      name: "NBA",
+      cols: 8,
+      layout: "NBA_MLB_30",
+      teams: [
+        { code:'ATL', name:'hawks', image: imgPathNBA('hawks.png') },
+        { code:'BOS', name:'celtics', image: imgPathNBA('celtics.png') },
+        { code:'BKN', name:'nets', image: imgPathNBA('nets.png') },
+        { code:'CHA', name:'hornets', image: imgPathNBA('hornets.png') },
+        { code:'CHI', name:'bulls', image: imgPathNBA('bulls.png') },
+        { code:'CLE', name:'cavaliers', image: imgPathNBA('cavaliers.png') },
+        { code:'DAL', name:'mavericks', image: imgPathNBA('mavericks.png') },
+        { code:'DEN', name:'nuggets', image: imgPathNBA('nuggets.png') },
+        { code:'DET', name:'pistons', image: imgPathNBA('pistons.png') },
+        { code:'GSW', name:'warriors', image: imgPathNBA('warriors.png') },
+        { code:'HOU', name:'rockets', image: imgPathNBA('rockets.png') },
+        { code:'IND', name:'pacers', image: imgPathNBA('pacers.png') },
+        { code:'LAC', name:'clippers', image: imgPathNBA('clippers.png') },
+        { code:'LAL', name:'lakers', image: imgPathNBA('lakers.png') },
+        { code:'MEM', name:'grizzlies', image: imgPathNBA('grizzlies.png') },
+        { code:'MIA', name:'heat', image: imgPathNBA('heat.png') },
+        { code:'MIL', name:'bucks', image: imgPathNBA('bucks.png') },
+        { code:'MIN', name:'timberwolves', image: imgPathNBA('timberwolves.png') },
+        { code:'NOP', name:'pelicans', image: imgPathNBA('pelicans.png') },
+        { code:'NYK', name:'knicks', image: imgPathNBA('knicks.png') },
+        { code:'OKC', name:'thunder', image: imgPathNBA('thunder.png') },
+        { code:'ORL', name:'magic', image: imgPathNBA('magic.png') },
+        { code:'PHI', name:'76ers', image: imgPathNBA('76ers.png') },
+        { code:'PHX', name:'suns', image: imgPathNBA('suns.png') },
+        { code:'POR', name:'blazers', image: imgPathNBA('blazers.png') },
+        { code:'SAC', name:'kings', image: imgPathNBA('kings.png') },
+        { code:'SAS', name:'spurs', image: imgPathNBA('spurs.png') },
+        { code:'TOR', name:'raptors', image: imgPathNBA('raptors.png') },
+        { code:'UTA', name:'jazz', image: imgPathNBA('jazz.png') },
+        { code:'WAS', name:'wizards', image: imgPathNBA('wizards.png') }
+      ]
+    },
+
+    mlb: {
+      name: "MLB",
+      cols: 8,
+      layout: "NBA_MLB_30",
+      teams: [
+        { code:'ARI', name:'diamondbacks', image: imgPathMLB('diamondbacks.png') },
+        { code:'ATL', name:'braves', image: imgPathMLB('braves.png') },
+        { code:'BAL', name:'orioles', image: imgPathMLB('orioles.png') },
+        { code:'BOS', name:'red sox', image: imgPathMLB('redsox.png') },
+        { code:'CHC', name:'cubs', image: imgPathMLB('cubs.png') },
+        { code:'CHW', name:'white sox', image: imgPathMLB('whitesox.png') },
+        { code:'CIN', name:'reds', image: imgPathMLB('reds.png') },
+        { code:'CLE', name:'guardians', image: imgPathMLB('guardians.png') },
+        { code:'COL', name:'rockies', image: imgPathMLB('rockies.png') },
+        { code:'DET', name:'tigers', image: imgPathMLB('tigers.png') },
+        { code:'HOU', name:'astros', image: imgPathMLB('astros.png') },
+        { code:'KC', name:'royals', image: imgPathMLB('royals.png') },
+        { code:'LAA', name:'angels', image: imgPathMLB('angels.png') },
+        { code:'LAD', name:'dodgers', image: imgPathMLB('dodgers.png') },
+        { code:'MIA', name:'marlins', image: imgPathMLB('marlins.png') },
+        { code:'MIL', name:'brewers', image: imgPathMLB('brewers.png') },
+        { code:'MIN', name:'twins', image: imgPathMLB('twins.png') },
+        { code:'NYM', name:'mets', image: imgPathMLB('mets.png') },
+        { code:'NYY', name:'yankees', image: imgPathMLB('yankees.png') },
+        { code:'OAK', name:'athletics', image: imgPathMLB('athletics.png') },
+        { code:'PHI', name:'phillies', image: imgPathMLB('phillies.png') },
+        { code:'PIT', name:'pirates', image: imgPathMLB('pirates.png') },
+        { code:'SD', name:'padres', image: imgPathMLB('padres.png') },
+        { code:'SF', name:'giants', image: imgPathMLB('giants.png') },
+        { code:'SEA', name:'mariners', image: imgPathMLB('mariners.png') },
+        { code:'STL', name:'cardinals', image: imgPathMLB('cardinals.png') },
+        { code:'TB', name:'rays', image: imgPathMLB('rays.png') },
+        { code:'TEX', name:'rangers', image: imgPathMLB('rangers.png') },
+        { code:'TOR', name:'blue jays', image: imgPathMLB('bluejays.png') },
+        { code:'WSH', name:'nationals', image: imgPathMLB('nationals.png') }
+      ]
+    },
+
+    nfl: {
+      name: "NFL",
+      cols: 10,
+      layout: "NFL_32",
+      teams: [
+        { code:'ARI', name:'cardinals', image: imgPathNFL('cardinals.png') },
+        { code:'ATL', name:'falcons', image: imgPathNFL('falcons.png') },
+        { code:'BAL', name:'ravens', image: imgPathNFL('ravens.png') },
+        { code:'BUF', name:'bills', image: imgPathNFL('bills.png') },
+        { code:'CAR', name:'panthers', image: imgPathNFL('panthers.png') },
+        { code:'CHI', name:'bears', image: imgPathNFL('bears.png') },
+        { code:'CIN', name:'bengals', image: imgPathNFL('bengals.png') },
+        { code:'CLE', name:'browns', image: imgPathNFL('browns.png') },
+        { code:'DAL', name:'cowboys', image: imgPathNFL('cowboys.png') },
+        { code:'DEN', name:'broncos', image: imgPathNFL('broncos.png') },
+
+        { code:'DET', name:'lions', image: imgPathNFL('lions.png') },
+        { code:'GB', name:'packers', image: imgPathNFL('packers.png') },
+        { code:'HOU', name:'texans', image: imgPathNFL('texans.png') },
+        { code:'IND', name:'colts', image: imgPathNFL('colts.png') },
+        { code:'JAX', name:'jaguars', image: imgPathNFL('jaguars.png') },
+        { code:'KC', name:'chiefs', image: imgPathNFL('chiefs.png') },
+        { code:'LV', name:'raiders', image: imgPathNFL('raiders.png') },
+        { code:'LAC', name:'chargers', image: imgPathNFL('chargers.png') },
+        { code:'LAR', name:'rams', image: imgPathNFL('rams.png') },
+        { code:'MIA', name:'dolphins', image: imgPathNFL('dolphins.png') },
+
+        { code:'MIN', name:'vikings', image: imgPathNFL('vikings.png') },
+        { code:'NE', name:'patriots', image: imgPathNFL('patriots.png') },
+        { code:'NO', name:'saints', image: imgPathNFL('saints.png') },
+        { code:'NYG', name:'giants', image: imgPathNFL('giants.png') },
+        { code:'NYJ', name:'jets', image: imgPathNFL('jets.png') },
+        { code:'PHI', name:'eagles', image: imgPathNFL('eagles.png') },
+        { code:'PIT', name:'steelers', image: imgPathNFL('steelers.png') },
+        { code:'SF', name:'49ers', image: imgPathNFL('49ers.png') },
+        { code:'SEA', name:'seahawks', image: imgPathNFL('seahawks.png') },
+        { code:'TB', name:'buccaneers', image: imgPathNFL('buccaneers.png') },
+
+        { code:'TEN', name:'titans', image: imgPathNFL('titans.png') },
+        { code:'WAS', name:'commanders', image: imgPathNFL('commanders.png') }
+      ]
+    },
+
+    nhl: {
+      name: "NHL",
+      cols: 8,
+      layout: "NHL_32",
+      teams: [
+        // Eastern - Atlantic
+        { code:'BOS', name:'bruins', image: imgPathNHL('bruins.png') },
+        { code:'BUF', name:'sabres', image: imgPathNHL('sabres.png') },
+        { code:'DET', name:'red wings', image: imgPathNHL('redwings.png') },
+        { code:'FLA', name:'panthers', image: imgPathNHL('panthers.png') },
+        { code:'MTL', name:'canadiens', image: imgPathNHL('canadiens.png') },
+        { code:'OTT', name:'senators', image: imgPathNHL('senators.png') },
+        { code:'TBL', name:'lightning', image: imgPathNHL('lightning.png') },
+        { code:'TOR', name:'maple leafs', image: imgPathNHL('maple_leafs.png') },
+
+        // Eastern - Metro
+        { code:'CAR', name:'hurricanes', image: imgPathNHL('hurricanes.png') },
+        { code:'CBJ', name:'blue jackets', image: imgPathNHL('bluejackets.png') },
+        { code:'NJD', name:'devils', image: imgPathNHL('devils.png') },
+        { code:'NYI', name:'islanders', image: imgPathNHL('islanders.png') },
+        { code:'NYR', name:'rangers', image: imgPathNHL('rangers.png') },
+        { code:'PHI', name:'flyers', image: imgPathNHL('flyers.png') },
+        { code:'PIT', name:'penguins', image: imgPathNHL('penguins.png') },
+        { code:'WSH', name:'capitals', image: imgPathNHL('capitals.png') },
+
+        // Western - Central
+        { code:'UTH', name:'mammoth', image: imgPathNHL('mammoth.png') }, /* Utah placeholder image */
+        { code:'CHI', name:'blackhawks', image: imgPathNHL('blackhawks.png') },
+        { code:'COL', name:'avalanche', image: imgPathNHL('avalanche.png') },
+        { code:'DAL', name:'stars', image: imgPathNHL('stars.png') },
+        { code:'MIN', name:'wild', image: imgPathNHL('wild.png') },
+        { code:'NSH', name:'predators', image: imgPathNHL('predators.png') },
+        { code:'STL', name:'blues', image: imgPathNHL('blues.png') },
+        { code:'WPG', name:'jets', image: imgPathNHL('jets.png') },
+
+        // Western - Pacific
+        { code:'ANA', name:'ducks', image: imgPathNHL('ducks.png') },
+        { code:'CGY', name:'flames', image: imgPathNHL('flames.png') },
+        { code:'EDM', name:'oilers', image: imgPathNHL('oilers.png') },
+        { code:'LAK', name:'kings', image: imgPathNHL('kings.png') },
+        { code:'SEA', name:'kraken', image: imgPathNHL('kraken.png') },
+        { code:'SJS', name:'sharks', image: imgPathNHL('sharks.png') },
+        { code:'VAN', name:'canucks', image: imgPathNHL('canucks.png') },
+        { code:'VGK', name:'golden knights', image: imgPathNHL('golden_knights.png') }
+      ]
+    }
+  };
+
+  // ===== State =====
+  let currentBreakType = "nba";
+  let soldTeams = new Set();        // codes
+  let soldTeamsList = [];           // {code,buyer}
+
+  // ===== Header =====
+  function setHeader(){
+    const b = breakTypes[currentBreakType];
+    document.getElementById("headerText").textContent = `${b.name} BOX BREAK`;
+
+  }
+
+  // ===== Tile builders =====
+  function makeTeamDiv(team){
+    const d = document.createElement("div");
+    d.className = "team";
+    d.dataset.teamCode = String(team.code || "");
+
+    d.onclick = () => toggleTeam(team.code);
+
+    if (team.image){
+      const img = document.createElement("img");
+      img.src = team.image;
+      img.alt = team.name || team.code || "";
+
+      if (currentBreakType === "nfl") img.classList.add("nfl-small");
+      if (currentBreakType === "nhl") img.classList.add("nhl-small");
+
+      img.onerror = () => {
+        d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
+      };
+      d.appendChild(img);
+    } else {
+      d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
+    }
+
+    // restore sold visual if needed
+    if (soldTeams.has(team.code)) d.classList.add("sold");
+
+    return d;
+  }
+
+  function makeLogoSlot(spanCols){
+    const slot = document.createElement("div");
+    slot.className = "logo-slot";
+    slot.style.gridColumn = `span ${spanCols}`;
+
+    const img = document.createElement("img");
+    img.src = LOGO_PRIMARY;
+    img.alt = "True Card Breaks Logo";
+    slot.appendChild(img);
+    return slot;
+  }
+
+  function makeTickerSlot(spanCols){
+    const slot = document.createElement("div");
+    slot.className = "ticker-slot";
+    slot.style.gridColumn = `span ${spanCols}`;
+
+    const text = document.createElement("span");
+    text.className = "ticker-text";
+    text.textContent = ` ${TICKER_LINES.join("   •   ")} `;
+    slot.appendChild(text);
+    return slot;
+  }
+
+  // ===== Layout builder =====
+  function buildLayout(){
+    const wrap = document.getElementById("teamsWrapper");
+    wrap.innerHTML = "";
+
+    const config = breakTypes[currentBreakType];
+    document.documentElement.style.setProperty("--cols", String(config.cols));
+
+    const teams = config.teams;
+
+    // NOTE: We intentionally do NOT clear sold state when switching sport via SSE.
+    // When changing sport locally, you usually want a clean board, so we clear here:
+    soldTeams.clear();
+    soldTeamsList = [];
+
+    if (config.layout === "NBA_MLB_30"){
+      // 8 cols
+      // Row1: 3 teams, logo(2), 3 teams => 6 teams
+      // Row2-4: 8 teams each => 24 teams
+      // Row5: ticker span 8
+      let idx = 0;
+
+      const r1 = document.createElement("div");
+      r1.className = "row-grid";
+      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      r1.appendChild(makeLogoSlot(2));
+      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r1);
+
+      for (let r=0;r<3;r++){
+        const row = document.createElement("div");
+        row.className = "row-grid";
+        for (let i=0;i<8;i++) row.appendChild(makeTeamDiv(teams[idx++]));
+        wrap.appendChild(row);
+      }
+
+      const r5 = document.createElement("div");
+      r5.className = "row-grid";
+      r5.appendChild(makeTickerSlot(8));
+      wrap.appendChild(r5);
+    }
+
+    if (config.layout === "NFL_32"){
+      // 10 cols
+      // Row1: 4 teams, logo(2), 4 teams => 8
+      // Row2: 10
+      // Row3: 10
+      // Row4: 2, ticker(6), 2 => 4
+      let idx = 0;
+
+      const r1 = document.createElement("div");
+      r1.className = "row-grid";
+      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      r1.appendChild(makeLogoSlot(2));
+      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r1);
+
+      const r2 = document.createElement("div");
+      r2.className = "row-grid";
+      for (let i=0;i<10;i++) r2.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r2);
+
+      const r3 = document.createElement("div");
+      r3.className = "row-grid";
+      for (let i=0;i<10;i++) r3.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r3);
+
+      const r4 = document.createElement("div");
+      r4.className = "row-grid";
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      r4.appendChild(makeTickerSlot(6));
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r4);
+    }
+
+    if (config.layout === "NHL_32"){
+      // 8 cols (custom to keep it tight + balanced)
+      // Row1: 2 teams, logo(4), 2 teams => 4 teams
+      // Row2: 8
+      // Row3: 8
+      // Row4: 8
+      // Row5: 2 teams, ticker(4), 2 teams => 4 teams
+      let idx = 0;
+
+      const r1 = document.createElement("div");
+      r1.className = "row-grid";
+      r1.appendChild(makeTeamDiv(teams[idx++]));
+      r1.appendChild(makeTeamDiv(teams[idx++]));
+      r1.appendChild(makeLogoSlot(4));
+      r1.appendChild(makeTeamDiv(teams[idx++]));
+      r1.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r1);
+
+      for (let r=0;r<3;r++){
+        const row = document.createElement("div");
+        row.className = "row-grid";
+        for (let i=0;i<8;i++) row.appendChild(makeTeamDiv(teams[idx++]));
+        wrap.appendChild(row);
+      }
+
+      const r5 = document.createElement("div");
+      r5.className = "row-grid";
+      r5.appendChild(makeTeamDiv(teams[idx++]));
+      r5.appendChild(makeTeamDiv(teams[idx++]));
+      r5.appendChild(makeTickerSlot(4));
+      r5.appendChild(makeTeamDiv(teams[idx++]));
+      r5.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r5);
+    }
+
+    setHeader();
+    refreshTickerText();
+    updateStats();
+    updateSoldList();
+  }
+
+  // ===== Sold toggle + list =====
+  function toggleTeam(code, buyerFromSSE=""){
+    const tile = document.querySelector(`[data-team-code="${code}"]`);
+    if (!tile) return;
+
+    const listIndex = soldTeamsList.findIndex(e => e.code === code);
+
+    if (soldTeams.has(code)){
+      soldTeams.delete(code);
+      tile.classList.remove("sold");
+      if (listIndex !== -1) soldTeamsList.splice(listIndex, 1);
+    } else {
+      soldTeams.add(code);
+      tile.classList.add("sold");
+      tile.classList.add("flash");
+      setTimeout(()=>tile.classList.remove("flash"), 280);
+
+      if (listIndex === -1) soldTeamsList.push({ code, buyer: buyerFromSSE || "" });
+    }
+
+    updateStats();
+    updateSoldList();
+  }
+
+  function updateStats(){
+    const total = breakTypes[currentBreakType].teams.length;
+    const sold = soldTeams.size;
+    document.getElementById("teamsLeft").textContent = String(total - sold);
+    document.getElementById("teamsSold").textContent = String(sold);
+  }
+
+  function updateSoldList(){
+    const soldListDiv = document.getElementById("soldList");
+    soldListDiv.innerHTML = "";
+    const currentBreak = breakTypes[currentBreakType];
+
+    soldTeamsList.forEach(entry => {
+      const team = currentBreak.teams.find(t => t.code === entry.code);
+      if (!team) return;
+
+      const row = document.createElement("div");
+      row.className = "sold-row";
+
+      if (team.image){
+        const img = document.createElement("img");
+        img.src = team.image;
+        img.className = "sold-team-img";
+        row.appendChild(img);
+      }
+
+      const name = document.createElement("span");
+      name.className = "sold-team-name";
+      name.textContent = team.name || team.code;
+      row.appendChild(name);
+
+      const input = document.createElement("input");
+      input.className = "sold-buyer-input";
+      input.type = "text";
+      input.placeholder = "Buyer";
+      input.value = entry.buyer || "";
+      input.oninput = (e) => {
+        entry.buyer = e.target.value;
+        // optional outbound hook: send buyer update to your bridge if you add POST later
+      };
+      row.appendChild(input);
+
+      soldListDiv.appendChild(row);
+    });
+  }
+
+  function resetAll(){
+    soldTeams.clear();
+    soldTeamsList = [];
+    document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
+    updateStats();
+    updateSoldList();
+  }
+
+  // NEW BREAK = reset + increment break #
+  function newBreak(){
+    resetAll();
+    incrementBreak();
+  }
+
+  function cycleSport(){
+    const types = Object.keys(breakTypes);
+    const idx = types.indexOf(currentBreakType);
+    currentBreakType = types[(idx + 1) % types.length];
+    buildLayout();
+  }
+
+  function setSport(type){
+    if (!breakTypes[type]) return;
+    currentBreakType = type;
+    buildLayout();
+  }
+
+  // ===== SSE Bridge (EventSource /stream) =====
+  let sse = null;
+
+  const BRIDGE_URL = (() => {
+    const q = new URLSearchParams(location.search).get('bridge');
+    if (q) {
+      const cleaned = q.replace(/\/$/, '');
+      localStorage.setItem('tcb.bridge', cleaned);
+      return cleaned;
+    }
+    const saved = localStorage.getItem('tcb.bridge');
+    return saved ? saved.replace(/\/$/, '') : "";
+  })();
+
+  function normalizeBridge(u){
+    return String(u||'')
+      .trim()
+      .replace(/\/$/, '')
+      .replace(/\/(events|stream)(\/.*)?$/,'');
+  }
+
+  function setSSEStatus(state, msg){
+    const wrap = document.getElementById('sseStatus');
+    const txt = document.getElementById('sseText');
+    if (!wrap || !txt) return;
+
+    wrap.classList.remove('connected','error');
+    if (state === 'connected') wrap.classList.add('connected');
+    if (state === 'error') wrap.classList.add('error');
+
+    txt.textContent = msg || state || "OFF";
+  }
+
+  function connectSSE(url){
+    if (sse) { try { sse.close(); } catch(_){} }
+    setSSEStatus('error', 'CONNECTING');
+
+    try{
+      sse = new EventSource(url);
+
+      sse.onopen = () => {
+        setSSEStatus('connected', 'ON');
+      };
+
+      sse.onmessage = (e) => {
+        try{
+          const data = JSON.parse(e.data);
+          handleSSEEvent(data);
+        }catch(_){
+          // ignore
+        }
+      };
+
+      sse.onerror = () => {
+        setSSEStatus('error', 'RETRY');
+        try { sse.close(); } catch(_) {}
+        sse = null;
+        setTimeout(() => connectSSE(url), 2500);
+      };
+    }catch(_){
+      setSSEStatus('error', 'FAILED');
+    }
+  }
+
+  function initSSE(){
+    if (!BRIDGE_URL){
+      setSSEStatus('error', 'OFF');
+      return;
+    }
+    const base = normalizeBridge(BRIDGE_URL);
+    const url = `${base}/stream`;
+    connectSSE(url);
+  }
+
+  // Expected SSE payload examples:
+  // { "type":"team_sold", "sport":"nba", "code":"LAL", "buyer":"Mike" }
+  // { "type":"team_unsold", "code":"LAL" }
+  // { "type":"buyer_update", "code":"LAL", "buyer":"Mike" }
+  // { "type":"reset" }
+  // { "type":"set_break", "value":"12" }
+  // { "type":"set_sport", "sport":"nfl" }
+  function handleSSEEvent(data){
+    switch (data.type){
+      case 'team_sold':
+        if (data.sport && data.sport !== currentBreakType) return;
+        sseMarkSold(data.code, data.buyer || "");
+        break;
+
+      case 'team_unsold':
+        sseMarkUnsold(data.code);
+        break;
+
+      case 'buyer_update':
+        sseUpdateBuyer(data.code, data.buyer || "");
+        break;
+
+      case 'reset':
+        resetAll();
+        break;
+
+      case 'set_break':
+        {
+          const n = parseInt(String(data.value || ""), 10);
+          setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
+        }
+        break;
+
+      case 'set_sport':
+        if (data.sport) setSport(data.sport);
+        break;
+    }
+  }
+
+  function sseMarkSold(code, buyer=""){
+    if (!code) return;
+    if (soldTeams.has(code)) return;
+    soldTeams.add(code);
+    soldTeamsList.push({ code, buyer });
+
+    const tile = document.querySelector(`[data-team-code="${code}"]`);
+    if (tile){
+      tile.classList.add("sold");
+      tile.classList.add("flash");
+      setTimeout(()=>tile.classList.remove("flash"), 280);
+    }
+
+    updateStats();
+    updateSoldList();
+  }
+
+  function sseMarkUnsold(code){
+    if (!code) return;
+    soldTeams.delete(code);
+    soldTeamsList = soldTeamsList.filter(t => t.code !== code);
+
+    const tile = document.querySelector(`[data-team-code="${code}"]`);
+    if (tile) tile.classList.remove("sold");
+
+    updateStats();
+    updateSoldList();
+  }
+
+  function sseUpdateBuyer(code, buyer){
+    const entry = soldTeamsList.find(t => t.code === code);
+    if (entry) entry.buyer = buyer || "";
+    updateSoldList();
+  }
+
+  // ===== Init =====
+  document.addEventListener("DOMContentLoaded", () => {
+    
+
+    setBreakNumber(loadBreakNumber());
+    buildLayout();
+    const ti = document.getElementById("tickerInput");
+if (ti){
+  ti.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") applyTicker();
+  });
+}
+
+    refreshTickerText();
+    initSSE();
+  });
+</script>
+</body>
+</html>
