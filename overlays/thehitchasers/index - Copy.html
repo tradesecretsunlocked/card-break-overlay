@@ -29,7 +29,7 @@
       --camW: 520px;
       --camH: 300px;
 
-      --bannerH: 85px;
+      --bannerH: 64px;
     }
 
     *{ box-sizing:border-box; }
@@ -450,8 +450,6 @@
   font-weight: 900;
   color: var(--gold2);
   box-shadow: 0 10px 20px rgba(0,0,0,0.35);
-
-  display:none;
 }
 
 .banner-text{
@@ -705,16 +703,15 @@
     <div class="colgrid" id="rightGrid"></div>
   </div>
 
-<div class="infoPanel wick" id="rightInfo">
-  <div class="infoTitle">STREAM STATS</div>
-  <div class="infoBody" id="breakInfo">
-    <div class="scoreRow"><span class="muted">Chasers Left:</span> <span id="chasersLeftText">0</span></div>
-    <div class="scoreRow"><span class="muted">Teams Sold:</span> <span id="teamsSoldText">0</span></div>
-    <div class="scoreRow"><span class="muted">Teams Left:</span> <span id="teamsLeftText">30</span></div>
-  </div>
+  <div class="infoPanel wick" id="rightInfo">
+   <div class="infoTitle">STREAM STATS</div>
+<div class="infoBody" id="breakInfo">
+  <div class="scoreRow"><span class="muted">Top Buyer:</span> <span id="topBuyerText">—</span></div>
+  <div class="scoreRow"><span class="muted">Highest Bid:</span> <span id="highBidText">—</span></div>
+  <div class="scoreRow"><span class="muted">Last Sale:</span> <span id="lastSaleText">—</span></div>
 </div>
 
-
+  </div>
 </div>
 
 
@@ -747,7 +744,6 @@
     <div class="sold-top">
       <div class="pill" id="setBreakBtn">Set Break #</div>
       <div class="pill" id="exportBtn">Export CSV</div>
-      <div class="pill" id="chasersBtn">Pick Chasers</div>
     </div>
     <div class="sold-grid" id="soldGrid"></div>
   </div>
@@ -776,27 +772,6 @@
       </div>
     </div>
   </div>
-
-<!-- Chasers Popup -->
-<div class="popup" id="chasersPopup">
-  <div class="popup-card">
-    <h2>Select Chaser Teams</h2>
-
-    <div id="chasersGrid" style="
-      display:grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 10px;
-      padding: 6px;
-    "></div>
-
-    <div class="popup-btns">
-      <button id="applyChasers">Apply</button>
-      <button id="closeChasers">Close</button>
-    </div>
-  </div>
-</div>
-
-
 
 <script>
   /* =========================
@@ -906,14 +881,6 @@ const BRIDGE_URL = (() => {
   let buyerTotals = new Map();  // buyer -> total spent
   let lastSaleBuyer = '';
 
-  const CHASERS_KEY = "hit.chasers";
-
-const DEFAULT_CHASERS = new Set([
-  "LAL","OKC","GSW","SAS","MIL","DAL","HOU","CHI","WAS","MIN","BOS"
-]);
-
-let chasersSet = new Set(DEFAULT_CHASERS);
-
 
 
   const elBreak = document.getElementById('breakId');
@@ -1002,43 +969,10 @@ function setHighBid(val){
     renderSoldPanel();
   }
 
-function saveChasers(){
-  localStorage.setItem(CHASERS_KEY, JSON.stringify([...chasersSet]));
-}
-
-function loadChasers(){
-  try{
-    const raw = localStorage.getItem(CHASERS_KEY);
-    if (!raw) return;
-    const arr = JSON.parse(raw);
-    if (Array.isArray(arr) && arr.length){
-      chasersSet = new Set(arr.map(s => String(s).toUpperCase()));
-    }
-  }catch(_){}
-}
-
-function countChasersLeft(){
-  let left = 0;
-  chasersSet.forEach(code => { if (!soldSet.has(code)) left++; });
-  return left;
-}
-
-function updateStreamStatsBox(){
-  const sold = soldSet.size;
-  const left = 30 - sold;
-  const chLeft = countChasersLeft();
-
-  document.getElementById("chasersLeftText").textContent = String(chLeft);
-  document.getElementById("teamsSoldText").textContent = String(sold);
-  document.getElementById("teamsLeftText").textContent = String(left);
-}
-
-
   function updateStats(){
-  document.getElementById('soldCount').textContent = soldSet.size;
-  document.getElementById('leftCount').textContent = 30 - soldSet.size;
-  updateStreamStatsBox();
-}
+    document.getElementById('soldCount').textContent = soldSet.size;
+    document.getElementById('leftCount').textContent = 30 - soldSet.size;
+  }
 
   function toggleSold(){
     soldOpen = !soldOpen;
@@ -1328,20 +1262,6 @@ function inferNBACodeFromTitle(title){
   document.getElementById('nextBtn').addEventListener('click', nextBreak);
   document.getElementById('soldToggle').addEventListener('click', toggleSold);
 
-
-document.getElementById("chasersBtn").addEventListener("click", openChasersPicker);
-
-document.getElementById("closeChasers").addEventListener("click", () => {
-  chasersPopup.classList.remove("active");
-});
-
-document.getElementById("applyChasers").addEventListener("click", () => {
-  saveChasers();
-  updateStreamStatsBox();
-  chasersPopup.classList.remove("active");
-});
-
-
   // Set break popup
   const breakPopup = document.getElementById('breakPopup');
   const breakInput = document.getElementById('breakInput');
@@ -1359,9 +1279,6 @@ document.getElementById("applyChasers").addEventListener("click", () => {
     breakPopup.classList.remove('active');
   });
 
-
-
-  
   // Export popup
   const exportPopup = document.getElementById('exportPopup');
   const exportBox = document.getElementById('exportBox');
@@ -1387,71 +1304,25 @@ document.getElementById("applyChasers").addEventListener("click", () => {
     }
   });
 
-
-const chasersPopup = document.getElementById("chasersPopup");
-const chasersGrid = document.getElementById("chasersGrid");
-
-function openChasersPicker(){
-  chasersGrid.innerHTML = "";
-
-  NBA.forEach(team => {
-    const btn = document.createElement("button");
-    const active = chasersSet.has(team.code);
-
-    btn.type = "button";
-    btn.textContent = team.code;
-    btn.dataset.code = team.code;
-
-    btn.style.padding = "12px 10px";
-    btn.style.borderRadius = "12px";
-    btn.style.fontWeight = "900";
-    btn.style.letterSpacing = "1px";
-    btn.style.cursor = "pointer";
-    btn.style.border = active ? "2px solid rgba(255,221,122,0.95)" : "1px solid rgba(255,255,255,0.14)";
-    btn.style.background = active ? "rgba(216,178,76,0.35)" : "rgba(255,255,255,0.08)";
-    btn.style.color = "#fff";
-
-    btn.addEventListener("click", () => {
-      const code = btn.dataset.code;
-      if (chasersSet.has(code)) chasersSet.delete(code);
-      else chasersSet.add(code);
-
-      const nowActive = chasersSet.has(code);
-      btn.style.border = nowActive ? "2px solid rgba(255,221,122,0.95)" : "1px solid rgba(255,255,255,0.14)";
-      btn.style.background = nowActive ? "rgba(216,178,76,0.35)" : "rgba(255,255,255,0.08)";
-
-      updateStreamStatsBox();
-    });
-
-    chasersGrid.appendChild(btn);
-  });
-
-  chasersPopup.classList.add("active");
-}
-
-
   /* =========================
      Boot
   ========================== */
-window.addEventListener('DOMContentLoaded', () => {
-  loadBreakNum();
-  loadChasers();
+  window.addEventListener('DOMContentLoaded', () => {
+    loadBreakNum();
+    renderTeams();
+    renderBanner();
 
-  renderTeams();
-  renderBanner();
+if (BRIDGE_URL) {
+  connectSSE(`${BRIDGE_URL}/stream`);
+  console.log("[Overlay] SSE connected:", `${BRIDGE_URL}/stream`);
+} else {
+  console.warn("[Overlay] No BRIDGE_URL set. Add ?bridge=https://... to the overlay URL");
+}
 
-  updateStreamStatsBox();
 
-  if (BRIDGE_URL) {
-    connectSSE(`${BRIDGE_URL}/stream`);
-    console.log("[Overlay] SSE connected:", `${BRIDGE_URL}/stream`);
-  } else {
-    console.warn("[Overlay] No BRIDGE_URL set. Add ?bridge=https://... to the overlay URL");
-  }
-
-  setInterval(rotateBanner, 9000);
-});
-
+    // rotate every 9s (smooth/premium)
+    setInterval(rotateBanner, 9000);
+  });
 </script>
 </body>
 </html>
