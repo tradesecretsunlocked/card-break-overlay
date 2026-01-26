@@ -551,6 +551,7 @@ min-width:450px;
       border: 2px solid var(--border-color);
       border-radius: 12px;
       padding: 4px;
+      z-index: 20;
     }
 .control-panel.visible {
   display: flex;
@@ -616,7 +617,7 @@ transform-origin: center;
     .control-bar .brand-logo img {
       width: 150%;
       height: auto;
-      
+      z-index:999;
       object-fit: cover;
       filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
     }
@@ -969,7 +970,7 @@ transform-origin: center;
   display: none;
 }
 .sold-panel-slot {
-  width: 95%;
+  width: 99%;
   height: 160px; /* 🔒 fixed height prevents layout shift */
   position: relative;
   overflow:  visible;
@@ -985,7 +986,7 @@ transform-origin: center;
 
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 4px;
 
   background: linear-gradient(
     90deg,
@@ -1009,15 +1010,31 @@ transform-origin: center;
   border-color: transparent;
 }
 
+.sold-item .sold-tag{
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+
+  padding: 4px 8px;
+  border-radius: 999px;
+
+  background: rgba(0,0,0,0.35);
+  border: 2px solid rgba(255,255,255,0.22);
+
+  min-width: 50px;
+  text-align: center;
+  white-space: nowrap;
+}
 
 
 
 .sold-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 
-  padding: 6px 8px;
+  padding: 4px 4px;
   border-radius: 999px;
 transition: transform 0.15s ease, box-shadow 0.15s ease;
   background: rgba(255, 255, 255, 0.15);
@@ -1028,7 +1045,7 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
 /* Logo sizing FIX */
 .sold-item img {
   max-width: 100%;
-  max-height: 36px; /* 👈 THIS fixes the “logos too big” issue */
+  max-height: 32px; /* 👈 THIS fixes the “logos too big” issue */
   object-fit: contain;
 }
 
@@ -1152,7 +1169,12 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
   font-size: 18px;
   line-height: 1.05;
   text-shadow: 0 3px 10px rgba(0,0,0,0.65);
+    white-space: normal;        /* allow wrap */
+  word-break: break-word;     /* break long words */
+  overflow: hidden;           /* prevent spill */
 }
+
+
 
 /* NIL: no conference/division titles */
 .overlay-container.sport-nil .conference-title,
@@ -1750,6 +1772,44 @@ const colsBySport = {
   nil: 4 // base, will be overridden dynamically
 };
 
+
+/* ===== NIL TEXT AUTOFIT ===== */
+function fitTextToTile(el, opts = {}) {
+  if (!el) return;
+
+  const max = opts.max ?? 18;
+  const min = opts.min ?? 10;
+  const step = opts.step ?? 1;
+
+  // Reset then shrink until it fits both width and height
+  let size = max;
+  el.style.fontSize = size + "px";
+
+  // Force layout read
+  const fits = () => (el.scrollWidth <= el.clientWidth) && (el.scrollHeight <= el.clientHeight);
+
+  while (size > min && !fits()) {
+    size -= step;
+    el.style.fontSize = size + "px";
+  }
+}
+
+function fitAllNilTiles() {
+  if (currentBreakType !== "nil") return;
+  requestAnimationFrame(() => {
+    document.querySelectorAll(".team-label").forEach((el) => {
+      fitTextToTile(el, { max: 18, min: 10, step: 1 });
+    });
+  });
+}
+
+
+
+window.addEventListener("resize", () => {
+  fitAllNilTiles();
+});
+
+
     // Render teams for the current sport
     function renderTeams() {
   const container = document.querySelector('.overlay-container');
@@ -1788,7 +1848,7 @@ document.documentElement.style.setProperty('--team-cols', cols);
       buildConference(leftEl, leftConf, config.divisions[leftConf]);
       buildConference(rightEl, rightConf, config.divisions[rightConf]);
       updateStats();
-      
+      fitAllNilTiles(); 
     }
 
 function toggleSoldPanel() {
@@ -1830,26 +1890,38 @@ function renderSoldPanel() {
     const img = teamDiv.querySelector('img');
     const src = img ? img.src : '';
 
-    const item = document.createElement('div');
-    item.className = 'sold-item';
+   const item = document.createElement('div');
+item.className = 'sold-item';
 
-    if (src) {
-      const logo = document.createElement('img');
-      logo.src = src;
-      item.appendChild(logo);
-    }
+if (src) {
+  const logo = document.createElement('img');
+  logo.src = src;
+  item.appendChild(logo);
+}
 
-    const buyerInput = document.createElement('input');
-    buyerInput.className = 'buyer-input';
-    buyerInput.type = 'text';
-    buyerInput.placeholder = 'Buyer';
-    buyerInput.value = entry.buyer || '';
-    buyerInput.addEventListener('input', e => {
-      entry.buyer = e.target.value;
-    });
+// ✅ add this tag
+const labelEl = teamDiv.querySelector('.team-label');
+const rawLabel = labelEl ? labelEl.textContent.trim() : '';
+const idText = (rawLabel || entry.code || '').slice(0, 5).toUpperCase();
 
-    item.appendChild(buyerInput);
-    panel.appendChild(item);
+const tag = document.createElement('div');
+tag.className = 'sold-tag';
+tag.textContent = idText || '—';
+item.appendChild(tag);
+
+// buyer input stays the same
+const buyerInput = document.createElement('input');
+buyerInput.className = 'buyer-input';
+buyerInput.type = 'text';
+buyerInput.placeholder = 'Buyer';
+buyerInput.value = entry.buyer || '';
+buyerInput.addEventListener('input', e => {
+  entry.buyer = e.target.value;
+});
+
+item.appendChild(buyerInput);
+panel.appendChild(item);
+
   });
 
   if (soldPanelVisible) panel.classList.remove('hidden');
@@ -1893,10 +1965,28 @@ panel.classList.remove('hidden');
 }
 
 // Always add a readable label (great for NIL)
-const label = document.createElement('div');
-label.className = 'team-label';
-label.textContent = teamObj.code || teamObj.name || '';
-teamDiv.appendChild(label);
+// Label: only show for NIL (or if image missing). NIL label is editable + auto-fits.
+const shouldShowLabel = (currentBreakType === 'nil') || !teamObj.image;
+
+if (shouldShowLabel) {
+  const label = document.createElement('div');
+  label.className = 'team-label';
+
+  // NIL shows the *name* (from your Edit NIL Items modal)
+  if (currentBreakType === 'nil') {
+    label.textContent = (teamObj.name || '').trim() || (teamObj.code || '');
+  } else {
+    // Non-NIL fallback label (only if image missing)
+    label.textContent = teamObj.code || teamObj.name || '';
+  }
+
+  teamDiv.appendChild(label);
+
+  // Fit once on creation for NIL
+  if (currentBreakType === 'nil') fitTextToTile(label, { max: 18, min: 10, step: 1 });
+}
+
+
 
 
 const soldX = document.createElement('div');
