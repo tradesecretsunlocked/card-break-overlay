@@ -26,6 +26,70 @@ function broadcast(payload) {
   }
 }
 
+
+// ===== ESPN NBA scoreboard (adds LIVE SCORES to same SSE stream) =====
+function yyyymmddChicago(d = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+
+  const y = parts.find(p => p.type === "year")?.value;
+  const m = parts.find(p => p.type === "month")?.value;
+  const day = parts.find(p => p.type === "day")?.value;
+  return `${y}${m}${day}`;
+}
+
+async function fetchNBAScores() {
+  const date = yyyymmddChicago();
+  const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${date}`;
+
+  const r = await fetch(url, { headers: { "User-Agent": "tsu-bridge" } });
+  if (!r.ok) throw new Error(`ESPN fetch failed: ${r.status}`);
+
+  const data = await r.json();
+  const events = Array.isArray(data?.events) ? data.events : [];
+
+  const games = events.map(ev => {
+    const comp = ev?.competitions?.[0];
+    const competitors = comp?.competitors || [];
+    const home = competitors.find(c => c.homeAway === "home");
+    const away = competitors.find(c => c.homeAway === "away");
+
+    const homeAbbr = home?.team?.abbreviation || home?.team?.shortDisplayName || "HOME";
+    const awayAbbr = away?.team?.abbreviation || away?.team?.shortDisplayName || "AWAY";
+
+    const homeScore = Number(home?.score ?? 0);
+    const awayScore = Number(away?.score ?? 0);
+
+    const status =
+      comp?.status?.type?.shortDetail ||
+      comp?.status?.type?.detail ||
+      ev?.status?.type?.shortDetail ||
+      "—";
+
+    return { home: homeAbbr, homeScore, away: awayAbbr, awayScore, status };
+  });
+
+  return games.slice(0, 4);
+}
+
+async function tickScores() {
+  try {
+    const games = await fetchNBAScores();
+    broadcast({ type: "scores", games, ts: Date.now() });
+  } catch (_) {
+    broadcast({
+      type: "scores",
+      games: [{ away: "—", awayScore: 0, home: "—", homeScore: 0, status: "No feed" }],
+      ts: Date.now(),
+    });
+  }
+}
+
+
 function requireKey(req, res) {
   // If no BRIDGE_KEY is configured, run “open” (useful for dev).
   if (!BRIDGE_KEY) return true;
@@ -105,3 +169,8 @@ app.listen(PORT, () => {
   console.log(`[TSU Bridge] listening on :${PORT}`);
   console.log(`[TSU Bridge] BRIDGE_KEY set: ${BRIDGE_KEY ? "yes" : "no (open mode)"}`);
 });
+
+// Poll NBA scores every 15s
+setInterval(tickScores, 15000);
+tickScores();
+
