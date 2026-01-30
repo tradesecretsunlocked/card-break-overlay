@@ -1,7 +1,7 @@
 (() => {
   // ---- Defaults (set once via chrome.storage, see notes below)
   const DEFAULTS = {
-    bridgeUrl: "https://tsu-bridge-ayy.onrender.com",
+    bridgeUrl: "https://tsu-bridge-thc.onrender.com",
     bridgeKey: ""
   };
 
