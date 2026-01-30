@@ -36,7 +36,7 @@
   --hdrH: 150px;
   --brandH: 120px;
   --tickerH: 70px;
-  --pokeH: 150px;
+  --pokeH: 175px;
   --spotsH: 95px;
 
   --gap: 12px;
@@ -137,34 +137,10 @@
   box-shadow: inset 0 0 0 1px rgba(255,223,122,0.10);
 }
 
-
-.poke{
-  height: var(--pokeH);
-  padding: 10px 0;
-  position:relative;
-  background: transparent; /* let the strip do the work */
-}
-
-/* the strip */
-.poke-inner{
-  position:relative;
-  z-index:2;
-  height:100%;
-  display:flex;
-  align-items:center;
-  overflow:hidden;
-  padding: 0 14px;
-
-  background: rgba(0,0,0,0.22);
-  border-top: 1px solid rgba(246,194,74,0.22);
-  border-bottom: 1px solid rgba(246,194,74,0.22);
-  backdrop-filter: blur(10px);
-}
-
 /* remove “frame” look */
 .poke-card{
-  width: 120px;
-  height: 120px;
+  width: 160px;
+  height: 160px;
   border-radius: 16px;
 
   border: none;
@@ -209,31 +185,8 @@
   backdrop-filter: blur(10px);
 }
 
-/* remove “frame” look */
-.poke-card{
-  width: 120px;
-  height: 120px;
-  border-radius: 16px;
 
-  border: none;
-  background: transparent;
-  box-shadow: none;
 
-  overflow:hidden;
-  position:relative;
-  flex: 0 0 auto;
-  cursor:pointer;
-  transition: transform 120ms ease, opacity 120ms ease, filter 120ms ease;
-}
-
-.poke-card img{
-  width:100%;
-  height:100%;
-  object-fit: cover;
-  display:block;
-  border-radius: 16px;
-  filter: drop-shadow(0 10px 18px rgba(0,0,0,0.55));
-}
 
 
     /* ===== HEADER ===== */
@@ -243,7 +196,7 @@
       align-items:center;
       justify-content:space-between;
       padding: 10px 10px;
-      background:linear-gradient(90deg, #c9271a 4%, rgb(145 43 43) 58%, #ff2a2a 98%);
+      background:linear-gradient(90deg, #871910 4%, rgb(119 39 39) 58%, #871910 98%);
       border: solid 2px rgb(233, 233, 233); 
           
     }
@@ -900,6 +853,8 @@
       justify-content:center;
       box-shadow: 0 10px 22px rgba(0,0,0,0.55);
     }
+
+    input#tiltToggle{height:34px;}
 
     .admin{
       position:absolute;
@@ -1655,7 +1610,8 @@
   <div class="hdr-right">
     <div class="avg-pill" title="Average bid for this stream">
       <span class="label">Avg Bid</span>
-      <span class="value" id="avgBid">$0.00</span>
+      <span class="value" id="avgBid">£0.00</span>
+
     </div>
   </div>
 </div>
@@ -1696,7 +1652,7 @@
  <div class="card-stage" id="cardStage">
   <div class="card-label" id="cardLabel"></div>
   <img id="cardImg" alt="Card Preview" />
-  <div class="sold-badge">SOLD</div>
+  <div class="sold-badge">SPOT SOLD</div>
 </div>
 
 </div>
@@ -1741,15 +1697,8 @@
         <input id="tickerInput" type="text" placeholder="WELCOME IN • DROP A FOLLOW • LET’S RIP" />
       </div>
 
-      <h3>Pokemon List (marquee)</h3>
-      <div class="row" style="align-items:flex-start;">
-        <label>Items</label>
-        <textarea id="pokemonInput" spellcheck="false"
-          placeholder="One per line: id|name|imagePath
-ex:
-pika|Pikachu|images/pokemon/pikachu.png
-evee|Eevee|images/pokemon/eevee.png"></textarea>
-      </div>
+     
+
 
       <h3>Spots (Card Name / Rarity)</h3>
       <div class="row" style="align-items:flex-start;">
@@ -1779,6 +1728,12 @@ c2|Larvesta (AR)|images/cards/larvesta.png|s2"></textarea>
         <label>Autoplay (sec)</label>
         <input id="autoInput" type="number" min="0" step="1" placeholder="0 = off" />
       </div>
+
+      <div class="row">
+  <label>Mouse Tilt</label>
+  <input id="tiltToggle" type="checkbox" />
+</div>
+
 
      <button class="btn" id="applyBtn" type="button">APPLY + SAVE</button>
 <button class="btn ghost" id="resetBtn" type="button">RESET SOLD (Pokemon/Spots/Cards)</button>
@@ -1817,6 +1772,14 @@ const pathFromInput = (p) => {
   // allow passing "../../images/..." explicitly
   if (s.startsWith('../')) return s;
   return `${BASE}${s}`;
+};
+
+// add near top of your <script>
+const MONEY = (n) => {
+  const val = Number(n);
+  if (!Number.isFinite(val)) return "£0.00";
+  // en-GB + GBP (forced)
+  return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(val);
 };
 
 /* =========================
@@ -1885,11 +1848,11 @@ async function loadShowJson(){
 
 function mergeShowConfig(cfg){
   if (!cfg) return;
+const prevPokemon = new Map((state.pokemon||[]).map(x => [x.id, x]));
+const prevSpots   = new Map((state.spots||[]).map(x => [x.id, x]));
+const prevCards   = new Map((state.cards||[]).map(x => [x.id, x]));
 
-  // Preserve SOLD states by id
-  const prevPokemon = new Map((state.pokemon||[]).map(x => [x.id, x]));
-  const prevSpots   = new Map((state.spots||[]).map(x => [x.id, x]));
-  const prevCards   = new Map((state.cards||[]).map(x => [x.id, x]));
+
 
   // Merge top-level fields
   for (const k of ["breakNo","hdrSmall","setLogo","clientLogo","brand1","brand2","ticker","autoplaySec","activeSpotId","activeCardId"]){
@@ -1953,7 +1916,12 @@ const defaults = {
   brand1: "HIGHER BIDS = MORE PACKS 🔥",
   brand2: "FAST SHIPPING • CLEAN HITS • GOOD LUCK",
   ticker: "WELCOME IN • DROP A FOLLOW • LET’S RIP",
+  mouseTilt: true,
+
   autoplaySec: 0,
+    currencySymbol: "£",
+  currencyCode: "GBP",
+
     // Avg Bid tracker (per stream)
   bidSum: 0,     // total $ amount summed
   bidCount: 0,   // number of bids recorded
@@ -2040,11 +2008,11 @@ const setLogoInput = $("setLogoInput");
 const brand1Input = $("brand1Input");
 const brand2Input = $("brand2Input");
 const tickerInput = $("tickerInput");
-const pokemonInput = $("pokemonInput");
+
 const spotsInput = $("spotsInput");
 const cardsInput = $("cardsInput");
 const autoInput = $("autoInput");
-
+ const tiltToggle = $("tiltToggle");
 const applyBtn = $("applyBtn");
 const resetBtn = $("resetBtn");
 
@@ -2059,16 +2027,6 @@ function parseLines(text){
     .filter(s => !s.startsWith("#"));
 }
 
-function parsePokemon(text){
-  const lines = parseLines(text);
-  const items = [];
-  for (const line of lines){
-    const [id,name,img] = line.split("|").map(s => (s||"").trim());
-    if (!id || !img) continue;
-    items.push({ id, name: name || id, img, sold: false });
-  }
-  return items;
-}
 
 function parseSpots(text){
   const lines = parseLines(text);
@@ -2096,9 +2054,7 @@ function parseCards(text){
   return items;
 }
 
-function textareaFromPokemon(items){
-  return items.map(x => `${x.id}|${x.name}|${x.img}`).join("\n");
-}
+
 function textareaFromSpots(items){
   return items.map(x => `${x.id}|${x.label}`).join("\n");
 }
@@ -2115,7 +2071,10 @@ function renderHeader(){
 
   // Avg Bid display
   const avg = (state.bidCount > 0) ? (state.bidSum / state.bidCount) : 0;
-  if (avgBidEl) avgBidEl.textContent = `$${avg.toFixed(2)}`;
+  const sym = state.currencySymbol || "£";
+if (avgBidEl) avgBidEl.textContent = `${sym}${avg.toFixed(2)}`;
+
+
 
 
   setLogoImg.src = pathFromInput(state.setLogo);
@@ -2241,13 +2200,14 @@ function renderMainCard(){
 
 function renderAdminFields(){
   breakInput.value = String(state.breakNo || 1);
+if (tiltToggle) tiltToggle.checked = !!state.mouseTilt;
 
   hdrSmallInput.value = state.hdrSmall || "";
   setLogoInput.value = state.setLogo || "";
   brand1Input.value = state.brand1 || "";
   brand2Input.value = state.brand2 || "";
   tickerInput.value = state.ticker || "";
-  pokemonInput.value = textareaFromPokemon(state.pokemon || []);
+ 
   spotsInput.value = textareaFromSpots(state.spots || []);
   cardsInput.value = textareaFromCards(state.cards || []);
   autoInput.value = String(state.autoplaySec || 0);
@@ -2309,29 +2269,20 @@ function applyFromAdmin(){
   state.brand2 = (brand2Input.value || "").trim();
   state.ticker = (tickerInput.value || "").trim();
   state.autoplaySec = Math.max(0, parseInt(autoInput.value || "0", 10) || 0);
+state.mouseTilt = !!(tiltToggle && tiltToggle.checked);
 
   // preserve sold states when reloading lists by id
-  const prevPokemon = new Map((state.pokemon||[]).map(x => [x.id, x]));
   const prevSpots = new Map((state.spots||[]).map(x => [x.id, x]));
   const prevCards = new Map((state.cards||[]).map(x => [x.id, x]));
 
-  // Parse next lists
-  const rawPokemon = (pokemonInput.value || "").trim();
-  const rawSpots   = (spotsInput.value || "").trim();
-  const rawCards   = (cardsInput.value || "").trim();
+  // Parse next lists (admin-controlled)
+  const rawSpots = (spotsInput.value || "").trim();
+  const rawCards = (cardsInput.value || "").trim();
 
-  const nextPokemon = parsePokemon(rawPokemon);
-  const nextSpots   = parseSpots(rawSpots);
-  const nextCards   = parseCards(rawCards);
+  const nextSpots = parseSpots(rawSpots);
+  const nextCards = parseCards(rawCards);
 
-  // SAFETY: If user typed something but parser got 0 items, do NOT wipe state
-  if (rawPokemon && nextPokemon.length === 0){
-    console.error("Pokemon list invalid. Expected: id|name|imagePath per line");
-  } else if (nextPokemon.length){
-    for (const p of nextPokemon) if (prevPokemon.has(p.id)) p.sold = !!prevPokemon.get(p.id).sold;
-    state.pokemon = nextPokemon;
-  }
-
+  // Spots
   if (rawSpots && nextSpots.length === 0){
     console.error("Spots list invalid. Expected: id|label per line");
   } else if (nextSpots.length){
@@ -2339,6 +2290,7 @@ function applyFromAdmin(){
     state.spots = nextSpots;
   }
 
+  // Cards
   if (rawCards && nextCards.length === 0){
     console.error("Cards list invalid. Expected: id|label|imagePath|spotId(optional) per line");
   } else if (nextCards.length){
@@ -2357,6 +2309,7 @@ function applyFromAdmin(){
   saveState();
   renderAll();
 }
+
 
 
 function resetSold(){
@@ -2408,6 +2361,7 @@ document.addEventListener("keydown", (e) => {
 applyBtn.addEventListener("click", () => {
   try{
     applyFromAdmin();
+    initMouseTilt();
     startAutoplay();
   }catch(e){
     console.error("APPLY failed:", e);
@@ -2510,6 +2464,20 @@ function resetBids(){
 }
 window.resetBids = () => resetBids();
 
+function markCardSoldByLabel(label, sold=true){
+  const want = String(label||"").trim().toLowerCase();
+  if (!want) return;
+
+  const c = (state.cards||[]).find(x => String(x.label||"").trim().toLowerCase() === want);
+  if (c) {
+    c.sold = !!sold;
+    if (c.spotId){
+      const s = (state.spots||[]).find(x => x.id === c.spotId);
+      if (s) s.sold = !!sold;
+    }
+  }
+}
+
 
 /*
   ===== Expected SSE payloads =====
@@ -2568,6 +2536,12 @@ function handleSSEEvent(data){
       state.autoplaySec = Math.max(0, sec);
       break;
     }
+case "set_currency": {
+  // payload example: { "type":"set_currency", "symbol":"£", "code":"GBP" }
+  if (typeof data.symbol === "string" && data.symbol.trim()) state.currencySymbol = data.symbol.trim();
+  if (typeof data.code === "string" && data.code.trim()) state.currencyCode = data.code.trim();
+  break;
+}
 
         case "add_bid":{
       // payload: { "type":"add_bid", "amount": 25.50 }
@@ -2591,8 +2565,15 @@ function handleSSEEvent(data){
       break;
     }
 
+case "card_sold_by_label": markCardSoldByLabel(data.label, true); break;
+case "card_unsold_by_label": markCardSoldByLabel(data.label, false); break;
+
 
     case "pokemon_sold": setSoldById(state.pokemon, data.id, true); break;
+
+
+
+
     case "pokemon_unsold": setSoldById(state.pokemon, data.id, false); break;
 
     case "spot_sold": setSoldById(state.spots, data.id, true); break;
@@ -2634,26 +2615,57 @@ function setSoldById(list, id, sold){
   if (!item) return;
   item.sold = !!sold;
 
-  // tie card -> spot if applicable
+  // If a CARD is tied to a spot, keep the spot in sync
   if (list === state.cards && item.spotId){
     const s = (state.spots||[]).find(x => x.id === item.spotId);
     if (s) s.sold = !!sold;
   }
+
+  // If a POKEMON is tied to a spot, keep the spot in sync
+  if (list === state.pokemon && item.spotId){
+    const s = (state.spots||[]).find(x => x.id === item.spotId);
+    if (s) s.sold = !!sold;
+  }
+
+  // ⭐ KEY ADD: If a SPOT sells, sell the linked pokemon automatically
+  if (list === state.spots){
+    const p = (state.pokemon||[]).find(x => x.spotId === item.id);
+    if (p) p.sold = !!sold;
+
+    // Optional: also sell the “tied card” if you want:
+    // const c = (state.cards||[]).find(x => x.spotId === item.id);
+    // if (c) c.sold = !!sold;
+  }
 }
+
 
 /* =========================
    MOUSE TILT (interactive)
 ========================= */
+let __tiltCleanup = null;
+
 function initMouseTilt(){
   if (!cardStage || !cardImg) return;
 
-  // tuning knobs
-  const MAX_RX = 18;  // bigger up/down tilt
-  const MAX_RY = 26;  // bigger left/right tilt
-  const Z = 70;       // a bit more depth (optional)
-  const SCALE = 1.03; // slightly punchier
-  const EASE = 0.10;  // a touch snappier
+  // If already initialized, clean it first (so toggling works)
+  if (__tiltCleanup) { __tiltCleanup(); __tiltCleanup = null; }
 
+  // If disabled, ensure we return to “normal” (CSS animation)
+  if (!state.mouseTilt){
+    cardStage.classList.remove("interactive");
+    cardStage.style.setProperty("--mx", `0px`);
+    cardStage.style.setProperty("--my", `0px`);
+    cardImg.style.transform = ""; // allow CSS animation
+    window.__mouseTiltCleanup = () => {};
+    return;
+  }
+
+  // tuning knobs
+  const MAX_RX = 18;
+  const MAX_RY = 26;
+  const Z = 70;
+  const SCALE = 1.03;
+  const EASE = 0.10;
 
   let targetRX = 0, targetRY = 0;
   let curRX = 0, curRY = 0;
@@ -2663,7 +2675,6 @@ function initMouseTilt(){
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
   function applyTransform(){
-    // If sold, don’t do mouse tilt (keeps your SOLD styling predictable)
     if (cardStage.classList.contains("sold")) {
       stop();
       return;
@@ -2672,7 +2683,6 @@ function initMouseTilt(){
     curRX += (targetRX - curRX) * EASE;
     curRY += (targetRY - curRY) * EASE;
 
-    // centered anchor is already handled by your CSS (absolute + translate(-50%,-50%))
     cardImg.style.transform =
       `translate(-50%, -50%) translateZ(${Z}px) rotateX(${curRX}deg) rotateY(${curRY}deg) scale(${SCALE})`;
 
@@ -2690,56 +2700,60 @@ function initMouseTilt(){
     curRX = 0; curRY = 0;
     targetRX = 0; targetRY = 0;
 
-    
     cardStage.style.setProperty("--mx", `0px`);
     cardStage.style.setProperty("--my", `0px`);
 
-    // Clear inline transform so your CSS animation can resume cleanly
-    cardImg.style.transform = "";
+    cardImg.style.transform = ""; // resumes CSS animation
     cardStage.classList.remove("interactive");
   }
 
-function onMove(e){
-  if (!hovering) return;
-  if (cardStage.classList.contains("sold")) return;
-
-  const rect = cardStage.getBoundingClientRect();
-  const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;   // -1..1
-  const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;   // -1..1
-
-  // glow/sheen parallax (px offsets)
-  const mx = nx * 60;   // increase for more travel (80 = more)
-  const my = ny * 60;
-  cardStage.style.setProperty("--mx", `${mx}px`);
-  cardStage.style.setProperty("--my", `${my}px`);
-
-  // invert Y so moving mouse up tilts "back"
-  targetRY = clamp(nx, -1, 1) * MAX_RY;
-  targetRX = clamp(-ny, -1, 1) * MAX_RX;
-}
-
-
-  cardStage.addEventListener("mouseenter", () => {
+  function onEnter(){
     if (cardStage.classList.contains("sold")) return;
     hovering = true;
-    cardStage.classList.add("interactive"); // pauses CSS animation
+    cardStage.classList.add("interactive");
     start();
-  });
+  }
 
-  cardStage.addEventListener("mousemove", onMove);
-
-  cardStage.addEventListener("mouseleave", () => {
+  function onLeave(){
     hovering = false;
-    stop(); // resumes CSS animation
-  });
+    stop();
+  }
 
-  // If the card switches (renderMainCard), ensure we don’t keep old inline transforms
-  const cleanupOnRender = () => {
+  function onMove(e){
+    if (!hovering) return;
+    if (cardStage.classList.contains("sold")) return;
+
+    const rect = cardStage.getBoundingClientRect();
+    const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+
+    const mx = nx * 60;
+    const my = ny * 60;
+    cardStage.style.setProperty("--mx", `${mx}px`);
+    cardStage.style.setProperty("--my", `${my}px`);
+
+    targetRY = clamp(nx, -1, 1) * MAX_RY;
+    targetRX = clamp(-ny, -1, 1) * MAX_RX;
+  }
+
+  cardStage.addEventListener("mouseenter", onEnter);
+  cardStage.addEventListener("mousemove", onMove);
+  cardStage.addEventListener("mouseleave", onLeave);
+
+  // Called after rerenders
+  window.__mouseTiltCleanup = () => {
     if (!hovering) stop();
   };
 
-  // expose helper so you can call after rerenders if needed
-  window.__mouseTiltCleanup = cleanupOnRender;
+  // Full cleanup for toggle/off
+  __tiltCleanup = () => {
+    try{
+      cardStage.removeEventListener("mouseenter", onEnter);
+      cardStage.removeEventListener("mousemove", onMove);
+      cardStage.removeEventListener("mouseleave", onLeave);
+    }catch(_){}
+    stop();
+  };
 }
 
 
@@ -2747,6 +2761,8 @@ function onMove(e){
    INIT
 ========================= */
 document.addEventListener("DOMContentLoaded", async () => {
+ 
+
   // default logo if missing
   if (!state.clientLogo) state.clientLogo = "images/logos/ayy-pokepulls-logo.png";
 

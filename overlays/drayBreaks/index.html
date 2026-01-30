@@ -4,16 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=920, initial-scale=1.0"/>
   <title>DrayBreaks Box Break Overlay</title>
+
   <style>
-
-/**
- * BASE TYPE: Open Layout (logo embedded, ticker embedded, no SSE, no center control bar)
- * Sports: NBA / MLB / NFL
- * Layout is built via buildLayout() with sport-specific row templates.
-
- */
-
-
+    /**
+     * BASE TYPE: Open Layout (logo embedded, NO ticker, NO SSE, price box center)
+     * Sports: NBA / MLB / NFL
+     * Layout built via buildLayout() with sport-specific row templates.
+     */
 
     :root{
       /* DrayBreaks vibe (navy + cyan) */
@@ -27,8 +24,8 @@
       --text:#ffffff;
       --muted: rgba(255,255,255,0.75);
 
-      --tileH: 52px;
-      --gap: 3px;
+      --tileH: 58px;
+      --gap: 4px;
 
       --cols: 8;            /* changes per sport */
     }
@@ -45,6 +42,7 @@
     }
 
     .container{
+      position: relative;
       background: linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 100%);
       border: 4px solid var(--accent);
       border-radius: 12px;
@@ -52,6 +50,7 @@
       box-shadow: 0 0 20px rgba(0,0,0,0.6);
       display:flex;
       flex-direction:column;
+      overflow:hidden;
     }
 
     /* ===== HEADER ===== */
@@ -93,18 +92,33 @@
       text-overflow: ellipsis;
     }
 
-    .header-banner{
+    /* Header right: Break # badge */
+    .header-right{
       display:flex;
       align-items:center;
       justify-content:flex-end;
       flex: 0 0 auto;
-      max-width: 360px;
+      gap: 8px;
     }
-    .header-banner img{
-      max-height: 34px;
-      width: auto;
-      object-fit: contain;
-      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.55));
+
+    .break-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background:
+        radial-gradient(180px 60px at 25% 30%, rgba(255,255,255,0.10), transparent 60%),
+        linear-gradient(135deg, rgba(58,160,216,0.30), rgba(31,110,168,0.18));
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.40);
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 12px;
+      color:#fff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.60);
+      white-space: nowrap;
     }
 
     /* ===== MAIN WRAPPER ===== */
@@ -128,6 +142,7 @@
       margin-bottom: 6px;
       grid-template-columns: repeat(var(--cols), 1fr);
       align-items: stretch;
+      position:relative;
     }
 
     .team{
@@ -158,7 +173,6 @@
 
     .team img.nfl-small{
       object-fit: cover;
-      
     }
 
     .team .fallback-code{
@@ -173,7 +187,6 @@
       filter: grayscale(100%) brightness(0.4);
     }
 
-    /* subtle sold flash */
     .team.flash{
       animation: soldFlash 260ms ease;
     }
@@ -201,6 +214,7 @@
       top: 50%;
       transform: translate(-50%, -50%);
       border: 2px solid #ffffff;
+      pointer-events:none;
     }
 
     /* ===== LOGO SLOT (IN GRID) ===== */
@@ -214,49 +228,33 @@
       pointer-events:none;
       background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
       border: 2px solid rgba(255,255,255,0.15);
-      overflow:hidden;
+      overflow:visible;
+      position:relative;
     }
     .logo-slot img{
-      max-height: 85%;
+      max-height: 255%;
       max-width: 92%;
+      top:-75px;
       object-fit: contain;
+      position:absolute;
       filter: drop-shadow(0 2px 6px rgba(0,0,0,0.55));
     }
 
-    /* ===== TICKER ROW ===== */
-    .ticker-slot{
-      border-radius: 10px;
-      height: var(--tileH);
-      display:flex;
-      align-items:center;
-      overflow:hidden;
-      background: linear-gradient(90deg, rgba(58,160,216,0.18), rgba(31,110,168,0.10));
-      border: 2px solid rgba(255,255,255,0.18);
-      padding: 0 10px;
-    }
-
-    .ticker-text{
-      display:inline-block;
-      white-space: nowrap;
-      padding-left: 100%;
-      animation: tickerScroll 18s linear infinite;
-      font-weight: 900;
-      letter-spacing: 0.8px;
-      color: #fff;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.55);
-    }
-    @keyframes tickerScroll{
-      0%{ transform: translateX(0); }
-      100%{ transform: translateX(-100%); }
-    }
-
-    /* ===== CONTROLS ROW ===== */
+    /* ===== CONTROLS AREA (side stacks + center price box) ===== */
     .controls-row{
       margin-top: 6px;
       display:grid;
-      grid-template-columns: 1fr 0.75fr minmax(120px,1fr) 0.75fr 1fr;
-      gap: 6px;
+      grid-template-columns: 160px 1fr 160px;
+      gap: 20px;
       align-items: stretch;
+    }
+
+    .side-stack{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      padding:10px;
+      justify-content: center;
     }
 
     .stat-box{
@@ -265,13 +263,14 @@
       border-radius: 8px;
       text-align:center;
       font-weight:900;
-      padding: 4px 0;
+      padding: 6px 0;
       box-shadow: 0 2px 4px rgba(0,0,0,0.25);
       display:flex;
       flex-direction:column;
       justify-content:center;
       font-size: 18px;
-      border: 1px solid rgba(255,255,255,0.10);
+      border: 1px solid rgba(255, 255, 255, 0.815);
+      min-height: 54px;
     }
 
     .stat-label{
@@ -288,7 +287,7 @@
       border-radius: 8px;
       cursor:pointer;
       font-weight: 900;
-      font-size: 14px;
+      font-size: 16px;
       letter-spacing: 0.5px;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
       box-shadow: 0 2px 4px rgba(0,0,0,0.25);
@@ -297,10 +296,11 @@
       justify-content:center;
       gap: 6px;
       padding: 10px 10px;
+      min-height: 60px;
     }
 
     .btn.secondary{
-      background: linear-gradient(135deg, #0b2240 0%, #071226 100%);
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
       border: 1px solid rgba(255,255,255,0.12);
     }
 
@@ -309,6 +309,118 @@
       box-shadow:none;
     }
 
+    /* ===== PRICE BOX (always visible) ===== */
+    .price-box{
+      position: relative;
+      border-radius: 14px;
+      padding: 0px 20px 0px;
+      display:flex;
+      flex-direction:column;
+      gap: 5px;
+      min-height: 114px;
+
+      background:
+        radial-gradient(800px 240px at 20% 20%, rgba(58,160,216,0.28), transparent 55%),
+        linear-gradient(135deg, rgba(8,18,40,0.88), rgba(0,0,0,0.58));
+      border: 2px solid rgba(58,160,216,0.35);
+      box-shadow:
+        0 10px 26px rgba(0,0,0,0.55),
+        inset 0 0 0 1px rgba(255,255,255,0.10);
+      overflow:hidden;
+    }
+
+    .price-box::before{
+      content:"";
+      position:absolute;
+      inset:-30px;
+      background:
+        radial-gradient(circle at 25% 30%, rgba(255,255,255,0.10), transparent 55%),
+        radial-gradient(circle at 90% 40%, rgba(58,160,216,0.12), transparent 60%);
+      filter: blur(10px);
+      opacity: 0.9;
+      pointer-events:none;
+    }
+
+    .price-top{
+      position: relative;
+      z-index: 2;
+      display:flex;
+      align-items:center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .price-title{
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+      opacity: 0.98;
+      white-space: nowrap;
+    }
+
+    .price-grid{
+      position: relative;
+      z-index: 2;
+      display:grid;
+      grid-template-columns: 1fr 120px;
+      gap: 8px 12px;
+      align-items:center;
+      justify-items:start;
+    }
+
+    .price-label{
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      color: #ffffff;
+      text-transform: uppercase;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.55);
+      opacity: 0.98;
+      line-height: 1.1;
+    }
+
+    .money-field{
+      display:flex;
+      align-items:stretch;
+      width: 75%;
+      border-radius: 10px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.35);
+      box-shadow: inset 0 0 0 1px rgba(58,160,216,0.08);
+    }
+
+    .money-prefix{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width: 38px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, rgba(58,160,216,0.35), rgba(31,110,168,0.18));
+      border-right: 1px solid rgba(255,255,255,0.10);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    }
+
+    .price-input{
+      width: 100%;
+      padding: 4px 10px;
+      border: none;
+      background: transparent;
+      color:#fff;
+      font-weight: 900;
+      outline:none;
+      text-align:center;
+      font-size: 18px;
+    }
+
+    .price-input::placeholder{
+      color: rgba(255,255,255,0.55);
+    }
 
     /* ===== SOLD LIST ===== */
     .sold-list-container{
@@ -317,26 +429,61 @@
       background: linear-gradient(180deg, #050b14 0%, #0b1a2f 100%);
       border: 3px solid var(--accent);
       border-radius: 8px;
-      padding: 4px 7px 6px;
+      padding: 6px 7px 8px;
       text-align:center;
       box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    .sold-top-row{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
     }
 
     .sold-list-title{
       font-size: 16px;
       font-weight: 900;
       color:#ffffff;
-      margin-bottom: 4px;
       letter-spacing: 1px;
+      text-align:left;
+      padding-left: 2px;
+      white-space: nowrap;
     }
+
+    .sold-admin{
+      display:flex;
+      gap: 6px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap: wrap;
+    }
+
+    .pill{
+      border:none;
+      cursor:pointer;
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-weight: 900;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color:#fff;
+      background: linear-gradient(135deg, rgba(58,160,216,0.85), rgba(31,110,168,0.85));
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .pill.secondary{
+      background: linear-gradient(135deg, rgba(11,34,64,0.95), rgba(7,18,38,0.95));
+    }
+    .pill:active{ transform: translateY(1px); box-shadow:none; }
 
     .sold-list-grid{
       display:grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 4px 12px;
     }
-
-
 
     .sold-row{
       display:flex;
@@ -358,15 +505,6 @@
       background:#000;
     }
 
-    .sold-team-name{
-      font-weight: 900;
-      color:#f9fafb;
-      min-width: 60px;
-      text-transform: capitalize;
-      font-size: 13px;
-      opacity: 0.95;
-    }
-
     .sold-buyer-input{
       font-size: 13px;
       border: 1px solid rgba(255,255,255,0.15);
@@ -378,19 +516,219 @@
       color:#f9fafb;
       outline:none;
     }
+
+    /* ===== PROMO OVERLAY GRAPHIC ===== */
+    .promo-overlay{
+      position:absolute;
+      right: 10px;
+      top: 58px; /* below header */
+      width: 330px;
+      border-radius: 16px;
+      padding: 12px 12px;
+      border: 2px solid rgba(255,255,255,0.18);
+      background:
+        radial-gradient(800px 280px at 20% 20%, rgba(58,160,216,0.35), transparent 55%),
+        linear-gradient(135deg, rgba(8,18,40,0.92), rgba(0,0,0,0.65));
+      box-shadow:
+        0 18px 40px rgba(0,0,0,0.55),
+        0 0 0 1px rgba(58,160,216,0.18);
+      display:none;
+      pointer-events:none;
+      overflow:hidden;
+    }
+
+    .promo-overlay.active{ display:block; }
+
+    .promo-overlay::before{
+      content:"";
+      position:absolute;
+      inset:-40px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), transparent 60%),
+        radial-gradient(circle at 85% 40%, rgba(58,160,216,0.12), transparent 60%);
+      filter: blur(10px);
+      opacity: 0.9;
+      pointer-events:none;
+    }
+
+    .promo-inner{ position: relative; z-index: 2; }
+
+    .promo-kicker{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.14);
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 11px;
+      opacity: 0.95;
+      margin-bottom: 8px;
+    }
+
+    .promo-title{
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.55);
+      line-height: 1.05;
+    }
+
+    .promo-price{
+      margin-top: 8px;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: #fff;
+      text-shadow: 0 3px 16px rgba(0,0,0,0.65);
+    }
+
+    .promo-sub{
+      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      opacity: 0.85;
+      text-transform: uppercase;
+    }
+/* ===== OBS-FRIENDLY MODAL INPUT (replaces prompt()) ===== */
+.modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index: 9999;
+}
+
+.modal-backdrop.active{ display:flex; }
+
+.modal{
+  width: 520px;
+  max-width: calc(100% - 40px);
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  background:
+    radial-gradient(700px 220px at 20% 20%, rgba(58,160,216,0.28), transparent 55%),
+    linear-gradient(135deg, rgba(8,18,40,0.92), rgba(0,0,0,0.68));
+  border: 2px solid rgba(58,160,216,0.40);
+  box-shadow: 0 22px 50px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.10);
+  color: #fff;
+}
+
+.modal-title{
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 14px;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+}
+
+.modal-hint{
+  font-size: 11px;
+  opacity: 0.82;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.modal-input{
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.35);
+  color: #fff;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  padding: 12px 12px;
+  outline: none;
+  font-size: 16px;
+  box-shadow: inset 0 0 0 1px rgba(58,160,216,0.10);
+}
+
+.modal-input::placeholder{
+  color: rgba(255,255,255,0.55);
+}
+
+.modal-actions{
+  margin-top: 12px;
+  display:flex;
+  gap: 10px;
+  justify-content:flex-end;
+}
+
+.modal-btn{
+  border:none;
+  cursor:pointer;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  font-size: 12px;
+  color:#fff;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.40);
+}
+
+.modal-btn.primary{
+  background: linear-gradient(135deg, rgba(58,160,216,0.90), rgba(31,110,168,0.90));
+  border: 1px solid rgba(255,255,255,0.14);
+}
+
+.modal-btn.secondary{
+  background: linear-gradient(135deg, rgba(11,34,64,0.95), rgba(7,18,38,0.95));
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.modal-error{
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  color: #fff;
+  opacity: 0.95;
+  display:none;
+}
+
+.modal-error.active{ display:block; }
+
+
+
+
   </style>
 </head>
 
 <body>
   <div class="container">
+    <!-- promo sticker overlay -->
+    <div id="promoOverlay" class="promo-overlay">
+      <div class="promo-inner">
+        <div class="promo-kicker">🔥 PROMO ACTIVE</div>
+        <div id="promoTitle" class="promo-title">—</div>
+        <div id="promoPrice" class="promo-price">$—</div>
+        <div class="promo-sub">Use SOLD panel buttons to switch</div>
+      </div>
+    </div>
+
     <div class="header" id="header">
       <div class="header-left">
         <div class="header-icon"></div>
-        <div class="header-text" id="headerText">DRAYBREAKS · NBA BOX BREAK</div>
+        <div class="header-text" id="headerText">NBA BOX BREAK</div>
       </div>
-    
-      <div class="header-banner">
-        <img id="bannerLogo" alt="DrayBreaks" />
+
+      <div class="header-right">
+        <div class="break-badge" id="breakBadge">BREAK #1</div>
       </div>
     </div>
 
@@ -399,33 +737,77 @@
         <!-- rows injected here -->
       </div>
 
+      <!-- CONTROLS -->
       <div class="controls-row">
-        <button class="btn" onclick="resetAll()">🔄 RESET</button>
-
-        <div class="stat-box">
-          <div id="teamsLeft">0</div>
-          <div class="stat-label">REMAINING</div>
+        <div class="side-stack">
+          <button class="btn" onclick="resetAll()">🔄 RESET</button>
+          <div class="stat-box">
+            <div id="teamsLeft">0</div>
+            <div class="stat-label">REMAINING</div>
+          </div>
         </div>
 
-        <div class="center-spacer"></div>
+        <!-- CENTER PRICE BOX -->
+        <div class="price-box">
+          <div class="price-top">
+            <div class="price-title">PROMO PRICE LIST</div>
+          </div>
 
-        <div class="stat-box">
-          <div id="teamsSold">0</div>
-          <div class="stat-label">SOLD</div>
+          <div class="price-grid">
+            <div class="price-label">STASH OR PASS ACTIVE AT</div>
+            <div class="money-field">
+              <div class="money-prefix">$</div>
+              <input id="priceStash" class="price-input" type="text" placeholder="20" />
+            </div>
+
+            <div class="price-label">SEE 2 PICK 1 ACTIVE AT</div>
+            <div class="money-field">
+              <div class="money-prefix">$</div>
+              <input id="priceSee2" class="price-input" type="text" placeholder="25" />
+            </div>
+
+            <div class="price-label">SEE 3 PICK 1 ACTIVE AT</div>
+            <div class="money-field">
+              <div class="money-prefix">$</div>
+              <input id="priceSee3" class="price-input" type="text" placeholder="30" />
+            </div>
+          </div>
         </div>
 
-        <button class="btn secondary" onclick="cycleSport()">⚙ CHANGE SPORT</button>
+        <div class="side-stack">
+          <button class="btn secondary" onclick="cycleSport()">⚙ CHANGE SPORT</button>
+          <div class="stat-box">
+            <div id="teamsSold">0</div>
+            <div class="stat-label">SOLD</div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <div class="sold-list-container">
-    <div class="sold-list-title">SOLD TEAMS</div>
+    <div class="sold-top-row">
+      <div class="sold-list-title">SOLD TEAMS</div>
+
+      <!-- SOLD PANEL ADMIN MENU -->
+      <div class="sold-admin">
+        <button class="pill" onclick="activatePromo('stash')">Stash/Pass</button>
+        <button class="pill" onclick="activatePromo('see2')">See 2 Pick 1</button>
+        <button class="pill" onclick="activatePromo('see3')">See 3 Pick 1</button>
+        <button class="pill secondary" onclick="activatePromo('off')">Clear</button>
+
+        <button class="pill secondary" onclick="setCustomHeaderText()">Set Header Text</button>
+        <button class="pill secondary" onclick="setBreakNumberPrompt()">Set Break #</button>
+      </div>
+    </div>
+
     <div id="soldList" class="sold-list-grid"></div>
   </div>
 
 <script>
+  // =========================
   // Dynamic base path (works on GitHub Pages + local folders)
+  // =========================
   const BASE = (() => {
     const isGhPages = location.hostname.endsWith('github.io');
     if (isGhPages) {
@@ -437,17 +819,187 @@
   })();
 
   const LOGO_PRIMARY = `${BASE}images/logos/dray-breaks-logo.png`;
-  const LOGO_BANNER  = `${BASE}images/logos/dray-breaks-logo-2.png`;
 
   const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
   const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
   const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
 
-  // Ticker phrases (from your form)
-  const TICKER_LINES = [
-    
-  ];
+  // =========================
+  // Local storage keys
+  // =========================
+  const PRICE_KEY = "dray.promos.prices.v1";
+  const PROMO_ACTIVE_KEY = "dray.promos.active.v1";
+  const HEADER_TEXT_KEY = "dray.header.customText.v1";
+  const BREAK_NUM_KEY   = "dray.break.number.v1";
 
+  const PRICE_DEFAULTS = { stash: "", see2: "", see3: "" };
+
+  // =========================
+  // Price persistence
+  // =========================
+  function loadPrices(){
+    try{
+      const raw = localStorage.getItem(PRICE_KEY);
+      if (!raw) return { ...PRICE_DEFAULTS };
+      const obj = JSON.parse(raw);
+      return {
+        stash: String(obj?.stash ?? PRICE_DEFAULTS.stash),
+        see2:  String(obj?.see2  ?? PRICE_DEFAULTS.see2),
+        see3:  String(obj?.see3  ?? PRICE_DEFAULTS.see3),
+      };
+    }catch(_){
+      return { ...PRICE_DEFAULTS };
+    }
+  }
+
+  function savePrices(pr){
+    localStorage.setItem(PRICE_KEY, JSON.stringify(pr));
+  }
+
+  function readPriceInputs(){
+    return {
+      stash: (document.getElementById("priceStash")?.value || "").trim(),
+      see2:  (document.getElementById("priceSee2")?.value || "").trim(),
+      see3:  (document.getElementById("priceSee3")?.value || "").trim(),
+    };
+  }
+
+  function writePriceInputs(pr){
+    const a = document.getElementById("priceStash");
+    const b = document.getElementById("priceSee2");
+    const c = document.getElementById("priceSee3");
+    if (a) a.value = pr.stash ?? "";
+    if (b) b.value = pr.see2 ?? "";
+    if (c) c.value = pr.see3 ?? "";
+  }
+
+  function formatMoney(v){
+    const s = String(v || "").trim();
+    if (!s) return "—";
+    return s.replace(/^\$/,'').trim();
+  }
+
+  // =========================
+  // Promo persistence
+  // =========================
+  function loadActivePromo(){
+    return localStorage.getItem(PROMO_ACTIVE_KEY) || "off";
+  }
+
+  function saveActivePromo(mode){
+    localStorage.setItem(PROMO_ACTIVE_KEY, mode);
+  }
+
+  function activatePromo(mode){
+    saveActivePromo(mode);
+    renderPromoOverlay();
+  }
+
+  function renderPromoOverlay(){
+    const mode = loadActivePromo();
+    const prices = readPriceInputs();
+    const overlay = document.getElementById("promoOverlay");
+    const titleEl = document.getElementById("promoTitle");
+    const priceEl = document.getElementById("promoPrice");
+    if (!overlay || !titleEl || !priceEl) return;
+
+    if (mode === "off"){
+      overlay.classList.remove("active");
+      return;
+    }
+
+    overlay.classList.add("active");
+
+    if (mode === "stash"){
+      titleEl.textContent = "STASH OR PASS";
+      priceEl.textContent = `$${formatMoney(prices.stash)}`;
+      return;
+    }
+
+    if (mode === "see2"){
+      titleEl.textContent = "SEE 2 PICK 1";
+      priceEl.textContent = `$${formatMoney(prices.see2)}`;
+      return;
+    }
+
+    if (mode === "see3"){
+      titleEl.textContent = "SEE 3 PICK 1";
+      priceEl.textContent = `$${formatMoney(prices.see3)}`;
+      return;
+    }
+
+    overlay.classList.remove("active");
+  }
+
+  // =========================
+  // Header custom text + Break #
+  // =========================
+  function getCustomHeaderText(){
+    return (localStorage.getItem(HEADER_TEXT_KEY) || "").trim();
+  }
+
+function setCustomHeaderText(){
+  const current = getCustomHeaderText();
+  openModal({
+    title: "Set Header Text",
+    placeholder: "e.g. PRIZM HOBBY · CASE #2 (blank clears)",
+    value: current,
+    validate: (val) => true, // allow anything (including blank to clear)
+    onSave: (val) => {
+      localStorage.setItem(HEADER_TEXT_KEY, String(val || "").trim());
+      setHeader();
+    }
+  });
+}
+
+
+  function getBreakNumber(){
+    const raw = localStorage.getItem(BREAK_NUM_KEY);
+    const n = parseInt(raw || "", 10);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  }
+
+function setBreakNumberPrompt(){
+  const current = getBreakNumber();
+  openModal({
+    title: "Set Break #",
+    placeholder: "Enter a number (min 1)",
+    value: String(current),
+    inputMode: "numeric",
+    validate: (val) => {
+      const n = parseInt(String(val).trim(), 10);
+      return Number.isFinite(n) && n >= 1;
+    },
+    errorText: "Break # must be a whole number (1 or higher).",
+    onSave: (val) => {
+      setBreakNumber(val);
+    }
+  });
+}
+
+
+  function incrementBreakNumberOnLoad(){
+    const current = getBreakNumber();
+    const next = current + 1;
+    localStorage.setItem(BREAK_NUM_KEY, String(next));
+  }
+
+  function setBreakNumberPrompt(){
+    const current = getBreakNumber();
+    const v = prompt("Override Break # (enter a number):", String(current));
+    if (v === null) return;
+    setBreakNumber(v);
+  }
+
+  function updateBreakBadge(){
+    const el = document.getElementById("breakBadge");
+    if (!el) return;
+    el.textContent = `BREAK #${getBreakNumber()}`;
+  }
+
+  // =========================
+  // Break Types
+  // =========================
   const breakTypes = {
     nba: {
       name: "NBA",
@@ -569,13 +1121,151 @@
     }
   };
 
+  // =========================
+  // State
+  // =========================
   let currentBreakType = "nba";
-let soldIndexes = new Set();      // indices for current sport only
-let soldList = [];       // { index, buyer } for current sport only
+  let soldIndexes = new Set();
+  let soldList = [];
+
+// =========================
+// OBS-friendly modal (no prompt())
+// =========================
+let modalOnSave = null;
+let modalValidate = null;
+let modalErrorText = "Invalid input.";
+let lastFocusedEl = null;
+
+function openModal({ title, placeholder="", value="", onSave, validate, errorText, inputMode }){
+  const backdrop = document.getElementById("modalBackdrop");
+  const titleText = document.getElementById("modalTitleText");
+  const input = document.getElementById("modalInput");
+  const err = document.getElementById("modalError");
+
+  if (!backdrop || !titleText || !input || !err) return;
+
+  lastFocusedEl = document.activeElement;
+
+  modalOnSave = typeof onSave === "function" ? onSave : null;
+  modalValidate = typeof validate === "function" ? validate : null;
+  modalErrorText = errorText || "Invalid input.";
+
+  titleText.textContent = title || "Edit";
+  input.placeholder = placeholder || "";
+  input.value = value ?? "";
+  err.classList.remove("active");
+  err.textContent = "";
+
+  // numeric keyboard on mobile/OBS
+  if (inputMode === "numeric"){
+    input.setAttribute("inputmode", "numeric");
+    input.setAttribute("pattern", "[0-9]*");
+  } else {
+    input.removeAttribute("inputmode");
+    input.removeAttribute("pattern");
+  }
+
+  backdrop.classList.add("active");
+  backdrop.setAttribute("aria-hidden", "false");
+
+  // focus + select
+  setTimeout(() => {
+    input.focus();
+    input.select();
+  }, 0);
+}
+
+function closeModal(){
+  const backdrop = document.getElementById("modalBackdrop");
+  const err = document.getElementById("modalError");
+  if (!backdrop) return;
+
+  backdrop.classList.remove("active");
+  backdrop.setAttribute("aria-hidden", "true");
+
+  if (err){
+    err.classList.remove("active");
+    err.textContent = "";
+  }
+
+  modalOnSave = null;
+  modalValidate = null;
+
+  if (lastFocusedEl && typeof lastFocusedEl.focus === "function"){
+    setTimeout(() => lastFocusedEl.focus(), 0);
+  }
+}
+
+function trySaveModal(){
+  const input = document.getElementById("modalInput");
+  const err = document.getElementById("modalError");
+  if (!input) return;
+
+  const val = input.value;
+
+  if (modalValidate && !modalValidate(val)){
+    if (err){
+      err.textContent = modalErrorText;
+      err.classList.add("active");
+    }
+    input.focus();
+    return;
+  }
+
+  if (typeof modalOnSave === "function"){
+    modalOnSave(val);
+  }
+  closeModal();
+}
+
+// Wire modal buttons + keyboard
+document.addEventListener("DOMContentLoaded", () => {
+  const backdrop = document.getElementById("modalBackdrop");
+  const cancelBtn = document.getElementById("modalCancelBtn");
+  const saveBtn = document.getElementById("modalSaveBtn");
+  const input = document.getElementById("modalInput");
+
+  if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+  if (saveBtn) saveBtn.addEventListener("click", trySaveModal);
+
+  if (backdrop){
+    backdrop.addEventListener("click", (e) => {
+      // click outside modal closes
+      if (e.target === backdrop) closeModal();
+    });
+  }
+
+  if (input){
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        trySaveModal();
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeModal();
+      }
+    });
+  }
+
+  // ESC anywhere closes if modal open
+  document.addEventListener("keydown", (e) => {
+    const bd = document.getElementById("modalBackdrop");
+    if (!bd || !bd.classList.contains("active")) return;
+    if (e.key === "Escape"){
+      e.preventDefault();
+      closeModal();
+    }
+  });
+});
+
 
   function setHeader(){
     const b = breakTypes[currentBreakType];
-    document.getElementById("headerText").textContent = `DRAYBREAKS · ${b.name} BOX BREAK`;
+    const custom = getCustomHeaderText();
+    const left = custom ? `${custom} · ${b.name} BOX BREAK` : `${b.name} BOX BREAK`;
+    document.getElementById("headerText").textContent = left;
+    updateBreakBadge();
   }
 
   function makeTeamDiv(team, index){
@@ -589,14 +1279,13 @@ let soldList = [];       // { index, buyer } for current sport only
       img.src = team.image;
       img.alt = team.name || team.code || "";
 
-      // NFL logos often look better contained
       if (currentBreakType === "nfl") img.classList.add("nfl-small");
 
       img.onerror = () => {
         d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
       };
       d.appendChild(img);
-    } else if (currentBreakType === "nfl") {
+    } else {
       d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
     }
     return d;
@@ -612,36 +1301,6 @@ let soldList = [];       // { index, buyer } for current sport only
     return slot;
   }
 
-  function makeTickerSlot(colSpan){
-    const slot = document.createElement("div");
-    slot.className = "ticker-slot";
-    if (colSpan && colSpan > 1) slot.style.gridColumn = `span ${colSpan}`;
-
-    const text = document.createElement("span");
-    text.className = "ticker-text";
-    text.textContent = ` ${TICKER_LINES.join("   •   ")} `;
-    slot.appendChild(text);
-    return slot;
-  }
-
-function makeRow(colCount){
-  const row = document.createElement("div");
-  row.className = "row-grid";
-  row.style.gridTemplateColumns = `repeat(${colCount}, 1fr)`;
-  return row;
-}
-
-function addTeamsToRow(row, teams, startIdx, count){
-  let idx = startIdx;
-  for (let i = 0; i < count; i++){
-    row.appendChild(makeTeamDiv(teams[idx], idx));
-    idx++;
-  }
-  return idx;
-}
-
-
-
   function buildLayout(){
     const wrap = document.getElementById("teamsWrapper");
     wrap.innerHTML = "";
@@ -649,38 +1308,23 @@ function addTeamsToRow(row, teams, startIdx, count){
     const config = breakTypes[currentBreakType];
     document.documentElement.style.setProperty("--cols", String(config.cols));
 
-    // Reset sold state for new sport (keeps behavior like Lenhart)
     soldIndexes.clear();
     soldList = [];
 
     const teams = config.teams;
 
     if (currentBreakType === "nba" || currentBreakType === "mlb"){
-      // ===== MLB/NBA SPEC =====
-      // Header
-      // 5 rows:
-      // Row1: 3 tiles, logo (2 tiles), 3 tiles
-      // Row2: 8 teams
-      // Row3: 8 teams
-      // Row4: 8 teams
-      // Row5: ticker (8 tiles)
-      //
-      // total teams = 30 => 6 in row1 + 24 in rows2-4
-
+      // Row1: 3 teams, logo(2), 3 teams
+      // Row2-4: 8 teams each
       let idx = 0;
 
-      // Row 1
       const r1 = document.createElement("div");
       r1.className = "row-grid";
-      // left 3
       for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx], idx++));
-      // logo span 2
       r1.appendChild(makeLogoSlot());
-      // right 3
       for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx], idx++));
       wrap.appendChild(r1);
 
-      // Row 2-4 (8 each)
       for (let r=0;r<3;r++){
         const row = document.createElement("div");
         row.className = "row-grid";
@@ -689,54 +1333,37 @@ function addTeamsToRow(row, teams, startIdx, count){
         }
         wrap.appendChild(row);
       }
-
-      // Row 5 ticker (span 8)
-      const r5 = document.createElement("div");
-      r5.className = "row-grid";
-      r5.appendChild(makeTickerSlot(8));
-      wrap.appendChild(r5);
+      // ✅ No Row5
     }
 
     if (currentBreakType === "nfl"){
-      // ===== NFL SPEC =====
-      // 4 rows:
-      // Row1: 4 tiles, logo (2 tiles), 4 tiles  => 8 teams in row1
+      // Row1: 4 teams, logo(2), 4 teams
       // Row2: 10 teams
       // Row3: 10 teams
-      // Row4: 2 teams, ticker (6), 2 teams => 4 teams in row4
-      //
-      // total teams 32 => 8 + 10 + 10 + 4
-
+      // Row4: remaining 4 teams (2 + 2)
       let idx = 0;
 
-      // Row1 (10 cols)
       const r1 = document.createElement("div");
       r1.className = "row-grid";
-
       for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx], idx++));
-      r1.appendChild(makeLogoSlot()); // spans 2 cols
+      r1.appendChild(makeLogoSlot());
       for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx], idx++));
       wrap.appendChild(r1);
 
-      // Row2
       const r2 = document.createElement("div");
       r2.className = "row-grid";
       for (let i=0;i<10;i++) r2.appendChild(makeTeamDiv(teams[idx], idx++));
       wrap.appendChild(r2);
 
-      // Row3
       const r3 = document.createElement("div");
       r3.className = "row-grid";
       for (let i=0;i<10;i++) r3.appendChild(makeTeamDiv(teams[idx], idx++));
       wrap.appendChild(r3);
 
-      // Row4: 2 teams, ticker span 6, 2 teams
       const r4 = document.createElement("div");
       r4.className = "row-grid";
-
       r4.appendChild(makeTeamDiv(teams[idx], idx++));
       r4.appendChild(makeTeamDiv(teams[idx], idx++));
-      r4.appendChild(makeTickerSlot(6));
       r4.appendChild(makeTeamDiv(teams[idx], idx++));
       r4.appendChild(makeTeamDiv(teams[idx], idx++));
       wrap.appendChild(r4);
@@ -794,8 +1421,6 @@ function addTeamsToRow(row, teams, startIdx, count){
         row.appendChild(img);
       }
 
-
-
       const input = document.createElement("input");
       input.className = "sold-buyer-input";
       input.type = "text";
@@ -821,13 +1446,60 @@ function addTeamsToRow(row, teams, startIdx, count){
     const idx = types.indexOf(currentBreakType);
     currentBreakType = types[(idx + 1) % types.length];
     buildLayout();
+    renderPromoOverlay();
   }
 
-  // init
+  // =========================
+  // Boot
+  // =========================
   document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("bannerLogo").src = LOGO_BANNER;
+    // Auto-increment break # each load
+    incrementBreakNumberOnLoad();
+
+    // Load prices
+    const p = loadPrices();
+    writePriceInputs(p);
+
+    ["priceStash","priceSee2","priceSee3"].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("input", () => {
+        const pr = readPriceInputs();
+        savePrices(pr);
+        renderPromoOverlay();
+      });
+    });
+
+    // restore promo + render
+    renderPromoOverlay();
+
+    // init grid
     buildLayout();
+
+    // ensure badge shows current break
+    updateBreakBadge();
   });
 </script>
+
+
+<!-- ===== OBS-FRIENDLY INPUT MODAL ===== -->
+<div id="modalBackdrop" class="modal-backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-title" id="modalTitle">
+      <span id="modalTitleText">EDIT</span>
+      <span class="modal-hint" id="modalHint">Enter to Save · Esc to Cancel</span>
+    </div>
+
+    <input id="modalInput" class="modal-input" type="text" placeholder="" />
+
+    <div id="modalError" class="modal-error"></div>
+
+    <div class="modal-actions">
+      <button class="modal-btn secondary" id="modalCancelBtn" type="button">Cancel</button>
+      <button class="modal-btn primary" id="modalSaveBtn" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
