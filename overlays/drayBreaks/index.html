@@ -115,7 +115,7 @@
       font-weight: 900;
       letter-spacing: 1px;
       text-transform: uppercase;
-      font-size: 12px;
+      font-size: 18px;
       color:#fff;
       text-shadow: 0 2px 10px rgba(0,0,0,0.60);
       white-space: nowrap;
@@ -952,12 +952,18 @@ function setCustomHeaderText(){
   });
 }
 
+function getBreakNumber(){
+  const raw = localStorage.getItem(BREAK_NUM_KEY);
+  const n = parseInt(raw || "", 10);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
 
-  function getBreakNumber(){
-    const raw = localStorage.getItem(BREAK_NUM_KEY);
-    const n = parseInt(raw || "", 10);
-    return Number.isFinite(n) && n > 0 ? n : 1;
-  }
+function setBreakNumber(v){
+  const n = parseInt(String(v).trim(), 10);
+  if (!Number.isFinite(n) || n < 1) return;
+  localStorage.setItem(BREAK_NUM_KEY, String(n));
+  updateBreakBadge();
+}
 
 function setBreakNumberPrompt(){
   const current = getBreakNumber();
@@ -973,23 +979,19 @@ function setBreakNumberPrompt(){
     errorText: "Break # must be a whole number (1 or higher).",
     onSave: (val) => {
       setBreakNumber(val);
+      updateBreakBadge();
     }
   });
 }
 
+function incrementBreakNumberOnLoad(){
+  const current = getBreakNumber();
+  const next = current + 1;
+  localStorage.setItem(BREAK_NUM_KEY, String(next));
+}
 
-  function incrementBreakNumberOnLoad(){
-    const current = getBreakNumber();
-    const next = current + 1;
-    localStorage.setItem(BREAK_NUM_KEY, String(next));
-  }
 
-  function setBreakNumberPrompt(){
-    const current = getBreakNumber();
-    const v = prompt("Override Break # (enter a number):", String(current));
-    if (v === null) return;
-    setBreakNumber(v);
-  }
+
 
   function updateBreakBadge(){
     const el = document.getElementById("breakBadge");
@@ -1127,6 +1129,272 @@ function setBreakNumberPrompt(){
   let currentBreakType = "nba";
   let soldIndexes = new Set();
   let soldList = [];
+
+// =========================
+// TSU SSE BRIDGE — DrayBreaks
+// =========================
+let sse = null;
+
+const TSU_BRIDGE_LS_KEY = "tsu.bridge.base";
+const TSU_KEY_LS_KEY    = "tsu.bridge.key";
+
+// DrayBreaks bridge
+const DEFAULT_BRIDGE = "https://tsu-bridge-draybreaks.onrender.com";
+
+function normalizeBridge(u){
+  return String(u || "")
+    .trim()
+    .replace(/\/$/, "")
+    .replace(/\/(events|stream)(\/.*)?$/, "");
+}
+
+function getBridgeFromQuery(){
+  const q = new URLSearchParams(location.search);
+  const b = q.get("bridge");
+  if (!b) return "";
+  const cleaned = normalizeBridge(b);
+  localStorage.setItem(TSU_BRIDGE_LS_KEY, cleaned);
+  return cleaned;
+}
+
+function getKeyFromQuery(){
+  const q = new URLSearchParams(location.search);
+  const k = q.get("key");
+  if (k === null) return "";
+  const cleaned = String(k || "").trim();
+  localStorage.setItem(TSU_KEY_LS_KEY, cleaned);
+  return cleaned;
+}
+
+function getActiveBridge(){
+  const fromQuery = getBridgeFromQuery();
+  if (fromQuery) return fromQuery;
+
+  const saved = localStorage.getItem(TSU_BRIDGE_LS_KEY);
+  if (saved) return normalizeBridge(saved);
+
+  return normalizeBridge(DEFAULT_BRIDGE);
+}
+
+function getActiveKey(){
+  const qk = getKeyFromQuery();
+  if (qk) return qk;
+  return String(localStorage.getItem(TSU_KEY_LS_KEY) || "").trim();
+}
+
+function automationEnabled(){
+  const q = new URLSearchParams(location.search);
+  if (q.get("bridge")) return true;
+  return !!localStorage.getItem(TSU_BRIDGE_LS_KEY);
+}
+
+
+// BreakId: YYYY-MM-DD-sport-counter (Chicago time)
+function yyyymmddChicago(d = new Date()){
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+
+  const y = parts.find(p => p.type === "year")?.value;
+  const m = parts.find(p => p.type === "month")?.value;
+  const day = parts.find(p => p.type === "day")?.value;
+  return `${y}-${m}-${day}`;
+}
+
+function computeBreakId(){
+  const date = yyyymmddChicago();
+  const counter = getBreakNumber();
+  return `${date}-${currentBreakType}-${counter}`;
+}
+
+// Warmup ping (keeps Render awake)
+async function warmupPing(){
+  if (!automationEnabled()) return;
+
+  const base = getActiveBridge();
+  const key  = getActiveKey();
+
+  try{
+    await fetch(`${base}/events`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-bridge-key": key
+      },
+      body: JSON.stringify({
+        breakId: "warmup",
+        breakType: currentBreakType,
+        teamCode: "WARMUP",
+        buyerName: "ping",
+        ts: Date.now()
+      })
+    });
+  }catch(_){}
+}
+
+// Helpers: code -> index
+function findIndexByCode(code){
+  const teams = breakTypes[currentBreakType]?.teams || [];
+  const c = String(code || "").toUpperCase();
+  return teams.findIndex(t => String(t.code || "").toUpperCase() === c);
+}
+
+function sseMarkSold(code, buyer){
+  const idx = findIndexByCode(code);
+  if (idx < 0) return;
+
+  const tile = document.querySelector(`[data-team-index="${idx}"]`);
+  if (!tile) return;
+
+  if (!soldIndexes.has(idx)){
+    soldIndexes.add(idx);
+    tile.classList.add("sold");
+    tile.classList.add("flash");
+    setTimeout(()=>tile.classList.remove("flash"), 280);
+
+    if (!soldList.some(e => e.index === idx)){
+      soldList.push({ index: idx, buyer: buyer || "" });
+    }
+  } else {
+    if (buyer){
+      const entry = soldList.find(e => e.index === idx);
+      if (entry) entry.buyer = buyer;
+    }
+  }
+
+  updateStats();
+  updateSoldList();
+}
+
+function sseMarkUnsold(code){
+  const idx = findIndexByCode(code);
+  if (idx < 0) return;
+
+  const tile = document.querySelector(`[data-team-index="${idx}"]`);
+  if (!tile) return;
+
+  soldIndexes.delete(idx);
+  tile.classList.remove("sold");
+
+  const li = soldList.findIndex(e => e.index === idx);
+  if (li !== -1) soldList.splice(li, 1);
+
+  updateStats();
+  updateSoldList();
+}
+
+function sseUpdateBuyer(code, buyer){
+  const idx = findIndexByCode(code);
+  if (idx < 0) return;
+
+  const entry = soldList.find(e => e.index === idx);
+  if (!entry) return;
+
+  entry.buyer = buyer || "";
+  updateSoldList();
+}
+
+function applySaleFromSSE(data){
+  if (!data || !data.type) return;
+
+  // breakId guard (ignore other breaks)
+  const localBreakId = computeBreakId();
+  if (data.breakId && data.breakId !== localBreakId && data.breakId !== "warmup") return;
+
+  switch (data.type){
+   case "team_sold": {
+  const teamCode = data.code || data.teamCode || data.team || "";
+  sseMarkSold(teamCode, data.buyer || data.buyerName || "");
+  break;
+}
+
+
+ case "team_unsold": {
+  const teamCode = data.code || data.teamCode || data.team || "";
+  sseMarkUnsold(teamCode);
+  break;
+}
+
+case "buyer_update": {
+  const teamCode = data.code || data.teamCode || data.team || "";
+  sseUpdateBuyer(teamCode, data.buyer || data.buyerName || "");
+  break;
+}
+
+    case "reset":
+      resetAll();
+      break;
+
+    case "set_break":
+      setBreakNumber(data.value);
+      updateBreakBadge();
+      break;
+
+    case "set_sport":
+      if (data.sport && breakTypes[data.sport]){
+        currentBreakType = data.sport;
+        buildLayout();
+        renderPromoOverlay();
+      }
+      break;
+  }
+}
+
+function connectSSE(){
+  if (!automationEnabled()) return;
+
+  const base = getActiveBridge();
+  const streamUrl = `${base}/stream`;
+
+  if (sse) { try { sse.close(); } catch(_){} }
+
+  try{
+    sse = new EventSource(streamUrl);
+
+    sse.onmessage = (e) => {
+      try{
+        const data = JSON.parse(e.data);
+        applySaleFromSSE(data);
+      }catch(_){}
+    };
+
+    sse.onerror = () => {
+      try { sse.close(); } catch(_) {}
+      sse = null;
+      setTimeout(connectSSE, 2500);
+    };
+  }catch(_){}
+}
+
+function startSSE(){
+  if (!automationEnabled()) return;
+  warmupPing();
+  connectSSE();
+}
+
+// Extension handshake support
+window.addEventListener("message", (event) => {
+  const msg = event.data || {};
+
+  if (msg === "TSU_REQUEST_BRIDGE" || msg?.type === "TSU_REQUEST_BRIDGE"){
+    const bridge = getActiveBridge();
+    window.postMessage({ type: "TSU_OVERLAY", bridge }, "*");
+    return;
+  }
+
+  if (msg?.type === "TSU_BRIDGE_INFO"){
+    if (msg.bridge){
+      localStorage.setItem(TSU_BRIDGE_LS_KEY, normalizeBridge(msg.bridge));
+    }
+    if (typeof msg.key === "string"){
+      localStorage.setItem(TSU_KEY_LS_KEY, String(msg.key).trim());
+    }
+  }
+});
+
 
 // =========================
 // OBS-friendly modal (no prompt())
@@ -1272,6 +1540,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const d = document.createElement("div");
     d.className = "team";
     d.dataset.teamIndex = String(index);
+    d.dataset.teamCode = String(team.code || "");
+
+
     d.onclick = () => toggleTeam(index);
 
     if (team.image){
@@ -1475,6 +1746,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // init grid
     buildLayout();
+startSSE();
 
     // ensure badge shows current break
     updateBreakBadge();
