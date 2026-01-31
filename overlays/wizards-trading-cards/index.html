@@ -3,25 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=920, initial-scale=1.0"/>
-  <title>True Card Breaks – Box Break Overlay</title>
+  <title>Wizards Trading Cards – Box Break Overlay</title>
+
   <style>
     :root{
-      /* ===== TRUE CARD BREAKS (logo-matched) =====
-         Navy/steel + ice-blue + red banner + gold highlight
+      /* ===== WIZARDS TRADING CARDS THEME =====
+         Core: black/steel + white + red
+         Extra contrast: teal
       */
-      --bg0:#060b16;
-      --bg1:#0a1630;
-      --panel:#081225;
-      --tile:#050a14;
-    --goldBorder: rgba(245,200,75,0.85);
-      --ice:#7fd8ff;       /* bright ice blue */
-      --ice2:#2b8fca;      /* deeper blue */
-      --red:#c01821;       /* banner red */
-      --gold:#f5c84b;      /* cross/star gold accent */
+      --bg0:#07070a;
+      --bg1:#14141a;
+      --panel:#0b0b10;
+      --tile:#040406;
+
+      --silver:#d7d7d7;
+      --white:#ffffff;
+      --muted: rgba(255,255,255,0.78);
+
+      --red:#c1121f;
+      --red2:#7a0b12;
+
+      --teal:#18c7c1;      /* extra contrast color */
+      --teal2:#0a6f6b;
 
       --border: rgba(255,255,255,0.14);
-      --text:#ffffff;
-      --muted: rgba(255,255,255,0.78);
+      --glow: rgba(24,199,193,0.35);
 
       --tileH: 52px;
       --gap: 3px;
@@ -38,25 +44,28 @@
       width:920px;
       min-height:520px;
       user-select:none;
-      overflow:hidden;
     }
 
     .container{
-      background: radial-gradient(1200px 600px at 30% 0%, rgba(127,216,255,0.10), transparent 55%),
-                  linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 100%);
-      border: 4px solid rgba(127,216,255,0.75);
+      background:
+        radial-gradient(1100px 520px at 25% 0%, rgba(24,199,193,0.12), transparent 60%),
+        radial-gradient(900px 520px at 75% 100%, rgba(193,18,31,0.10), transparent 55%),
+        linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 100%);
+      border: 4px solid rgba(215,215,215,0.55);
       border-radius: 12px;
       padding: 6px;
-      box-shadow: 0 0 22px rgba(0,0,0,0.65);
+      box-shadow: 0 0 22px rgba(0,0,0,0.70);
       display:flex;
-      height:4px;
       flex-direction:column;
     }
 
     /* ===== HEADER ===== */
     .header{
-      background: linear-gradient(90deg, rgba(8,18,40,1) 0%, rgb(48, 123, 228) 53%, rgba(8,18,40,1) 100%);
-      color: var(--text);
+      background: linear-gradient(90deg,
+        rgba(10,10,14,1) 0%,
+        rgba(18,18,24,1) 45%,
+        rgba(10,10,14,1) 100%);
+      color: var(--white);
       padding: 6px 10px;
       margin: -6px -6px 6px -6px;
       border-radius: 6px 6px 0 0;
@@ -65,6 +74,17 @@
       justify-content: space-between;
       gap:10px;
       border-bottom: 2px solid rgba(255,255,255,0.10);
+      position:relative;
+      overflow:hidden;
+    }
+
+    .header::after{
+      content:"";
+      position:absolute;
+      inset:-40px -80px auto -80px;
+      height:120px;
+      background: radial-gradient(circle at 50% 50%, rgba(24,199,193,0.18), transparent 60%);
+      pointer-events:none;
     }
 
     .header-left{
@@ -72,13 +92,14 @@
       align-items:center;
       gap:10px;
       min-width: 0;
+      z-index:1;
     }
 
     .header-icon{
       width:18px;height:18px;border-radius:50%;
       border:2px solid rgba(255,255,255,0.92);
-      background: radial-gradient(circle at 30% 30%, var(--gold), var(--red));
-      box-shadow: 0 0 10px rgba(0,0,0,0.7);
+      background: radial-gradient(circle at 30% 30%, var(--teal), var(--red));
+      box-shadow: 0 0 12px rgba(0,0,0,0.75);
       flex: 0 0 auto;
     }
 
@@ -97,6 +118,7 @@
       align-items:center;
       gap:10px;
       flex: 0 0 auto;
+      z-index:1;
     }
 
     .break-pill{
@@ -105,53 +127,30 @@
       gap:8px;
       padding: 4px 10px;
       border-radius: 999px;
-      border: 2px solid var(--goldBorder);
-      background: rgba(0,0,0,0.25);
+      border: 2px solid rgba(215,215,215,0.55);
+      background: rgba(0,0,0,0.28);
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
       font-weight: 900;
       letter-spacing: 1px;
       text-transform: uppercase;
       white-space: nowrap;
     }
-    .break-pill .label{
-      opacity: 0.95;
-      font-size: 19px;
-    }
-    .break-pill .value{
-      font-size: 19px;
-      color: #fff;
-    }
-
-    .header-banner{
-      display:flex;
-      align-items:center;
-      justify-content:flex-end;
-      max-width: 220px;
-    }
-    .header-banner img{
-      max-height: 34px;
-      width: auto;
-      object-fit: contain;
-      filter: drop-shadow(0 2px 7px rgba(0,0,0,0.6));
-    }
+    .break-pill .label{ opacity: 0.95; font-size: 16px; }
+    .break-pill .value{ font-size: 16px; color: #fff; }
 
     /* ===== MAIN WRAPPER ===== */
     .main-content{
       display:flex;
       flex-direction:column;
       gap: 6px;
-      flex:1;
-      min-height:0;
-
     }
 
     .teams-wrapper{
-      background: linear-gradient(180deg, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.55) 100%);
+      background: linear-gradient(180deg, rgba(0,0,0,0.22) 0%, rgba(0,0,0,0.60) 100%);
       border-radius: 8px;
       padding: 6px;
-      border: 3px solid rgba(127,216,255,0.65);
-      flex:1;
-      min-height:0;
+      border: 3px solid rgba(215,215,215,0.45);
+      box-shadow: inset 0 0 0 1px rgba(24,199,193,0.10);
     }
 
     /* ===== GENERIC ROW GRID ===== */
@@ -165,7 +164,7 @@
 
     .team{
       background: #000;
-      border: 2px solid rgba(127,216,255,0.70);
+      border: 2px solid rgba(215,215,215,0.45);
       border-radius: 6px;
       display:flex;
       align-items:center;
@@ -179,8 +178,8 @@
 
     .team:hover{
       transform: translateY(-1px);
-      box-shadow: 0 0 9px rgba(255,255,255,0.18);
-      border-color: rgba(245,200,75,0.65);
+      box-shadow: 0 0 10px rgba(24,199,193,0.25);
+      border-color: rgba(24,199,193,0.65);
     }
 
     .team img{
@@ -190,30 +189,39 @@
       border-radius: 4px;
     }
 
-    .team img.nfl-small,
-    .team img.nhl-small{
-      object-fit: cover;
-    }
-
     .team .fallback-code{
       color:#fff;
       font-size: 14px;
       letter-spacing: 1px;
-      opacity: 0.9;
+      opacity: 0.92;
+      padding: 0 6px;
+      text-align:center;
+      line-height: 1.05;
+      text-transform: uppercase;
+      text-shadow: 0 2px 7px rgba(0,0,0,0.8);
+    }
+
+    /* NIL tiles look a bit more premium */
+    .team.nil{
+      background:
+        radial-gradient(120px 60px at 30% 30%, rgba(24,199,193,0.18), transparent 65%),
+        linear-gradient(180deg, rgba(18,18,24,1) 0%, rgba(0,0,0,1) 100%);
+      border-color: rgba(24,199,193,0.55);
     }
 
     .team.sold img{
-      opacity: 0.22;
+      opacity: 0.20;
       filter: grayscale(100%) brightness(0.35);
     }
-
-    .team.flash{
-      animation: soldFlash 260ms ease;
+    .team.sold.nil .fallback-code{
+      opacity: 0.35;
     }
+
+    .team.flash{ animation: soldFlash 260ms ease; }
     @keyframes soldFlash{
-      0%{ box-shadow: 0 0 0 rgba(127,216,255,0.0); }
-      50%{ box-shadow: 0 0 18px rgba(127,216,255,0.65); }
-      100%{ box-shadow: 0 0 0 rgba(127,216,255,0.0); }
+      0%{ box-shadow: 0 0 0 rgba(24,199,193,0.0); }
+      50%{ box-shadow: 0 0 18px rgba(24,199,193,0.65); }
+      100%{ box-shadow: 0 0 0 rgba(24,199,193,0.0); }
     }
 
     .team.sold::after{
@@ -223,7 +231,7 @@
       color: #ffffff;
       text-shadow: 0 0 3px #000;
       z-index: 10;
-      background: rgba(192,24,33,0.95);
+      background: rgba(193,18,31,0.95);
       border-radius: 50%;
       width: 26px;
       height: 26px;
@@ -239,23 +247,29 @@
     /* ===== LOGO SLOT (IN GRID) ===== */
     .logo-slot{
       border-radius: 10px;
-      height: var(--tileH);
+      height: calc(var(--tileH) * 1);
       display:flex;
       align-items:center;
       justify-content:center;
       pointer-events:none;
-      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
-      border: 2px solid rgba(255,255,255,0.14);
-      overflow:visible;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.015));
+      border: 2px solid rgba(215,215,215,0.35);
+      overflow:hidden;
       position:relative;
     }
-    .logo-slot img{
-      height: 120px;
-      width: auto;
-      object-fit: cover;
+    .logo-slot::before{
+      content:"";
       position:absolute;
-      top: -65px;
-      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.55));
+      inset:-30px -30px -30px -30px;
+      background: radial-gradient(circle at 50% 50%, rgba(193,18,31,0.12), transparent 60%);
+      pointer-events:none;
+    }
+    .logo-slot img{
+      max-height: 90%;
+      max-width: 90%;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0,0,0,0.70));
+      z-index:1;
     }
 
     /* ===== TICKER ROW ===== */
@@ -265,8 +279,8 @@
       display:flex;
       align-items:center;
       overflow:hidden;
-      background: linear-gradient(90deg, rgba(127,216,255,0.16), rgba(245,200,75,0.10), rgba(192,24,33,0.10));
-      border: 2px solid var(--goldBorder);
+      background: linear-gradient(90deg, rgba(24,199,193,0.18), rgba(215,215,215,0.08), rgba(193,18,31,0.14));
+      border: 2px solid rgba(215,215,215,0.45);
       padding: 0 10px;
     }
 
@@ -290,27 +304,27 @@
     .controls-row{
       margin-top: 6px;
       display:flex;
-      grid-template-columns: 1fr 0.75fr minmax(120px,1fr) 0.75fr 1fr;
       gap: 6px;
       align-items: stretch;
       flex-direction: row;
       justify-content: space-evenly;
+      flex-wrap: wrap;
     }
 
     .stat-box{
-      background: linear-gradient(135deg, rgba(10,32,62,1) 0%, rgba(8,18,40,1) 100%);
+      background: linear-gradient(135deg, rgba(18,18,24,1) 0%, rgba(0,0,0,1) 100%);
       color:#fff;
       border-radius: 8px;
       text-align:center;
       font-weight:900;
       padding: 4px 0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.35);
       display:flex;
       flex-direction:column;
       min-width:150px;
       justify-content:center;
       font-size: 18px;
-      border: 2px solid var(--goldBorder);
+      border: 2px solid rgba(215,215,215,0.40);
     }
 
     .stat-label{
@@ -321,31 +335,44 @@
     }
 
     .btn{
-      background: linear-gradient(135deg, rgba(127,216,255,1) 0%, rgba(43,143,202,1) 100%);
+      background: linear-gradient(135deg, rgba(24,199,193,1) 0%, rgba(10,111,107,1) 100%);
       color:#fff;
-      border: 2px solid var(--goldBorder);
+      border: 2px solid rgba(215,215,215,0.40);
       border-radius: 8px;
       cursor:pointer;
       font-weight: 900;
       font-size: 14px;
       letter-spacing: 0.5px;
       text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.30);
       display:flex;
       align-items:center;
       justify-content:center;
       gap: 6px;
       padding: 10px 10px;
+      min-width: 130px;
     }
 
     .btn.secondary{
-      background: linear-gradient(135deg, rgba(192,24,33,0.95) 0%, rgba(110,10,14,0.95) 100%);
-      border: 2px solid var(--goldBorder);
+      background: linear-gradient(135deg, rgba(193,18,31,0.95) 0%, rgba(122,11,18,0.95) 100%);
+      border: 2px solid rgba(215,215,215,0.45);
     }
 
     .btn.ghost{
-      background: linear-gradient(135deg, rgba(10,32,62,1) 0%, rgba(8,18,40,1) 100%);
-      border: 2px solid var(--goldBorder);
+      background: linear-gradient(135deg, rgba(18,18,24,1) 0%, rgba(0,0,0,1) 100%);
+      border: 2px solid rgba(215,215,215,0.35);
+    }
+
+    .btn.small{
+      padding: 8px 10px;
+      font-size: 12px;
+      min-width: unset;
+    }
+
+    .btn.active{
+      outline: 3px solid rgba(24,199,193,0.35);
+      border-color: rgba(24,199,193,0.75);
+      box-shadow: 0 0 14px rgba(24,199,193,0.22);
     }
 
     .btn:active{
@@ -357,12 +384,12 @@
     .sold-list-container{
       margin: 8px auto 0 auto;
       width: 100%;
-      background: linear-gradient(180deg, rgba(6,11,22,1) 0%, rgba(10,22,48,1) 100%);
-      border: 3px solid rgba(127,216,255,0.65);
+      background: linear-gradient(180deg, rgba(7,7,10,1) 0%, rgba(20,20,26,1) 100%);
+      border: 3px solid rgba(215,215,215,0.45);
       border-radius: 8px;
       padding: 6px 7px 8px;
       text-align:center;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.55);
     }
 
     .sold-top-row{
@@ -371,6 +398,7 @@
       justify-content: space-between;
       gap: 8px;
       margin-bottom: 6px;
+      flex-wrap: wrap;
     }
 
     .sold-list-title{
@@ -390,7 +418,7 @@
       flex-wrap: wrap;
     }
 
-    .break-set{
+    .break-set, .ticker-edit{
       display:flex;
       align-items:center;
       gap:6px;
@@ -400,8 +428,7 @@
       background: rgba(0,0,0,0.25);
     }
 
-    .break-set input{
-      width: 90px;
+    .break-set input, .ticker-edit input{
       padding: 6px 8px;
       border-radius: 8px;
       border: 1px solid rgba(255,255,255,0.14);
@@ -411,6 +438,8 @@
       outline:none;
       text-align:center;
     }
+    .break-set input{ width: 90px; }
+    .ticker-edit input{ width: 200px; text-align:left; }
 
     .sold-list-grid{
       display:grid;
@@ -426,7 +455,7 @@
       background: rgba(0,0,0,0.60);
       border-radius: 7px;
       padding: 2px 4px;
-      border: 2px solid rgba(127,216,255,0.65);
+      border: 2px solid rgba(215,215,215,0.35);
     }
 
     .sold-team-img{
@@ -441,10 +470,14 @@
     .sold-team-name{
       font-weight: 900;
       color:#f9fafb;
-      min-width: 60px;
+      min-width: 70px;
       text-transform: capitalize;
       font-size: 13px;
       opacity: 0.95;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 120px;
     }
 
     .sold-buyer-input{
@@ -459,29 +492,7 @@
       outline:none;
     }
 
-.ticker-edit{
-  display:flex;
-  align-items:center;
-  gap:6px;
-  padding: 4px 6px;
-  border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: rgba(0,0,0,0.25);
-}
-
-.ticker-edit input{
-  width: 200px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  border: 2px solid var(--goldBorder);
-  background: rgba(0,0,0,0.30);
-  color:#fff;
-  font-weight: 900;
-  outline:none;
-}
-
-
-    /* ===== SSE STATUS (optional) ===== */
+    /* ===== SSE STATUS ===== */
     .sse{
       display:flex;
       align-items:center;
@@ -505,6 +516,96 @@
     .sse.connected .dot{ background: #3cff8a; box-shadow: 0 0 10px rgba(60,255,138,0.7); }
     .sse.error .dot{ background: #ff2f2f; box-shadow: 0 0 10px rgba(255,47,47,0.7); }
 
+    /* ===== NIL SETUP PANEL (only shows in NIL mode) ===== */
+    .nil-panel{
+      margin-top: 6px;
+      background: rgba(0,0,0,0.35);
+      border: 2px solid rgba(24,199,193,0.35);
+      border-radius: 10px;
+      padding: 10px;
+      display:none;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+
+    .nil-panel.show{ display:block; }
+
+    .nil-panel-title{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 14px;
+    }
+
+    .nil-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      align-items: start;
+    }
+
+    .nil-box{
+      background: rgba(0,0,0,0.35);
+      border: 2px solid rgba(215,215,215,0.25);
+      border-radius: 10px;
+      padding: 8px;
+    }
+
+    .nil-box label{
+      display:block;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.9);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .nil-box textarea{
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      border-radius: 10px;
+      border: 2px solid rgba(24,199,193,0.30);
+      background: rgba(0,0,0,0.35);
+      color: #fff;
+      font-weight: 800;
+      padding: 8px;
+      outline:none;
+      font-family: Arial, sans-serif;
+      line-height: 1.2;
+    }
+
+    .nil-box input[type="file"],
+    .nil-box input[type="number"]{
+      width: 100%;
+      border-radius: 10px;
+      border: 2px solid rgba(215,215,215,0.20);
+      background: rgba(0,0,0,0.35);
+      color: #fff;
+      font-weight: 900;
+      padding: 8px;
+      outline:none;
+    }
+
+    .nil-actions{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .hint{
+      margin-top: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.75);
+      line-height: 1.2;
+    }
   </style>
 </head>
 
@@ -514,7 +615,6 @@
       <div class="header-left">
         <div class="header-icon"></div>
         <div class="header-text" id="headerText">NBA BOX BREAK</div>
-
       </div>
 
       <div class="header-right">
@@ -522,15 +622,11 @@
           <span class="label">Break #</span>
           <span class="value" id="breakNumberDisplay">1</span>
         </div>
-
-        
       </div>
     </div>
 
     <div class="main-content">
-      <div class="teams-wrapper" id="teamsWrapper">
-        <!-- rows injected here -->
-      </div>
+      <div class="teams-wrapper" id="teamsWrapper"></div>
 
       <div class="controls-row">
         <button class="btn secondary" onclick="newBreak()">🧾 NEW BREAK</button>
@@ -540,35 +636,80 @@
           <div class="stat-label">REMAINING</div>
         </div>
 
-        
-
         <div class="stat-box">
           <div id="teamsSold">0</div>
           <div class="stat-label">SOLD</div>
         </div>
 
-        <button class="btn ghost" onclick="cycleSport()">⚙ CHANGE SPORT</button>
+        <button class="btn ghost" id="btnNBA" onclick="setSport('nba')">🏀 NBA</button>
+        <button class="btn ghost" id="btnNFL" onclick="setSport('nfl')">🏈 NFL</button>
+        <button class="btn ghost" id="btnMLB" onclick="setSport('mlb')">⚾ MLB</button>
+        <button class="btn ghost" id="btnNIL" onclick="setSport('nil')">🧩 NIL</button>
       </div>
+
+      <!-- NIL Setup Panel -->
+      <div class="nil-panel" id="nilPanel">
+        <div class="nil-panel-title">
+          <span>Custom NIL / Creator Spots</span>
+          <span style="color:rgba(255,255,255,0.75); font-size:12px; letter-spacing:0.5px;">
+            CSV Import + Paste
+          </span>
+        </div>
+
+        <div class="nil-grid">
+          <div class="nil-box">
+            <label>Paste Spots (one per line)</label>
+            <textarea id="nilTextarea" placeholder="Nation of Cards&#10;Backyard Breaks&#10;Campus Kings&#10;..."></textarea>
+            <div class="nil-actions">
+              <button class="btn small" onclick="applyNilFromTextarea()">APPLY SPOTS</button>
+              <button class="btn small secondary" onclick="clearNilSpots()">CLEAR</button>
+            </div>
+            <div class="hint">
+              Each line becomes a “team tile.” Click to mark sold, just like teams.
+            </div>
+          </div>
+
+          <div class="nil-box">
+            <label>CSV Import (first column = spot name)</label>
+            <input id="nilCsvInput" type="file" accept=".csv,text/csv" />
+            <div class="nil-actions">
+              <button class="btn small" onclick="importNilCsv()">IMPORT CSV</button>
+            </div>
+
+            <label style="margin-top:10px;">NIL Columns (4–12)</label>
+            <input id="nilColsInput" type="number" min="4" max="12" placeholder="8" />
+            <div class="nil-actions">
+              <button class="btn small ghost" onclick="applyNilCols()">SET COLUMNS</button>
+            </div>
+
+            <div class="hint">
+              CSV example:<br/>
+              <span style="opacity:0.85;">Nation of Cards</span><br/>
+              <span style="opacity:0.85;">Campus Kings</span><br/>
+              <span style="opacity:0.85;">Any random group name</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
   <div class="sold-list-container">
     <div class="sold-top-row">
-      <div class="sold-list-title">SOLD TEAMS</div>
+      <div class="sold-list-title">SOLD TEAMS / SPOTS</div>
 
       <div class="sold-controls">
         <div class="break-set">
           <input id="breakSetInput" type="text" placeholder="Break #" />
-          <button class="btn" style="padding:8px 10px; font-size:12px;" onclick="applyBreakNumber()">SET</button>
-          <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="incrementBreak()">+1</button>
+          <button class="btn small" onclick="applyBreakNumber()">SET</button>
+          <button class="btn small secondary" onclick="incrementBreak()">+1</button>
         </div>
 
-<div class="ticker-edit">
-  <input id="tickerInput" type="text" placeholder="Ticker text..." />
-  <button class="btn ghost" style="padding:8px 10px; font-size:14px;" onclick="applyTicker()">APPLY</button>
-</div>
-
-
+        <div class="ticker-edit">
+          <input id="tickerInput" type="text" placeholder="Ticker text..." />
+          <button class="btn small ghost" onclick="applyTicker()">APPLY</button>
+        </div>
 
         <div class="sse" id="sseStatus">
           SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
@@ -591,84 +732,81 @@
     return '../..\/';
   })();
 
-  // ===== File structure you should use =====
-  // ../../images/logos/true-card-breaks-logo.png
-  // ../../images/nfl/*.png
-  // ../../images/nba/*.png
-  // ../../images/mlb/*.png
-  // ../../images/nhl/*.png
-
-  const LOGO_PRIMARY = `${BASE}images/logos/true-card-breaks-logo.png`;
+  /*
+    ===== Expected file structure (same as your existing overlay) =====
+    ../../images/logos/wizards-trading-cards-logo.png
+    ../../images/nfl/*.png
+    ../../images/nba/*.png
+    ../../images/mlb/*.png
+  */
+  const LOGO_PRIMARY = `${BASE}images/logos/wizards-trading-cards-logo.png`;
 
   const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
   const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
   const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
-  const imgPathNHL = (f) => `${BASE}images/nhl/${f}`;
 
- const TICKER_KEY = "tcb.tickerLines";
-const DEFAULT_TICKER_LINES = [
-  "TRUE CARD BREAKS",
-  "LIVE BREAKS • FAST SHIPPING • GOOD LUCK"
-];
+  // ===== Persistent keys (wizards) =====
+  const STORE_PREFIX = "wtc";
+  const TICKER_KEY = `${STORE_PREFIX}.tickerLines`;
+  const BREAK_KEY  = `${STORE_PREFIX}.breakNumber`;
+  const NIL_KEY    = `${STORE_PREFIX}.nilSpots`;
+  const NIL_COLS_KEY = `${STORE_PREFIX}.nilCols`;
 
-function loadTickerLines(){
-  try{
-    const raw = localStorage.getItem(TICKER_KEY);
-    if (!raw) return DEFAULT_TICKER_LINES.slice();
-    const arr = JSON.parse(raw);
-    if (Array.isArray(arr) && arr.length) return arr.map(s => String(s));
-  }catch(_){}
-  return DEFAULT_TICKER_LINES.slice();
-}
+  // ===== Ticker =====
+  const DEFAULT_TICKER_LINES = [
+    "WIZARDS TRADING CARDS",
+    "LIVE BREAKS • FAST SHIPPING • GOOD LUCK"
+  ];
 
-function saveTickerLines(lines){
-  localStorage.setItem(TICKER_KEY, JSON.stringify(lines));
-}
+  function loadTickerLines(){
+    try{
+      const raw = localStorage.getItem(TICKER_KEY);
+      if (!raw) return DEFAULT_TICKER_LINES.slice();
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length) return arr.map(s => String(s));
+    }catch(_){}
+    return DEFAULT_TICKER_LINES.slice();
+  }
 
-let TICKER_LINES = loadTickerLines();
-// keep the OBS input populated
-document.addEventListener("DOMContentLoaded", syncTickerInput);
+  function saveTickerLines(lines){
+    localStorage.setItem(TICKER_KEY, JSON.stringify(lines));
+  }
 
+  let TICKER_LINES = loadTickerLines();
 
-function refreshTickerText(){
-  const t = ` ${TICKER_LINES.join("   •   ")} `;
-  document.querySelectorAll(".ticker-text").forEach(el => {
-    el.textContent = t;
-    // restart animation so changes show immediately
-    el.style.animation = "none";
-    void el.offsetHeight;
-    el.style.animation = "tickerScroll 22s linear infinite";
-  });
-}
+  function refreshTickerText(){
+    const t = ` ${TICKER_LINES.join("   •   ")} `;
+    document.querySelectorAll(".ticker-text").forEach(el => {
+      el.textContent = t;
+      el.style.animation = "none";
+      void el.offsetHeight;
+      el.style.animation = "tickerScroll 22s linear infinite";
+    });
+  }
 
-function setTickerLines(lines){
-  TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
-  saveTickerLines(TICKER_LINES);
-  refreshTickerText();
-  syncTickerInput();
-}
+  function setTickerLines(lines){
+    TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
+    saveTickerLines(TICKER_LINES);
+    refreshTickerText();
+    syncTickerInput();
+  }
 
+  function applyTicker(){
+    const raw = (document.getElementById("tickerInput")?.value || "").trim();
+    const parts = raw.includes("•")
+      ? raw.split("•").map(s => s.trim()).filter(Boolean)
+      : [raw].filter(Boolean);
 
-function applyTicker(){
-  const raw = (document.getElementById("tickerInput")?.value || "").trim();
-  // support either bullets or plain text
-  const parts = raw.includes("•")
-    ? raw.split("•").map(s => s.trim()).filter(Boolean)
-    : [raw].filter(Boolean);
+    setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+  }
 
-  setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
-}
+  function syncTickerInput(){
+    const inp = document.getElementById("tickerInput");
+    if (!inp) return;
+    inp.value = TICKER_LINES.join(" • ");
+  }
 
-function syncTickerInput(){
-  const inp = document.getElementById("tickerInput");
-  if (!inp) return;
-  inp.value = TICKER_LINES.join(" • ");
-}
-
-
-
-  // ===== Break number persistence =====
-  const BREAK_KEY = "tcb.breakNumber";
+  // ===== Break number =====
   function loadBreakNumber(){
     const raw = localStorage.getItem(BREAK_KEY);
     const n = parseInt(raw || "1", 10);
@@ -693,13 +831,107 @@ function syncTickerInput(){
     setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
   }
 
-  // ===== Sport configs (layout matches DrayBreaks logic) =====
+  // ===== NIL Spots =====
+  function loadNilCols(){
+    const raw = localStorage.getItem(NIL_COLS_KEY);
+    const n = parseInt(raw || "8", 10);
+    return Number.isFinite(n) ? Math.min(12, Math.max(4, n)) : 8;
+  }
+  function saveNilCols(n){
+    localStorage.setItem(NIL_COLS_KEY, String(n));
+  }
+
+  function loadNilSpots(){
+    try{
+      const raw = localStorage.getItem(NIL_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr.map(s => String(s)).filter(Boolean);
+    }catch(_){}
+    return [];
+  }
+  function saveNilSpots(spots){
+    localStorage.setItem(NIL_KEY, JSON.stringify(spots));
+  }
+
+  function normalizeCode(str){
+    return String(str || "")
+      .toUpperCase()
+      .replace(/&/g, "AND")
+      .replace(/[^A-Z0-9]+/g, "")
+      .slice(0, 10) || "SPOT";
+  }
+
+  function buildNilTeams(){
+    const spots = loadNilSpots();
+    const used = new Set();
+    return spots.map((name, idx) => {
+      let base = normalizeCode(name);
+      if (!base) base = "SPOT";
+      let code = base;
+      let n = 2;
+      while (used.has(code)){
+        code = `${base}${n++}`.slice(0,10);
+      }
+      used.add(code);
+      return { code, name, image: null, _nil:true };
+    });
+  }
+
+  function applyNilFromTextarea(){
+    const raw = (document.getElementById("nilTextarea")?.value || "").trim();
+    const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    saveNilSpots(lines);
+    if (currentBreakType === "nil") buildLayout();
+  }
+
+  function clearNilSpots(){
+    saveNilSpots([]);
+    const ta = document.getElementById("nilTextarea");
+    if (ta) ta.value = "";
+    if (currentBreakType === "nil") buildLayout();
+  }
+
+  async function importNilCsv(){
+    const input = document.getElementById("nilCsvInput");
+    const file = input?.files?.[0];
+    if (!file) return;
+
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+
+    // take first column; skip header-ish row if it contains "spot" or "name"
+    const spots = [];
+    for (let i=0;i<lines.length;i++){
+      const row = lines[i];
+      const first = row.split(",")[0]?.trim();
+      if (!first) continue;
+      const lower = first.toLowerCase();
+      if (i===0 && (lower.includes("spot") || lower.includes("name"))) continue;
+      spots.push(first);
+    }
+
+    saveNilSpots(spots);
+    const ta = document.getElementById("nilTextarea");
+    if (ta) ta.value = spots.join("\n");
+    if (currentBreakType === "nil") buildLayout();
+  }
+
+  function applyNilCols(){
+    const raw = (document.getElementById("nilColsInput")?.value || "").trim();
+    const n = parseInt(raw, 10);
+    if (!Number.isFinite(n)) return;
+    const safe = Math.min(12, Math.max(4, n));
+    saveNilCols(safe);
+    if (currentBreakType === "nil") buildLayout();
+  }
+
+  // ===== Sport configs =====
   const breakTypes = {
     nba: {
       name: "NBA",
       cols: 8,
       layout: "NBA_MLB_30",
-      tileH: 46,
       teams: [
         { code:'ATL', name:'hawks', image: imgPathNBA('hawks.png') },
         { code:'BOS', name:'celtics', image: imgPathNBA('celtics.png') },
@@ -738,7 +970,6 @@ function syncTickerInput(){
       name: "MLB",
       cols: 8,
       layout: "NBA_MLB_30",
-      tileH: 46,
       teams: [
         { code:'ARI', name:'diamondbacks', image: imgPathMLB('diamondbacks.png') },
         { code:'ATL', name:'braves', image: imgPathMLB('braves.png') },
@@ -777,7 +1008,6 @@ function syncTickerInput(){
       name: "NFL",
       cols: 10,
       layout: "NFL_32",
-      tileH: 56,
       teams: [
         { code:'ARI', name:'cardinals', image: imgPathNFL('cardinals.png') },
         { code:'ATL', name:'falcons', image: imgPathNFL('falcons.png') },
@@ -817,52 +1047,12 @@ function syncTickerInput(){
       ]
     },
 
-    nhl: {
-      name: "NHL",
-      cols: 8,
-      layout: "NHL_32",
-      tileH: 46,
-      teams: [
-        // Eastern - Atlantic
-        { code:'BOS', name:'bruins', image: imgPathNHL('bruins.png') },
-        { code:'BUF', name:'sabres', image: imgPathNHL('sabres.png') },
-        { code:'DET', name:'red wings', image: imgPathNHL('redwings.png') },
-        { code:'FLA', name:'panthers', image: imgPathNHL('panthers.png') },
-        { code:'MTL', name:'canadiens', image: imgPathNHL('canadiens.png') },
-        { code:'OTT', name:'senators', image: imgPathNHL('senators.png') },
-        { code:'TBL', name:'lightning', image: imgPathNHL('lightning.png') },
-        { code:'TOR', name:'maple leafs', image: imgPathNHL('maple_leafs.png') },
-
-        // Eastern - Metro
-        { code:'CAR', name:'hurricanes', image: imgPathNHL('hurricanes.png') },
-        { code:'CBJ', name:'blue jackets', image: imgPathNHL('bluejackets.png') },
-        { code:'NJD', name:'devils', image: imgPathNHL('devils.png') },
-        { code:'NYI', name:'islanders', image: imgPathNHL('islanders.png') },
-        { code:'NYR', name:'rangers', image: imgPathNHL('rangers.png') },
-        { code:'PHI', name:'flyers', image: imgPathNHL('flyers.png') },
-        { code:'PIT', name:'penguins', image: imgPathNHL('penguins.png') },
-        { code:'WSH', name:'capitals', image: imgPathNHL('capitals.png') },
-
-        // Western - Central
-        { code:'UTH', name:'mammoth', image: imgPathNHL('mammoth.png') }, /* Utah placeholder image */
-        { code:'CHI', name:'blackhawks', image: imgPathNHL('blackhawks.png') },
-        { code:'COL', name:'avalanche', image: imgPathNHL('avalanche.png') },
-        { code:'DAL', name:'stars', image: imgPathNHL('stars.png') },
-        { code:'MIN', name:'wild', image: imgPathNHL('wild.png') },
-        { code:'NSH', name:'predators', image: imgPathNHL('predators.png') },
-        { code:'STL', name:'blues', image: imgPathNHL('blues.png') },
-        { code:'WPG', name:'jets', image: imgPathNHL('jets.png') },
-
-        // Western - Pacific
-        { code:'ANA', name:'ducks', image: imgPathNHL('ducks.png') },
-        { code:'CGY', name:'flames', image: imgPathNHL('flames.png') },
-        { code:'EDM', name:'oilers', image: imgPathNHL('oilers.png') },
-        { code:'LAK', name:'kings', image: imgPathNHL('kings.png') },
-        { code:'SEA', name:'kraken', image: imgPathNHL('kraken.png') },
-        { code:'SJS', name:'sharks', image: imgPathNHL('sharks.png') },
-        { code:'VAN', name:'canucks', image: imgPathNHL('canucks.png') },
-        { code:'VGK', name:'golden knights', image: imgPathNHL('golden_knights.png') }
-      ]
+    // NIL = dynamic list, same structure, text tiles
+    nil: {
+      name: "NIL",
+      cols: loadNilCols(),
+      layout: "CUSTOM",
+      teams: [] // populated at runtime
     }
   };
 
@@ -871,11 +1061,31 @@ function syncTickerInput(){
   let soldTeams = new Set();        // codes
   let soldTeamsList = [];           // {code,buyer}
 
-  // ===== Header =====
+  // ===== Header + Button UI =====
   function setHeader(){
     const b = breakTypes[currentBreakType];
     document.getElementById("headerText").textContent = `${b.name} BOX BREAK`;
+    setActiveSportButton();
+    toggleNilPanel();
+  }
 
+  function setActiveSportButton(){
+    const map = {
+      nba: "btnNBA",
+      nfl: "btnNFL",
+      mlb: "btnMLB",
+      nil: "btnNIL"
+    };
+    Object.values(map).forEach(id => document.getElementById(id)?.classList.remove("active"));
+    const active = map[currentBreakType];
+    if (active) document.getElementById(active)?.classList.add("active");
+  }
+
+  function toggleNilPanel(){
+    const p = document.getElementById("nilPanel");
+    if (!p) return;
+    if (currentBreakType === "nil") p.classList.add("show");
+    else p.classList.remove("show");
   }
 
   // ===== Tile builders =====
@@ -883,6 +1093,7 @@ function syncTickerInput(){
     const d = document.createElement("div");
     d.className = "team";
     d.dataset.teamCode = String(team.code || "");
+    if (team._nil) d.classList.add("nil");
 
     d.onclick = () => toggleTeam(team.code);
 
@@ -890,21 +1101,17 @@ function syncTickerInput(){
       const img = document.createElement("img");
       img.src = team.image;
       img.alt = team.name || team.code || "";
-
-      if (currentBreakType === "nfl") img.classList.add("nfl-small");
-      if (currentBreakType === "nhl") img.classList.add("nhl-small");
-
       img.onerror = () => {
         d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
       };
       d.appendChild(img);
     } else {
-      d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
+      // NIL or missing image: show name if present
+      const label = team.name || team.code || "?";
+      d.innerHTML = `<div class="fallback-code">${escapeHtml(label)}</div>`;
     }
 
-    // restore sold visual if needed
     if (soldTeams.has(team.code)) d.classList.add("sold");
-
     return d;
   }
 
@@ -915,7 +1122,7 @@ function syncTickerInput(){
 
     const img = document.createElement("img");
     img.src = LOGO_PRIMARY;
-    img.alt = "True Card Breaks Logo";
+    img.alt = "Wizards Trading Cards Logo";
     slot.appendChild(img);
     return slot;
   }
@@ -933,27 +1140,59 @@ function syncTickerInput(){
   }
 
   // ===== Layout builder =====
-function buildLayout(){
-  const wrap = document.getElementById("teamsWrapper");
-  wrap.innerHTML = "";
+  function buildLayout(){
+    const wrap = document.getElementById("teamsWrapper");
+    wrap.innerHTML = "";
 
-  const config = breakTypes[currentBreakType];
+    // Inject NIL teams dynamically
+    if (currentBreakType === "nil"){
+      breakTypes.nil.cols = loadNilCols();
+      breakTypes.nil.teams = buildNilTeams();
+    }
 
-  document.documentElement.style.setProperty("--cols", String(config.cols));
-  document.documentElement.style.setProperty("--tileH", String(config.tileH || 52) + "px");
+    const config = breakTypes[currentBreakType];
+    document.documentElement.style.setProperty("--cols", String(config.cols));
 
     const teams = config.teams;
 
-    // NOTE: We intentionally do NOT clear sold state when switching sport via SSE.
-    // When changing sport locally, you usually want a clean board, so we clear here:
+    // Clear state when switching sport locally
     soldTeams.clear();
     soldTeamsList = [];
 
+    // NIL: simple full-grid + logo row + ticker row
+    if (config.layout === "CUSTOM"){
+      // We build a grid that fills rows with NIL tiles, then add a logo row, then ticker row
+      // Row 1: Logo spans all cols
+      const logoRow = document.createElement("div");
+      logoRow.className = "row-grid";
+      logoRow.appendChild(makeLogoSlot(config.cols));
+      wrap.appendChild(logoRow);
+
+      // Tiles: auto flow
+      let idx = 0;
+      while (idx < teams.length){
+        const row = document.createElement("div");
+        row.className = "row-grid";
+        for (let i=0; i<config.cols && idx<teams.length; i++){
+          row.appendChild(makeTeamDiv(teams[idx++]));
+        }
+        wrap.appendChild(row);
+      }
+
+      const tickerRow = document.createElement("div");
+      tickerRow.className = "row-grid";
+      tickerRow.appendChild(makeTickerSlot(config.cols));
+      wrap.appendChild(tickerRow);
+
+      setHeader();
+      refreshTickerText();
+      updateStats();
+      updateSoldList();
+      return;
+    }
+
+    // NBA/MLB 30-team layout (8 cols)
     if (config.layout === "NBA_MLB_30"){
-      // 8 cols
-      // Row1: 3 teams, logo(2), 3 teams => 6 teams
-      // Row2-4: 8 teams each => 24 teams
-      // Row5: ticker span 8
       let idx = 0;
 
       const r1 = document.createElement("div");
@@ -976,12 +1215,8 @@ function buildLayout(){
       wrap.appendChild(r5);
     }
 
+    // NFL 32 layout (10 cols)
     if (config.layout === "NFL_32"){
-      // 10 cols
-      // Row1: 4 teams, logo(2), 4 teams => 8
-      // Row2: 10
-      // Row3: 10
-      // Row4: 2, ticker(6), 2 => 4
       let idx = 0;
 
       const r1 = document.createElement("div");
@@ -1009,41 +1244,6 @@ function buildLayout(){
       r4.appendChild(makeTeamDiv(teams[idx++]));
       r4.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r4);
-    }
-
-    if (config.layout === "NHL_32"){
-      // 8 cols (custom to keep it tight + balanced)
-      // Row1: 2 teams, logo(4), 2 teams => 4 teams
-      // Row2: 8
-      // Row3: 8
-      // Row4: 8
-      // Row5: 2 teams, ticker(4), 2 teams => 4 teams
-      let idx = 0;
-
-      const r1 = document.createElement("div");
-      r1.className = "row-grid";
-      r1.appendChild(makeTeamDiv(teams[idx++]));
-      r1.appendChild(makeTeamDiv(teams[idx++]));
-      r1.appendChild(makeLogoSlot(4));
-      r1.appendChild(makeTeamDiv(teams[idx++]));
-      r1.appendChild(makeTeamDiv(teams[idx++]));
-      wrap.appendChild(r1);
-
-      for (let r=0;r<3;r++){
-        const row = document.createElement("div");
-        row.className = "row-grid";
-        for (let i=0;i<8;i++) row.appendChild(makeTeamDiv(teams[idx++]));
-        wrap.appendChild(row);
-      }
-
-      const r5 = document.createElement("div");
-      r5.className = "row-grid";
-      r5.appendChild(makeTeamDiv(teams[idx++]));
-      r5.appendChild(makeTeamDiv(teams[idx++]));
-      r5.appendChild(makeTickerSlot(4));
-      r5.appendChild(makeTeamDiv(teams[idx++]));
-      r5.appendChild(makeTeamDiv(teams[idx++]));
-      wrap.appendChild(r5);
     }
 
     setHeader();
@@ -1079,7 +1279,7 @@ function buildLayout(){
   function updateStats(){
     const total = breakTypes[currentBreakType].teams.length;
     const sold = soldTeams.size;
-    document.getElementById("teamsLeft").textContent = String(total - sold);
+    document.getElementById("teamsLeft").textContent = String(Math.max(0, total - sold));
     document.getElementById("teamsSold").textContent = String(sold);
   }
 
@@ -1100,6 +1300,19 @@ function buildLayout(){
         img.src = team.image;
         img.className = "sold-team-img";
         row.appendChild(img);
+      } else {
+        // NIL: no image, show small badge
+        const badge = document.createElement("div");
+        badge.className = "sold-team-img";
+        badge.style.display = "flex";
+        badge.style.alignItems = "center";
+        badge.style.justifyContent = "center";
+        badge.style.fontSize = "12px";
+        badge.style.fontWeight = "900";
+        badge.style.background = "rgba(24,199,193,0.18)";
+        badge.style.border = "1px solid rgba(24,199,193,0.55)";
+        badge.textContent = "NIL";
+        row.appendChild(badge);
       }
 
       const name = document.createElement("span");
@@ -1112,10 +1325,7 @@ function buildLayout(){
       input.type = "text";
       input.placeholder = "Buyer";
       input.value = entry.buyer || "";
-      input.oninput = (e) => {
-        entry.buyer = e.target.value;
-        // optional outbound hook: send buyer update to your bridge if you add POST later
-      };
+      input.oninput = (e) => { entry.buyer = e.target.value; };
       row.appendChild(input);
 
       soldListDiv.appendChild(row);
@@ -1136,16 +1346,21 @@ function buildLayout(){
     incrementBreak();
   }
 
-  function cycleSport(){
-    const types = Object.keys(breakTypes);
-    const idx = types.indexOf(currentBreakType);
-    currentBreakType = types[(idx + 1) % types.length];
-    buildLayout();
-  }
-
   function setSport(type){
     if (!breakTypes[type]) return;
     currentBreakType = type;
+
+    // keep NIL textarea synced
+    if (type === "nil"){
+      const spots = loadNilSpots();
+      const ta = document.getElementById("nilTextarea");
+      if (ta && !ta.value.trim()) ta.value = spots.join("\n");
+
+      const cols = loadNilCols();
+      const ci = document.getElementById("nilColsInput");
+      if (ci && !ci.value.trim()) ci.value = String(cols);
+    }
+
     buildLayout();
   }
 
@@ -1156,10 +1371,10 @@ function buildLayout(){
     const q = new URLSearchParams(location.search).get('bridge');
     if (q) {
       const cleaned = q.replace(/\/$/, '');
-      localStorage.setItem('tcb.bridge', cleaned);
+      localStorage.setItem(`${STORE_PREFIX}.bridge`, cleaned);
       return cleaned;
     }
-    const saved = localStorage.getItem('tcb.bridge');
+    const saved = localStorage.getItem(`${STORE_PREFIX}.bridge`);
     return saved ? saved.replace(/\/$/, '') : "";
   })();
 
@@ -1189,17 +1404,13 @@ function buildLayout(){
     try{
       sse = new EventSource(url);
 
-      sse.onopen = () => {
-        setSSEStatus('connected', 'ON');
-      };
+      sse.onopen = () => setSSEStatus('connected', 'ON');
 
       sse.onmessage = (e) => {
         try{
           const data = JSON.parse(e.data);
           handleSSEEvent(data);
-        }catch(_){
-          // ignore
-        }
+        }catch(_){}
       };
 
       sse.onerror = () => {
@@ -1229,7 +1440,7 @@ function buildLayout(){
   // { "type":"buyer_update", "code":"LAL", "buyer":"Mike" }
   // { "type":"reset" }
   // { "type":"set_break", "value":"12" }
-  // { "type":"set_sport", "sport":"nfl" }
+  // { "type":"set_sport", "sport":"nfl" }  // nba | nfl | mlb | nil
   function handleSSEEvent(data){
     switch (data.type){
       case 'team_sold':
@@ -1257,7 +1468,7 @@ function buildLayout(){
         break;
 
       case 'set_sport':
-        if (data.sport) setSport(data.sport);
+        if (data.sport) setSport(String(data.sport).toLowerCase());
         break;
     }
   }
@@ -1297,20 +1508,38 @@ function buildLayout(){
     updateSoldList();
   }
 
+  // ===== Helpers =====
+  function escapeHtml(str){
+    return String(str || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
   // ===== Init =====
   document.addEventListener("DOMContentLoaded", () => {
-    
-
     setBreakNumber(loadBreakNumber());
     buildLayout();
-    const ti = document.getElementById("tickerInput");
-if (ti){
-  ti.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") applyTicker();
-  });
-}
 
+    const ti = document.getElementById("tickerInput");
+    if (ti){
+      ti.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") applyTicker();
+      });
+    }
+
+    syncTickerInput();
     refreshTickerText();
+
+    // Preload NIL text/cols fields if they exist
+    const ta = document.getElementById("nilTextarea");
+    if (ta) ta.value = loadNilSpots().join("\n");
+
+    const ci = document.getElementById("nilColsInput");
+    if (ci) ci.value = String(loadNilCols());
+
     initSSE();
   });
 </script>
