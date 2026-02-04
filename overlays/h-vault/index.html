@@ -1230,6 +1230,27 @@ async function warmupEvents(){
       return teams.findIndex(t => normalizeTeamCode(t.code) === c);
     }
 
+
+function normText(s){
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function findTeamIndexByText(text){
+  const t = normText(text);
+  if (!t) return -1;
+
+  const teams = breakTypes[currentBreakType].teams;
+  // match code OR name substring
+  return teams.findIndex(team => {
+    const code = normText(team.code);
+    const name = normText(team.name);
+    return (code && t.includes(code)) || (name && t.includes(name));
+  });
+}
+
+
     function assignBuyerToTeam(index, buyer){
       if (index < 0) return;
       const tile = document.querySelector(`.team[data-index="${index}"]`);
@@ -1283,23 +1304,31 @@ async function warmupEvents(){
         return;
       }
 
-      if (type === "sale" || type === "sold" || type === "purchase" || ev.team || ev.teamCode || ev.team_code){
-        if (!eventMatchesThisBreak(ev)) return;
+if (
+  type === "sale" || type === "sold" || type === "purchase" || type === "team_sold" ||
+  ev.team || ev.teamCode || ev.team_code || ev.title
+){
+  if (!eventMatchesThisBreak(ev)) return;
 
-        const teamCode = ev.teamCode || ev.team_code || ev.team || ev.item || ev.sku || "";
-        const buyer =
-          ev.buyer ||
-          ev.customer ||
-          ev.username ||
-          ev.user ||
-          ev.displayName ||
-          ev.name ||
-          "";
+  const buyer =
+    ev.buyer ||
+    ev.customer ||
+    ev.username ||
+    ev.user ||
+    ev.displayName ||
+    ev.name ||
+    "";
 
-        const idx = findTeamIndexByCode(teamCode);
-        if (idx !== -1) assignBuyerToTeam(idx, String(buyer || "").trim());
-        return;
-      }
+  const teamCode = ev.teamCode || ev.team_code || ev.team || ev.item || ev.sku || "";
+  let idx = findTeamIndexByCode(teamCode);
+
+  // Fallback: try matching by title text (ex: "Cowboys", "Dallas Cowboys", etc.)
+  if (idx === -1 && ev.title) idx = findTeamIndexByText(ev.title);
+
+  if (idx !== -1) assignBuyerToTeam(idx, String(buyer || "").trim());
+  return;
+}
+
     }
 
 function cleanBridgeUrl(u){
