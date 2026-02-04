@@ -66,33 +66,57 @@
     });
   }
 
-  async function getConfig() {
-    return new Promise((resolve) => {
-      chrome.storage.sync.get(DEFAULTS, (cfg) => {
-        resolve({
-          bridgeUrl: cleanUrl(cfg.bridgeUrl),
-          bridgeKey: String(cfg.bridgeKey || "").trim()
-        });
-      });
+async function getConfig() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(DEFAULTS, (cfg) => {
+      // Console/onboarding overrides (page localStorage)
+      // In DevTools console on whatnot.com you can run:
+      // localStorage.setItem("tsu.bridgeUrl", "https://tsu-bridge-hvault.onrender.com");
+      // localStorage.setItem("tsu.bridgeKey", "YOUR_KEY_HERE");
+
+      let bridgeUrl = cleanUrl(cfg.bridgeUrl);
+      let bridgeKey = String(cfg.bridgeKey || "").trim();
+
+      try {
+        const lsUrl = cleanUrl(localStorage.getItem("tsu.bridgeUrl"));
+        const lsKey = String(localStorage.getItem("tsu.bridgeKey") || "").trim();
+
+        if (lsUrl) bridgeUrl = lsUrl;
+        if (lsKey) bridgeKey = lsKey;
+      } catch (_) {}
+
+      resolve({ bridgeUrl, bridgeKey });
     });
-  }
+  });
+}
 
-  async function sendEvent(cfg, payload) {
-    if (!cfg.bridgeUrl) return;
 
-    try {
-      await fetch(`${cfg.bridgeUrl}/events`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-bridge-key": cfg.bridgeKey
-        },
-        body: JSON.stringify(payload)
-      });
-    } catch (_) {
-      // swallow: we’ll retry next poll anyway
+async function sendEvent(cfg, payload) {
+  if (!cfg.bridgeUrl) return;
+
+  const url = `${cfg.bridgeUrl}/events`;
+
+  try {
+    const r = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-bridge-key": cfg.bridgeKey
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!r.ok) {
+      const txt = await r.text().catch(() => "");
+      console.warn("[TSU] POST /events failed:", r.status, txt);
+    } else {
+      console.log("[TSU] POST /events ok:", payload);
     }
+  } catch (e) {
+    console.warn("[TSU] POST /events error:", e?.message || e);
   }
+}
+
 
   // ---- Main
   injectInjectedJs();
@@ -177,18 +201,33 @@
             amount = amount / 100;
           }
 
-          const title = n?.product?.title || n?.title || "Sale";
+        const title =
+  n?.listing?.title ||
+  n?.listing?.description ||
+  n?.title ||
+  n?.product?.title ||
+  "Sale";
+
+
           lastSaleText = `${buyer} • ${title} • $${amount.toFixed(2)}`;
 
           buyerCounts.set(buyer, (buyerCounts.get(buyer) || 0) + 1);
 
           // Send a NEW SALE event (overlay uses this to update high bid per break)
-          await sendEvent(cfg, {
-            type: "team_sold",
-            buyer,
-            amount,
-            title
-          });
+        const eventPayload = {
+        type: "team_sold",
+         buyer,
+         amount,
+         title,
+  
+           // optional extras for debugging / future matching
+            listingId: n?.listing?.id || null,
+           productId: n?.product?.id || null
+          };
+
+console.log("[TSU] sending event:", eventPayload);
+await sendEvent(cfg, eventPayload);
+
         }
 
         // Send summary stats occasionally (doesn't include “highBid snapshot” so it won’t break resets)
