@@ -1272,191 +1272,95 @@ function updateBuyerStats(buyer, amount){
        {type:'reset'}
        {type:'banner_set', index: 1}
   ========================== */
+  function handleSSEEvent(data){
+  if (!data || !data.type) return;
 
+  if (data.type === "team_sold"){
+    const code = data.code || inferNBACodeFromTitle(data.title);
 
-// =========================
-// Overlay helpers (safe DOM + robust team matching)
-// =========================
-function $id(id){ return document.getElementById(id); }
-function safeText(id, val){
-  const el = $id(id);
-  if (!el) return;
-  el.textContent = String(val ?? "");
-}
+    if (code) markSold(code);
 
-// normalize "Phoenix Suns", "phoenix-suns", "PHX SUNS", etc.
-function norm(s){
-  return String(s || "")
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
+    if (data.buyer && code){
+      const row = soldList.find(x => x.code === code);
+      if (row) row.buyer = data.buyer;
+    }
 
-// Build a lookup once (code/name/city+name variants)
-const NBA_LOOKUP = (() => {
-  const map = new Map();
+    if (Number.isFinite(data.amount)) {
+      setHighBid(Math.max(highBid, data.amount));
+    }
 
-  // Official-ish city+team variants (enough for Whatnot titles)
-  const CITY = {
-    ATL:"atlanta", BOS:"boston", BKN:"brooklyn", CHA:"charlotte", CHI:"chicago",
-    CLE:"cleveland", DAL:"dallas", DEN:"denver", DET:"detroit", GSW:"golden state",
-    HOU:"houston", IND:"indiana", LAC:"la clippers", LAL:"la lakers",
-    MEM:"memphis", MIA:"miami", MIL:"milwaukee", MIN:"minnesota",
-    NOP:"new orleans", NYK:"new york", OKC:"oklahoma city", ORL:"orlando",
-    PHI:"philadelphia", PHX:"phoenix", POR:"portland", SAC:"sacramento",
-    SAS:"san antonio", TOR:"toronto", UTA:"utah", WAS:"washington"
-  };
-
-  for (const t of NBA){
-    const code = t.code.toUpperCase();
-    const name = norm(t.name);                 // "suns"
-    const codeNorm = norm(code);               // "phx"
-    const city = norm(CITY[code] || "");       // "phoenix"
-    const cityName = norm(`${CITY[code] || ""} ${t.name}`); // "phoenix suns"
-
-    // keys → code
-    if (codeNorm) map.set(codeNorm, code);
-    if (name) map.set(name, code);
-    if (city) map.set(city, code);
-    if (cityName) map.set(cityName, code);
-
-    // common aliases
-    if (code === "PHI") map.set("sixers", "PHI");
-    if (code === "POR") map.set("trail blazers", "POR");
+    updateBuyerStats(data.buyer, data.amount);
   }
 
-  return map;
-})();
-
-function inferNBACodeFromTitle(title){
-  const t = norm(title);
-  if (!t) return null;
-
-  // exact matches first
-  if (NBA_LOOKUP.has(t)) return NBA_LOOKUP.get(t);
-
-  // substring scan (handles "Donruss ... - Phoenix Suns" etc.)
-  // longest keys first to avoid "la" matching everything
-  const keys = Array.from(NBA_LOOKUP.keys()).sort((a,b) => b.length - a.length);
-  for (const k of keys){
-    if (k.length < 3) continue;
-    if (t.includes(k)) return NBA_LOOKUP.get(k);
+  if (data.type === "team_unsold"){
+    const code = data.code || inferNBACodeFromTitle(data.title);
+    if (code) markUnsold(code);
   }
 
-  return null;
-}
+  if (data.type === "reset") resetAll();
 
-function handleSSEEvent(data){
-  try{
-    if (!data || typeof data !== "object") return;
-
-    // Some bridges send {event:..., data:{...}} or {type:..., ...}
-    const payload = data.data && typeof data.data === "object" ? data.data : data;
-    const type = String(payload.type || payload.event || "").toLowerCase();
-    if (!type) return;
-
-    console.log("[Overlay] SSE IN:", payload);
-
-    if (type === "team_sold" || type === "sold" || type === "sale"){
-      const code = (payload.code || "").toUpperCase() || inferNBACodeFromTitle(payload.title);
-
-      if (code){
-        markSold(code);
-
-        if (payload.buyer){
-          const row = soldList.find(x => x.code === code);
-          if (row) row.buyer = payload.buyer;
-        }
-      } else {
-        console.warn("[Overlay] Could not match team from:", payload.title || payload);
-      }
-
-      if (Number.isFinite(payload.amount)) {
-        setHighBid(Math.max(highBid, payload.amount));
-      }
-
-      updateBuyerStats(payload.buyer, payload.amount);
-    }
-
-    if (type === "team_unsold" || type === "unsold"){
-      const code = (payload.code || "").toUpperCase() || inferNBACodeFromTitle(payload.title);
-      if (code) markUnsold(code);
-    }
-
-    if (type === "reset") resetAll();
-
-    if ((type === "set_break" || type === "break_set") && Number.isInteger(payload.value) && payload.value > 0){
-      breakNum = payload.value;
-      saveBreakNum();
-      elBreak.textContent = breakNum;
-    }
-
-    if (type === "banner_set" && Number.isInteger(payload.index)){
-      bannerIdx = ((payload.index % BANNERS.length) + BANNERS.length) % BANNERS.length;
-      const slides = document.querySelectorAll('.banner-inner');
-      slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
-    }
-
-    if (type === "scores" && Array.isArray(payload.games)){
-      setScoreboard(payload.games);
-    }
-
-    if (type === "set_title" && typeof payload.value === "string"){
-      setHeaderTitle(payload.value);
-    }
-
-    if (type === "stream_stats"){
-      // IMPORTANT: do not crash if those elements aren't present
-      if (typeof payload.topBuyer === "string") safeText("topBuyerText", payload.topBuyer || "—");
-      if (typeof payload.lastSale === "string") safeText("lastSaleText", payload.lastSale || "—");
-    }
-
-    updateStats();
-    renderSoldPanel();
-  }catch(err){
-    console.error("[Overlay] handleSSEEvent crash:", err, data);
+  if (data.type === "set_break" && Number.isInteger(data.value) && data.value > 0){
+    breakNum = data.value;
+    saveBreakNum();
+    elBreak.textContent = breakNum;
   }
+
+  if (data.type === "banner_set" && Number.isInteger(data.index)){
+    bannerIdx = ((data.index % BANNERS.length) + BANNERS.length) % BANNERS.length;
+    const slides = document.querySelectorAll('.banner-inner');
+    slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
+  }
+
+  if (data.type === "scores" && Array.isArray(data.games)){
+    setScoreboard(data.games);
+  }
+
+  if (data.type === "set_title" && typeof data.value === "string"){
+  setHeaderTitle(data.value);
 }
 
+
+  if (data.type === "stream_stats"){
+    if (typeof data.topBuyer === "string") document.getElementById('topBuyerText').textContent = data.topBuyer || '—';
+    if (typeof data.lastSale === "string") document.getElementById('lastSaleText').textContent = data.lastSale || '—';
+  }
+
+  updateStats();
+  renderSoldPanel();
+}
 
 // ---- THESE MUST BE OUTSIDE handleSSEEvent ----
 
 let _es = null;
 function connectSSE(url){
   if (_es) { try { _es.close(); } catch(_){} }
-  console.log("[Overlay] Connecting SSE:", url);
-
   _es = new EventSource(url);
 
-  _es.onopen = () => console.log("[Overlay] SSE OPEN");
+  _es.onmessage = (e) => {
+    try { handleSSEEvent(JSON.parse(e.data)); } catch(_) {}
+  };
+
   _es.onerror = () => {
-    console.warn("[Overlay] SSE ERROR (retrying in 2.5s)");
     try { _es.close(); } catch(_) {}
     _es = null;
     setTimeout(() => connectSSE(url), 2500);
   };
-
-  // default SSE messages
-  _es.onmessage = (e) => {
-    try { handleSSEEvent(JSON.parse(e.data)); }
-    catch(err){ console.warn("[Overlay] bad JSON message:", e.data); }
-  };
-
-  // named SSE events (server may emit: event: event)
-  _es.addEventListener("event", (e) => {
-    try { handleSSEEvent(JSON.parse(e.data)); }
-    catch(err){ console.warn("[Overlay] bad JSON event:", e.data); }
-  });
-
-  // also accept "message" explicitly
-  _es.addEventListener("message", (e) => {
-    try { handleSSEEvent(JSON.parse(e.data)); }
-    catch(err){ console.warn("[Overlay] bad JSON message:", e.data); }
-  });
 }
 
+function inferNBACodeFromTitle(title){
+  const t = String(title || "").toLowerCase();
 
+  if (t.includes("sixers") || t.includes("76ers")) return "PHI";
+  if (t.includes("trail blazers") || t.includes("blazers")) return "POR";
+
+  for (const team of NBA){
+    const code = team.code.toLowerCase();
+    const name = team.name.toLowerCase();
+    if (t.includes(code)) return team.code;
+    if (t.includes(name)) return team.code;
+  }
+  return null;
+}
 
 
 
