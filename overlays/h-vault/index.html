@@ -1197,16 +1197,16 @@ function cleanBridgeUrl(u){
 
 async function warmupEvents(){
   const bridge = cleanBridgeUrl(getBridgeId());
-  const url = bridge ? `${bridge}/events` : `/events`;
+  const url = bridge ? `${bridge}/health` : `/health`;
 
   try{
-    await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type":"application/json" },
-      body: JSON.stringify({ warmup: true, ts: Date.now() })
-    });
-  }catch(e){}
+    const r = await fetch(url, { method: "GET" });
+    console.log("[Overlay] warmup ok:", r.status);
+  }catch(e){
+    console.warn("[Overlay] warmup failed:", e);
+  }
 }
+
 
 
     function normalizeSport(s){
@@ -1348,15 +1348,28 @@ function startSse(){
 
     es = new EventSource(url);
 
-    es.onopen = () => setSseStatus("connected","SSE ON");
-    es.onerror = () => setSseStatus("error","SSE ERR");
+    es.onopen = () => {
+  console.log("[Overlay] SSE open:", url);
+  setSseStatus("connected","SSE ON");
+};
 
-    es.onmessage = (msg) => {
-      try{ handleBridgeEvent(JSON.parse(msg.data)); }catch(e){}
-    };
-    es.addEventListener("event", (msg) => {
-      try{ handleBridgeEvent(JSON.parse(msg.data)); }catch(e){}
-    });
+es.onerror = (e) => {
+  console.warn("[Overlay] SSE error:", e);
+  setSseStatus("error","SSE ERR");
+};
+
+es.onmessage = (msg) => {
+  console.log("[Overlay] SSE msg:", msg.data);
+  try{ handleBridgeEvent(JSON.parse(msg.data)); }
+  catch(e){ console.warn("[Overlay] SSE parse fail:", e, msg.data); }
+};
+
+es.addEventListener("event", (msg) => {
+  console.log("[Overlay] SSE event:", msg.data);
+  try{ handleBridgeEvent(JSON.parse(msg.data)); }
+  catch(e){ console.warn("[Overlay] SSE parse fail:", e, msg.data); }
+});
+
   }catch(e){
     setSseStatus("error","SSE ERR");
   }

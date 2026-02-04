@@ -145,14 +145,10 @@ function postEvent(req, res) {
 
   const body = req.body || {};
   // Normalize payload a bit
- 
-    const payload = {
+  const payload = {
     ...body,
     ts: typeof body.ts === "number" ? body.ts : Date.now(),
   };
-
-  console.log("[TSU Bridge] event in:", payload);
-
 
   broadcast(payload);
   res.json({ ok: true });
