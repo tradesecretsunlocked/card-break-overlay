@@ -17,6 +17,8 @@ const clients = new Set();
 
 function broadcast(payload) {
   const msg = `data: ${JSON.stringify(payload)}\n\n`;
+  console.log("[TSU Bridge] broadcast -> clients:", clients.size, "payload.type:", payload?.type);
+
   for (const res of clients) {
     try {
       res.write(msg);
