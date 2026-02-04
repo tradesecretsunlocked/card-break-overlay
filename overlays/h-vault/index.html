@@ -7,7 +7,6 @@
 
   <style>
     :root{
-      /* ===== H VAULT palette (derived from provided logo) ===== */
       --bg0:#010101;
       --bg1:#17120e;
       --panel: rgba(15, 12, 9, 0.86);
@@ -15,20 +14,15 @@
 
       --gold:#c7a35d;
       --gold2:#f1e4c4;
-      --bronze:#95653a;
 
       --text:#ffffff;
-      --muted: rgba(255,255,255,0.78);
-
-      --stroke: rgba(241,228,196,0.22);
-      --stroke2: rgba(199,163,93,0.58);
 
       --W:1080px;
       --tileH: 64px;
       --gap: 6px;
 
-      --sideCols: 2;     /* left & right columns each = 2 wide */
-      --bottomCols: 8;   /* NBA/NFL 8, MLB 10 (set in JS) */
+      --sideCols: 2;
+      --bottomCols: 8;
 
       --radius: 16px;
       --tileR: 14px;
@@ -53,12 +47,10 @@
       padding: 10px;
       position: relative;
       overflow: hidden;
-
       background:
         radial-gradient(900px 520px at 25% 0%, rgba(199,163,93,0.14), transparent 55%),
         radial-gradient(700px 420px at 85% 20%, rgba(241,228,196,0.08), transparent 60%),
         linear-gradient(180deg, var(--bg0), var(--bg1));
-
       border: 2px solid rgba(199,163,93,0.38);
       box-shadow:
         0 0 0 1px rgba(0,0,0,0.85),
@@ -66,7 +58,6 @@
         0 0 26px rgba(199,163,93,0.12);
     }
 
-    /* Subtle ambient shimmer */
     .overlay::before{
       content:"";
       position:absolute; inset:-40px;
@@ -232,8 +223,7 @@
     .camera-box{
       height: var(--camH);
       border-radius: 16px;
-      background:
-        linear-gradient(135deg, rgba(255,255,255,0.07), rgba(0,0,0,0.25));
+      background: linear-gradient(135deg, rgba(255,255,255,0.07), rgba(0,0,0,0.25));
       border: 1px solid #dfa836;
       box-shadow:
         inset 0 0 0 2px rgba(0,0,0,0.35),
@@ -241,8 +231,6 @@
       position: relative;
       overflow: hidden;
     }
-
-    /* “camera glass” feel */
     .camera-box::before{
       content:"";
       position:absolute; inset:0;
@@ -253,7 +241,6 @@
       opacity: .9;
       pointer-events:none;
     }
-
     .cam-label{
       position:absolute;
       left: 12px;
@@ -313,14 +300,6 @@
       position: relative;
     }
 
-    .team.placeholder{
-      opacity: 0;
-      pointer-events:none;
-      border-color: transparent;
-      background: transparent;
-      box-shadow:none;
-    }
-
     .team .fallback-code{
       font-weight: 900;
       letter-spacing: 1px;
@@ -350,16 +329,62 @@
       pointer-events:none;
     }
 
-    .team.flash{
-      animation: soldFlash 260ms ease;
-    }
+    .team.flash{ animation: soldFlash 260ms ease; }
     @keyframes soldFlash{
       0%{ box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 0 rgba(199,163,93,0.0); }
       50%{ box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 20px rgba(199,163,93,0.55); }
       100%{ box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 0 rgba(199,163,93,0.0); }
     }
 
-    /* ===== Controls row ===== */
+    /* ===== Embedded controls in bottom grid ===== */
+    .embed-controls .controls{ display:none; }
+
+    .team.ctrl{
+      cursor: default;
+      background: linear-gradient(180deg, rgba(199,163,93,0.22), rgba(0,0,0,0.35));
+      border-color: rgba(241,228,196,0.65);
+    }
+    .team.ctrl.btn{
+      cursor:pointer;
+      background: linear-gradient(0deg, rgba(200,170,112,0.55), rgba(0,0,0,0.35));
+      border-color: rgba(241,228,196,0.72);
+    }
+    .team.ctrl:hover{ transform:none; }
+
+    .team.ctrl .cwrap{
+      width:100%;
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap: 2px;
+      padding: 6px;
+      text-align:center;
+    }
+    .team.ctrl .cval{
+      font-weight: 900;
+      font-size: 22px;
+      line-height: 1;
+      color:#fff;
+      text-shadow: 0 2px 0 rgba(0,0,0,0.85);
+    }
+    .team.ctrl .clab{
+      font-weight: 900;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: .92;
+      color: var(--gold2);
+      line-height: 1.1;
+    }
+
+    /* MLB: make stat tiles bigger + span 2 cols */
+    .team.ctrl.wide{ grid-column: span 2; }
+    .team.ctrl.wide .cval{ font-size: 34px; }
+    .team.ctrl.wide .clab{ font-size: 13px; letter-spacing: 1.5px; }
+
+    /* ===== Controls row (hidden when embed-controls) ===== */
     .controls{
       display:grid;
       grid-template-columns: 260px 1fr 1fr 260px;
@@ -367,7 +392,6 @@
       align-items: stretch;
       margin-top: 10px;
     }
-
     .ctl{
       height: 64px;
       border-radius: 14px;
@@ -384,33 +408,11 @@
       overflow:hidden;
       font-size: 20px;
     }
-
     .ctl.btn{
       cursor:pointer;
       color: var(--gold2);
       border-color: rgba(199,163,93,0.60);
       background: linear-gradient(0deg, rgb(200 170 112 / 58%), rgba(0, 0, 0, 0.30));
-      transition: transform .12s ease, box-shadow .12s ease;
-    }
-    .ctl.btn:hover{
-      box-shadow: inset 0 0 0 1px rgba(199,163,93,0.16), 0 10px 22px rgba(0,0,0,0.45);
-      transform: translateY(-1px);
-    }
-    .ctl.btn:active{ transform: translateY(0); box-shadow:none; }
-
-    .ctl.stat{
-      flex-direction: column;
-      gap: 2px;
-      cursor: default;
-    }
-    .ctl.stat .v{
-      font-size: 28px;
-      color: #fff;
-      text-shadow: 0 2px 0 rgba(0,0,0,0.85);
-    }
-    .ctl.stat .l{
-      font-size: 14px;
-      opacity: 0.85;
     }
 
     /* ===== Sold panel ===== */
@@ -425,7 +427,6 @@
       position: relative;
       overflow:hidden;
     }
-
     .sold-top{
       display:flex;
       align-items:center;
@@ -433,7 +434,6 @@
       gap: 10px;
       margin-bottom: 10px;
     }
-
     .sold-title{
       font-weight: 900;
       letter-spacing: 2px;
@@ -442,7 +442,6 @@
       opacity: 0.95;
       color: var(--gold2);
     }
-
     .sold-actions{
       display:flex;
       gap: 8px;
@@ -450,7 +449,6 @@
       flex-wrap: wrap;
       justify-content:flex-end;
     }
-
     .mini-input{
       width: 220px;
       padding: 10px 12px;
@@ -461,7 +459,6 @@
       font-weight: 900;
       outline:none;
     }
-
     .mini-btn{
       padding: 10px 12px;
       border-radius: 999px;
@@ -480,7 +477,6 @@
       grid-template-columns: repeat(4, 1fr);
       gap: 10px;
     }
-
     .sold-item{
       display:flex;
       align-items:center;
@@ -491,14 +487,12 @@
       border: 1px solid rgba(255,255,255,0.10);
       box-shadow: inset 0 0 0 1px rgba(0,0,0,0.45);
     }
-
     .sold-item img{
       height: 34px;
       width:auto;
       object-fit: contain;
       filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55));
     }
-
     .sold-item .teamname{
       min-width: 64px;
       font-weight: 900;
@@ -507,7 +501,6 @@
       text-transform: uppercase;
       opacity: 0.9;
     }
-
     .sold-item input{
       width: 100%;
       border: none;
@@ -555,7 +548,6 @@
 
           <div class="camera-box" id="camFrame">
             <div class="cam-label">CAM</div>
-            <!-- NOTE: This is a VISUAL FRAME. Add your OBS camera source aligned over this box. -->
           </div>
 
           <div id="rightColumn" class="side-column"></div>
@@ -563,19 +555,17 @@
 
         <div id="bottomGrid" class="bottom-grid"></div>
 
+        <!-- kept for NFL (and as fallback), hidden when embed-controls -->
         <div class="controls">
           <div class="ctl btn" onclick="resetAll()">Reset</div>
-
           <div class="ctl stat">
             <div class="v" id="teamsLeft">0</div>
             <div class="l">Remaining</div>
           </div>
-
           <div class="ctl stat">
             <div class="v" id="teamsSold">0</div>
             <div class="l">Sold</div>
           </div>
-
           <div class="ctl btn" onclick="changeBreakType()">Change Sport</div>
         </div>
       </div>
@@ -587,7 +577,13 @@
           <div class="sold-actions">
             <input id="breakSetInput" class="mini-input" type="text" placeholder="Set Break # (optional)" />
             <button class="mini-btn" onclick="applyBreakNumber()">Set</button>
-            <button class="mini-btn" onclick="startNewBreakCycle(true)">Next Break</button>
+
+            <!-- always available "Reset" here now -->
+            <button class="mini-btn" id="btnResetPanel" onclick="resetAll()">Reset</button>
+
+            <!-- NBA wants Sport + Next here (MLB keeps these in grid, so we auto-hide them there) -->
+            <button class="mini-btn" id="btnSportPanel" onclick="changeBreakType()">Sport</button>
+            <button class="mini-btn" id="btnNextPanel" onclick="startNewBreakCycle(true)">Next Break</button>
           </div>
         </div>
 
@@ -597,17 +593,8 @@
   </div>
 
   <script>
-    /* ==========================================================
-      H VAULT — Jumbo Embedded Cam + MultiSport + SSE
-      - Single file, OBS-ready
-      - Layout: left teams + cam + right teams, bottom grid remainder
-      - TSU Bridge: SSE /stream + warmup + breakId match + reset
-    ========================================================== */
-
-    /* ===== Helpers ===== */
     function param(k){ return new URLSearchParams(location.search).get(k); }
 
-    /* ===== 0) Dynamic base path (repo-safe) ===== */
     const BASE = (() => {
       const isGhPages = location.hostname.endsWith("github.io");
       if (isGhPages) {
@@ -615,7 +602,6 @@
         const repo = parts.length ? parts[0] : "";
         return `/${repo}/`;
       }
-      // typical repo structure: overlay/index.html with /images beside it
       return "../../";
     })();
 
@@ -624,7 +610,6 @@
     const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
     const imgPathLogos = (f) => `${BASE}images/logos/${f}`;
 
-    /* ===== 0b) Brand logo (with fallback for .PNG vs .png) ===== */
     const BRAND_LOGO_CANDIDATES = [
       imgPathLogos("h-vault-logo.png"),
       imgPathLogos("h-vault-logo.PNG"),
@@ -635,21 +620,17 @@
     function setBrandLogo(){
       const el = document.getElementById("brandLogo");
       if (!el) return;
-
       let i = 0;
-      const tryNext = () => {
-        if (i >= BRAND_LOGO_CANDIDATES.length) return;
-        el.src = BRAND_LOGO_CANDIDATES[i++];
-      };
+      const tryNext = () => { if (i < BRAND_LOGO_CANDIDATES.length) el.src = BRAND_LOGO_CANDIDATES[i++]; };
       el.onerror = tryNext;
       tryNext();
     }
 
-    /* ===== 1) Break Types / Teams ===== */
     const breakTypes = {
       nfl: {
         name: "NFL",
         bottomCols: 8,
+        embedControls: false,
         teams: [
           { code: "ARI", name: "cardinals",   image: imgPathNFL("cardinals.png") },
           { code: "ATL", name: "falcons",     image: imgPathNFL("falcons.png") },
@@ -689,6 +670,7 @@
       nba: {
         name: "NBA",
         bottomCols: 8,
+        embedControls: true,
         teams: [
           { code: "ATL", name: "hawks",        image: imgPathNBA("hawks.png") },
           { code: "BOS", name: "celtics",      image: imgPathNBA("celtics.png") },
@@ -726,6 +708,7 @@
       mlb: {
         name: "MLB",
         bottomCols: 10,
+        embedControls: true,
         teams: [
           { code:"ARI", name:"diamondbacks", image: imgPathMLB("diamondbacks.png") },
           { code:"ATL", name:"braves",       image: imgPathMLB("braves.png") },
@@ -761,16 +744,18 @@
       }
     };
 
-    /* ===== 2) State ===== */
     let currentBreakType = "nfl";
-    const soldTeams = new Set();                // holds indices
-    let soldTeamsList = [];                     // {index, buyer}
+    const soldTeams = new Set();
+    let soldTeamsList = [];
 
-    /* ===== 3) UI: build grid (Jumbo layout) ===== */
     function setBottomCols(cols){
       const root = document.getElementById("overlayRoot");
-      if (!root) return;
-      root.style.setProperty("--bottomCols", String(cols));
+      if (root) root.style.setProperty("--bottomCols", String(cols));
+    }
+
+    function setEmbedControls(on){
+      const root = document.getElementById("overlayRoot");
+      if (root) root.classList.toggle("embed-controls", !!on);
     }
 
     function createTeamTile(team, index){
@@ -778,15 +763,11 @@
       tile.className = "team";
       tile.dataset.index = String(index);
 
-      // image tile w/ safe fallback
       if (team && team.image){
         const img = document.createElement("img");
         img.src = team.image;
         img.alt = team.code || "";
-        img.onerror = () => {
-          // fallback to code display
-          tile.innerHTML = `<div class="fallback-code">${(team.code||"")}</div>`;
-        };
+        img.onerror = () => { tile.innerHTML = `<div class="fallback-code">${(team.code||"")}</div>`; };
         tile.appendChild(img);
       } else {
         tile.innerHTML = `<div class="fallback-code">${(team && team.code) ? team.code : ""}</div>`;
@@ -796,11 +777,89 @@
       return tile;
     }
 
-    function createPlaceholderTile(){
+    function createCtrlTile(kind, opts = {}){
       const d = document.createElement("div");
-      d.className = "team placeholder";
+      d.className = "team ctrl";
+      d.dataset.ctrl = kind;
+
+      if (opts.wide) d.classList.add("wide");
+
+      const wrap = document.createElement("div");
+      wrap.className = "cwrap";
+
+      const val = document.createElement("div");
+      val.className = "cval";
+
+      const lab = document.createElement("div");
+      lab.className = "clab";
+
+      wrap.appendChild(val);
+      wrap.appendChild(lab);
+      d.appendChild(wrap);
+
+      if (kind === "remaining"){
+        d.dataset.field = "remaining";
+        val.textContent = "0";
+        lab.textContent = "REMAINING";
+        return d;
+      }
+      if (kind === "sold"){
+        d.dataset.field = "sold";
+        val.textContent = "0";
+        lab.textContent = "SOLD";
+        return d;
+      }
+
+      d.classList.add("btn");
+      if (kind === "sport"){
+        val.textContent = "SPORT";
+        lab.textContent = "CHANGE";
+        d.addEventListener("click", () => changeBreakType());
+        return d;
+      }
+      if (kind === "next"){
+        val.textContent = "NEXT";
+        lab.textContent = "BREAK";
+        d.addEventListener("click", () => startNewBreakCycle(true));
+        return d;
+      }
+
+      val.textContent = (kind || "").toUpperCase();
+      lab.textContent = "";
       return d;
     }
+
+    function updateEmbeddedCtrlStats(){
+      const cfg = breakTypes[currentBreakType];
+      const total = cfg.teams.length;
+      const sold = soldTeams.size;
+      const left = Math.max(0, total - sold);
+
+      document.querySelectorAll('.team.ctrl[data-field="remaining"] .cval')
+        .forEach(el => el.textContent = String(left));
+
+      document.querySelectorAll('.team.ctrl[data-field="sold"] .cval')
+        .forEach(el => el.textContent = String(sold));
+    }
+
+    function renderSoldPanelButtons(){
+      const btnSport = document.getElementById("btnSportPanel");
+      const btnNext  = document.getElementById("btnNextPanel");
+
+      // NBA wants Sport+Next here; MLB has Sport+Next in the grid; NFL uses the old controls row
+      if (btnSport) btnSport.style.display = (currentBreakType === "nba") ? "" : "none";
+      if (btnNext)  btnNext.style.display  = (currentBreakType === "nba") ? "" : "none";
+    }
+
+function gridUnitsUsed(container){
+  // counts grid columns used (wide tiles count as 2)
+  let used = 0;
+  Array.from(container.children).forEach(ch => {
+    used += ch.classList.contains("wide") ? 2 : 1;
+  });
+  return used;
+}
+
 
     function initializeGrid(){
       const left = document.getElementById("leftColumn");
@@ -814,10 +873,10 @@
 
       const cfg = breakTypes[currentBreakType];
       setBottomCols(cfg.bottomCols);
+      setEmbedControls(!!cfg.embedControls);
+      renderSoldPanelButtons();
 
-      // Jumbo layout: first 16 teams split into left/right (8 each)
       const teams = cfg.teams;
-
       const leftTeams = teams.slice(0, 8);
       const rightTeams = teams.slice(8, 16);
       const bottomTeams = teams.slice(16);
@@ -825,25 +884,68 @@
       leftTeams.forEach((t, i) => left.appendChild(createTeamTile(t, i)));
       rightTeams.forEach((t, i) => right.appendChild(createTeamTile(t, i + 8)));
 
-      // bottom grid tiles (with centered padding to fill rows cleanly)
+      // ===== BOTTOM GRID RULES (NO EMPTY SLOTS) =====
       const cols = cfg.bottomCols;
-      const remainder = bottomTeams.length % cols;
-      let prePad = 0, postPad = 0;
-      if (remainder !== 0){
-        const missing = cols - remainder;
-        prePad = Math.floor(missing / 2);
-        postPad = missing - prePad;
+
+      if (!cfg.embedControls){
+        // NFL: just show the teams (it naturally fills 14 -> 2 rows with 2 empties, but NFL uses below controls row anyway)
+        bottomTeams.forEach((t, idx) => bottom.appendChild(createTeamTile(t, idx + 16)));
+      } else if (currentBreakType === "nba"){
+        // NBA (8 cols): last row must be: [T,T,T, REM, SOLD, T,T,T]
+        const firstRow = bottomTeams.slice(0, cols);      // 8
+        const tail = bottomTeams.slice(cols);             // 6
+
+        firstRow.forEach((t, idx) => bottom.appendChild(createTeamTile(t, idx + 16)));
+
+        const left3 = tail.slice(0, 3);
+        const right3 = tail.slice(3, 6);
+
+        left3.forEach((t, i) => bottom.appendChild(createTeamTile(t, cols + i + 16)));
+        bottom.appendChild(createCtrlTile("remaining"));
+        bottom.appendChild(createCtrlTile("sold"));
+        right3.forEach((t, i) => bottom.appendChild(createTeamTile(t, cols + 3 + i + 16)));
+
+        // If somehow different team counts later, still guarantee full row:
+                const used = gridUnitsUsed(bottom);
+        const rem = used % cols;
+        const missing = (cols - rem) % cols;
+        for (let i = 0; i < missing; i++){
+          bottom.appendChild(createCtrlTile(i % 2 === 0 ? "remaining" : "sold"));
+        }
+
+
+      } else if (currentBreakType === "mlb"){
+        // MLB (10 cols): last row must be:
+        // [T,T, SPORT, REM(2 cols), SOLD(2 cols), NEXT, T,T]
+        const row1 = bottomTeams.slice(0, cols); // 10
+        const tail = bottomTeams.slice(cols);    // 4
+
+        row1.forEach((t, idx) => bottom.appendChild(createTeamTile(t, idx + 16)));
+
+        // Tail has 4 teams -> 2 left, 2 right
+        const left2 = tail.slice(0, 2);
+        const right2 = tail.slice(2, 4);
+
+        left2.forEach((t, i) => bottom.appendChild(createTeamTile(t, cols + i + 16)));
+
+        bottom.appendChild(createCtrlTile("sport"));                  // 1
+        bottom.appendChild(createCtrlTile("remaining", { wide:true })); // 2 cols
+        bottom.appendChild(createCtrlTile("sold", { wide:true }));      // 2 cols
+        bottom.appendChild(createCtrlTile("next"));                   // 1
+
+        right2.forEach((t, i) => bottom.appendChild(createTeamTile(t, cols + 2 + i + 16)));
+
+        // Safety: force perfect rows
+            const used = gridUnitsUsed(bottom);
+        const rem = used % cols;
+        const missing = (cols - rem) % cols;
+        for (let i = 0; i < missing; i++){
+          bottom.appendChild(createCtrlTile(i % 2 === 0 ? "remaining" : "sold"));
+        }
+
       }
 
-      for (let i=0;i<prePad;i++) bottom.appendChild(createPlaceholderTile());
-
-      bottomTeams.forEach((t, idx) => {
-        bottom.appendChild(createTeamTile(t, idx + 16));
-      });
-
-      for (let i=0;i<postPad;i++) bottom.appendChild(createPlaceholderTile());
-
-      // re-apply sold state (if switching sports keeps state, but we hard reset on sport change)
+      // Re-apply sold state
       document.querySelectorAll(".team").forEach(el => {
         const di = parseInt(el.dataset.index || "-1", 10);
         if (soldTeams.has(di)) el.classList.add("sold");
@@ -853,14 +955,14 @@
       updateStats();
       updateSoldList();
       updateBreakIdDisplay();
+      updateEmbeddedCtrlStats();
     }
 
-    /* ===== 4) Sold logic ===== */
     function toggleTeam(index){
       const tile = document.querySelector(`.team[data-index="${index}"]`);
       if (!tile) return;
 
-           if (soldTeams.has(index)){
+      if (soldTeams.has(index)){
         soldTeams.delete(index);
         const existing = soldTeamsList.findIndex(x => x.index === index);
         if (existing !== -1) soldTeamsList.splice(existing, 1);
@@ -870,25 +972,15 @@
         tile.classList.add("sold");
         tile.classList.add("flash");
         setTimeout(() => tile.classList.remove("flash"), 280);
-
-        // ensure entry exists
         if (!soldTeamsList.some(x => x.index === index)){
           soldTeamsList.push({ index, buyer: "" });
         }
       }
 
-      // keep sold list ordered by team index
       soldTeamsList.sort((a,b) => a.index - b.index);
-
       updateStats();
       updateSoldList();
       persistState();
-    }
-
-    /* ===== 5) Sold list render / buyer inputs ===== */
-    function teamAt(index){
-      const cfg = breakTypes[currentBreakType];
-      return cfg?.teams?.[index] || { code:"", name:"", image:"" };
     }
 
     function updateSoldList(){
@@ -899,7 +991,6 @@
       const cfg = breakTypes[currentBreakType];
       const teams = cfg.teams;
 
-      // If nothing sold, show a quiet hint
       if (soldTeamsList.length === 0){
         const d = document.createElement("div");
         d.style.opacity = "0.6";
@@ -954,6 +1045,8 @@
       const soldEl = document.getElementById("teamsSold");
       if (leftEl) leftEl.textContent = String(left);
       if (soldEl) soldEl.textContent = String(sold);
+
+      updateEmbeddedCtrlStats();
     }
 
     function updateHeader(){
@@ -962,7 +1055,6 @@
       if (h) h.textContent = `H VAULT • ${cfg.name}`;
     }
 
-    /* ===== 6) Break ID + Daily cycle ===== */
     const LS_PREFIX = "hvault_overlay_v1";
     const todayKey = () => {
       const d = new Date();
@@ -983,11 +1075,9 @@
     }
 
     function getBreakId(){
-      // allow override via query param (?break=, ?breakId=)
       const qp = param("break") || param("breakId");
       if (qp && String(qp).trim()) return String(qp).trim();
 
-      // otherwise use daily counter + optional manual set suffix
       const n = getStoredBreakNumber();
       const manual = (localStorage.getItem(`${LS_PREFIX}:manualSuffix`) || "").trim();
       if (manual) return `${todayKey()}-${manual}`;
@@ -1008,34 +1098,27 @@
     }
 
     function startNewBreakCycle(clearManual){
-      // optional clear manual suffix when advancing
       if (clearManual){
         localStorage.removeItem(`${LS_PREFIX}:manualSuffix`);
         const inp = document.getElementById("breakSetInput");
         if (inp) inp.value = "";
       }
-
       const n = getStoredBreakNumber() + 1;
       setStoredBreakNumber(n);
 
-      resetAll(true); // silent reset
+      resetAll(true);
       updateBreakIdDisplay();
     }
 
-    /* ===== 7) Reset / Change Sport ===== */
     function resetAll(silent){
       soldTeams.clear();
       soldTeamsList = [];
-
       document.querySelectorAll(".team.sold").forEach(t => t.classList.remove("sold"));
       updateStats();
       updateSoldList();
-
-      // clear sport-specific saved state
       clearState();
 
       if (!silent) {
-        // quick feedback
         const st = document.getElementById("headerSub");
         if (st){
           const old = st.textContent;
@@ -1049,16 +1132,11 @@
       const keys = Object.keys(breakTypes);
       const i = keys.indexOf(currentBreakType);
       currentBreakType = keys[(i + 1) % keys.length];
-
-      // sport change = hard reset
       resetAll(true);
       initializeGrid();
     }
 
-    /* ===== 8) Persistence (local only) ===== */
-    function stateKey(){
-      return `${LS_PREFIX}:state:${currentBreakType}`;
-    }
+    function stateKey(){ return `${LS_PREFIX}:state:${currentBreakType}`; }
 
     function persistState(){
       try{
@@ -1071,11 +1149,9 @@
         localStorage.setItem(stateKey(), JSON.stringify(payload));
       }catch(e){}
     }
-
     function clearState(){
       try{ localStorage.removeItem(stateKey()); }catch(e){}
     }
-
     function restoreState(){
       try{
         const raw = localStorage.getItem(stateKey());
@@ -1087,7 +1163,6 @@
         (st.sold || []).forEach(i => soldTeams.add(i));
         soldTeamsList = Array.isArray(st.soldList) ? st.soldList : [];
 
-        // apply UI after grid exists
         document.querySelectorAll(".team").forEach(el => {
           const di = parseInt(el.dataset.index || "-1", 10);
           if (soldTeams.has(di)) el.classList.add("sold");
@@ -1098,16 +1173,7 @@
       }catch(e){}
     }
 
-    /* ===== 9) SSE (TSU Sale Bridge compatible) =====
-       - Warmup POST /events (best effort)
-       - Listen: /stream (EventSource)
-       - Filters by breakId if provided in event
-       - Handles:
-         - reset events
-         - sale/buy events assigning buyer name to team
-         - optional sport switch
-    =================================================== */
-
+    // ===== SSE =====
     const sseStatusEl = document.getElementById("sseStatus");
     const sseTextEl = document.getElementById("sseText");
     let es = null;
@@ -1122,11 +1188,10 @@
     function getBridgeId(){
       const qp = param("bridge");
       if (qp && String(qp).trim()) return String(qp).trim();
-      return ""; // server default
+      return "";
     }
 
     async function warmupEvents(){
-      // best-effort warmup (won't break if endpoint absent)
       try{
         await fetch("/events", {
           method: "POST",
@@ -1162,7 +1227,6 @@
       const tile = document.querySelector(`.team[data-index="${index}"]`);
       if (!tile) return;
 
-      // mark sold if not already
       if (!soldTeams.has(index)){
         soldTeams.add(index);
         tile.classList.add("sold");
@@ -1170,7 +1234,6 @@
         setTimeout(() => tile.classList.remove("flash"), 280);
       }
 
-      // set buyer in soldTeamsList
       const existing = soldTeamsList.find(x => x.index === index);
       if (existing) existing.buyer = buyer || existing.buyer || "";
       else soldTeamsList.push({ index, buyer: buyer || "" });
@@ -1182,17 +1245,15 @@
     }
 
     function eventMatchesThisBreak(ev){
-      // If event includes breakId, it must match current breakId to apply.
       const current = getBreakId();
       const bid = (ev && (ev.breakId || ev.break_id || ev.break || ev.breakID)) ? String(ev.breakId || ev.break_id || ev.break || ev.breakID) : "";
-      if (!bid) return true; // no break id in payload => accept
+      if (!bid) return true;
       return bid === current;
     }
 
     function handleBridgeEvent(ev){
       if (!ev || typeof ev !== "object") return;
 
-      // Optional: sport switch
       const sport = normalizeSport(ev.sport || ev.league || ev.breakType);
       if (sport && breakTypes[sport] && sport !== currentBreakType){
         currentBreakType = sport;
@@ -1200,23 +1261,20 @@
         initializeGrid();
       }
 
-      // Reset
       const type = String(ev.type || ev.event || "").toLowerCase();
+
       if (type === "reset" || type === "overlay_reset" || ev.reset === true){
         if (!eventMatchesThisBreak(ev)) return;
         resetAll(true);
         return;
       }
 
-      // Next break
       if (type === "next_break" || ev.nextBreak === true){
         if (!eventMatchesThisBreak(ev)) return;
         startNewBreakCycle(true);
         return;
       }
 
-      // Sale / purchase
-      // Expected shapes (varies): {type:"sale", team:"DAL", buyer:"name"} OR {teamCode:"DAL", customer:"name"}
       if (type === "sale" || type === "sold" || type === "purchase" || ev.team || ev.teamCode || ev.team_code){
         if (!eventMatchesThisBreak(ev)) return;
 
@@ -1239,7 +1297,6 @@
     function startSse(){
       try{
         if (es) { try{ es.close(); }catch(e){} es = null; }
-
         const bridge = getBridgeId();
         const url = bridge ? `/stream?bridge=${encodeURIComponent(bridge)}` : `/stream`;
         es = new EventSource(url);
@@ -1248,47 +1305,31 @@
         es.onerror = () => setSseStatus("error","SSE ERR");
 
         es.onmessage = (msg) => {
-          try{
-            const data = JSON.parse(msg.data);
-            handleBridgeEvent(data);
-          }catch(e){}
+          try{ handleBridgeEvent(JSON.parse(msg.data)); }catch(e){}
         };
-
-        // optional named events
         es.addEventListener("event", (msg) => {
-          try{
-            const data = JSON.parse(msg.data);
-            handleBridgeEvent(data);
-          }catch(e){}
+          try{ handleBridgeEvent(JSON.parse(msg.data)); }catch(e){}
         });
       }catch(e){
         setSseStatus("error","SSE ERR");
       }
     }
 
-    /* ===== 10) Boot ===== */
     (function boot(){
       setBrandLogo();
       updateBreakIdDisplay();
       updateHeader();
       initializeGrid();
-
-      // restore saved sold state for current sport
       restoreState();
 
-      // SSE
       warmupEvents();
       startSse();
 
-      // keep break id fresh if they change the manual suffix
       const inp = document.getElementById("breakSetInput");
       if (inp){
-        inp.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") applyBreakNumber();
-        });
+        inp.addEventListener("keydown", (e) => { if (e.key === "Enter") applyBreakNumber(); });
       }
 
-      // If query sets sport: ?sport=nba
       const qs = normalizeSport(param("sport"));
       if (qs && breakTypes[qs] && qs !== currentBreakType){
         currentBreakType = qs;
