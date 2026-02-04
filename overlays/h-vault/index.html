@@ -1191,15 +1191,23 @@ function gridUnitsUsed(container){
       return "";
     }
 
-    async function warmupEvents(){
-      try{
-        await fetch("/events", {
-          method: "POST",
-          headers: { "Content-Type":"application/json" },
-          body: JSON.stringify({ warmup: true, ts: Date.now() })
-        });
-      }catch(e){}
-    }
+function cleanBridgeUrl(u){
+  return String(u || "").trim().replace(/\/$/, "");
+}
+
+async function warmupEvents(){
+  const bridge = cleanBridgeUrl(getBridgeId());
+  const url = bridge ? `${bridge}/events` : `/events`;
+
+  try{
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify({ warmup: true, ts: Date.now() })
+    });
+  }catch(e){}
+}
+
 
     function normalizeSport(s){
       if (!s) return null;
@@ -1294,26 +1302,37 @@ function gridUnitsUsed(container){
       }
     }
 
-    function startSse(){
-      try{
-        if (es) { try{ es.close(); }catch(e){} es = null; }
-        const bridge = getBridgeId();
-        const url = bridge ? `/stream?bridge=${encodeURIComponent(bridge)}` : `/stream`;
-        es = new EventSource(url);
+function cleanBridgeUrl(u){
+  return String(u || "").trim().replace(/\/$/, "");
+}
 
-        es.onopen = () => setSseStatus("connected","SSE ON");
-        es.onerror = () => setSseStatus("error","SSE ERR");
+function startSse(){
+  try{
+    if (es) { try{ es.close(); }catch(e){} es = null; }
 
-        es.onmessage = (msg) => {
-          try{ handleBridgeEvent(JSON.parse(msg.data)); }catch(e){}
-        };
-        es.addEventListener("event", (msg) => {
-          try{ handleBridgeEvent(JSON.parse(msg.data)); }catch(e){}
-        });
-      }catch(e){
-        setSseStatus("error","SSE ERR");
-      }
-    }
+    const bridge = cleanBridgeUrl(getBridgeId());
+
+    // IMPORTANT:
+    // If bridge is provided, connect directly to that origin.
+    // Otherwise fall back to same-origin (/stream) for local/dev setups.
+    const url = bridge ? `${bridge}/stream` : `/stream`;
+
+    es = new EventSource(url);
+
+    es.onopen = () => setSseStatus("connected","SSE ON");
+    es.onerror = () => setSseStatus("error","SSE ERR");
+
+    es.onmessage = (msg) => {
+      try{ handleBridgeEvent(JSON.parse(msg.data)); }catch(e){}
+    };
+    es.addEventListener("event", (msg) => {
+      try{ handleBridgeEvent(JSON.parse(msg.data)); }catch(e){}
+    });
+  }catch(e){
+    setSseStatus("error","SSE ERR");
+  }
+}
+
 
     (function boot(){
       setBrandLogo();
