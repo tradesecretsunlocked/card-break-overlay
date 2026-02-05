@@ -1763,6 +1763,17 @@ const BASE = (() => {
   return '../..\/';
 })();
 
+/* =========================
+   SET SELECTOR (a/b)
+   Usage:
+   overlay.html?bridge=https://...&set=a
+   overlay.html?bridge=https://...&set=b
+========================= */
+const QS = new URLSearchParams(location.search);
+const SET = (QS.get("set") || "a").trim().toLowerCase() === "b" ? "b" : "a";
+const SHOW_FILE = SET === "b" ? "show-b.json" : "show-a.json";
+
+
 const pathFromInput = (p) => {
   const s = String(p || '').trim();
   if (!s) return '';
@@ -1830,9 +1841,14 @@ function normalizeShowConfig(cfg){
 }
 
 async function loadShowJson(){
+  // Prefer set-specific file (show-a.json / show-b.json) in same folder as overlay.html
+  // Fall back to show.json if you haven’t created the set file yet.
   const candidates = [
-    "show.json",              // same folder as HTML (recommended)
+    SHOW_FILE,                 // same folder as HTML (best)
+    "show.json",               // fallback
+    `${BASE}${SHOW_FILE}`,     // fallback paths (GitHub Pages etc)
     `${BASE}show.json`,
+    `${BASE}data/${SHOW_FILE}`,
     `${BASE}data/show.json`,
   ];
 
@@ -1845,6 +1861,7 @@ async function loadShowJson(){
   }
   return null;
 }
+
 
 function mergeShowConfig(cfg){
   if (!cfg) return;
@@ -1906,7 +1923,8 @@ const prevCards   = new Map((state.cards||[]).map(x => [x.id, x]));
 /* =========================
    STATE + STORAGE
 ========================= */
-const KEY = "ayy.overlay.v1";
+const KEY = `ayy.overlay.v1.${SET}`;
+
 
 const defaults = {
   breakNo: 1,
@@ -2464,6 +2482,21 @@ function resetBids(){
 }
 window.resetBids = () => resetBids();
 
+function normLabel(s){
+  return String(s || "")
+    .toLowerCase()
+    .trim()
+    // remove bracketed S## codes if present, so labels still match
+    .replace(/\[(s\d{1,3})\]/g, "")
+    // normalize punctuation/spaces
+    .replace(/[’']/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+
+
 function markCardSoldByLabel(label, sold=true){
   const want = String(label||"").trim().toLowerCase();
   if (!want) return;
@@ -2477,6 +2510,37 @@ function markCardSoldByLabel(label, sold=true){
     }
   }
 }
+
+function markSpotSoldByLabel(label, sold=true){
+  const wantRaw = String(label || "").trim();
+  const want = normLabel(wantRaw);
+  if (!want) return;
+
+  // 1) Try to match a SPOT label directly
+  const spot = (state.spots || []).find(s => {
+    const lab = normLabel(s.label);
+    return lab === want || lab.includes(want) || want.includes(lab);
+  });
+
+  if (spot){
+    setSoldById(state.spots, spot.id, !!sold);
+    return;
+  }
+
+  // 2) If listing title matches a CARD label, sell that card (which can sync to spotId)
+  const card = (state.cards || []).find(c => {
+    const lab = normLabel(c.label);
+    return lab === want || lab.includes(want) || want.includes(lab);
+  });
+
+  if (card){
+    setSoldById(state.cards, card.id, !!sold);
+    return;
+  }
+
+  // No match -> do nothing (safe)
+}
+
 
 
 /*
@@ -2567,6 +2631,9 @@ case "set_currency": {
 
 case "card_sold_by_label": markCardSoldByLabel(data.label, true); break;
 case "card_unsold_by_label": markCardSoldByLabel(data.label, false); break;
+case "spot_sold_by_label": markSpotSoldByLabel(data.label, true); break;
+case "spot_unsold_by_label": markSpotSoldByLabel(data.label, false); break;
+
 
 
     case "pokemon_sold": setSoldById(state.pokemon, data.id, true); break;
@@ -2603,6 +2670,43 @@ case "card_unsold_by_label": markCardSoldByLabel(data.label, false); break;
       (state.cards||[]).forEach(x => x.sold=false);
       break;
     }
+
+    // === Whatnot extension sale event (current content.js) ===
+    case "team_sold": {
+      // Update Avg Bid
+      if (data.amount != null) recordBid(data.amount);
+
+      // If your extension ever includes a code/id mapping, sell it too
+      if (data.code) setSoldById(state.pokemon, data.code, true);
+
+      // If the product title matches one of your card labels, sell that card
+      if (data.title) markCardSoldByLabel(data.title, true);
+      break;
+    }
+
+    // === Your manual/legacy test payload type ===
+    case "BreakSpotOptionEdge": {
+      // Your PowerShell test shows: { code:"pika", amount:100, title:"..." ... }
+      if (data.amount != null) recordBid(data.amount);
+
+      // This is the big one for your current test:
+      // code:"pika" should flip the matching pokemon tile to SOLD
+      if (data.code) setSoldById(state.pokemon, data.code, true);
+
+      // Optional: also try to sell a matching card by label/title
+      if (data.title) markCardSoldByLabel(data.title, true);
+      break;
+    }
+
+    // === Optional: you can reflect stream_stats somewhere (or ignore it) ===
+    case "stream_stats": {
+      // If you want, show lastSale in the small header line:
+      // if (typeof data.lastSale === "string") state.hdrSmall = data.lastSale;
+      break;
+    }
+
+
+
   }
 
   saveState();
@@ -2768,8 +2872,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Auto-load show.json (if present)
   const cfg = await loadShowJson();
-  if (cfg) document.title = "✅ JSON LOADED";
-else document.title = "❌ JSON MISSING";
+  if (cfg) document.title = `✅ JSON LOADED (${SET.toUpperCase()})`;
+  else document.title = `❌ JSON MISSING (${SET.toUpperCase()})`;
+
 
   if (cfg){
     mergeShowConfig(cfg);
