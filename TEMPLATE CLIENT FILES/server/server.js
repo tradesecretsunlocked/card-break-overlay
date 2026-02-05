@@ -17,6 +17,8 @@ const clients = new Set();
 
 function broadcast(payload) {
   const msg = `data: ${JSON.stringify(payload)}\n\n`;
+  console.log("[TSU Bridge] broadcast -> clients:", clients.size, "payload.type:", payload?.type);
+
   for (const res of clients) {
     try {
       res.write(msg);
@@ -145,10 +147,14 @@ function postEvent(req, res) {
 
   const body = req.body || {};
   // Normalize payload a bit
-  const payload = {
+ 
+    const payload = {
     ...body,
     ts: typeof body.ts === "number" ? body.ts : Date.now(),
   };
+
+  console.log("[TSU Bridge] event in:", payload);
+
 
   broadcast(payload);
   res.json({ ok: true });
