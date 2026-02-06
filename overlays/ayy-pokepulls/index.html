@@ -2616,6 +2616,39 @@ function markSpotSoldByLabel(label, sold=true){
 
 */
 
+function setPokemonOrSpotSoldSmart(id, sold){
+  const raw = String(id || "").trim();
+  if (!raw) return;
+
+  // 1) If it's an actual pokemon id, sell that pokemon (and let setSoldById sync spot/cards)
+  if ((state.pokemon || []).some(p => p.id === raw)) {
+    setSoldById(state.pokemon, raw, sold);
+    return;
+  }
+
+  // 2) If it's an actual spot id (s01, s02...), sell the spot (and sync pokemon/cards)
+  if ((state.spots || []).some(s => s.id === raw)) {
+    setSoldById(state.spots, raw, sold);
+    return;
+  }
+
+  // 3) If they send just "2" or "02" or "s2", normalize to s02
+  const m = raw.match(/^s?(\d{1,3})$/i);
+  if (m) {
+    const num = parseInt(m[1], 10);
+    if (Number.isFinite(num)) {
+      const sid = `s${String(num).padStart(2, "0")}`;
+      if ((state.spots || []).some(s => s.id === sid)) {
+        setSoldById(state.spots, sid, sold);
+        return;
+      }
+    }
+  }
+
+  console.warn("[SSE] pokemon_sold id didn't match pokemon or spot:", raw);
+}
+
+
 function handleSSEEvent(data){
   console.log("[SSE IN]", data);
   switch(String(data.type||"")){
@@ -2680,14 +2713,13 @@ case "card_unsold_by_label": markCardSoldByLabel(data.label, false); break;
 case "spot_sold_by_label": markSpotSoldByLabel(data.label, true); break;
 case "spot_unsold_by_label": markSpotSoldByLabel(data.label, false); break;
 
+case "pokemon_sold": setPokemonOrSpotSoldSmart(data.id, true); break;
+case "pokemon_unsold": setPokemonOrSpotSoldSmart(data.id, false); break;
 
 
     case "pokemon_sold": setSoldById(state.pokemon, data.id, true); break;
-
-
-
-
     case "pokemon_unsold": setSoldById(state.pokemon, data.id, false); break;
+    
 
     case "spot_sold": setSoldById(state.spots, data.id, true); break;
     case "spot_unsold": setSoldById(state.spots, data.id, false); break;
