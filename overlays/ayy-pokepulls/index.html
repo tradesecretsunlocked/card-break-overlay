@@ -504,7 +504,7 @@
       align-items:center;
       gap: 12px;
       will-change: transform;
-      animation: pokeMarquee 30s linear infinite;
+      animation: pokeMarquee var(--pokeSpeed, 30s) linear infinite;
     }
     .poke:hover .marquee{ animation-play-state: paused; }
 
@@ -1652,7 +1652,8 @@
  <div class="card-stage" id="cardStage">
   <div class="card-label" id="cardLabel"></div>
   <img id="cardImg" alt="Card Preview" />
-  <div class="sold-badge">SPOT SOLD</div>
+  <div class="sold-badge"><span>SPOT</span><span>SOLD</span></div>
+
 </div>
 
 </div>
@@ -1772,6 +1773,13 @@ const BASE = (() => {
 const QS = new URLSearchParams(location.search);
 const SET = (QS.get("set") || "a").trim().toLowerCase() === "b" ? "b" : "a";
 const SHOW_FILE = SET === "b" ? "show-b.json" : "show-a.json";
+
+
+// Set-specific marquee speed
+document.documentElement.style.setProperty(
+  "--pokeSpeed",
+  SET === "b" ? "80s" : "30s"
+);
 
 
 const pathFromInput = (p) => {
