@@ -2406,6 +2406,11 @@ function setSSEStatus(state, msg){
   sseText.textContent = msg || state || "SSE OFF";
 }
 
+function normalizeBridge(u){
+  return String(u || "").trim().replace(/\/+$/, "");
+}
+
+
 const BRIDGE_URL = (() => {
   const q = new URLSearchParams(location.search).get('bridge');
   if (q) {
@@ -2417,12 +2422,23 @@ const BRIDGE_URL = (() => {
   return saved ? saved.replace(/\/$/, '') : "";
 })();
 
-function normalizeBridge(u){
-  return String(u||'')
-    .trim()
-    .replace(/\/$/, '')
-    .replace(/\/(events|stream)(\/.*)?$/,'');
+
+
+// --- WARMUP / HEALTH CHECK ---
+// Prefer /health if you add it on the server. Falls back to /stream.
+async function warmBridge(base){
+  const urls = [`${base}/health`, `${base}/stream`];
+
+  for (const url of urls){
+    try{
+      const res = await fetch(url, { method:"GET", cache:"no-store" });
+      // If /health doesn't exist you'll usually get 404; that's fine, try next.
+      if (res.ok) return true;
+    }catch(_){}
+  }
+  return false;
 }
+
 
 function connectSSE(url){
   if (sse) { try { sse.close(); } catch(_){} }
@@ -2455,15 +2471,23 @@ sse.onmessage = (e) => {
   }
 }
 
-function initSSE(){
+async function initSSE(){
   if (!BRIDGE_URL){
     setSSEStatus("error", "SSE OFF");
     return;
   }
+
   const base = normalizeBridge(BRIDGE_URL);
   const url = `${base}/stream`;
+
+  setSSEStatus("error", "WARMING");
+  await warmBridge(base);
+
   connectSSE(url);
 }
+
+
+
 
 function recordBid(amount){
   const n = Number(amount);
@@ -2502,20 +2526,35 @@ function normLabel(s){
 }
 
 
-
 function markCardSoldByLabel(label, sold=true){
-  const want = String(label||"").trim().toLowerCase();
+  const wantRaw = String(label || "").trim();
+  const want = normLabel(wantRaw);
   if (!want) return;
 
-  const c = (state.cards||[]).find(x => String(x.label||"").trim().toLowerCase() === want);
-  if (c) {
-    c.sold = !!sold;
-    if (c.spotId){
-      const s = (state.spots||[]).find(x => x.id === c.spotId);
-      if (s) s.sold = !!sold;
-    }
+  const card = (state.cards || []).find(c => {
+    const lab = normLabel(c.label);
+    return lab === want || lab.includes(want) || want.includes(lab);
+  });
+
+  if (!card) return;
+
+  card.sold = !!sold;
+
+  if (card.spotId){
+    // sell spot
+    const s = (state.spots||[]).find(x => x.id === card.spotId);
+    if (s) s.sold = !!sold;
+
+    // sell all pokemon tied to that spot
+    const tiedPokemon = (state.pokemon||[]).filter(p => p.spotId === card.spotId);
+    for (const p of tiedPokemon) p.sold = !!sold;
+
+    // sell all cards tied to that spot (covers duplicates)
+    const tiedCards = (state.cards||[]).filter(c => c.spotId === card.spotId);
+    for (const c of tiedCards) c.sold = !!sold;
   }
 }
+
 
 function markSpotSoldByLabel(label, sold=true){
   const wantRaw = String(label || "").trim();
@@ -2732,11 +2771,23 @@ function setSoldById(list, id, sold){
     if (s) s.sold = !!sold;
   }
 
-  // If a POKEMON is tied to a spot, keep the spot in sync
+  // If a POKEMON is tied to a spot, keep the spot + ALL linked cards in sync
   if (list === state.pokemon && item.spotId){
-    const s = (state.spots||[]).find(x => x.id === item.spotId);
+    const spotId = item.spotId;
+
+    // 1) sell the spot
+    const s = (state.spots||[]).find(x => x.id === spotId);
     if (s) s.sold = !!sold;
+
+    // 2) sell ALL cards tied to that spot
+    const tiedCards = (state.cards || []).filter(c => c.spotId === spotId);
+    for (const c of tiedCards) c.sold = !!sold;
+
+    // 3) if active card is tied to that spot, force it too
+    const active = (state.cards || []).find(c => c.id === state.activeCardId);
+    if (active && active.spotId === spotId) active.sold = !!sold;
   }
+
 
   // ⭐ If a SPOT sells, also sell ALL linked cards (this is what makes it visible)
   if (list === state.spots){
@@ -2749,8 +2800,9 @@ function setSoldById(list, id, sold){
     if (active && active.spotId === item.id) active.sold = !!sold;
 
     // (Optional) if you *actually* use pokemon.spotId in your show.json, keep this:
-    const p = (state.pokemon||[]).find(x => x.spotId === item.id);
-    if (p) p.sold = !!sold;
+    const tiedPokemon = (state.pokemon||[]).filter(x => x.spotId === item.id);
+    for (const p of tiedPokemon) p.sold = !!sold;
+
   }
 
 }
@@ -2898,6 +2950,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   initMouseTilt();
   initSSE();
   startAutoplay();
+
+  // Keep bridge warm while overlay is open (helps prevent cold sleeps)
+  if (BRIDGE_URL){
+    const base = normalizeBridge(BRIDGE_URL);
+    setInterval(() => warmBridge(base), 60_000);
+  }
+
 });
 
 </script>
