@@ -10,8 +10,7 @@
     --W:1080px;
     --H:1920px;
 
-    --safePad: 35px;
- 
+    --safePad: 48px;  
 
     /* Brand palette pulled from the logo vibe */
     --ink:#050505;              /* deep black */
@@ -80,15 +79,13 @@
       }
 
       /* ===== OVERLAY CANVAS ===== */
-.stage{
-  width:var(--W);
-  height:var(--H);
-  position:relative;
-  overflow:hidden;
-  background: transparent; /* OBS-friendly */
-  padding: var(--safePad);
-}
-
+  .stage{
+    width:var(--W);
+    height:var(--H);
+    position:relative;
+    overflow:hidden;
+    background: transparent; /* OBS-friendly */
+  }
 
   /* Top-only branded backdrop */
   .stage::before{
@@ -130,7 +127,7 @@
 
       .grid{
         position:absolute;
-        inset: 0;
+        inset: 14px;
         display:flex;
         flex-direction:column;
         gap: var(--gap);
@@ -1821,22 +1818,12 @@
   };
 
   // add near top of your <script>
-const MONEY = (n) => {
-  let val = Number(n);
-  if (!Number.isFinite(val)) val = 0;
-
-  const code = (state && state.currencyCode)
-    ? String(state.currencyCode).toUpperCase()
-    : "GBP";
-
-  try {
-    return new Intl.NumberFormat("en-GB", { style: "currency", currency: code }).format(val);
-  } catch (_) {
+  const MONEY = (n) => {
+    const val = Number(n);
+    if (!Number.isFinite(val)) return "£0.00";
+    // en-GB + GBP (forced)
     return new Intl.NumberFormat("en-GB", { style: "currency", currency: "GBP" }).format(val);
-  }
-};
-
-
+  };
 
   /* =========================
     SHOW.JSON AUTO-LOAD (less manual)
@@ -1971,7 +1958,6 @@ const MONEY = (n) => {
     STATE + STORAGE
   ========================= */
   const KEY = `ayy.overlay.v1.${SET}`;
-const ADMIN_KEY = `ayy.overlay.adminOpen.${SET}`;
 
 
   const defaults = {
@@ -2137,8 +2123,8 @@ const ADMIN_KEY = `ayy.overlay.adminOpen.${SET}`;
 
     // Avg Bid display
     const avg = (state.bidCount > 0) ? (state.bidSum / state.bidCount) : 0;
-if (avgBidEl) avgBidEl.textContent = MONEY(avg);
-
+    const sym = state.currencySymbol || "£";
+  if (avgBidEl) avgBidEl.textContent = `${sym}${avg.toFixed(2)}`;
 
 
 
@@ -2168,43 +2154,42 @@ if (avgBidEl) avgBidEl.textContent = MONEY(avg);
     tickerEl.style.animation = "tickerScroll 18s linear infinite";
   }
 
-function buildPokemonMarquee(){
-  pokeMarquee.innerHTML = "";
-  const items = state.pokemon || [];
+  function buildPokemonMarquee(){
+    pokeMarquee.innerHTML = "";
+    const items = state.pokemon || [];
 
-  // duplicate list for seamless scroll
-  const doubled = items.concat(items);
+    // duplicate list for seamless scroll
+    const doubled = items.concat(items);
 
-  doubled.forEach((p, i) => {
-    const card = document.createElement("div");
-    card.className = "poke-card" + (p.sold ? " sold" : "");
-    card.dataset.id = p.id;
+    for (const p of doubled){
+      const card = document.createElement("div");
+      card.className = "poke-card" + (p.sold ? " sold" : "");
+      card.dataset.id = p.id;
 
-    const img = document.createElement("img");
-    img.src = pathFromInput(p.img);
-    img.alt = p.name || p.id;
+      const img = document.createElement("img");
+      img.src = pathFromInput(p.img);
+      img.alt = p.name || p.id;
 
-    img.onerror = () => {
-      img.remove();
-      card.innerHTML = `<div class="tag">${(p.name || p.id)} (missing img)</div>`;
-    };
+      img.onerror = () => {
+        img.remove();
+        card.innerHTML = `<div class="tag">${(p.name || p.id)} (missing img)</div>`;
+      };
 
-    const tag = document.createElement("div");
-    tag.className = "tag";
-    tag.textContent = p.name || p.id;
+      const tag = document.createElement("div");
+      tag.className = "tag";
+      tag.textContent = p.name || p.id;
 
-    card.appendChild(img);
-    card.appendChild(tag);
+      card.appendChild(img);
+      card.appendChild(tag);
 
-    // only attach click handler on the first set (not duplicated second half)
-    const isFirstHalf = i < items.length;
-    if (isFirstHalf) card.addEventListener("click", () => togglePokemonSold(p.id));
+      // only attach click handler on the first set (not the duplicated second half)
+      if (items.some(x => x.id === p.id)){
+        card.addEventListener("click", () => togglePokemonSold(p.id));
+      }
 
-    pokeMarquee.appendChild(card);
-  });
-}
-
-  
+      pokeMarquee.appendChild(card);
+    }
+  }
 
 
 
@@ -2265,20 +2250,15 @@ function buildPokemonMarquee(){
   }
 
 
-function renderAdminFields(){
-  // ✅ prevent clobbering while user is typing in admin panel
-  if (admin && admin.classList.contains("open") && admin.contains(document.activeElement)) {
-    return;
-  }
-
-  breakInput.value = String(state.breakNo || 1);
+  function renderAdminFields(){
+    breakInput.value = String(state.breakNo || 1);
   if (tiltToggle) tiltToggle.checked = !!state.mouseTilt;
 
-  hdrSmallInput.value = state.hdrSmall || "";
-  setLogoInput.value = state.setLogo || "";
-  brand1Input.value = state.brand1 || "";
-  brand2Input.value = state.brand2 || "";
-  tickerInput.value = state.ticker || "";
+    hdrSmallInput.value = state.hdrSmall || "";
+    setLogoInput.value = state.setLogo || "";
+    brand1Input.value = state.brand1 || "";
+    brand2Input.value = state.brand2 || "";
+    tickerInput.value = state.ticker || "";
   
     spotsInput.value = textareaFromSpots(state.spots || []);
     cardsInput.value = textareaFromCards(state.cards || []);
@@ -2422,13 +2402,9 @@ function renderAdminFields(){
   /* =========================
     ADMIN UI
   ========================= */
-function toggleAdmin(){
-  admin.classList.toggle("open");
-  try{
-    localStorage.setItem(ADMIN_KEY, admin.classList.contains("open") ? "1" : "0");
-  }catch(_){}
-}
-
+  function toggleAdmin(){
+    admin.classList.toggle("open");
+  }
   adminToggle.addEventListener("click", toggleAdmin);
   document.addEventListener("keydown", (e) => {
     if (e.key === "`") toggleAdmin();
@@ -3069,12 +3045,6 @@ function sellFromLastSaleText(lastSaleText){
     initMouseTilt();
     initSSE();
     startAutoplay();
-
-
-    try{
-  const open = localStorage.getItem(ADMIN_KEY) === "1";
-  if (open) admin.classList.add("open");
-}catch(_){}
 
     // Keep bridge warm while overlay is open (helps prevent cold sleeps)
     if (BRIDGE_URL){
