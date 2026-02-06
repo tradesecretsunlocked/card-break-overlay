@@ -10,8 +10,6 @@
   --W:1080px;
   --H:1920px;
 
-   --safePad: 48px;  
-
   /* Brand palette pulled from the logo vibe */
   --ink:#050505;              /* deep black */
   --ink2:#0a0a0a;
@@ -47,24 +45,7 @@
   --shadow: 0 16px 40px rgba(0,0,0,0.55);
 }
 
-body{
-  width: var(--W);
-  height: var(--H);
-  overflow: hidden;
-}
 
-/* shrink the actual overlay content inward */
-.stage{
-  width: var(--W);
-  height: var(--H);
-  padding: var(--safePad);
-}
-
-/* make the grid fill the padded stage */
-.grid{
-  position: absolute;
-  inset: var(--safePad); /* replaces inset: 14px */
-}
 
     *{ box-sizing:border-box; }
     html,body{ height:100%; }
@@ -523,7 +504,7 @@ body{
       align-items:center;
       gap: 12px;
       will-change: transform;
-      animation: pokeMarquee 80s linear infinite;
+      animation: pokeMarquee var(--pokeSpeed, 30s) linear infinite;
     }
     .poke:hover .marquee{ animation-play-state: paused; }
 
@@ -1793,17 +1774,12 @@ const QS = new URLSearchParams(location.search);
 const SET = (QS.get("set") || "a").trim().toLowerCase() === "b" ? "b" : "a";
 const SHOW_FILE = SET === "b" ? "show-b.json" : "show-a.json";
 
-function normalizeIncomingAmount(val){
-  const n = Number(val);
-  if (!Number.isFinite(n)) return 0;
 
-  // If it's a whole number and "looks like cents", convert to major units.
-  // This fixes: 100 -> 1.00 (your test)
-  // Still allows real £34.50 etc
-  if (Number.isInteger(n) && n >= 100 && n <= 50000) return n / 100;
-
-  return n;
-}
+// Set-specific marquee speed
+document.documentElement.style.setProperty(
+  "--pokeSpeed",
+  SET === "b" ? "80s" : "30s"
+);
 
 
 const pathFromInput = (p) => {
@@ -2720,7 +2696,7 @@ case "set_currency": {
 
         case "add_bid":{
       // payload: { "type":"add_bid", "amount": 25.50 }
-      recordBid(normalizeIncomingAmount(data.amount));
+      recordBid(data.amount);
       // recordBid already saveState+renderHeader, so return early
       return;
     }
@@ -2784,7 +2760,7 @@ case "pokemon_unsold": setPokemonOrSpotSoldSmart(data.id, false); break;
     // === Whatnot extension sale event (current content.js) ===
     case "team_sold": {
       // Update Avg Bid
-      if (data.amount != null) recordBid(normalizeIncomingAmount(data.amount));
+      if (data.amount != null) recordBid(data.amount);
 
       // If your extension ever includes a code/id mapping, sell it too
       if (data.code) setSoldById(state.pokemon, data.code, true);
