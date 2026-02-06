@@ -1810,14 +1810,16 @@ function normalizeShowConfig(cfg){
   const c = cfg && typeof cfg === "object" ? cfg : {};
   const out = {...c};
 
-  if (Array.isArray(out.pokemon)){
-    out.pokemon = out.pokemon.map((p, i) => {
-      const name = p?.name || p?.id || `Pokemon ${i+1}`;
-      const id = p?.id || slugifyName(name) || `p${i+1}`;
-      const img = p?.img || `images/pokemon/${id}.png`;
-      return { id, name, img, sold: !!p?.sold };
-    });
-  }
+if (Array.isArray(out.pokemon)){
+  out.pokemon = out.pokemon.map((p, i) => {
+    const name = p?.name || p?.id || `Pokemon ${i+1}`;
+    const id = p?.id || slugifyName(name) || `p${i+1}`;
+    const img = p?.img || `images/pokemon/${id}.png`;
+    const spotId = p?.spotId || p?.spot || "";   // ✅ keep mapping
+    return { id, name, img, spotId, sold: !!p?.sold };
+  });
+}
+
 
   if (Array.isArray(out.spots)){
     out.spots = out.spots.map((s, i) => {
@@ -2431,12 +2433,16 @@ function connectSSE(url){
 
     sse.onopen = () => setSSEStatus("connected", "SSE ON");
 
-    sse.onmessage = (e) => {
-      try{
-        const data = JSON.parse(e.data);
-        handleSSEEvent(data);
-      }catch(_){}
-    };
+sse.onmessage = (e) => {
+  try {
+    const data = JSON.parse(e.data);
+    console.log("[SSE IN]", data);      // <---- ADD THIS
+    handleSSEEvent(data);
+  } catch (err) {
+    console.warn("[SSE parse error]", err, e.data);
+  }
+};
+
 
     sse.onerror = () => {
       setSSEStatus("error", "RETRY");
@@ -2572,6 +2578,7 @@ function markSpotSoldByLabel(label, sold=true){
 */
 
 function handleSSEEvent(data){
+  console.log("[SSE IN]", data);
   switch(String(data.type||"")){
     case "set_break":{
       const n = parseInt(String(data.value||"1"), 10);
@@ -2731,15 +2738,21 @@ function setSoldById(list, id, sold){
     if (s) s.sold = !!sold;
   }
 
-  // ⭐ KEY ADD: If a SPOT sells, sell the linked pokemon automatically
+  // ⭐ If a SPOT sells, also sell ALL linked cards (this is what makes it visible)
   if (list === state.spots){
+    // Sell any cards tied to this spotId
+    const tiedCards = (state.cards || []).filter(c => c.spotId === item.id);
+    for (const c of tiedCards) c.sold = !!sold;
+
+    // If the currently active card is tied to this spot, force a rerender-visible change
+    const active = (state.cards || []).find(c => c.id === state.activeCardId);
+    if (active && active.spotId === item.id) active.sold = !!sold;
+
+    // (Optional) if you *actually* use pokemon.spotId in your show.json, keep this:
     const p = (state.pokemon||[]).find(x => x.spotId === item.id);
     if (p) p.sold = !!sold;
-
-    // Optional: also sell the “tied card” if you want:
-    // const c = (state.cards||[]).find(x => x.spotId === item.id);
-    // if (c) c.sold = !!sold;
   }
+
 }
 
 
