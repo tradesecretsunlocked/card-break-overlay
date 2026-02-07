@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  NoCo Breakz — NFL Team Break Overlay (Single Sport, NO SSE)
+
+  File structure (per standard):
+    /overlays/NoCoBreakz-NFL.html  (this file)
+    /images/logos/noco-breakz.png  (your NoCo Breakz logo)
+    /images/nfl/{team}.png         (NFL team tiles)
+
+  Notes:
+    - AFC left / NFC right, grouped by division.
+    - Click a team tile to toggle SOLD.
+    - SOLD panel is docked below and reserves space (no layout shift).
+    - Break # input + Next increments break number.
+    - Added High Bid + Team inputs (persisted in localStorage).
+-->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, initial-scale=1.0" />
+  <title>NoCo Breakz – NFL Break Overlay</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee+Shade&display=swap" rel="stylesheet" />
+
+  <style>
+    :root{
+      /* Palette extracted from NoCo logo (navy / mountain-ice / gold / maroon accents) */
+      --primary-color: #050e51;      /* deep navy */
+      --secondary-color: #bea86c;    /* gold */
+      --accent-color: #761717;       /* maroon */
+      --ice-color: #67838b;          /* steel/ice */
+      --text-color: #ffffff;
+      --border-color: rgba(255,255,255,0.38);
+
+      --team-cols: 4;
+      --team-height: 70px;
+      --teams-h: 370px;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      padding:0;
+      width:100%;
+      max-width:1080px;
+      min-height:600px;
+      margin-inline:auto;
+      font-family: Arial, sans-serif;
+      color: var(--text-color);
+      background: #000;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      user-select:none;
+    }
+
+    .overlay-container{
+      width:100%;
+      max-width:1080px;
+      max-height:750px;
+      overflow:hidden;
+
+      background:
+        radial-gradient(circle at 18% 8%, rgba(103,131,139,0.26), transparent 52%),
+        radial-gradient(circle at 82% 18%, rgba(190,168,108,0.18), transparent 58%),
+        linear-gradient(180deg, #07124f, #020318);
+
+      border: 4px solid rgba(190,168,108,0.9);
+      border-radius: 16px;
+      padding: 8px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      position: relative;
+    }
+
+    .overlay-container::before{
+      content:"";
+      position:absolute; inset:-40px;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08), transparent 55%),
+        radial-gradient(circle at 70% 50%, rgba(190,168,108,0.10), transparent 60%),
+        radial-gradient(circle at 50% 85%, rgba(103,131,139,0.10), transparent 58%);
+      filter: blur(12px);
+      opacity: 0.9;
+      pointer-events:none;
+      z-index:0;
+    }
+    .overlay-container > *{ position:relative; z-index:1; }
+
+    /* Header */
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      background:
+        linear-gradient(90deg,
+          rgba(118,23,23,0.75),
+          rgba(5,14,81,0.92));
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      padding: 6px 10px;
+      letter-spacing: 1px;
+      overflow: visible;
+    }
+
+    .brand{
+      display:flex;
+      flex-direction:column;
+      gap: 2px;
+    }
+
+    .brand-title{
+      font-family: math;
+      font-size: 26px;
+      font-weight:1000;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .brand-slogan{
+      font-size: 12px;
+      font-weight: 800;
+      opacity: 0.92;
+      margin-bottom: -4px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .header-right{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+    }
+
+    .break-id-box{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.35);
+      border: 2px solid rgba(255,255,255,0.22);
+      box-shadow: inset 0 0 10px rgba(255,255,255,0.04);
+    }
+
+    .break-id-label{
+      font-size: 18px;
+      opacity: 0.85;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .break-id-value{
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      min-width: 26px;
+      text-align: right;
+      color: rgba(255,255,255,0.95);
+    }
+
+
+/* small header edit button */
+.break-edit-btn{
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 10px;
+  line-height: 1;
+}
+
+
+    /* Main (Teams + ticker + controls) */
+    .main{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap: 6px;
+      width:100%;
+      min-height:0;
+    }
+.teams-section{
+  display:grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  height: var(--teams-h);
+  min-height:0;
+  align-items: stretch;
+
+  overflow: visible;;
+
+  background:
+    linear-gradient(82deg,rgba(5, 51, 202, 0.671), rgba(118, 23, 23, 0.35), rgba(255, 255, 255, 0.10), rgba(5, 51, 202, 0.685));
+  border-radius: 14px;
+  padding: 2px;
+  width: 100%;
+}
+
+
+    .conference{
+      display:flex;
+      flex-direction:column;
+      border: 2px solid rgba(255,255,255,0.22);
+      border-radius: 12px;
+      padding: 1px;
+      background: rgba(0,0,0,0.28);
+      max-height:350px;
+      min-height:0;
+      overflow-y:auto;
+      overflow-x:hidden;
+    }
+    .conference::-webkit-scrollbar{ display:none; }
+
+    .conference-title{
+      font-size: 16px;
+      font-weight: 900;
+      text-align:center;
+      margin-bottom: 0px;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(255,255,255,0.20);
+      letter-spacing: 1px;
+    }
+
+    .division{
+      margin-top: 10px;
+    }
+
+    .division-name{
+      font-size: 14px;
+      font-weight: 900;
+      color: rgba(255,255,255,0.92);
+      margin: 2px 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.95;
+    }
+
+    .division-teams{
+      display:grid;
+      grid-template-columns: repeat(var(--team-cols), 1fr);
+      gap: 6px;
+    }
+
+    .team{
+      position:relative;
+      z-index:1;
+      border-radius: 10px;
+      height: var(--team-height);
+      min-width:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      cursor:pointer;
+
+      background: rgba(0,0,0,0.25);
+      border: 2px solid rgba(190,168,108,0.55);
+
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.10),
+        0 6px 14px rgba(0,0,0,0.35);
+    }
+
+    .team img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.55));
+    }
+
+    .team::before{
+      content:"";
+      position:absolute;
+      inset:-14px;
+      border-radius: 14px;
+      background: radial-gradient(circle, rgba(255,255,255,0.55) 0%, rgba(190,168,108,0.22) 42%, transparent 70%);
+      filter: blur(16px);
+      opacity: 0.35;
+      animation: tileGlow 3.4s ease-in-out infinite;
+      pointer-events:none;
+      z-index:-1;
+    }
+
+    @keyframes tileGlow{
+      0%   { opacity:0.22; transform: scale(0.95); }
+      50%  { opacity:0.60; transform: scale(1.03); }
+      100% { opacity:0.22; transform: scale(0.95); }
+    }
+
+    .team:hover{
+      transform: translateY(-2px) scale(1.012);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.14),
+        0 10px 22px rgba(0,0,0,0.45);
+    }
+
+    /* Sold state */
+    .team.sold{
+      opacity: 0.85;
+      border-color: rgba(255,255,255,0.18);
+    }
+    .team.sold img{
+      filter: grayscale(1) brightness(0.45);
+    }
+    .team .sold-x{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 54px;
+      font-weight: 900;
+      line-height:1;
+      color: rgba(255,255,255,0.92);
+      text-shadow:
+        0 0 10px rgba(190,168,108,0.50),
+        0 0 18px rgba(255,255,255,0.30),
+        0 8px 22px rgba(0,0,0,0.85);
+      opacity: 0;
+      transform: scale(0.92);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      pointer-events:none;
+      z-index: 20;
+    }
+    .team.sold .sold-x{
+      opacity: 1;
+      transform: scale(1);
+    }
+    .team.sold::before{
+      opacity: 0.10;
+      animation: none;
+    }
+
+    /* Center control bar */
+    .control-bar{
+      display:flex;
+      flex-direction:column;
+      justify-content: center;
+      gap: 30px;
+      align-items: stretch;
+      width: 128px;
+
+      background: linear-gradient(180deg, rgba(5,14,81,0.95), rgba(118,23,23,0.65));
+      border: 2px solid rgba(255,255,255,0.22);
+      border-radius: 12px;
+      padding: 6px;
+      z-index: 5;
+    }
+
+    .stat-box{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,0.28);
+      border: 2px solid rgba(190,168,108,0.35);
+      border-radius: 10px;
+      padding: 6px 4px;
+    }
+    .stat-box .value{
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+    .stat-box .label{
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+
+    .sold-stat{ cursor:pointer; }
+
+/* High Bid stat (same footprint as stat-box) */
+.highbid-box{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:center;
+  background: rgba(0,0,0,0.28);
+  border: 2px solid rgb(255 255 255);
+  border-radius: 10px;
+  padding: 2px 2px;
+  gap: 10px;
+}
+    .label {
+    font-size: 18px;
+    font-weight: 900;
+    text-align: center;
+}
+
+.highbid-box .highbid-input-wrap{
+  display:flex;
+  align-items:center;
+  gap: 6px;
+  background: rgba(0,0,0,0.38);
+  border: 2px solid rgba(255,255,255,0.18);
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+
+.highbid-box .highbid-prefix{
+  font-weight: 900;
+  opacity: 0.9;
+}
+
+.highbid-box .highbid-input{
+  width:100%;
+  border:none;
+  outline:none;
+  background: transparent;
+  color:#fff;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-align:center;
+}
+
+    
+    .brand-logo{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 2px;
+      margin: -2px;
+      animation: logoBreathe 10s ease-in-out infinite;
+      transform-origin:center;
+      position: relative;
+      overflow: visible;
+     
+      z-index:50;
+    }
+    @keyframes logoBreathe{
+      0%{ transform: scale(1); }
+      50%{ transform: scale(1.06); }
+      100%{ transform: scale(1); }
+    }
+
+    .brand-logo img{
+      width: 200%;
+      height:auto; 
+      top: -120px;
+      z-index:999;
+      
+      object-fit: cover;
+      position: absolute;
+      filter:
+        drop-shadow(0 8px 16px rgba(0,0,0,0.55))
+        drop-shadow(0 0 14px rgba(190,168,108,0.22));
+    }
+
+    .btn{
+      background: rgba(190,168,108,0.95);
+      color: #000;
+      border: 2px solid rgba(255,255,255,0.22);
+      border-radius: 10px;
+      padding: 10px 8px;
+      font-size: 16px;
+      font-weight: 900;
+      text-transform: uppercase;
+      cursor:pointer;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+    }
+    .btn:active{ transform: translateY(1px); }
+
+    /* Ticker */
+    .ticker{
+      width:100%;
+      overflow:hidden;
+      height: 50px;
+      background: linear-gradient(45deg, rgba(5,14,81,0.9), rgba(118,23,23,0.75));
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.20);
+    }
+    .ticker-text{
+      display:inline-block;
+      white-space:nowrap;
+      padding-left:100%;
+      animation: ticker-scroll 35s linear infinite;
+      font-weight: 900;
+      letter-spacing: 1px;
+      font-size:28px;
+      text-transform: uppercase;
+      opacity: 0.95;
+      line-height: 55px;
+    }
+    @keyframes ticker-scroll{
+      0%{ transform: translateX(0); }
+      100%{ transform: translateX(-100%); }
+    }
+
+/* Ticker + overlayed TEAM input */
+.ticker-wrap{
+  position: relative;
+  width: 100%;
+}
+
+.ticker{
+  position: relative;
+  z-index: 1;
+}
+
+/* the TEAM input sits on top of ticker */
+.ticker-team{
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 180px;
+  height: 60px;
+text-align:center;
+  background: rgb(3, 2, 48);
+  color:#fff;
+  border: 2px solid rgba(255, 255, 255, 0.788);
+  border-radius: 10px;
+  padding: 0 12px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  outline: none;
+}
+
+/* ===== OBS-friendly modal for editing ticker ===== */
+.modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-backdrop.show{ display:flex; }
+
+.modal{
+  width: min(600px, 92vw);
+  background: linear-gradient(180deg, rgba(5,14,81,0.95), rgba(118,23,23,0.80));
+  border: 2px solid rgba(255,255,255,0.22);
+  border-radius: 14px;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.6);
+  padding: 14px;
+}
+
+.modal-title{
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.95;
+  margin-bottom: 10px;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.modal textarea{
+  width: 100%;
+  min-height: 90px;
+  resize: vertical;
+  background: rgba(0,0,0,0.40);
+  color: #fff;
+  border: 2px solid rgba(255,255,255,0.22);
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  outline: none;
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.modal-actions .pill-btn{
+  border-radius: 12px; /* looks more like a dialog button */
+}
+
+/* ===== Sold panel slot becomes dynamic instead of fixed ===== */
+.sold-panel-slot{
+  width: 99%;
+  height: auto !important;      /* override fixed 160px */
+  overflow: visible;
+}
+
+/* keep panel hidden without reserving space */
+.sold-panel.hidden{
+  display: none !important;
+  opacity: 0;
+  pointer-events:none;
+}
+
+/* ===== High Bid larger font ===== */
+.highbid-box .highbid-input{
+  font-size: 28px;     /* bigger */
+  line-height: 1;
+}
+
+.highbid-box .highbid-prefix{
+  font-size: 22px;
+}
+
+    /* Control panel row */
+    .control-panel{
+      width:100%;
+      border: 2px solid rgba(255,255,255,0.22);
+      border-radius: 12px;
+      padding: 8px;
+      background: rgba(0,0,0,0.12);
+      display:flex;
+      flex-direction:row;
+      gap: 10px;
+      justify-content: space-between;
+      align-items:center;
+      flex-wrap: wrap;
+    }
+
+    .sold-controls{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sold-controls .btn{
+  min-width: 110px;
+}
+
+
+    .pill-btn{
+      background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.06));
+      color: #fff;
+      border: 2px solid rgba(255,255,255,0.28);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor:pointer;
+      white-space: nowrap;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08), 0 4px 12px rgba(0,0,0,0.30);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+    .pill-btn:hover{
+      transform: translateY(-1px);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12), 0 6px 16px rgba(0,0,0,0.45);
+    }
+    .pill-btn:active{ transform: translateY(0); }
+
+    .breaknum-wrap{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .breaknum-input{
+      background: rgba(0,0,0,0.35);
+      color: #fff;
+      border: 2px solid rgba(255,255,255,0.22);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 900;
+      min-width: 180px;
+      letter-spacing: 0.5px;
+    }
+
+    .breaknum-apply{
+      background: rgba(190,168,108,0.95);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 900;
+      cursor:pointer;
+    }
+
+    /* High Bid panel (NEW) */
+    .bid-panel{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.26);
+      border: 2px solid rgba(190,168,108,0.35);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+      min-width: 260px;
+    }
+    .bid-title{
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.92);
+      opacity: 0.95;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .bid-row{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .bid-field{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      background: rgba(0,0,0,0.38);
+      border: 2px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      padding: 8px 10px;
+      overflow:hidden;
+    }
+    .bid-prefix{
+      font-weight: 900;
+      opacity: 0.9;
+      letter-spacing: 0.5px;
+    }
+    .bid-input{
+      width:100%;
+      border:none;
+      outline:none;
+      background: transparent;
+      color:#fff;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+    }
+    .team-input{
+      width:100%;
+      border:none;
+      outline:none;
+      background: rgba(0,0,0,0.38);
+      color:#fff;
+      border: 2px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* Sold header + panel */
+    .sold-header-row{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 12px;
+      padding: 6px 10px;
+      margin-top: 6px;
+      width:100%;
+      background: linear-gradient(90deg, rgba(0,0,0,0.35), rgba(0,0,0,0.15));
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.18);
+    }
+
+    .sold-header-controls{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .sold-panel-title{
+      margin:0;
+      padding:0;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      white-space: nowrap;
+      text-transform: uppercase;
+      opacity: 0.92;
+    }
+
+    .sold-panel-slot{
+      width: 99%;
+      height: 160px; /* reserved space */
+      position: relative;
+      overflow: visible;
+    }
+
+    .sold-panel{
+      position: relative;
+      inset:0;
+      padding: 10px;
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+
+      background: linear-gradient(
+        90deg,
+        rgba(118,23,23,0.78),
+        rgba(5,14,81,0.82)
+      );
+      border-radius: 14px;
+      border: 2px solid rgba(255,255,255,0.22);
+
+      opacity: 1;
+      pointer-events: auto;
+      transition: opacity 0.2s ease;
+    }
+
+    .sold-panel.hidden{
+      opacity:0;
+      pointer-events:none;
+      background: transparent;
+      border-color: transparent;
+    }
+
+    .sold-item{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.10);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .sold-item:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.35);
+    }
+
+    .sold-item img{
+      max-width: 100%;
+      max-height: 34px;
+      object-fit: contain;
+    }
+
+    .sold-tag{
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.35);
+      border: 2px solid rgba(255,255,255,0.18);
+      min-width: 52px;
+      text-align:center;
+      white-space:nowrap;
+    }
+
+    .buyer-input{
+      background: rgba(255,255,255,0.92);
+      border:none;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-weight: 900;
+      font-size: 12px;
+      width: 100%;
+      outline:none;
+    }
+
+    /* Small helpers */
+    .spacer{ flex: 1; }
+
+    /* Keep overlay density consistent */
+    @media (max-width: 1080px){
+      body{ max-width: 1080px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="overlay-container">
+    <div class="header">
+      <div class="brand">
+        <div class="brand-title">NoCo Breakz</div>
+        <div class="brand-slogan">NFL Team Breaks</div>
+      </div>
+
+      <div class="header-right">
+        <div class="break-id-box" id="breakIdBox">
+  <span class="break-id-label">Break #</span>
+  <span id="breakIdDisplay" class="break-id-value">—</span>
+ 
+</div>
+
+      </div>
+    </div>
+
+    <div class="main">
+<div class="teams-section">
+  <div id="conferenceLeft" class="conference"></div>
+
+  <div class="control-bar" id="centerControlBar">
+    <div class="brand-logo">
+      <img id="brandLogo" alt="NoCo Breakz" />
+    </div>
+
+    <div class="stat-box sold-stat" onclick="toggleSoldPanel()">
+      <div class="value" id="teamsSold">0</div>
+      <div class="label">Sold</div>
+    </div>
+
+  
+
+    <div class="stat-box">
+      <div class="value" id="teamsLeft">0</div>
+      <div class="label">Remaining</div>
+    </div>
+
+      <div class="highbid-box">
+        <div class="label">High Bid</div>
+      <div class="highbid-input-wrap">
+        <span class="highbid-prefix">$</span>
+        <input id="highBidInput" class="highbid-input" type="text" inputmode="decimal" placeholder="0.00" />
+      </div>
+      
+    </div>
+  </div>
+
+  <div id="conferenceRight" class="conference"></div>
+</div>
+
+
+ <div class="ticker-wrap">
+  <div class="ticker">
+    <span id="tickerText" class="ticker-text">BUY • SELL • TRADE • SPORTS CARDS • NOCO BREAKZ • NFL TEAM BREAKS •</span>
+  </div>
+
+
+
+
+  <!-- TEAM input on top of ticker -->
+  <input id="bidTeamInput" class="ticker-team" type="text" placeholder="TEAM" />
+</div>
+
+
+      <div class="control-panel">
+        <div class="sold-controls">
+  <button class="btn" onclick="resetAll()">Reset</button>
+  <button class="btn" onclick="startNewBreakCycle()">Next</button>
+  <button class="pill-btn" onclick="toggleSoldPanel()">Toggle Sold</button>
+<button class="pill-btn" onclick="editTickerText()">Edit Ticker</button>
+
+<button class="pill-btn" onclick="openBreakModal()">Edit Break #</button>
+
+</div>
+
+
+
+
+    </div>
+
+    <!-- SOLD PANEL SLOT (reserved space, opacity toggle only) -->
+    <div id="soldPanelSlot" class="sold-panel-slot">
+      <div id="soldPanel" class="sold-panel hidden"></div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================
+       BASE path (standard)
+    ========================== */
+    const BASE = (() => {
+      const isGhPages = location.hostname.endsWith('github.io');
+      if (isGhPages) {
+        const parts = location.pathname.split('/').filter(Boolean);
+        const repo = parts.length ? parts[0] : '';
+        return `/${repo}/`;
+      }
+      return '../../';
+    })();
+
+    const imgNFL = (f) => `${BASE}images/nfl/${f}`;
+
+    /* =========================
+       State
+    ========================== */
+    const soldTeams = new Set();
+    let soldTeamsList = [];
+    let soldPanelVisible = false;
+
+    const STORAGE = {
+      breakNum: 'noco.breakNumber',
+      highBid: 'noco.highBid',
+      bidTeam: 'noco.bidTeam',
+      tickerText: 'noco.tickerText'
+
+    };
+
+    /* =========================
+       NFL Data (AFC/NFC by division)
+    ========================== */
+    const NFL = {
+      conferences: ['AFC', 'NFC'],
+      divisions: {
+        AFC: {
+          East: [
+            { code: 'BUF', name: 'Bills', image: imgNFL('bills.png') },
+            { code: 'MIA', name: 'Dolphins', image: imgNFL('dolphins.png') },
+            { code: 'NE',  name: 'Patriots', image: imgNFL('patriots.png') },
+            { code: 'NYJ', name: 'Jets', image: imgNFL('jets.png') }
+          ],
+          North: [
+            { code: 'CIN', name: 'Bengals', image: imgNFL('bengals.png') },
+            { code: 'CLE', name: 'Browns', image: imgNFL('browns.png') },
+            { code: 'BAL', name: 'Ravens', image: imgNFL('ravens.png') },
+            { code: 'PIT', name: 'Steelers', image: imgNFL('steelers.png') }
+          ],
+          South: [
+            { code: 'HOU', name: 'Texans', image: imgNFL('texans.png') },
+            { code: 'IND', name: 'Colts', image: imgNFL('colts.png') },
+            { code: 'JAX', name: 'Jaguars', image: imgNFL('jaguars.png') },
+            { code: 'TEN', name: 'Titans', image: imgNFL('titans.png') }
+          ],
+          West: [
+            { code: 'DEN', name: 'Broncos', image: imgNFL('broncos.png') },
+            { code: 'KC',  name: 'Chiefs', image: imgNFL('chiefs.png') },
+            { code: 'LV',  name: 'Raiders', image: imgNFL('raiders.png') },
+            { code: 'LAC', name: 'Chargers', image: imgNFL('chargers.png') }
+          ]
+        },
+        NFC: {
+          East: [
+            { code: 'DAL', name: 'Cowboys', image: imgNFL('cowboys.png') },
+            { code: 'NYG', name: 'Giants', image: imgNFL('giants.png') },
+            { code: 'PHI', name: 'Eagles', image: imgNFL('eagles.png') },
+            { code: 'WAS', name: 'Commanders', image: imgNFL('commanders.png') }
+          ],
+          North: [
+            { code: 'CHI', name: 'Bears', image: imgNFL('bears.png') },
+            { code: 'DET', name: 'Lions', image: imgNFL('lions.png') },
+            { code: 'GB',  name: 'Packers', image: imgNFL('packers.png') },
+            { code: 'MIN', name: 'Vikings', image: imgNFL('vikings.png') }
+          ],
+          South: [
+            { code: 'TB',  name: 'Buccaneers', image: imgNFL('buccaneers.png') },
+            { code: 'ATL', name: 'Falcons', image: imgNFL('falcons.png') },
+            { code: 'CAR', name: 'Panthers', image: imgNFL('panthers.png') },
+            { code: 'NO',  name: 'Saints', image: imgNFL('saints.png') }
+          ],
+          West: [
+            { code: 'ARI', name: 'Cardinals', image: imgNFL('cardinals.png') },
+            { code: 'LAR', name: 'Rams', image: imgNFL('rams.png') },
+            { code: 'SF',  name: '49ers', image: imgNFL('49ers.png') },
+            { code: 'SEA', name: 'Seahawks', image: imgNFL('seahawks.png') }
+          ]
+        }
+      }
+    };
+
+    /* =========================
+       Render
+    ========================== */
+    function buildConference(container, confName, divisions){
+      const title = document.createElement('div');
+      title.className = 'conference-title';
+      title.textContent = confName;
+      container.appendChild(title);
+
+      Object.keys(divisions).forEach(divName => {
+        const wrap = document.createElement('div');
+        wrap.className = 'division';
+
+
+
+        const grid = document.createElement('div');
+        grid.className = 'division-teams';
+
+        divisions[divName].forEach(teamObj => {
+          const tile = document.createElement('div');
+          tile.className = 'team';
+          tile.dataset.teamCode = teamObj.code;
+          tile.onclick = () => toggleTeam(teamObj.code);
+
+          const img = document.createElement('img');
+          img.src = teamObj.image;
+          img.alt = teamObj.name;
+          tile.appendChild(img);
+
+          const soldX = document.createElement('div');
+          soldX.className = 'sold-x';
+          soldX.textContent = '✕';
+          tile.appendChild(soldX);
+
+          grid.appendChild(tile);
+        });
+
+        wrap.appendChild(grid);
+        container.appendChild(wrap);
+      });
+    }
+
+    function renderTeams(){
+      const leftEl = document.getElementById('conferenceLeft');
+      const rightEl = document.getElementById('conferenceRight');
+      leftEl.innerHTML = '';
+      rightEl.innerHTML = '';
+
+      soldTeams.clear();
+      soldTeamsList = [];
+
+      buildConference(leftEl, 'AFC', NFL.divisions.AFC);
+      buildConference(rightEl, 'NFC', NFL.divisions.NFC);
+
+      updateStats();
+      renderSoldPanel();
+    }
+
+    /* =========================
+       Sold logic
+    ========================== */
+    function toggleTeam(code){
+      const tile = document.querySelector(`[data-team-code="${code}"]`);
+      if (!tile) return;
+
+      const idx = soldTeamsList.findIndex(x => x.code === code);
+
+      if (soldTeams.has(code)){
+        soldTeams.delete(code);
+        tile.classList.remove('sold');
+        if (idx !== -1) soldTeamsList.splice(idx, 1);
+      } else {
+        soldTeams.add(code);
+        tile.classList.add('sold');
+        if (idx === -1) soldTeamsList.push({ code, buyer: '' });
+      }
+
+      updateStats();
+      renderSoldPanel();
+    }
+
+    function updateStats(){
+      let total = 0;
+      NFL.conferences.forEach(conf => {
+        Object.values(NFL.divisions[conf]).forEach(arr => total += arr.length);
+      });
+
+      document.getElementById('teamsSold').textContent = soldTeams.size;
+      document.getElementById('teamsLeft').textContent = total - soldTeams.size;
+    }
+function toggleSoldPanel(){
+  soldPanelVisible = !soldPanelVisible;
+
+  const panel = document.getElementById('soldPanel');
+  if (!panel) return;
+
+  panel.classList.toggle('hidden', !soldPanelVisible);
+}
+
+    function renderSoldPanel(){
+      const panel = document.getElementById('soldPanel');
+      const slot = document.getElementById('soldPanelSlot');
+      if (!panel || !slot) return;
+
+      panel.innerHTML = '';
+
+      if (soldTeamsList.length === 0){
+        // Keep reserved space, but hide contents unless user toggles open
+        if (soldPanelVisible) panel.classList.add('hidden');
+        return;
+      }
+
+      soldTeamsList.forEach(entry => {
+        const tile = document.querySelector(`[data-team-code="${entry.code}"]`);
+        if (!tile) return;
+
+        const img = tile.querySelector('img');
+        const src = img ? img.src : '';
+
+        const item = document.createElement('div');
+        item.className = 'sold-item';
+
+        if (src){
+          const logo = document.createElement('img');
+          logo.src = src;
+          item.appendChild(logo);
+        }
+
+        const tag = document.createElement('div');
+        tag.className = 'sold-tag';
+        tag.textContent = (entry.code || '—').slice(0, 5).toUpperCase();
+        item.appendChild(tag);
+
+        const buyerInput = document.createElement('input');
+        buyerInput.className = 'buyer-input';
+        buyerInput.type = 'text';
+        buyerInput.placeholder = 'Buyer';
+        buyerInput.value = entry.buyer || '';
+        buyerInput.addEventListener('input', (e) => {
+          entry.buyer = e.target.value;
+        });
+        item.appendChild(buyerInput);
+
+        panel.appendChild(item);
+      });
+
+      if (soldPanelVisible) panel.classList.remove('hidden');
+    }
+
+    /* =========================
+       Break number controls
+    ========================== */
+    function applyBreakNumber(){
+      const input = document.getElementById('breakNumInput');
+      const val = (input && input.value ? input.value : '').trim();
+
+      const out = document.getElementById('breakIdDisplay');
+      if (out) out.textContent = val || '—';
+
+      localStorage.setItem(STORAGE.breakNum, val || '');
+    }
+
+    function startNewBreakCycle(){
+      resetAll();
+
+      const out = document.getElementById('breakIdDisplay');
+      if (!out) return;
+
+      let current = parseInt(out.textContent, 10);
+      if (!Number.isInteger(current) || current < 1) current = 1;
+      else current += 1;
+
+      out.textContent = current;
+      localStorage.setItem(STORAGE.breakNum, String(current));
+      const input = document.getElementById('breakNumInput');
+      if (input) input.value = String(current);
+    }
+
+    function resetAll(){
+      soldTeams.clear();
+      soldTeamsList = [];
+      document.querySelectorAll('.team').forEach(t => t.classList.remove('sold'));
+      updateStats();
+      renderSoldPanel();
+    }
+
+    /* =========================
+       High Bid (NEW)
+    ========================== */
+    function sanitizeMoneyInput(v){
+      // Keep digits and one dot, max 2 decimals
+      v = String(v || '').replace(/[^\d.]/g, '');
+      const parts = v.split('.');
+      const whole = parts[0] || '';
+      const dec = (parts[1] || '').slice(0,2);
+      return parts.length > 1 ? `${whole}.${dec}` : whole;
+    }
+
+    function saveHighBid(){
+      const bid = document.getElementById('highBidInput')?.value ?? '';
+      const team = document.getElementById('bidTeamInput')?.value ?? '';
+      localStorage.setItem(STORAGE.highBid, bid);
+      localStorage.setItem(STORAGE.bidTeam, team);
+    }
+
+    function loadHighBid(){
+      const bid = localStorage.getItem(STORAGE.highBid) || '';
+      const team = localStorage.getItem(STORAGE.bidTeam) || '';
+      const bidEl = document.getElementById('highBidInput');
+      const teamEl = document.getElementById('bidTeamInput');
+      if (bidEl) bidEl.value = bid;
+      if (teamEl) teamEl.value = team;
+    }
+
+
+    function setTickerText(val){
+  const el = document.getElementById('tickerText');
+  if (!el) return;
+  el.textContent = val || '';
+  localStorage.setItem(STORAGE.tickerText, val || '');
+}
+
+function editTickerText(){
+  const current = document.getElementById('tickerText')?.textContent ?? '';
+  const next = prompt('Edit ticker text:', current);
+  if (next === null) return; // cancelled
+  setTickerText(next);
+}
+
+function openTickerModal(){
+  const backdrop = document.getElementById('tickerModalBackdrop');
+  const input = document.getElementById('tickerModalInput');
+  const current = document.getElementById('tickerText')?.textContent ?? '';
+  if (!backdrop || !input) return;
+
+  input.value = current;
+  backdrop.classList.add('show');
+
+  // focus for OBS Interact typing
+  setTimeout(() => input.focus(), 50);
+}
+
+function closeTickerModal(){
+  document.getElementById('tickerModalBackdrop')?.classList.remove('show');
+}
+
+function saveTickerModal(){
+  const input = document.getElementById('tickerModalInput');
+  if (!input) return;
+  setTickerText(input.value);
+  closeTickerModal();
+}
+
+// keep your button calling editTickerText(), but route it to modal
+function editTickerText(){
+  openTickerModal();
+}
+
+// Restore ticker text (run on load)
+function loadTickerText(){
+  const saved = localStorage.getItem(STORAGE.tickerText);
+  if (saved !== null) setTickerText(saved);
+}
+
+function setBreakNumber(val){
+  const clean = String(val ?? '').trim();
+  const out = document.getElementById('breakIdDisplay');
+  if (out) out.textContent = clean || '—';
+  localStorage.setItem(STORAGE.breakNum, clean);
+}
+
+function openBreakModal(){
+  const backdrop = document.getElementById('breakModalBackdrop');
+  const input = document.getElementById('breakModalInput');
+  const current = document.getElementById('breakIdDisplay')?.textContent ?? '';
+  if (!backdrop || !input) return;
+
+  input.value = (current === '—') ? '' : current;
+  backdrop.classList.add('show');
+  setTimeout(() => input.focus(), 50);
+}
+
+function closeBreakModal(){
+  document.getElementById('breakModalBackdrop')?.classList.remove('show');
+}
+
+function saveBreakModal(){
+  const input = document.getElementById('breakModalInput');
+  if (!input) return;
+  setBreakNumber(input.value);
+  closeBreakModal();
+}
+
+function loadBreakNumber(){
+  const saved = localStorage.getItem(STORAGE.breakNum) || '';
+  if (saved) setBreakNumber(saved);
+}
+
+
+    /* =========================
+       Init
+    ========================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      // Logo
+      const brandLogo = document.getElementById('brandLogo');
+      if (brandLogo) brandLogo.src = `${BASE}images/logos/noco-breakz.png`;
+
+      // Restore break #
+      const savedBreak = localStorage.getItem(STORAGE.breakNum) || '';
+      if (savedBreak){
+        const out = document.getElementById('breakIdDisplay');
+        const input = document.getElementById('breakNumInput');
+        if (out) out.textContent = savedBreak;
+        if (input) input.value = savedBreak;
+      }
+
+
+document.getElementById('breakModalInput')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    saveBreakModal();
+  }
+});
+
+
+      // High Bid
+      loadHighBid();
+
+      const bidEl = document.getElementById('highBidInput');
+      if (bidEl){
+        bidEl.addEventListener('input', () => {
+          bidEl.value = sanitizeMoneyInput(bidEl.value);
+          saveHighBid();
+        });
+        bidEl.addEventListener('blur', () => {
+          // normalize trailing dot
+          if (bidEl.value.endsWith('.')) bidEl.value = bidEl.value.slice(0,-1);
+          saveHighBid();
+        });
+      }
+
+      const teamEl = document.getElementById('bidTeamInput');
+      if (teamEl){
+        teamEl.addEventListener('input', saveHighBid);
+        teamEl.addEventListener('blur', saveHighBid);
+      }
+loadTickerText();
+
+      // Render
+      renderTeams();
+      // Keep reserved slot visible (panel opacity toggles only)
+      document.getElementById('soldPanelSlot').style.display = 'block';
+    });
+  </script>
+
+
+<!-- OBS-friendly ticker editor modal (click Edit Ticker, then use OBS Interact to type) -->
+<div id="tickerModalBackdrop" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title">
+      <span>Edit Ticker Text</span>
+      <span style="opacity:.75;font-size:12px;">(Use OBS: right-click source → Interact)</span>
+    </div>
+
+    <textarea id="tickerModalInput" placeholder="Type ticker text here..."></textarea>
+
+    <div class="modal-actions">
+      <button class="pill-btn" onclick="closeTickerModal()">Cancel</button>
+      <button class="pill-btn" onclick="saveTickerModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- OBS-friendly Break # editor modal -->
+<div id="breakModalBackdrop" class="modal-backdrop">
+  <div class="modal">
+    <div class="modal-title">
+      <span>Edit Break Number</span>
+      <span style="opacity:.75;font-size:12px;">(Use OBS: right-click source → Interact)</span>
+    </div>
+
+    <textarea id="breakModalInput" placeholder="Type the break number (example: 12)"></textarea>
+
+    <div class="modal-actions">
+      <button class="pill-btn" onclick="closeBreakModal()">Cancel</button>
+      <button class="pill-btn" onclick="saveBreakModal()">Save</button>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>
