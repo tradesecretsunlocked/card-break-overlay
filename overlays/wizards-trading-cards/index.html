@@ -2005,27 +2005,28 @@ teamDiv.appendChild(label);
     ========================== */
     let sse = null;
 
-    const BRIDGE_URL = (() => {
-      const q = new URLSearchParams(location.search).get('bridge');
-      if (q) {
-        const cleaned = q.replace(/\/$/, '');
-        localStorage.setItem(LS.BRIDGE, cleaned);
-        return cleaned;
-      }
-      const saved = localStorage.getItem(LS.BRIDGE);
-      return saved ? saved.replace(/\/$/, '') : '';
-    })();
+    function getBridgeUrl() {
+  const q = new URLSearchParams(location.search).get("bridge");
+  if (q) {
+    const cleaned = q.replace(/\/$/, "");
+    localStorage.setItem(LS.BRIDGE, cleaned);
+    return cleaned;
+  }
+  const saved = localStorage.getItem(LS.BRIDGE);
+  return saved ? saved.replace(/\/$/, "") : "";
+}
 
-    const BRIDGE_KEY = (() => {
-      const q = new URLSearchParams(location.search).get('key');
-      if (q) {
-        localStorage.setItem(LS.KEY, q);
-        return q;
-      }
-      return localStorage.getItem(LS.KEY) || '';
-    })();
+function getBridgeKey() {
+  const q = new URLSearchParams(location.search).get("key");
+  if (q) {
+    localStorage.setItem(LS.KEY, q);
+    return q;
+  }
+  return localStorage.getItem(LS.KEY) || "";
+}
 
-    function automationEnabled(){ return !!BRIDGE_URL; }
+function automationEnabled(){ return !!getBridgeUrl(); }
+
 
     function normalizeBridge(u){
       return String(u||'')
@@ -2064,6 +2065,7 @@ teamDiv.appendChild(label);
             handleSSEEvent(data);
           }catch(_){}
         };
+console.log("[SSE in]", data);
 
         sse.onerror = () => {
           setSSEStatus('error','reconnecting');
@@ -2081,30 +2083,32 @@ teamDiv.appendChild(label);
         setSSEStatus('error','missing bridge');
         return;
       }
-      const base = normalizeBridge(BRIDGE_URL);
+      const base = normalizeBridge(getBridgeUrl());
       connectSSE(`${base}/stream`);
     }
 
-    async function warmupPing(){
-      if (!automationEnabled()) return;
-      const base = normalizeBridge(BRIDGE_URL);
+   async function warmupPing(){
+  if (!automationEnabled()) return;
+  const base = normalizeBridge(getBridgeUrl());
+  const key = getBridgeKey();
 
-      try{
-        await fetch(`${base}/events`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(BRIDGE_KEY ? { 'x-bridge-key': BRIDGE_KEY } : {})
-          },
-          body: JSON.stringify({
-            type: 'overlay_warmup',
-            overlay: 'wizards',
-            breakId: computeBreakId(),
-            ts: Date.now()
-          })
-        });
-      }catch(_){}
-    }
+  try{
+    await fetch(`${base}/events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(key ? { 'x-bridge-key': key } : {})
+      },
+      body: JSON.stringify({
+        type: 'overlay_warmup',
+        overlay: 'wizards',
+        breakId: computeBreakId(),
+        ts: Date.now()
+      })
+    });
+  }catch(_){}
+}
+
 
 function handleSSEEvent(data){
   const type = String(data?.type || '').toLowerCase();
@@ -2148,6 +2152,11 @@ function handleSSEEvent(data){
 
     let code = String(data?.code || '').trim().toUpperCase();
     if (!code) code = inferCodeFromTitle(data?.title, sport || currentBreakType);
+    if (!code) {
+  console.warn("[overlay] could not infer code from title:", data?.title, "sportHint:", sport || currentBreakType);
+  return;
+}
+
     if (!code) return;
 
     if (sport && breakTypes[sport] && sport !== currentBreakType){
