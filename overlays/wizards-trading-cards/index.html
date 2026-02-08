@@ -2106,85 +2106,85 @@ teamDiv.appendChild(label);
       }catch(_){}
     }
 
-    function handleSSEEvent(data){
-      const type = String(data?.type || '').toLowerCase();
-      if (type === 'hello' || type === 'scores') return;
+function handleSSEEvent(data){
+  const type = String(data?.type || '').toLowerCase();
 
-      if (type === 'reset'){
-        resetAll();
-        return;
-      }
+  // ignore only hello
+  if (type === 'hello') return;
 
-      if (type === 'set_break'){
-        const n = parseInt(data?.breakNumber, 10);
-        if (Number.isFinite(n) && n > 0) setBreakNumber(n);
-        return;
-      }
-if (type === 'team_sold'){
-  const sport = String(data?.sport || '').toLowerCase();
-  const buyer = String(data?.buyer || '').trim();
+  // ✅ handle scores properly
+  if (type === 'scores' && Array.isArray(data?.games)) {
+    SPORTS_LINES = data.games.map(g => {
+      if (typeof g === 'string') return g.trim();
+      const away = g?.away || g?.a || '';
+      const home = g?.home || g?.h || '';
+      const as = g?.awayScore ?? g?.as ?? '';
+      const hs = g?.homeScore ?? g?.hs ?? '';
+      const status = g?.status || g?.state || '';
+      return `${away} ${as} - ${home} ${hs} ${status}`.trim();
+    }).filter(Boolean);
 
-  // code can come from payload, otherwise infer from title
-  let code = String(data?.code || '').trim().toUpperCase();
-  if (!code) code = inferCodeFromTitle(data?.title, sport || currentBreakType);
-
-  if (type === 'scores' && Array.isArray(data?.games)){
-  // Expect games as array of strings or objects; normalize to strings for ticker
-  SPORTS_LINES = data.games.map(g => {
-    if (typeof g === 'string') return g.trim();
-    const away = g?.away || g?.a || '';
-    const home = g?.home || g?.h || '';
-    const as = g?.awayScore ?? g?.as ?? '';
-    const hs = g?.homeScore ?? g?.hs ?? '';
-    const status = g?.status || g?.state || '';
-    return `${away} ${as} - ${home} ${hs} ${status}`.trim();
-  }).filter(Boolean);
-
-  // if we’re currently showing sports, update immediately
-  if (tickerMode === 'sports'){
-    setTickerRawText(currentSportsTickerText());
-  }
-}
-
-  if (!code) return; // couldn’t match anything
-
-  // switch sport if event says so
-  if (sport && breakTypes[sport] && sport !== currentBreakType){
-    currentBreakType = sport;
-    loadSoldState();
-    renderTeams();
-  }
-
-  // mark sold + buyer
-  if (!soldTeams.has(code)){
-    soldTeams.add(code);
-    const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
-    if (el) el.classList.add('sold');
-    soldTeamsList.push({ code, buyer: buyer || '' });
-  } else if (buyer) {
-    const idx = soldTeamsList.findIndex(e => e.code === code);
-    if (idx !== -1) soldTeamsList[idx].buyer = buyer;
-  }
-
-  updateStats();
-  renderSoldPanel();
-  saveSoldState();
-  return;
-}
-
-      if (type === 'buyer'){
-        const code = String(data?.code || '').trim();
-        const buyer = String(data?.buyer || '').trim();
-        if (!code) return;
-
-        const idx = soldTeamsList.findIndex(e => e.code === code);
-        if (idx !== -1){
-          soldTeamsList[idx].buyer = buyer;
-          renderSoldPanel();
-          saveSoldState();
-        }
-      }
+    // update immediately if currently showing sports ticker
+    if (tickerMode === 'sports') {
+      setTickerRawText(currentSportsTickerText());
     }
+    return;
+  }
+
+  if (type === 'reset'){
+    resetAll();
+    return;
+  }
+
+  if (type === 'set_break'){
+    const n = parseInt(data?.breakNumber, 10);
+    if (Number.isFinite(n) && n > 0) setBreakNumber(n);
+    return;
+  }
+
+  if (type === 'team_sold'){
+    const sport = String(data?.sport || '').toLowerCase();
+    const buyer = String(data?.buyer || '').trim();
+
+    let code = String(data?.code || '').trim().toUpperCase();
+    if (!code) code = inferCodeFromTitle(data?.title, sport || currentBreakType);
+    if (!code) return;
+
+    if (sport && breakTypes[sport] && sport !== currentBreakType){
+      currentBreakType = sport;
+      loadSoldState();
+      renderTeams();
+    }
+
+    if (!soldTeams.has(code)){
+      soldTeams.add(code);
+      const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+      if (el) el.classList.add('sold');
+      soldTeamsList.push({ code, buyer: buyer || '' });
+    } else if (buyer) {
+      const idx = soldTeamsList.findIndex(e => e.code === code);
+      if (idx !== -1) soldTeamsList[idx].buyer = buyer;
+    }
+
+    updateStats();
+    renderSoldPanel();
+    saveSoldState();
+    return;
+  }
+
+  if (type === 'buyer'){
+    const code = String(data?.code || '').trim();
+    const buyer = String(data?.buyer || '').trim();
+    if (!code) return;
+
+    const idx = soldTeamsList.findIndex(e => e.code === code);
+    if (idx !== -1){
+      soldTeamsList[idx].buyer = buyer;
+      renderSoldPanel();
+      saveSoldState();
+    }
+  }
+}
 
     /* =========================
        Helpers
