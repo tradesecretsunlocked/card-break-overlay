@@ -71,8 +71,8 @@ async function getConfig() {
     chrome.storage.sync.get(DEFAULTS, (cfg) => {
       // Console/onboarding overrides (page localStorage)
       // In DevTools console on whatnot.com you can run:
-      // localStorage.setItem("tsu.bridgeUrl", "https://tsu-bridge-hvault.onrender.com");
-      // localStorage.setItem("tsu.bridgeKey", "YOUR_KEY_HERE");
+      // localStorage.setItem("tsu.bridgeUrl", "https://tsu-bridge-wcb.onrender.com");
+      // localStorage.setItem("tsu.bridgeKey", "532fd76b0adda10c094e07f531fea15d");
 
       let bridgeUrl = cleanUrl(cfg.bridgeUrl);
       let bridgeKey = String(cfg.bridgeKey || "").trim();
