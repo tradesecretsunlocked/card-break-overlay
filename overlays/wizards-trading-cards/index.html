@@ -2047,36 +2047,49 @@ function automationEnabled(){ return !!getBridgeUrl(); }
       text.textContent = msg || state || 'disconnected';
     }
 
-    function connectSSE(url){
-      if (sse) { try { sse.close(); } catch(_){} }
-      setSSEStatus('error','connecting');
+function connectSSE(url){
+  if (sse) { try { sse.close(); } catch(_){} }
+  setSSEStatus('error','connecting');
 
+  try{
+    sse = new EventSource(url);
+
+    const ingest = (e) => {
       try{
-        sse = new EventSource(url);
-
-        sse.onopen = () => {
-          setSSEStatus('connected','connected');
-          warmupPing();
-        };
-
-        sse.onmessage = (e) => {
-          try{
-            const data = JSON.parse(e.data);
-            handleSSEEvent(data);
-          }catch(_){}
-        };
-console.log("[SSE in]", data);
-
-        sse.onerror = () => {
-          setSSEStatus('error','reconnecting');
-          try { sse.close(); } catch(_) {}
-          sse = null;
-          setTimeout(() => connectSSE(url), 2500);
-        };
-      }catch(_){
-        setSSEStatus('error','failed');
+        const data = JSON.parse(e.data);
+        console.log("[SSE in]", data);
+        handleSSEEvent(data);
+      }catch(err){
+        console.warn("[SSE parse error]", err, e.data);
       }
-    }
+    };
+
+    sse.onopen = () => {
+      setSSEStatus('connected','connected');
+      warmupPing();
+    };
+
+    // Default SSE messages (no "event:" field)
+    sse.onmessage = ingest;
+
+    // Named SSE events (server sends: event: team_sold)
+    sse.addEventListener('team_sold', ingest);
+    sse.addEventListener('stream_stats', ingest);
+    sse.addEventListener('scores', ingest);
+    sse.addEventListener('reset', ingest);
+    sse.addEventListener('set_break', ingest);
+
+    sse.onerror = () => {
+      setSSEStatus('error','reconnecting');
+      try { sse.close(); } catch(_) {}
+      sse = null;
+      setTimeout(() => connectSSE(url), 2500);
+    };
+  }catch(_){
+    setSSEStatus('error','failed');
+  }
+}
+
 
     function startSSE(){
       if (!automationEnabled()){
@@ -2146,40 +2159,55 @@ function handleSSEEvent(data){
     return;
   }
 
-  if (type === 'team_sold'){
-    const sport = String(data?.sport || '').toLowerCase();
-    const buyer = String(data?.buyer || '').trim();
+if (type === 'team_sold'){
+  const sport = String(data?.sport || '').toLowerCase();
+  const buyer = String(data?.buyer || '').trim();
 
-    let code = String(data?.code || '').trim().toUpperCase();
-    if (!code) code = inferCodeFromTitle(data?.title, sport || currentBreakType);
-    if (!code) {
-  console.warn("[overlay] could not infer code from title:", data?.title, "sportHint:", sport || currentBreakType);
+  // Always normalize the incoming title
+  const incomingTitleRaw = String(data?.title || '');
+  const incomingTitle = stripPrefixTitle(incomingTitleRaw);
+
+  // If event tells us sport, switch (optional — keeps automations consistent)
+  if (sport && breakTypes[sport] && sport !== currentBreakType){
+    currentBreakType = sport;
+    loadSoldState();
+    renderTeams();
+  }
+
+  let code = String(data?.code || '').trim().toUpperCase();
+
+  // ✅ NIL: ignore code entirely and match by title text
+  if ((sport || currentBreakType) === 'nil'){
+    code = inferCodeFromTitle(incomingTitle, 'nil');
+    if (!code){
+      console.warn("[overlay NIL] could not match title:", incomingTitleRaw, "=>", incomingTitle);
+      return;
+    }
+  } else {
+    // ✅ Non-NIL: normal path (use code if present, otherwise infer)
+    if (!code) code = inferCodeFromTitle(incomingTitleRaw, sport || currentBreakType);
+    if (!code){
+      console.warn("[overlay] could not infer code from title:", incomingTitleRaw, "sportHint:", sport || currentBreakType);
+      return;
+    }
+  }
+
+  if (!soldTeams.has(code)){
+    soldTeams.add(code);
+    const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+    if (el) el.classList.add('sold');
+    soldTeamsList.push({ code, buyer: buyer || '' });
+  } else if (buyer) {
+    const idx = soldTeamsList.findIndex(e => e.code === code);
+    if (idx !== -1) soldTeamsList[idx].buyer = buyer;
+  }
+
+  updateStats();
+  renderSoldPanel();
+  saveSoldState();
   return;
 }
 
-    if (!code) return;
-
-    if (sport && breakTypes[sport] && sport !== currentBreakType){
-      currentBreakType = sport;
-      loadSoldState();
-      renderTeams();
-    }
-
-    if (!soldTeams.has(code)){
-      soldTeams.add(code);
-      const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
-      if (el) el.classList.add('sold');
-      soldTeamsList.push({ code, buyer: buyer || '' });
-    } else if (buyer) {
-      const idx = soldTeamsList.findIndex(e => e.code === code);
-      if (idx !== -1) soldTeamsList[idx].buyer = buyer;
-    }
-
-    updateStats();
-    renderSoldPanel();
-    saveSoldState();
-    return;
-  }
 
   if (type === 'buyer'){
     const code = String(data?.code || '').trim();
@@ -2198,6 +2226,17 @@ function handleSSEEvent(data){
     /* =========================
        Helpers
     ========================== */
+
+function stripPrefixTitle(title){
+  const raw = String(title || '').trim();
+  if (!raw) return '';
+
+  // Whatnot titles often look like: "STREAM NAME - ITEM TITLE"
+  // Take the last " - " segment as the actual item title
+  const parts = raw.split(' - ').map(s => s.trim()).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : raw;
+}
+
 
 function norm(s){
   return String(s || '')
