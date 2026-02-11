@@ -12,21 +12,39 @@ app.use(express.json({ limit: "256kb" }));
 const PORT = process.env.PORT || 3000;
 const BRIDGE_KEY = (process.env.BRIDGE_KEY || "").trim();
 
-// Track SSE clients
-const clients = new Set();
 
-function broadcast(payload) {
+// Track SSE clients by channel
+const channels = new Map(); // channel -> Set<res>
+
+function getChannelSet(name) {
+  const ch = (name || "main").toLowerCase();
+  if (!channels.has(ch)) channels.set(ch, new Set());
+  return channels.get(ch);
+}
+
+
+function broadcast(payload, channel = "main") {
   const msg = `data: ${JSON.stringify(payload)}\n\n`;
-  console.log("[TSU Bridge] broadcast -> clients:", clients.size, "payload.type:", payload?.type);
+  const set = getChannelSet(channel);
 
-  for (const res of clients) {
+  console.log(
+    "[TSU Bridge] broadcast -> channel:",
+    channel,
+    "clients:",
+    set.size,
+    "payload.type:",
+    payload?.type
+  );
+
+  for (const res of set) {
     try {
       res.write(msg);
     } catch (_) {
-      clients.delete(res);
+      set.delete(res);
     }
   }
 }
+
 
 
 // ===== ESPN NBA scoreboard (adds LIVE SCORES to same SSE stream) =====
@@ -81,13 +99,14 @@ async function fetchNBAScores() {
 async function tickScores() {
   try {
     const games = await fetchNBAScores();
-    broadcast({ type: "scores", games, ts: Date.now() });
+    broadcast({ type: "scores", games, ts: Date.now() }, "sports");
+
   } catch (_) {
     broadcast({
       type: "scores",
       games: [{ away: "—", awayScore: 0, home: "—", homeScore: 0, status: "No feed" }],
-      ts: Date.now(),
-    });
+      ts: Date.now() ,
+    }, "sports");
   }
 }
 
@@ -110,32 +129,34 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 
 // SSE stream (primary)
 function sseHandler(req, res) {
+  const channel = String(req.query.channel || "main").toLowerCase();
+  const set = getChannelSet(channel);
+
   res.status(200);
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
-  // Some proxies behave better with this:
   res.setHeader("X-Accel-Buffering", "no");
 
-  res.write(`data: ${JSON.stringify({ type: "hello", ts: Date.now() })}\n\n`);
+  res.write(`data: ${JSON.stringify({ type: "hello", channel, ts: Date.now() })}\n\n`);
 
-  clients.add(res);
+  set.add(res);
 
-  // Keep-alive ping so Render/proxies don’t silently drop it
   const ping = setInterval(() => {
     try {
       res.write(`: ping ${Date.now()}\n\n`);
     } catch (_) {
       clearInterval(ping);
-      clients.delete(res);
+      set.delete(res);
     }
   }, 25000);
 
   req.on("close", () => {
     clearInterval(ping);
-    clients.delete(res);
+    set.delete(res);
   });
 }
+
 
 app.get("/events", sseHandler);
 // Alias so your overlay can keep using /stream if you want
@@ -146,19 +167,20 @@ function postEvent(req, res) {
   if (!requireKey(req, res)) return;
 
   const body = req.body || {};
-  // Normalize payload a bit
- 
-    const payload = {
+  const payload = {
     ...body,
     ts: typeof body.ts === "number" ? body.ts : Date.now(),
   };
 
-  console.log("[TSU Bridge] event in:", payload);
+  const channel =
+    String(body.channel || req.header("x-channel") || "main").toLowerCase();
 
+  console.log("[TSU Bridge] event in:", payload, "channel:", channel);
 
-  broadcast(payload);
+  broadcast(payload, channel);
   res.json({ ok: true });
 }
+
 
 app.post("/events", postEvent);
 // Alias so older extensions that post to /event still work
@@ -167,7 +189,7 @@ app.post("/event", postEvent);
 // Convenience reset route (optional)
 app.post("/reset", (req, res) => {
   if (!requireKey(req, res)) return;
-  broadcast({ type: "reset", ts: Date.now() });
+  for (const ch of channels.keys()) broadcast({ type: "reset", ts: Date.now() }, ch);
   res.json({ ok: true });
 });
 

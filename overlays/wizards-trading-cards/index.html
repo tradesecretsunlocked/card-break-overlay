@@ -2025,6 +2025,9 @@ function getBridgeKey() {
   return localStorage.getItem(LS.KEY) || "";
 }
 
+function getChannel(){
+  return new URLSearchParams(location.search).get("channel") || "main";
+}
 function automationEnabled(){ return !!getBridgeUrl(); }
 
 
@@ -2091,16 +2094,19 @@ function connectSSE(url){
 }
 
 
-    function startSSE(){
-      if (!automationEnabled()){
-        setSSEStatus('error','missing bridge');
-        return;
-      }
-      const base = normalizeBridge(getBridgeUrl());
-      connectSSE(`${base}/stream`);
-    }
+function startSSE(){
+  if (!automationEnabled()){
+    setSSEStatus('error','missing bridge');
+    return;
+  }
+  const base = normalizeBridge(getBridgeUrl());
+  const channel = getChannel();
+  connectSSE(`${base}/stream?channel=${encodeURIComponent(channel)}`);
+}
 
-   async function warmupPing(){
+
+
+    async function warmupPing(){
   if (!automationEnabled()) return;
   const base = normalizeBridge(getBridgeUrl());
   const key = getBridgeKey();
