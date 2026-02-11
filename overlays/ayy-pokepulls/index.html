@@ -1730,29 +1730,6 @@
       
 
 
-        <h3>Spots (Card Name / Rarity)</h3>
-        <div class="row" style="align-items:flex-start;">
-          <label>Items</label>
-          <textarea id="spotsInput" spellcheck="false"
-            placeholder="One per line: id|label
-  ex:
-  s1|Hilda (MB, SR, SAR)
-  s2|Larvesta (AR)
-  s3|Volcarona (AR)"></textarea>
-        </div>
-
-
-
-
-        <h3>Main Card Slides</h3>
-        <div class="row" style="align-items:flex-start;">
-          <label>Items</label>
-          <textarea id="cardsInput" spellcheck="false"
-            placeholder="One per line: id|label|imagePath|spotId(optional)
-  ex:
-  c1|Hilda (MB, SR, SAR)|images/cards/hilda.png|s1
-  c2|Larvesta (AR)|images/cards/larvesta.png|s2"></textarea>
-        </div>
 
         <div class="row">
           <label>Autoplay (sec)</label>
@@ -1763,6 +1740,11 @@
     <label>Mouse Tilt</label>
     <input id="tiltToggle" type="checkbox" />
   </div>
+
+  <div class="row">
+  <label>Show Card</label>
+  <input id="showMainCardToggle" type="checkbox" />
+</div>
 
 
       <button class="btn" id="applyBtn" type="button">APPLY + SAVE</button>
@@ -1990,7 +1972,8 @@ const ADMIN_KEY = `ayy.overlay.adminOpen.${SET}`;
     brand1: "HIGHER BIDS = MORE PACKS 🔥",
     brand2: "FAST SHIPPING • CLEAN HITS • GOOD LUCK",
     ticker: "WELCOME IN • DROP A FOLLOW • LET’S RIP",
-    mouseTilt: true,
+    mouseTilt: false,
+    showMainCard: true,
 
     autoplaySec: 0,
       currencySymbol: "£",
@@ -2054,6 +2037,7 @@ const ADMIN_KEY = `ayy.overlay.adminOpen.${SET}`;
   const clientLogoImg = $("clientLogoImg");
   const breakNoEl = $("breakNo");
   const avgBidEl = $("avgBid");
+const showMainCardToggle = $("showMainCardToggle");
 
 
   const hdrSmallEl = $("hdrSmall");
@@ -2083,8 +2067,7 @@ const ADMIN_KEY = `ayy.overlay.adminOpen.${SET}`;
   const brand2Input = $("brand2Input");
   const tickerInput = $("tickerInput");
 
-  const spotsInput = $("spotsInput");
-  const cardsInput = $("cardsInput");
+
   const autoInput = $("autoInput");
   const tiltToggle = $("tiltToggle");
   const applyBtn = $("applyBtn");
@@ -2128,6 +2111,13 @@ const ADMIN_KEY = `ayy.overlay.adminOpen.${SET}`;
     }
     return items;
   }
+function applyMainCardVisibility(){
+  const show = !!state.showMainCard;
+  const mainPanel = document.querySelector(".panel.main");
+  if (mainPanel) mainPanel.style.display = show ? "" : "none";
+}
+
+
 
 
   function textareaFromSpots(items){
@@ -2222,6 +2212,10 @@ function buildPokemonMarquee(){
     const idx = cards.findIndex(c => c.id === state.activeCardId);
     const current = idx >= 0 ? cards[idx] : null;
 
+  if (!state.showMainCard){
+    return; // don’t attach onclick / don’t churn image loads
+  }
+
     if (!current){
       cardStage.classList.remove("sold");
       cardImg.removeAttribute("src");
@@ -2280,6 +2274,8 @@ function renderAdminFields(){
     return;
   }
 
+  if (showMainCardToggle) showMainCardToggle.checked = !!state.showMainCard;
+
   breakInput.value = String(state.breakNo || 1);
   if (tiltToggle) tiltToggle.checked = !!state.mouseTilt;
 
@@ -2289,8 +2285,7 @@ function renderAdminFields(){
   brand2Input.value = state.brand2 || "";
   tickerInput.value = state.ticker || "";
   
-    spotsInput.value = textareaFromSpots(state.spots || []);
-    cardsInput.value = textareaFromCards(state.cards || []);
+
     autoInput.value = String(state.autoplaySec || 0);
   }
 
@@ -2299,6 +2294,7 @@ function renderAdminFields(){
     renderBrand();
     renderTicker();
     buildPokemonMarquee();
+    applyMainCardVisibility(); 
     renderMainCard();
     renderAdminFields();
   }
@@ -2351,33 +2347,13 @@ function renderAdminFields(){
     state.ticker = (tickerInput.value || "").trim();
     state.autoplaySec = Math.max(0, parseInt(autoInput.value || "0", 10) || 0);
   state.mouseTilt = !!(tiltToggle && tiltToggle.checked);
+state.showMainCard = !!(showMainCardToggle && showMainCardToggle.checked);
 
     // preserve sold states when reloading lists by id
     const prevSpots = new Map((state.spots||[]).map(x => [x.id, x]));
     const prevCards = new Map((state.cards||[]).map(x => [x.id, x]));
 
-    // Parse next lists (admin-controlled)
-    const rawSpots = (spotsInput.value || "").trim();
-    const rawCards = (cardsInput.value || "").trim();
 
-    const nextSpots = parseSpots(rawSpots);
-    const nextCards = parseCards(rawCards);
-
-    // Spots
-    if (rawSpots && nextSpots.length === 0){
-      console.error("Spots list invalid. Expected: id|label per line");
-    } else if (nextSpots.length){
-      for (const s of nextSpots) if (prevSpots.has(s.id)) s.sold = !!prevSpots.get(s.id).sold;
-      state.spots = nextSpots;
-    }
-
-    // Cards
-    if (rawCards && nextCards.length === 0){
-      console.error("Cards list invalid. Expected: id|label|imagePath|spotId(optional) per line");
-    } else if (nextCards.length){
-      for (const c of nextCards) if (prevCards.has(c.id)) c.sold = !!prevCards.get(c.id).sold;
-      state.cards = nextCards;
-    }
 
     // fix active ids if they no longer exist
     if (!(state.spots||[]).some(s => s.id === state.activeSpotId)){
@@ -2740,10 +2716,14 @@ function toggleAdmin(){
         if (typeof data.line2 === "string") state.brand2 = data.line2;
         break;
       }
-      case "set_ticker":{
-        if (typeof data.text === "string") state.ticker = data.text;
-        break;
-      }
+     case "set_ticker": {
+  if (typeof data.text === "string") {
+    const t = data.text.trim();
+    if (t.length) state.ticker = t; // ignore empty updates
+  }
+  break;
+}
+
       case "set_autoplay":{
         const sec = parseInt(String(data.sec||"0"), 10) || 0;
         state.autoplaySec = Math.max(0, sec);
