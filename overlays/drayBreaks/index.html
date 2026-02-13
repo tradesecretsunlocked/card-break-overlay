@@ -517,24 +517,28 @@
       outline:none;
     }
 
+
+.promo-img{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display:block;
+}
+
+
     /* ===== PROMO OVERLAY GRAPHIC ===== */
     .promo-overlay{
       position:absolute;
-      right: 10px;
-      top: 58px; /* below header */
-      width: 330px;
+      right: 355px;
+      top: -30px; /* below header */
+      width: 210px;
       border-radius: 16px;
       padding: 12px 12px;
-      border: 2px solid rgba(255,255,255,0.18);
-      background:
-        radial-gradient(800px 280px at 20% 20%, rgba(58,160,216,0.35), transparent 55%),
-        linear-gradient(135deg, rgba(8,18,40,0.92), rgba(0,0,0,0.65));
-      box-shadow:
-        0 18px 40px rgba(0,0,0,0.55),
-        0 0 0 1px rgba(58,160,216,0.18);
+     
       display:none;
       pointer-events:none;
       overflow:hidden;
+       z-index: 9999;   
     }
 
     .promo-overlay.active{ display:block; }
@@ -543,9 +547,7 @@
       content:"";
       position:absolute;
       inset:-40px;
-      background:
-        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), transparent 60%),
-        radial-gradient(circle at 85% 40%, rgba(58,160,216,0.12), transparent 60%);
+      
       filter: blur(10px);
       opacity: 0.9;
       pointer-events:none;
@@ -712,14 +714,10 @@
 <body>
   <div class="container">
     <!-- promo sticker overlay -->
-    <div id="promoOverlay" class="promo-overlay">
-      <div class="promo-inner">
-        <div class="promo-kicker">🔥 PROMO ACTIVE</div>
-        <div id="promoTitle" class="promo-title">—</div>
-        <div id="promoPrice" class="promo-price">$—</div>
-        <div class="promo-sub">Use SOLD panel buttons to switch</div>
-      </div>
-    </div>
+<div id="promoOverlay" class="promo-overlay">
+  <img id="promoImg" class="promo-img" alt="" />
+</div>
+
 
     <div class="header" id="header">
       <div class="header-left">
@@ -895,41 +893,34 @@
     renderPromoOverlay();
   }
 
-  function renderPromoOverlay(){
-    const mode = loadActivePromo();
-    const prices = readPriceInputs();
-    const overlay = document.getElementById("promoOverlay");
-    const titleEl = document.getElementById("promoTitle");
-    const priceEl = document.getElementById("promoPrice");
-    if (!overlay || !titleEl || !priceEl) return;
+  const PROMO_IMAGES = {
+  stash: "./stash-or-pass.png",
+  see2:  "./see2-pick1.png",
+  see3:  "./see3-pick1.png"
+};
 
-    if (mode === "off"){
-      overlay.classList.remove("active");
-      return;
-    }
+function renderPromoOverlay(){
+  const mode = loadActivePromo();
+  const overlay = document.getElementById("promoOverlay");
+  const imgEl = document.getElementById("promoImg");
+  if (!overlay || !imgEl) return;
 
-    overlay.classList.add("active");
-
-    if (mode === "stash"){
-      titleEl.textContent = "STASH OR PASS";
-      priceEl.textContent = `$${formatMoney(prices.stash)}`;
-      return;
-    }
-
-    if (mode === "see2"){
-      titleEl.textContent = "SEE 2 PICK 1";
-      priceEl.textContent = `$${formatMoney(prices.see2)}`;
-      return;
-    }
-
-    if (mode === "see3"){
-      titleEl.textContent = "SEE 3 PICK 1";
-      priceEl.textContent = `$${formatMoney(prices.see3)}`;
-      return;
-    }
-
+  if (mode === "off"){
     overlay.classList.remove("active");
+    imgEl.removeAttribute("src");
+    return;
   }
+
+  const src = PROMO_IMAGES[mode];
+  if (!src){
+    overlay.classList.remove("active");
+    imgEl.removeAttribute("src");
+    return;
+  }
+
+  imgEl.src = src;
+  overlay.classList.add("active");
+}
 
   // =========================
   // Header custom text + Break #
@@ -1631,13 +1622,21 @@ document.addEventListener("DOMContentLoaded", () => {
       for (let i=0;i<10;i++) r3.appendChild(makeTeamDiv(teams[idx], idx++));
       wrap.appendChild(r3);
 
-      const r4 = document.createElement("div");
-      r4.className = "row-grid";
-      r4.appendChild(makeTeamDiv(teams[idx], idx++));
-      r4.appendChild(makeTeamDiv(teams[idx], idx++));
-      r4.appendChild(makeTeamDiv(teams[idx], idx++));
-      r4.appendChild(makeTeamDiv(teams[idx], idx++));
-      wrap.appendChild(r4);
+const r4 = document.createElement("div");
+r4.className = "row-grid";
+
+// center 4 tiles in a 10-col grid: start at column 4 (fills cols 4-7)
+const spacer = document.createElement("div");
+spacer.style.gridColumn = "1 / span 3"; // empty cols 1-3
+r4.appendChild(spacer);
+
+r4.appendChild(makeTeamDiv(teams[idx], idx++));
+r4.appendChild(makeTeamDiv(teams[idx], idx++));
+r4.appendChild(makeTeamDiv(teams[idx], idx++));
+r4.appendChild(makeTeamDiv(teams[idx], idx++));
+
+wrap.appendChild(r4);
+
     }
 
     setHeader();
