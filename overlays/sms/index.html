@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, initial-scale=1.0" />
+  <title>Score More Sports – Multi-Sport Break Overlay</title>
+
+  <style>
+    :root{
+      /* =========================
+         SMS (Score More Sports) — black/orange/white
+      ========================== */
+      --bg0:#050505;
+      --bg1:#0b0b0b;
+
+      --orange:#f28c18;
+      --orange2:#ffb14a;
+      --white:#ffffff;
+
+      --panel: rgba(10,10,10,0.92);
+      --stroke: rgba(242,140,24,0.55);
+      --stroke2: rgba(255,177,74,0.35);
+
+        --whiteStroke: rgba(255,255,255,0.18);
+  --whiteStroke2: rgba(255,255,255,0.10);
+
+
+      --W:1080px;
+      --radius:16px;
+      --tileR:14px;
+
+      --camH: 300px;
+      --bannerH: 85px;
+
+      /* layout tuning */
+      --sideW: 255px;
+      --gap: 10px;
+
+      /* bottom grid per sport (JS updates) */
+      --bottomCols: 5;
+      --tileH: 66px;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      background:transparent;
+      font-family: Arial, sans-serif;
+      color: var(--white);
+      user-select:none;
+    }
+
+    /* =========================
+       OUTER OVERLAY (fixed size)
+    ========================== */
+    .overlay{
+      width: var(--W);
+      background:
+        radial-gradient(circle at 35% 0%, #151515 0%, #0b0b0b 45%, #050505 100%);
+      border-radius: var(--radius);
+      border: 2px solid rgba(255,255,255,0.08);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.85),
+        0 16px 40px rgba(0,0,0,0.75),
+        0 0 30px rgba(242,140,24,0.18);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ambient glow */
+    .overlay::before{
+      content:"";
+      position:absolute; inset:-40px;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255,177,74,0.08), transparent 55%),
+        radial-gradient(circle at 85% 35%, rgba(242,140,24,0.08), transparent 60%),
+        radial-gradient(circle at 35% 85%, rgba(255,255,255,0.05), transparent 55%);
+      filter: blur(10px);
+      opacity: .90;
+      pointer-events:none;
+    }
+
+    /* =========================
+       HEADER
+    ========================== */
+.header{
+  position: relative;
+  height: 78px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.70), rgba(0,0,0,0.25));
+  border: 1px solid rgba(255,255,255,0.14);
+  display:flex;
+  align-items:center;
+  padding: 10px 14px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    inset 0 -1px 0 rgba(0,0,0,0.45);
+  overflow: visible;      /* <-- was visible */
+  isolation: isolate;    /* <-- keeps pseudo layers behind */
+  z-index: 5;
+}
+
+/* faint skyline layer (behind content) */
+.header::after{
+  content:"";
+  position:absolute;
+  inset:0;
+background-position: 50% 85%; /* center, bottom */
+background-size: 140% auto; /* try 140–220% */
+  background-image: var(--skyline);
+  background-repeat: no-repeat;
+  background-position:50% 85%;
+  background-size: 94% 380%;
+
+  opacity: 0.24;          /* "barely visible" */
+  filter: blur(1.2px);
+  pointer-events:none;
+  z-index: 1;
+}
+
+/* optional soft glow like the example overlay */
+.header::before{
+  content:"";
+  position:absolute;
+  inset:-30%;
+  background:
+    radial-gradient(circle at 50% 120%, rgba(255,177,74,0.14), transparent 60%);
+  opacity: .40;
+  pointer-events:none;
+  z-index: 0;
+}
+
+/* ensure header content stays above skyline */
+.header > *{
+  position: relative;
+  z-index: 2;
+}
+
+    .brand-left{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 260px;
+    }
+
+    .brand-left .title{
+      font-weight: 900;
+      letter-spacing: 2px;
+      font-size: 28px;
+      text-transform: uppercase;
+      color: #fff;
+      text-shadow: 0 2px 0 rgba(0,0,0,0.85);
+      opacity: 0.94;
+    }
+
+    .brand-center{
+      position:absolute;
+      left:50%;
+      top: 70%;
+      transform: translate(-50%,-50%);
+      pointer-events:none;
+      z-index: 5;
+    }
+    .brand-center img{
+      height: 140px;
+      width:auto;
+      filter:
+        drop-shadow(0 10px 18px rgba(0,0,0,0.65))
+        drop-shadow(0 0 10px rgba(242,140,24,0.55));
+    }
+
+    .header-right{
+      margin-left:auto;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+    }
+
+    .break-pill{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: inset 0 0 0 1px rgba(242,140,24,0.12);
+    }
+    .break-pill .label{
+      font-size: 24px;
+      letter-spacing: 1px;
+      opacity: .90;
+      text-transform: uppercase;
+    }
+    .break-pill .value{
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: var(--orange2);
+      text-shadow: 0 2px 0 rgba(0,0,0,0.8);
+      min-width: 36px;
+      text-align:right;
+    }
+
+    /* =========================
+       MAIN GRID (fixed columns)
+    ========================== */
+    .main{
+      margin-top: 10px;
+      display:grid;
+      grid-template-columns: var(--sideW) 1fr var(--sideW);
+      gap: var(--gap);
+      z-index: 2;
+      position: relative;
+    }
+
+    /* ===== Border Wick Sweep (reusable) ===== */
+    .wick{
+      position: relative;
+      border-radius: 14px;
+    }
+    .wick::after{
+      content:"";
+      position:absolute; inset:4px;
+      border-radius: inherit;
+      pointer-events:none;
+      z-index: 0;
+
+      background:
+        linear-gradient(130deg,
+          transparent 0%,
+          rgba(255,177,74,0) 35%,
+          rgba(255, 255, 255, 0.85) 50%,
+          rgba(242,140,24,0.45) 56%,
+          rgba(255,177,74,0) 70%,
+          transparent 100%);
+      background-size: 300% 300%;
+      animation: wickRun 5.5s linear infinite;
+
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      padding: 2px;
+
+      filter: blur(7px);
+      opacity: 0.90;
+      mix-blend-mode: screen;
+    }
+    @keyframes wickRun{
+      0%   { background-position:   0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+
+    /* Team boards */
+    .board{
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      padding: 4px;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(242,140,24,0.12);
+    }
+    .board > *{ position: relative; z-index: 2; }
+
+    .colgrid{
+      display:grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px;
+    }
+
+    /* Center stack */
+    .center{
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: stretch;
+      justify-content: space-evenly;
+    }
+
+    .cam{
+      height: var(--camH);
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(0,0,0,0.25));
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow:
+        inset 0 0 0 2px rgba(0,0,0,0.35),
+        0 0 0 1px rgba(242,140,24,0.16);
+      position: relative;
+      overflow: hidden;
+    }
+    .cam::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), transparent 55%),
+        radial-gradient(circle at 70% 70%, rgba(242,140,24,0.10), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.20));
+      opacity: .9;
+      pointer-events:none;
+    }
+
+.board,
+.infoPanel,
+.cam,
+.banner,
+.sold-wrap{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    inset 0 0 0 1px rgba(242,140,24,0.10),
+    0 10px 22px rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.14); /* slightly stronger white edge */
+}
+
+
+
+    /* Bottom teams (NBA/MLB = 10, NFL = 12) */
+    .bottomGrid{
+      display:grid;
+      grid-template-columns: repeat(var(--bottomCols), 1fr);
+      gap: 6px;
+    }
+
+    /* Tiles */
+    .tile{
+      height: var(--tileH);
+      border-radius: var(--tileR);
+      background: rgba(10,10,10,0.78);
+  border: 2px solid rgba(255, 255, 255, 0.836);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.10),   /* NEW white highlight */
+    inset 0 0 0 1px rgba(0,0,0,0.55),
+    0 6px 14px rgba(0,0,0,0.45);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .tile img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: drop-shadow(0 6px 10px rgba(0,0,0,0.6));
+      z-index: 2;
+      position: relative;
+    }
+
+    .tile::before{
+      content:"";
+      position:absolute;
+      inset:-18px;
+      background: radial-gradient(circle at 20% 70%, rgba(242,140,24,0.28), transparent 55%);
+      filter: blur(14px);
+      opacity: 0.55;
+      animation: tileGlowDrift 4.5s ease-in-out infinite;
+      z-index: 1;
+      pointer-events:none;
+    }
+    @keyframes tileGlowDrift{
+      0%   { transform: translate(-4px, 2px) scale(0.98); opacity: 0.38; }
+      50%  { transform: translate(6px,-2px) scale(1.05); opacity: 0.62; }
+      100% { transform: translate(-4px, 2px) scale(0.98); opacity: 0.38; }
+    }
+
+    .tile.sold img{
+      filter: grayscale(1) brightness(0.45);
+      opacity: 0.95;
+    }
+    .tile.sold::after{
+      content:"✕";
+      position:absolute; inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 54px;
+      font-weight: 900;
+      color: rgba(255,177,74,0.95);
+      text-shadow:
+        0 0 10px rgba(242,140,24,0.60),
+        0 0 18px rgba(255,177,74,0.45),
+        0 8px 22px rgba(0,0,0,0.85);
+      z-index: 3;
+      pointer-events:none;
+    }
+    .tile.sold::before{
+      opacity: 0.12;
+      animation: none;
+    }
+
+    .sideStack{
+      display:flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .infoPanel{
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
+      padding: 10px 12px;
+      box-shadow: inset 0 0 0 1px rgba(242,140,24,0.12);
+      min-height: 108px;
+    }
+
+    .infoPanel > *{ position: relative; z-index: 2; }
+
+    .infoTitle{
+      font-weight: 900;
+      letter-spacing: 1px;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--orange2);
+      opacity: 0.95;
+      margin-bottom: 8px;
+    }
+
+    .infoBody{
+      display:flex;
+      flex-direction: column;
+      gap: 8px;
+      font-weight: 800;
+    }
+
+    .scoreRow{
+      display:flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      opacity: 0.95;
+    }
+    .muted{ opacity: 0.75; font-weight: 800; }
+
+    /* =========================
+       PROMO BANNER (rotating)
+    ========================== */
+    .banner{
+      margin-top: 10px;
+      height: var(--bannerH);
+      border-radius: 14px;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: inset 0 0 0 1px rgba(242,140,24,0.12);
+      overflow:hidden;
+      position: relative;
+      z-index: 2;
+    }
+
+    .banner-inner{
+      position:absolute;
+      inset:0;
+      opacity: 0;
+      transform: translateY(50px);
+      transition: opacity .85s ease, transform .85s ease;
+      border-radius: 14px;
+      overflow:hidden;
+    }
+
+    .banner-inner.active{
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .banner-inner .bg{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      opacity: 0.92;
+      filter: saturate(1.05) contrast(1.02);
+    }
+
+    .banner-content{
+      position: relative;
+      z-index: 2;
+      height:100%;
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      padding: 0 8px;
+      border:solid 1px rgba(255,177,74,0.55);
+      border-radius: inherit;
+    }
+
+    .banner-badge{
+      min-width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(255,177,74,0.30), rgba(242,140,24,0.10));
+      border: 1px solid rgba(255,255,255,0.12);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 900;
+      color: var(--orange2);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.35);
+      display:none;
+    }
+
+    .banner-text{
+      display:flex;
+      flex-direction:column;
+      gap: 2px;
+      line-height: 1.05;
+      text-shadow: 0 2px 0 rgba(0,0,0,0.85);
+    }
+
+    .banner-text .top{
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+    .banner-text .main{
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0.4px;
+    }
+
+    /* =========================
+       CONTROLS (bottom row)
+       UPDATED: add center High Bid stat
+    ========================== */
+    .controls{
+      margin-top: 10px;
+      display:grid;
+      grid-template-columns: 260px 1fr 1fr 1fr 260px;
+      gap: 10px;
+      z-index: 2;
+      position: relative;
+    }
+
+    .ctl{
+      height: 65px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.60), rgba(0,0,0,0.30));
+       border: 1px solid rgba(255, 255, 255, 0.815);
+        box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.10),
+    inset 0 0 0 1px rgba(242,140,24,0.10);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      position: relative;
+      overflow:hidden;
+      font-size:25px;
+      cursor: pointer;
+    }
+
+    .ctl:active{ transform: translateY(1px); }
+    .ctl.btn{ color: var(--orange2); }
+
+    .stat{
+      flex-direction: column;
+      gap: 2px;
+      cursor: default;
+    }
+    .stat .v{
+      font-size: 30px;
+      color: #fff;
+      text-shadow: 0 2px 0 rgba(0,0,0,0.85);
+    }
+    .stat .l{
+      font-size: 16px;
+      opacity: 0.85;
+    }
+
+    /* =========================
+       SOLD PANEL
+    ========================== */
+    .sold-wrap{
+      width: var(--W);
+      margin-top: 10px;
+      border-radius: 14px;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: inset 0 0 0 1px rgba(242,140,24,0.12);
+      padding: 10px;
+      display:none;
+    }
+    .sold-wrap.active{ display:block; }
+
+    .sold-top{
+      display:flex;
+      align-items:center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .pill{
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.14);
+      color:#fff;
+      font-weight: 900;
+      font-size: 12px;
+      letter-spacing: .7px;
+      text-transform: uppercase;
+      cursor:pointer;
+      white-space: nowrap;
+    }
+    .pill:hover{
+      border-color: rgba(255,177,74,0.45);
+      box-shadow: 0 0 0 2px rgba(242,140,24,0.15);
+    }
+
+    .sold-grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+    .sold-item{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.10);
+      border: 1px solid rgba(255,255,255,0.10);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.45);
+    }
+    .sold-item img{
+      height: 34px;
+      width:auto;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55));
+    }
+    .sold-item input{
+      width: 100%;
+      border: none;
+      outline: none;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      border-radius: 999px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    /* =========================
+       POPUPS
+    ========================== */
+    .popup{
+      position: fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,0.75);
+      z-index: 99999;
+    }
+    .popup.active{ display:flex; }
+    .popup-card{
+      width: 720px;
+      max-width: 92%;
+      background: linear-gradient(135deg, rgba(25,25,25,0.98), rgba(10,10,10,0.98));
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.85);
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+    .popup-card h2{
+      margin:0;
+      font-size: 16px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-align:center;
+      color: var(--orange2);
+    }
+    .popup-card textarea{
+      width:100%;
+      height:220px;
+      resize:none;
+      background:#000;
+      color:#00ff9c;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 13px;
+    }
+    .popup-btns{
+      display:flex;
+      gap: 10px;
+    }
+    .popup-btns button{
+      flex:1;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 900;
+      cursor:pointer;
+      background: rgba(242,140,24,0.95);
+      color:#000;
+    }
+    .popup-card input{
+      padding:12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:#000;
+      color:#fff;
+      font-size:16px;
+      font-weight:900;
+      outline:none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="overlay">
+
+    <div class="header">
+      <div class="brand-left">
+        <div class="title" id="headerTitle">SCORE MORE SPORTS • NBA</div>
+      </div>
+
+      <div class="brand-center">
+        <img id="brandLogo" alt="Score More Sports" />
+      </div>
+
+      <div class="header-right">
+        <div class="break-pill">
+          <span class="label">Break #</span>
+          <span id="breakId" class="value">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+
+      <!-- LEFT STACK -->
+      <div class="sideStack">
+        <div class="board wick" id="leftBoard">
+          <div class="colgrid" id="leftGrid"></div>
+        </div>
+
+        <div class="infoPanel wick" id="leftInfo">
+          <div class="infoTitle">LIVE SCORES</div>
+          <div class="infoBody" id="scoreboard">
+            <div class="scoreRow"><span class="muted">Waiting for feed…</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER (camera + bottom teams) -->
+      <div class="center">
+        <div class="cam wick" id="camFrame"></div>
+        <div class="bottomGrid" id="bottomGrid"></div>
+      </div>
+
+      <!-- RIGHT STACK -->
+      <div class="sideStack">
+        <div class="board wick" id="rightBoard">
+          <div class="colgrid" id="rightGrid"></div>
+        </div>
+
+        <div class="infoPanel wick" id="rightInfo">
+          <div class="infoTitle">STREAM STATS</div>
+          <div class="infoBody" id="breakInfo">
+            <div class="scoreRow"><span class="muted">Highest Bid:</span> <span id="highBidText">—</span></div>
+            <div class="scoreRow"><span class="muted">Top Buyer:</span> <span id="topBuyerText">—</span></div>
+            <div class="scoreRow"><span class="muted">Chasers Left:</span> <span id="chasersLeftText">0</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Rotating promo banner -->
+    <div class="banner wick" id="banner"></div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="ctl btn" id="resetBtn">Reset</div>
+
+      <div class="ctl stat">
+        <div class="v" id="leftCount">30</div>
+        <div class="l">Left</div>
+      </div>
+
+      <!-- NEW CENTER STAT -->
+      <div class="ctl stat">
+        <div class="v" id="highBidCtl">—</div>
+        <div class="l">Highest Bid</div>
+      </div>
+
+      <div class="ctl stat" id="soldToggle">
+        <div class="v" id="soldCount">0</div>
+        <div class="l">Sold</div>
+      </div>
+
+      <div class="ctl btn" id="nextBtn">Next</div>
+    </div>
+
+  </div>
+
+  <!-- Sold Panel -->
+  <div class="sold-wrap" id="soldWrap">
+    <div class="sold-top">
+      <div class="pill" id="setBreakBtn">Set Break #</div>
+      <div class="pill" id="setTitleBtn">Set Title</div>
+      <div class="pill" id="exportBtn">Export CSV</div>
+      <div class="pill" id="chasersBtn">Pick Chasers</div>
+      <div class="pill" id="sportBtn">Change Sport</div>
+    </div>
+    <div class="sold-grid" id="soldGrid"></div>
+  </div>
+
+  <!-- Export Popup -->
+  <div class="popup" id="exportPopup">
+    <div class="popup-card">
+      <h2>Buyer Assignments</h2>
+      <textarea id="exportBox"></textarea>
+      <div class="popup-btns">
+        <button id="copyBtn">Copy</button>
+        <button id="closeExport">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Set Break Popup -->
+  <div class="popup" id="breakPopup">
+    <div class="popup-card">
+      <h2>Set Break Number</h2>
+      <input id="breakInput" type="number" min="1"/>
+      <div class="popup-btns">
+        <button id="applyBreak">Apply</button>
+        <button id="closeBreak">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Set Title Popup -->
+  <div class="popup" id="titlePopup">
+    <div class="popup-card">
+      <h2>Set Header Title</h2>
+      <input id="titleInput" type="text" placeholder="SCORE MORE SPORTS • NBA"/>
+      <div class="popup-btns">
+        <button id="applyTitle">Apply</button>
+        <button id="closeTitle">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chasers Popup -->
+  <div class="popup" id="chasersPopup">
+    <div class="popup-card">
+      <h2>Select Chaser Teams</h2>
+      <div id="chasersGrid" style="
+        display:grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+        padding: 6px;
+      "></div>
+      <div class="popup-btns">
+        <button id="applyChasers">Apply</button>
+        <button id="closeChasers">Close</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  /* =========================
+     Paths (standard BASE)
+  ========================== */
+  const BASE = (() => {
+    const isGhPages = location.hostname.endsWith('github.io');
+    if (isGhPages) {
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repo = parts.length ? parts[0] : '';
+      return `/${repo}/`;
+    }
+    return '../../';
+  })();
+
+  // Brand logo (drop SMS logo here)
+  const LOGO_PATH = `${BASE}images/logos/sms-logo.png`;
+  document.getElementById('brandLogo').src = LOGO_PATH;
+
+document.documentElement.style.setProperty(
+  '--skyline',
+  `url('${BASE}images/logos/greensboro-skyline.png')`
+);
+
+
+  // Sport image helpers
+  const nbaImg = (f) => `${BASE}images/nba/${f}`;
+  const nflImg = (f) => `${BASE}images/nfl/${f}`;
+  const mlbImg = (f) => `${BASE}images/mlb/${f}`;
+  const bannerImg = (f) => `${BASE}images/ads/${f}`;
+
+  // === Bridge URL (NO KEY in URL) ===
+  // Provide via ?bridge=https://YOUR-RENDER-APP.onrender.com
+  // Falls back to localStorage value (set once)
+  const BRIDGE_URL = (() => {
+    const q = new URLSearchParams(location.search).get('bridge');
+    if (q) {
+      localStorage.setItem('tsu.bridge', q.replace(/\/$/, ''));
+      return q.replace(/\/$/, '');
+    }
+    const saved = localStorage.getItem('tsu.bridge');
+    return saved ? saved.replace(/\/$/, '') : "";
+  })();
+
+  /* =========================
+     Teams — filenames follow your standard folders
+  ========================== */
+
+  // NBA (30)
+  const NBA = [
+    {code:'ATL', name:'hawks',        image:nbaImg('hawks.png')},
+    {code:'BOS', name:'celtics',      image:nbaImg('celtics.png')},
+    {code:'BKN', name:'nets',         image:nbaImg('nets.png')},
+    {code:'CHA', name:'hornets',      image:nbaImg('hornets.png')},
+    {code:'CHI', name:'bulls',        image:nbaImg('bulls.png')},
+    {code:'CLE', name:'cavaliers',    image:nbaImg('cavaliers.png')},
+    {code:'DAL', name:'mavericks',    image:nbaImg('mavericks.png')},
+    {code:'DEN', name:'nuggets',      image:nbaImg('nuggets.png')},
+    {code:'DET', name:'pistons',      image:nbaImg('pistons.png')},
+    {code:'GSW', name:'warriors',     image:nbaImg('warriors.png')},
+    {code:'HOU', name:'rockets',      image:nbaImg('rockets.png')},
+    {code:'IND', name:'pacers',       image:nbaImg('pacers.png')},
+    {code:'LAC', name:'clippers',     image:nbaImg('clippers.png')},
+    {code:'LAL', name:'lakers',       image:nbaImg('lakers.png')},
+    {code:'MEM', name:'grizzlies',    image:nbaImg('grizzlies.png')},
+    {code:'MIA', name:'heat',         image:nbaImg('heat.png')},
+    {code:'MIL', name:'bucks',        image:nbaImg('bucks.png')},
+    {code:'MIN', name:'timberwolves', image:nbaImg('timberwolves.png')},
+    {code:'NOP', name:'pelicans',     image:nbaImg('pelicans.png')},
+    {code:'NYK', name:'knicks',       image:nbaImg('knicks.png')},
+    {code:'OKC', name:'thunder',      image:nbaImg('thunder.png')},
+    {code:'ORL', name:'magic',        image:nbaImg('magic.png')},
+    {code:'PHI', name:'76ers',        image:nbaImg('76ers.png')},
+    {code:'PHX', name:'suns',         image:nbaImg('suns.png')},
+    {code:'POR', name:'blazers',      image:nbaImg('blazers.png')},
+    {code:'SAC', name:'kings',        image:nbaImg('kings.png')},
+    {code:'SAS', name:'spurs',        image:nbaImg('spurs.png')},
+    {code:'TOR', name:'raptors',      image:nbaImg('raptors.png')},
+    {code:'UTA', name:'jazz',         image:nbaImg('jazz.png')},
+    {code:'WAS', name:'wizards',      image:nbaImg('wizards.png')}
+  ];
+
+  // NFL (32)
+  const NFL = [
+    {code:'ARI', name:'cardinals',   image:nflImg('cardinals.png')},
+    {code:'ATL', name:'falcons',     image:nflImg('falcons.png')},
+    {code:'BAL', name:'ravens',      image:nflImg('ravens.png')},
+    {code:'BUF', name:'bills',       image:nflImg('bills.png')},
+    {code:'CAR', name:'panthers',    image:nflImg('panthers.png')},
+    {code:'CHI', name:'bears',       image:nflImg('bears.png')},
+    {code:'CIN', name:'bengals',     image:nflImg('bengals.png')},
+    {code:'CLE', name:'browns',      image:nflImg('browns.png')},
+    {code:'DAL', name:'cowboys',     image:nflImg('cowboys.png')},
+    {code:'DEN', name:'broncos',     image:nflImg('broncos.png')},
+    {code:'DET', name:'lions',       image:nflImg('lions.png')},
+    {code:'GB',  name:'packers',     image:nflImg('packers.png')},
+    {code:'HOU', name:'texans',      image:nflImg('texans.png')},
+    {code:'IND', name:'colts',       image:nflImg('colts.png')},
+    {code:'JAX', name:'jaguars',     image:nflImg('jaguars.png')},
+    {code:'KC',  name:'chiefs',      image:nflImg('chiefs.png')},
+    {code:'LAC', name:'chargers',    image:nflImg('chargers.png')},
+    {code:'LAR', name:'rams',        image:nflImg('rams.png')},
+    {code:'LV',  name:'raiders',     image:nflImg('raiders.png')},
+    {code:'MIA', name:'dolphins',    image:nflImg('dolphins.png')},
+    {code:'MIN', name:'vikings',     image:nflImg('vikings.png')},
+    {code:'NE',  name:'patriots',    image:nflImg('patriots.png')},
+    {code:'NO',  name:'saints',      image:nflImg('saints.png')},
+    {code:'NYG', name:'giants',      image:nflImg('giants.png')},
+    {code:'NYJ', name:'jets',        image:nflImg('jets.png')},
+    {code:'PHI', name:'eagles',      image:nflImg('eagles.png')},
+    {code:'PIT', name:'steelers',    image:nflImg('steelers.png')},
+    {code:'SEA', name:'seahawks',    image:nflImg('seahawks.png')},
+    {code:'SF',  name:'49ers',       image:nflImg('49ers.png')},
+    {code:'TB',  name:'buccaneers',  image:nflImg('buccaneers.png')},
+    {code:'TEN', name:'titans',      image:nflImg('titans.png')},
+    {code:'WAS', name:'commanders',  image:nflImg('commanders.png')}
+  ];
+
+  // MLB (30)
+  const MLB = [
+    {code:'ARI', name:'diamondbacks', image:mlbImg('diamondbacks.png')},
+    {code:'ATL', name:'braves',       image:mlbImg('braves.png')},
+    {code:'BAL', name:'orioles',      image:mlbImg('orioles.png')},
+    {code:'BOS', name:'red sox',      image:mlbImg('red sox.png')},
+    {code:'CHC', name:'cubs',         image:mlbImg('cubs.png')},
+    {code:'CWS', name:'white sox',    image:mlbImg('white sox.png')},
+    {code:'CIN', name:'reds',         image:mlbImg('reds.png')},
+    {code:'CLE', name:'guardians',    image:mlbImg('guardians.png')},
+    {code:'COL', name:'rockies',      image:mlbImg('rockies.png')},
+    {code:'DET', name:'tigers',       image:mlbImg('tigers.png')},
+    {code:'HOU', name:'astros',       image:mlbImg('astros.png')},
+    {code:'KC',  name:'royals',       image:mlbImg('royals.png')},
+    {code:'LAA', name:'angels',       image:mlbImg('angels.png')},
+    {code:'LAD', name:'dodgers',      image:mlbImg('dodgers.png')},
+    {code:'MIA', name:'marlins',      image:mlbImg('marlins.png')},
+    {code:'MIL', name:'brewers',      image:mlbImg('brewers.png')},
+    {code:'MIN', name:'twins',        image:mlbImg('twins.png')},
+    {code:'NYM', name:'mets',         image:mlbImg('mets.png')},
+    {code:'NYY', name:'yankees',      image:mlbImg('yankees.png')},
+    {code:'OAK', name:'athletics',    image:mlbImg('athletics.png')},
+    {code:'PHI', name:'phillies',     image:mlbImg('phillies.png')},
+    {code:'PIT', name:'pirates',      image:mlbImg('pirates.png')},
+    {code:'SD',  name:'padres',       image:mlbImg('padres.png')},
+    {code:'SEA', name:'mariners',     image:mlbImg('mariners.png')},
+    {code:'SF',  name:'giants',       image:mlbImg('giants.png')},
+    {code:'STL', name:'cardinals',    image:mlbImg('cardinals.png')},
+    {code:'TB',  name:'rays',         image:mlbImg('rays.png')},
+    {code:'TEX', name:'rangers',      image:mlbImg('rangers.png')},
+    {code:'TOR', name:'blue jays',    image:mlbImg('blue jays.png')},
+    {code:'WSH', name:'nationals',    image:mlbImg('nationals.png')}
+  ];
+
+  /* =========================
+     Banners (3 rotating)
+  ========================== */
+  const BANNERS = [
+    { badge: "IG",   image: bannerImg('ig.png') },
+    { badge: "DIS",  image: bannerImg('discord.png') },
+    { badge: "PRO",  image: bannerImg('promo.png') }
+  ];
+
+  /* =========================
+     Sport / Layout Config
+  ========================== */
+  const breakTypes = {
+    nba: { name: "NBA", teams: NBA, count: 30, bottomCols: 5, bottomCount: 10 },
+    mlb: { name: "MLB", teams: MLB, count: 30, bottomCols: 5, bottomCount: 10 },
+    nfl: { name: "NFL", teams: NFL, count: 32, bottomCols: 6, bottomCount: 12 }
+  };
+
+  /* =========================
+     State
+  ========================== */
+  let currentSport = 'nba';
+  let soldSet = new Set();
+  let soldList = []; // {code,buyer}
+  let breakNum = 1;
+  let bannerIdx = 0;
+  let soldOpen = false;
+
+  // per-break stream stats
+  let highBid = 0;
+  let buyerTotals = new Map();  // buyer -> total spent
+
+  // chasers
+  const CHASERS_KEY = "sms.chasers";
+  const DEFAULT_CHASERS = new Set(["LAL","OKC","GSW","DAL","HOU","BOS","KC","BUF","SF","LAD"]);
+  let chasersSet = new Set(DEFAULT_CHASERS);
+
+  // title
+  let headerTitleText = "SCORE MORE SPORTS • NBA";
+
+  // DOM
+  const elBreak = document.getElementById('breakId');
+  const leftGrid = document.getElementById('leftGrid');
+  const rightGrid = document.getElementById('rightGrid');
+  const bottomGrid = document.getElementById('bottomGrid');
+  const soldWrap = document.getElementById('soldWrap');
+  const soldGrid = document.getElementById('soldGrid');
+
+  /* =========================
+     Persistence
+  ========================== */
+  function saveBreakNum(){ localStorage.setItem('sms.breakNum', String(breakNum)); }
+  function loadBreakNum(){
+    const saved = parseInt(localStorage.getItem('sms.breakNum'), 10);
+    breakNum = Number.isInteger(saved) && saved > 0 ? saved : 1;
+    elBreak.textContent = breakNum;
+  }
+
+  function saveHeaderTitle(){ localStorage.setItem("sms.headerTitle", headerTitleText); }
+  function loadHeaderTitle(){
+    const saved = localStorage.getItem("sms.headerTitle");
+    const el = document.getElementById("headerTitle");
+    headerTitleText = (saved && saved.trim().length) ? saved : (el?.textContent || headerTitleText);
+    if (el) el.textContent = headerTitleText;
+  }
+  function setHeaderTitle(txt){
+    const t = String(txt ?? "").trim();
+    if (!t) return;
+    headerTitleText = t;
+    const el = document.getElementById("headerTitle");
+    if (el) el.textContent = headerTitleText;
+    saveHeaderTitle();
+  }
+
+  function saveSport(){
+    localStorage.setItem('sms.sport', currentSport);
+  }
+  function loadSport(){
+    const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
+    const stored = (localStorage.getItem('sms.sport') || '').toLowerCase();
+    const pick = (qSport && breakTypes[qSport]) ? qSport : (breakTypes[stored] ? stored : 'nba');
+    currentSport = pick;
+  }
+
+  function saveChasers(){
+    localStorage.setItem(CHASERS_KEY, JSON.stringify([...chasersSet]));
+  }
+  function loadChasers(){
+    try{
+      const raw = localStorage.getItem(CHASERS_KEY);
+      if (!raw) return;
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length){
+        chasersSet = new Set(arr.map(s => String(s).toUpperCase()));
+      }
+    }catch(_){}
+  }
+
+  /* =========================
+     Helpers
+  ========================== */
+  function $id(id){ return document.getElementById(id); }
+  function safeText(id, val){
+    const el = $id(id);
+    if (!el) return;
+    el.textContent = String(val ?? "");
+  }
+
+  function norm(s){
+    return String(s || "")
+      .toLowerCase()
+      .replace(/&/g, "and")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function buildLookup(teams){
+    const map = new Map();
+    for (const t of teams){
+      const code = String(t.code || "").toUpperCase();
+      if (!code) continue;
+      map.set(norm(code), code);
+      map.set(norm(t.name), code);
+    }
+    return map;
+  }
+
+  function inferCodeFromTitle(title){
+    const teams = breakTypes[currentSport].teams;
+    const lookup = buildLookup(teams);
+    const t = norm(title);
+    if (!t) return null;
+
+    if (lookup.has(t)) return lookup.get(t);
+
+    const m = String(title || "").match(/\b([A-Z]{2,4})\b/);
+    if (m && m[1]) {
+      const token = norm(m[1]);
+      if (lookup.has(token)) return lookup.get(token);
+    }
+
+    const keys = Array.from(lookup.keys()).sort((a,b) => b.length - a.length);
+    for (const k of keys){
+      if (k.length < 3) continue;
+      if (t.includes(k)) return lookup.get(k);
+    }
+    return null;
+  }
+
+  function applySportCSS(){
+    const cfg = breakTypes[currentSport];
+    document.documentElement.style.setProperty('--bottomCols', String(cfg.bottomCols));
+  }
+
+  function updateHeaderSport(){
+    const cfg = breakTypes[currentSport];
+    const el = document.getElementById("headerTitle");
+    if (!el) return;
+
+    const isDefaultish = /SCORE MORE SPORTS\s*•/i.test(headerTitleText);
+    if (isDefaultish){
+      setHeaderTitle(`SCORE MORE SPORTS • ${cfg.name}`);
+    } else {
+      el.textContent = headerTitleText;
+    }
+  }
+
+  /* =========================
+     Tile / Render
+  ========================== */
+  function buildTile(team){
+    const d = document.createElement('div');
+    d.className = 'tile';
+    d.dataset.teamCode = team.code;
+
+    const img = document.createElement('img');
+    img.src = team.image;
+    img.alt = team.name;
+    img.onerror = () => { d.textContent = team.code; };
+
+    d.appendChild(img);
+    d.addEventListener('click', () => toggleTeam(team.code));
+    return d;
+  }
+
+  function getSportCount(){ return breakTypes[currentSport].count; }
+
+  function renderTeams(){
+    const cfg = breakTypes[currentSport];
+    const TEAMS = cfg.teams;
+
+    leftGrid.innerHTML = '';
+    rightGrid.innerHTML = '';
+    bottomGrid.innerHTML = '';
+
+    const leftN = 10;
+    const rightN = 10;
+    const bottomN = cfg.bottomCount;
+
+    const leftTeams = TEAMS.slice(0, leftN);
+    const rightTeams = TEAMS.slice(leftN, leftN + rightN);
+    const bottomTeams = TEAMS.slice(leftN + rightN, leftN + rightN + bottomN);
+
+    leftTeams.forEach(t => leftGrid.appendChild(buildTile(t)));
+    rightTeams.forEach(t => rightGrid.appendChild(buildTile(t)));
+    bottomTeams.forEach(t => bottomGrid.appendChild(buildTile(t)));
+
+    soldSet.forEach(code => {
+      const el = document.querySelector(`[data-team-code="${code}"]`);
+      if (el) el.classList.add('sold');
+    });
+
+    updateStats();
+    renderSoldPanel();
+  }
+
+  /* =========================
+     Sold / Toggle
+  ========================== */
+  function markSold(code){
+    const el = document.querySelector(`[data-team-code="${code}"]`);
+    if (!el) return;
+    soldSet.add(code);
+    el.classList.add('sold');
+    if (!soldList.some(x => x.code === code)) soldList.push({code, buyer:''});
+  }
+
+  function markUnsold(code){
+    const el = document.querySelector(`[data-team-code="${code}"]`);
+    if (!el) return;
+    soldSet.delete(code);
+    el.classList.remove('sold');
+    const idx = soldList.findIndex(x => x.code === code);
+    if (idx !== -1) soldList.splice(idx, 1);
+  }
+
+  function toggleTeam(code){
+    soldSet.has(code) ? markUnsold(code) : markSold(code);
+    updateStats();
+    renderSoldPanel();
+  }
+
+  function toggleSold(){
+    soldOpen = !soldOpen;
+    soldWrap.classList.toggle('active', soldOpen);
+  }
+
+  function renderSoldPanel(){
+    soldGrid.innerHTML = '';
+    if (soldList.length === 0){
+      soldOpen = false;
+      soldWrap.classList.remove('active');
+      return;
+    }
+
+    soldList.forEach(entry => {
+      const tile = document.querySelector(`[data-team-code="${entry.code}"]`);
+      const src = tile?.querySelector('img')?.src || '';
+
+      const row = document.createElement('div');
+      row.className = 'sold-item';
+
+      if (src){
+        const img = document.createElement('img');
+        img.src = src;
+        row.appendChild(img);
+      }
+
+      const input = document.createElement('input');
+      input.value = entry.buyer || '';
+      input.placeholder = 'Buyer';
+      input.addEventListener('input', e => entry.buyer = e.target.value);
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter'){ e.preventDefault(); e.target.blur(); }
+      });
+
+      row.appendChild(input);
+      soldGrid.appendChild(row);
+    });
+
+    soldOpen = true;
+    soldWrap.classList.add('active');
+  }
+
+  /* =========================
+     Stream stats (UPDATED)
+     - Right panel: Highest Bid, Top Buyer, Chasers
+     - Controls center stat: Highest Bid
+  ========================== */
+  function countChasersLeft(){
+    let left = 0;
+    chasersSet.forEach(code => { if (!soldSet.has(code)) left++; });
+    return left;
+  }
+
+  function setTopBuyer(name){ safeText('topBuyerText', name || '—'); }
+
+  function setHighBid(val){
+    highBid = Number.isFinite(val) ? val : 0;
+    const txt = highBid > 0 ? `$${highBid.toFixed(2)}` : '—';
+    safeText('highBidText', txt);   // right panel
+    safeText('highBidCtl', txt);    // NEW center stat
+  }
+
+  function updateBuyerStats(buyer, amount){
+    if (!buyer) return;
+
+    const amt = Number.isFinite(amount) ? amount : 0;
+    if (amt > 0){
+      buyerTotals.set(buyer, (buyerTotals.get(buyer) || 0) + amt);
+
+      let topName = '';
+      let topTotal = -1;
+      for (const [name, total] of buyerTotals.entries()){
+        if (total > topTotal){ topTotal = total; topName = name; }
+      }
+      setTopBuyer(topName);
+    }
+  }
+
+  function updateStreamStatsBox(){
+    safeText("chasersLeftText", String(countChasersLeft()));
+  }
+
+  function updateStats(){
+    const total = getSportCount();
+    safeText('soldCount', soldSet.size);
+    safeText('leftCount', total - soldSet.size);
+    updateStreamStatsBox();
+  }
+
+  /* =========================
+     Reset / Next break
+  ========================== */
+  function resetAll(){
+    soldSet.clear();
+    soldList = [];
+    document.querySelectorAll('.tile').forEach(t => t.classList.remove('sold'));
+    updateStats();
+    renderSoldPanel();
+
+    // per-break stats reset
+    setHighBid(0);
+    buyerTotals = new Map();
+    setTopBuyer('');
+  }
+
+  function nextBreak(){
+    resetAll();
+    breakNum += 1;
+    saveBreakNum();
+    elBreak.textContent = breakNum;
+    setHighBid(0);
+  }
+
+  /* =========================
+     Export CSV
+  ========================== */
+  function exportCSV(){
+    const header = "Name,Break#,Sport,Team\n";
+    const sportName = breakTypes[currentSport].name;
+    const rows = soldList.map(x => {
+      const buyer = (x.buyer || "").replace(/,/g," ");
+      return `${buyer},${breakNum},${sportName},${x.code}`;
+    }).join("\n");
+    return header + rows + (rows ? "\n" : "");
+  }
+
+  /* =========================
+     Scoreboard
+  ========================== */
+  function setScoreboard(games){
+    const host = document.getElementById('scoreboard');
+    host.innerHTML = '';
+
+    games.slice(0,4).forEach(g => {
+      const row = document.createElement('div');
+      row.className = 'scoreRow';
+      row.innerHTML = `
+        <span>${g.away} ${g.awayScore}  •  ${g.home} ${g.homeScore}</span>
+        <span class="muted">${g.status}</span>
+      `;
+      host.appendChild(row);
+    });
+
+    if (!games.length){
+      host.innerHTML = `<div class="scoreRow"><span class="muted">No games / feed…</span></div>`;
+    }
+  }
+
+  /* =========================
+     Rotating Banner
+  ========================== */
+  function renderBanner(){
+    const host = document.getElementById('banner');
+    host.innerHTML = '';
+
+    BANNERS.forEach((b, i) => {
+      const slide = document.createElement('div');
+      slide.className = 'banner-inner' + (i === bannerIdx ? ' active' : '');
+
+      if (b.image){
+        const bg = document.createElement('img');
+        bg.className = 'bg';
+        bg.src = b.image;
+        bg.alt = '';
+        slide.appendChild(bg);
+      }
+
+      const content = document.createElement('div');
+      content.className = 'banner-content';
+
+      const badge = document.createElement('div');
+      badge.className = 'banner-badge';
+      badge.textContent = b.badge || '';
+
+      const text = document.createElement('div');
+      text.className = 'banner-text';
+
+      const top = document.createElement('div');
+      top.className = 'top';
+      top.textContent = b.top || '';
+
+      const main = document.createElement('div');
+      main.className = 'main';
+      main.textContent = b.main || '';
+
+      text.appendChild(top);
+      text.appendChild(main);
+
+      content.appendChild(badge);
+      content.appendChild(text);
+
+      slide.appendChild(content);
+      host.appendChild(slide);
+    });
+  }
+
+  function rotateBanner(){
+    bannerIdx = (bannerIdx + 1) % BANNERS.length;
+    const slides = document.querySelectorAll('.banner-inner');
+    slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
+  }
+
+  /* =========================
+     Sport switching (button now in Sold panel)
+  ========================== */
+  function setSport(s){
+    const next = String(s || '').toLowerCase();
+    if (!breakTypes[next]) return;
+
+    currentSport = next;
+    saveSport();
+    applySportCSS();
+
+    resetAll();
+
+    updateHeaderSport();
+    renderTeams();
+
+    const cfg = breakTypes[currentSport];
+    const defaultTitle = `SCORE MORE SPORTS • ${cfg.name}`;
+    if (/^SCORE MORE SPORTS\s*•/i.test(headerTitleText)){
+      setHeaderTitle(defaultTitle);
+    } else {
+      safeText("headerTitle", headerTitleText);
+    }
+  }
+
+  function cycleSport(){
+    const order = ['nba','nfl','mlb'];
+    const idx = order.indexOf(currentSport);
+    const next = order[(idx + 1 + order.length) % order.length];
+    setSport(next);
+  }
+
+  /* =========================
+     Chasers Picker
+  ========================== */
+  const chasersPopup = document.getElementById("chasersPopup");
+  const chasersGrid = document.getElementById("chasersGrid");
+
+  function openChasersPicker(){
+    chasersGrid.innerHTML = "";
+
+    const teams = breakTypes[currentSport].teams;
+
+    teams.forEach(team => {
+      const btn = document.createElement("button");
+      const active = chasersSet.has(team.code);
+
+      btn.type = "button";
+      btn.textContent = team.code;
+      btn.dataset.code = team.code;
+
+      btn.style.padding = "12px 10px";
+      btn.style.borderRadius = "12px";
+      btn.style.fontWeight = "900";
+      btn.style.letterSpacing = "1px";
+      btn.style.cursor = "pointer";
+      btn.style.border = active ? "2px solid rgba(255,177,74,0.95)" : "1px solid rgba(255,255,255,0.14)";
+      btn.style.background = active ? "rgba(242,140,24,0.30)" : "rgba(255,255,255,0.08)";
+      btn.style.color = "#fff";
+
+      btn.addEventListener("click", () => {
+        const code = btn.dataset.code;
+        if (chasersSet.has(code)) chasersSet.delete(code);
+        else chasersSet.add(code);
+
+        const nowActive = chasersSet.has(code);
+        btn.style.border = nowActive ? "2px solid rgba(255,177,74,0.95)" : "1px solid rgba(255,255,255,0.14)";
+        btn.style.background = nowActive ? "rgba(242,140,24,0.30)" : "rgba(255,255,255,0.08)";
+
+        updateStreamStatsBox();
+      });
+
+      chasersGrid.appendChild(btn);
+    });
+
+    chasersPopup.classList.add("active");
+  }
+
+  /* =========================
+     SSE handling (same behavior as Hit Chasers)
+  ========================== */
+  let _es = null;
+
+  function connectSSE(url){
+    if (_es) { try { _es.close(); } catch(_){} }
+    console.log("[Overlay] Connecting SSE:", url);
+
+    _es = new EventSource(url);
+
+    _es.onopen = () => console.log("[Overlay] SSE OPEN");
+    _es.onerror = () => {
+      console.warn("[Overlay] SSE ERROR (retrying in 2.5s)");
+      try { _es.close(); } catch(_) {}
+      _es = null;
+      setTimeout(() => connectSSE(url), 2500);
+    };
+
+    _es.onmessage = (e) => {
+      try { handleSSEEvent(JSON.parse(e.data)); }
+      catch(err){ console.warn("[Overlay] bad JSON message:", e.data); }
+    };
+
+    _es.addEventListener("event", (e) => {
+      try { handleSSEEvent(JSON.parse(e.data)); }
+      catch(err){ console.warn("[Overlay] bad JSON event:", e.data); }
+    });
+
+    _es.addEventListener("message", (e) => {
+      try { handleSSEEvent(JSON.parse(e.data)); }
+      catch(err){ console.warn("[Overlay] bad JSON message:", e.data); }
+    });
+  }
+
+  function handleSSEEvent(data){
+    try{
+      if (!data || typeof data !== "object") return;
+
+      const payload = data.data && typeof data.data === "object" ? data.data : data;
+      const type = String(payload.type || payload.event || "").toLowerCase();
+      if (!type) return;
+
+      console.log("[Overlay] SSE IN:", payload);
+
+      if (type === "team_sold" || type === "sold" || type === "sale"){
+        const code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
+
+        if (code){
+          markSold(code);
+
+          if (payload.buyer){
+            const row = soldList.find(x => x.code === code);
+            if (row) row.buyer = payload.buyer;
+          }
+        } else {
+          console.warn("[Overlay] Could not match team from:", payload.title || payload);
+        }
+
+        if (Number.isFinite(payload.amount)) {
+          setHighBid(Math.max(highBid, payload.amount));
+        }
+
+        updateBuyerStats(payload.buyer, payload.amount);
+      }
+
+      if (type === "team_unsold" || type === "unsold"){
+        const code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
+        if (code) markUnsold(code);
+      }
+
+      if (type === "reset") resetAll();
+
+      if ((type === "set_break" || type === "break_set") && Number.isInteger(payload.value) && payload.value > 0){
+        breakNum = payload.value;
+        saveBreakNum();
+        elBreak.textContent = breakNum;
+      }
+
+      if (type === "banner_set" && Number.isInteger(payload.index)){
+        bannerIdx = ((payload.index % BANNERS.length) + BANNERS.length) % BANNERS.length;
+        const slides = document.querySelectorAll('.banner-inner');
+        slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
+      }
+
+      if (type === "scores" && Array.isArray(payload.games)){
+        setScoreboard(payload.games);
+      }
+
+      if (type === "set_title" && typeof payload.value === "string"){
+        setHeaderTitle(payload.value);
+      }
+
+      if (type === "set_sport" || type === "sport_set"){
+        if (typeof payload.value === "string") setSport(payload.value);
+      }
+
+      updateStats();
+      renderSoldPanel();
+    }catch(err){
+      console.error("[Overlay] handleSSEEvent crash:", err, data);
+    }
+  }
+
+  // Optional: postMessage bridge (external control)
+  window.addEventListener('message', (e) => {
+    if (!e.data) return;
+    let payload = e.data;
+    if (typeof payload === 'string'){
+      try { payload = JSON.parse(payload); } catch(_) { return; }
+    }
+    handleSSEEvent(payload);
+  });
+
+  /* =========================
+     UI wiring
+  ========================== */
+  document.getElementById('resetBtn').addEventListener('click', resetAll);
+  document.getElementById('nextBtn').addEventListener('click', nextBreak);
+  document.getElementById('soldToggle').addEventListener('click', toggleSold);
+
+  document.getElementById('sportBtn').addEventListener('click', cycleSport);
+
+  document.getElementById("chasersBtn").addEventListener("click", openChasersPicker);
+  document.getElementById("closeChasers").addEventListener("click", () => chasersPopup.classList.remove("active"));
+  document.getElementById("applyChasers").addEventListener("click", () => {
+    saveChasers();
+    updateStreamStatsBox();
+    chasersPopup.classList.remove("active");
+  });
+
+  // Set break popup
+  const breakPopup = document.getElementById('breakPopup');
+  const breakInput = document.getElementById('breakInput');
+  document.getElementById('setBreakBtn').addEventListener('click', () => {
+    breakInput.value = breakNum;
+    breakPopup.classList.add('active');
+  });
+  document.getElementById('closeBreak').addEventListener('click', () => breakPopup.classList.remove('active'));
+  document.getElementById('applyBreak').addEventListener('click', () => {
+    const v = parseInt(breakInput.value, 10);
+    if (!Number.isInteger(v) || v < 1) return;
+    breakNum = v;
+    saveBreakNum();
+    elBreak.textContent = breakNum;
+    breakPopup.classList.remove('active');
+  });
+
+  // Set title popup
+  const titlePopup = document.getElementById("titlePopup");
+  const titleInput = document.getElementById("titleInput");
+
+  document.getElementById("setTitleBtn").addEventListener("click", () => {
+    titleInput.value = headerTitleText || document.getElementById("headerTitle")?.textContent || "";
+    titlePopup.classList.add("active");
+    setTimeout(() => titleInput.focus(), 0);
+  });
+
+  document.getElementById("closeTitle").addEventListener("click", () => {
+    titlePopup.classList.remove("active");
+  });
+
+  document.getElementById("applyTitle").addEventListener("click", () => {
+    setHeaderTitle(titleInput.value);
+    titlePopup.classList.remove("active");
+  });
+
+  titleInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter"){
+      e.preventDefault();
+      document.getElementById("applyTitle").click();
+    }
+  });
+
+  // Export popup
+  const exportPopup = document.getElementById('exportPopup');
+  const exportBox = document.getElementById('exportBox');
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    exportBox.value = exportCSV();
+    exportPopup.classList.add('active');
+  });
+  document.getElementById('closeExport').addEventListener('click', () => exportPopup.classList.remove('active'));
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    exportBox.focus();
+    exportBox.select();
+    try{
+      await navigator.clipboard.writeText(exportBox.value);
+      document.getElementById('copyBtn').textContent = 'Copied!';
+      setTimeout(() => document.getElementById('copyBtn').textContent = 'Copy', 900);
+    }catch(_){
+      try{
+        document.execCommand('copy');
+        document.getElementById('copyBtn').textContent = 'Copied!';
+        setTimeout(() => document.getElementById('copyBtn').textContent = 'Copy', 900);
+      }catch(__){}
+    }
+  });
+
+  /* =========================
+     Boot
+  ========================== */
+  window.addEventListener('DOMContentLoaded', () => {
+    loadSport();
+    applySportCSS();
+
+    loadBreakNum();
+    loadChasers();
+    loadHeaderTitle();
+
+    const cfg = breakTypes[currentSport];
+    const defaultTitle = `SCORE MORE SPORTS • ${cfg.name}`;
+    if (/^SCORE MORE SPORTS\s*•/i.test(headerTitleText)){
+      setHeaderTitle(defaultTitle);
+    } else {
+      safeText("headerTitle", headerTitleText);
+    }
+
+    renderTeams();
+    renderBanner();
+    updateStreamStatsBox();
+
+    // init per-break stats
+    setHighBid(0);
+    setTopBuyer('');
+
+    if (BRIDGE_URL) {
+      connectSSE(`${BRIDGE_URL}/stream`);
+      console.log("[Overlay] SSE connected:", `${BRIDGE_URL}/stream`);
+    } else {
+      console.warn("[Overlay] No BRIDGE_URL set. Add ?bridge=https://... to the overlay URL");
+    }
+
+    setInterval(rotateBanner, 9000);
+  });
+</script>
+</body>
+</html>
