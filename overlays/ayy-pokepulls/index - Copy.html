@@ -2028,59 +2028,6 @@ const ADMIN_KEY = `ayy.overlay.adminOpen.${SET}`;
 
   let state = loadState();
 
-/* =========================
-  SALE DEDUPE (prevents repeats coming back)
-  Paste right after: let state = loadState();
-========================= */
-const SALE_DEDUPE_KEY = `${KEY}.saleDedupe`;
-const SALE_DEDUPE_TTL_MS = 6 * 60 * 60 * 1000; // 6h
-
-function loadSaleDedupe(){
-  try{
-    const raw = localStorage.getItem(SALE_DEDUPE_KEY);
-    const obj = raw ? JSON.parse(raw) : {};
-    if (!obj || typeof obj !== "object") return {};
-    return obj;
-  }catch(_){
-    return {};
-  }
-}
-
-function saveSaleDedupe(){
-  try{ localStorage.setItem(SALE_DEDUPE_KEY, JSON.stringify(__saleDedupe)); }catch(_){}
-}
-
-function dedupeKeyFromEvent(data){
-  const t = String(data?.type || "");
-  const code  = String(data?.code || data?.id || "").trim();
-  const title = String(data?.title || data?.label || "").trim();
-  const last  = String(data?.lastSale || "").trim();
-  const amt   = (data?.amount != null) ? String(data.amount) : "";
-  // prefer stable identifiers; fall back to lastSale text
-  return `${t}|${code}|${title}|${last}|${amt}`.toLowerCase();
-}
-
-let __saleDedupe = loadSaleDedupe();
-
-function saleSeen(key){
-  const now = Date.now();
-
-  // cleanup old entries
-  for (const k of Object.keys(__saleDedupe)){
-    if ((now - (__saleDedupe[k] || 0)) > SALE_DEDUPE_TTL_MS) delete __saleDedupe[k];
-  }
-
-  if (__saleDedupe[key]) return true;
-
-  __saleDedupe[key] = now;
-  saveSaleDedupe();
-  return false;
-}
-
-// optional console helpers
-window.clearSaleDedupe = () => { __saleDedupe = {}; saveSaleDedupe(); console.log("✅ sale dedupe cleared"); };
-
-
   /* =========================
     DOM
   ========================= */
@@ -2985,37 +2932,38 @@ function toggleAdmin(){
       }
 
       // === Whatnot extension sale event (current content.js) ===
-case "team_sold": {
-  const k = dedupeKeyFromEvent(data);
-  if (saleSeen(k)) break;
+      case "team_sold": {
+        // Update Avg Bid
+        if (data.amount != null) recordBid(normalizeIncomingAmount(data.amount));
 
-  if (data.amount != null) recordBid(normalizeIncomingAmount(data.amount));
-  if (data.code) setSoldById(state.pokemon, data.code, true);
-  if (data.title) markCardSoldByLabel(data.title, true);
-  break;
-}
+        // If your extension ever includes a code/id mapping, sell it too
+        if (data.code) setSoldById(state.pokemon, data.code, true);
 
+        // If the product title matches one of your card labels, sell that card
+        if (data.title) markCardSoldByLabel(data.title, true);
+        break;
+      }
 
       // === Your manual/legacy test payload type ===
-    case "BreakSpotOptionEdge": {
-  const k = dedupeKeyFromEvent(data);
-  if (saleSeen(k)) break;
+      case "BreakSpotOptionEdge": {
+        // Your PowerShell test shows: { code:"pika", amount:100, title:"..." ... }
+        if (data.amount != null) recordBid(data.amount);
 
-  if (data.amount != null) recordBid(normalizeIncomingAmount(data.amount));
-  if (data.code) setSoldById(state.pokemon, data.code, true);
-  if (data.title) markCardSoldByLabel(data.title, true);
-  break;
-}
+        // This is the big one for your current test:
+        // code:"pika" should flip the matching pokemon tile to SOLD
+        if (data.code) setSoldById(state.pokemon, data.code, true);
 
+        // Optional: also try to sell a matching card by label/title
+        if (data.title) markCardSoldByLabel(data.title, true);
+        break;
+      }
 
-  case "stream_stats": {
-  if (typeof data.lastSale === "string") {
-    const k = `stream_stats|lastSale|${String(data.lastSale).trim()}`.toLowerCase();
-    if (!saleSeen(k)) sellFromLastSaleText(data.lastSale);
-  }
-  break;
-}
-
+        case "stream_stats": {
+        if (typeof data.lastSale === "string") {
+         sellFromLastSaleText(data.lastSale);
+          }
+       break;
+    }
 
 
 
