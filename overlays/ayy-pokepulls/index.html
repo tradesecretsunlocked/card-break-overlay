@@ -52,6 +52,7 @@
     width: var(--W);
     height: var(--H);
     overflow: hidden;
+    margin:25px;
   }
 
   /* shrink the actual overlay content inward */
@@ -1972,6 +1973,8 @@ const ADMIN_KEY = `ayy.overlay.adminOpen.${SET}`;
     brand1: "HIGHER BIDS = MORE PACKS 🔥",
     brand2: "FAST SHIPPING • CLEAN HITS • GOOD LUCK",
     ticker: "WELCOME IN • DROP A FOLLOW • LET’S RIP",
+    hideSoldCards: true,
+
     mouseTilt: false,
     showMainCard: true,
 
@@ -2117,6 +2120,13 @@ function applyMainCardVisibility(){
   if (mainPanel) mainPanel.style.display = show ? "" : "none";
 }
 
+function syncPokemonSoldClasses(){
+  // Update existing DOM cards (both halves) without rebuilding marquee
+  (state.pokemon || []).forEach(p => {
+    document.querySelectorAll(`.poke-card[data-id="${CSS.escape(p.id)}"]`)
+      .forEach(el => el.classList.toggle("sold", !!p.sold));
+  });
+}
 
 
 
@@ -2130,42 +2140,96 @@ function applyMainCardVisibility(){
   /* =========================
     RENDER
   ========================= */
-  function renderHeader(){
-    breakNoEl.textContent = String(state.breakNo || 1);
-    hdrSmallEl.textContent = state.hdrSmall || "";
-
-    // Avg Bid display
-    const avg = (state.bidCount > 0) ? (state.bidSum / state.bidCount) : 0;
-if (avgBidEl) avgBidEl.textContent = MONEY(avg);
-
-
-
-
-
-    setLogoImg.src = pathFromInput(state.setLogo);
-    clientLogoImg.src = pathFromInput(state.clientLogo);
-
-    // encourage “branded” feel: set watermark image
-  stageEl.style.setProperty("--brand-wm", `url("${pathFromInput(state.clientLogo)}")`);
-
-
-    // fallbacks if images missing
-    setLogoImg.onerror = () => { setLogoImg.removeAttribute("src"); setLogoImg.alt = "Set Logo (missing)"; };
-    clientLogoImg.onerror = () => { clientLogoImg.removeAttribute("src"); clientLogoImg.alt = "Client Logo (missing)"; };
+ function renderHeader(){
+  const nextBreak = String(state.breakNo || 1);
+  if (nextBreak !== __lastBreakNo){
+    __lastBreakNo = nextBreak;
+    breakNoEl.textContent = nextBreak;
   }
 
-  function renderBrand(){
-    brand1El.textContent = state.brand1 || "";
-    brand2El.textContent = state.brand2 || "";
+  const nextHdrSmall = String(state.hdrSmall || "");
+  if (nextHdrSmall !== __lastHdrSmall){
+    __lastHdrSmall = nextHdrSmall;
+    hdrSmallEl.textContent = nextHdrSmall;
   }
 
-  function renderTicker(){
-    // restart animation to show update immediately
-    tickerEl.textContent = state.ticker || "";
-    tickerEl.style.animation = "none";
-    void tickerEl.offsetHeight;
-    tickerEl.style.animation = "tickerScroll 18s linear infinite";
+  // Avg Bid display (cheap, but keep as-is)
+  const avg = (state.bidCount > 0) ? (state.bidSum / state.bidCount) : 0;
+  if (avgBidEl) avgBidEl.textContent = MONEY(avg);
+
+  // ---- LOGOS: only update if changed ----
+  const nextSetLogo = pathFromInput(state.setLogo);
+  if (nextSetLogo !== __lastSetLogoSrc){
+    __lastSetLogoSrc = nextSetLogo;
+    if (nextSetLogo) setLogoImg.src = nextSetLogo;
+    else setLogoImg.removeAttribute("src");
   }
+
+  const nextClientLogo = pathFromInput(state.clientLogo);
+  if (nextClientLogo !== __lastClientLogoSrc){
+    __lastClientLogoSrc = nextClientLogo;
+    if (nextClientLogo) clientLogoImg.src = nextClientLogo;
+    else clientLogoImg.removeAttribute("src");
+  }
+
+  // Watermark uses client logo path — only update if changed
+  const nextWm = nextClientLogo ? `url("${nextClientLogo}")` : "";
+  if (nextWm !== __lastBrandWm){
+    __lastBrandWm = nextWm;
+    stageEl.style.setProperty("--brand-wm", nextWm);
+  }
+
+  // fallbacks if images missing
+  setLogoImg.onerror = () => { setLogoImg.removeAttribute("src"); setLogoImg.alt = "Set Logo (missing)"; };
+  clientLogoImg.onerror = () => { clientLogoImg.removeAttribute("src"); clientLogoImg.alt = "Client Logo (missing)"; };
+}
+
+
+function renderBrand(){
+  const next1 = String(state.brand1 || "");
+  if (next1 !== __lastBrand1){
+    __lastBrand1 = next1;
+    brand1El.textContent = next1;
+  }
+
+  const next2 = String(state.brand2 || "");
+  if (next2 !== __lastBrand2){
+    __lastBrand2 = next2;
+    brand2El.textContent = next2;
+  }
+}
+let __lastBreakNo = null;
+let __lastHdrSmall = null;
+let __lastBrand1 = null;
+let __lastBrand2 = null;
+
+let __lastSetLogoSrc = null;
+let __lastClientLogoSrc = null;
+let __lastBrandWm = null;
+
+let __lastTickerText = null; // ✅ ADD THIS
+
+
+
+function renderTicker(){
+  if (!tickerEl) return;
+
+  const next = (state.ticker || "").trim();
+
+  // If nothing changed, do NOTHING (prevents reset)
+  if (next === __lastTickerText) return;
+
+  __lastTickerText = next;
+  tickerEl.textContent = next;
+
+  // Only restart animation when the text changed
+  tickerEl.style.animation = "none";
+  void tickerEl.offsetHeight;
+  tickerEl.style.animation = "";
+}
+
+
+
 
 function buildPokemonMarquee(){
   pokeMarquee.innerHTML = "";
@@ -2207,65 +2271,82 @@ function buildPokemonMarquee(){
 
 
 
-  function renderMainCard(){
-    const cards = state.cards || [];
-    const idx = cards.findIndex(c => c.id === state.activeCardId);
-    const current = idx >= 0 ? cards[idx] : null;
+function renderMainCard(){
+  // If main card panel is hidden, don't churn anything
+  if (!state.showMainCard) return;
 
-  if (!state.showMainCard){
-    return; // don’t attach onclick / don’t churn image loads
-  }
+  // If we're hiding sold cards, make sure active is valid before rendering
+  ensureActiveCardValid();
 
-    if (!current){
-      cardStage.classList.remove("sold");
-      cardImg.removeAttribute("src");
-          if (cardLabel){ cardLabel.textContent = ""; cardLabel.classList.remove("show"); }
-      return;
-    }
+  const cards = state.cards || [];
+  const current = cards.find(c => c.id === state.activeCardId) || null;
 
-    // label overlay = current card label (or id fallback)
-    // label overlay: chip above card, fades on change
+  // If no card (or no unsold cards), clear the stage
+  if (!current){
+    cardStage.classList.remove("sold");
+    cardImg.removeAttribute("src");
+    cardStage.onclick = null;
     if (cardLabel){
-      const nextText = current.label || current.id;
-
-      // Only animate when label actually changes
-      if (cardLabel.textContent !== nextText){
-        cardLabel.classList.remove("show");     // fade out
-        // swap text after fade-out starts
-        setTimeout(() => {
-          cardLabel.textContent = nextText;
-          cardLabel.classList.add("show");      // fade in
-        }, 180);
-      } else {
-        // ensure visible if same card re-renders
-        cardLabel.classList.add("show");
-      }
+      cardLabel.classList.remove("show");
+      cardLabel.textContent = "";
     }
-
-
-    cardImg.src = pathFromInput(current.img);
-    cardImg.alt = current.label || current.id;
-    
-    cardImg.onerror = () => {
-      cardImg.removeAttribute("src");
-      if (cardLabel){
-        cardLabel.classList.remove("show");
-        setTimeout(() => {
-          cardLabel.textContent = `${current.label || current.id} (missing img)`;
-          cardLabel.classList.add("show");
-        }, 180);
-      }
-    };
-
-
-    cardStage.classList.toggle("sold", !!current.sold);
-
-    // click on main preview toggles sold for the current card
-    cardStage.onclick = () => toggleCardSold(current.id);
-
-    if (window.__mouseTiltCleanup) window.__mouseTiltCleanup();
-
+    return;
   }
+
+  // If hideSoldCards is ON and current is sold, we should NOT show it at all.
+  // ensureActiveCardValid() should have moved us, but this is a safety net.
+  if (state.hideSoldCards && current.sold){
+    cardStage.classList.remove("sold");
+    cardImg.removeAttribute("src");
+    cardStage.onclick = null;
+    if (cardLabel){
+      cardLabel.classList.remove("show");
+      cardLabel.textContent = "";
+    }
+    return;
+  }
+
+  // Label: show only when we are actually showing a card
+  if (cardLabel){
+    const nextText = current.label || current.id;
+
+    // Only animate when label changes
+    if (cardLabel.textContent !== nextText){
+      cardLabel.classList.remove("show");
+      setTimeout(() => {
+        cardLabel.textContent = nextText;
+        cardLabel.classList.add("show");
+      }, 180);
+    } else {
+      cardLabel.classList.add("show");
+    }
+  }
+
+  // Image
+  cardImg.src = pathFromInput(current.img);
+  cardImg.alt = current.label || current.id;
+
+  cardImg.onerror = () => {
+    cardImg.removeAttribute("src");
+    if (cardLabel){
+      cardLabel.classList.remove("show");
+      setTimeout(() => {
+        cardLabel.textContent = `${current.label || current.id} (missing img)`;
+        cardLabel.classList.add("show");
+      }, 180);
+    }
+  };
+
+  // If hideSoldCards is ON, sold cards never render — so this will only be false.
+  // If hideSoldCards is OFF, show the sold styling.
+  cardStage.classList.toggle("sold", !!current.sold && !state.hideSoldCards);
+
+  // Click toggles sold for the current card
+  cardStage.onclick = () => toggleCardSold(current.id);
+
+  if (window.__mouseTiltCleanup) window.__mouseTiltCleanup();
+}
+
 
 
 function renderAdminFields(){
@@ -2289,27 +2370,55 @@ function renderAdminFields(){
     autoInput.value = String(state.autoplaySec || 0);
   }
 
-  function renderAll(){
-    renderHeader();
-    renderBrand();
-    renderTicker();
+function renderAll(){
+  renderHeader();
+  renderBrand();
+  renderTicker();
+
+  // Build the marquee ONCE. After that, we only toggle classes.
+  if (!pokeMarquee.dataset.built){
     buildPokemonMarquee();
-    applyMainCardVisibility(); 
-    renderMainCard();
-    renderAdminFields();
+    pokeMarquee.dataset.built = "1";
+  } else {
+    syncPokemonSoldClasses();
   }
 
+  applyMainCardVisibility();
+  renderMainCard();
+  renderAdminFields();
+}
+
+
+function getNextUnsoldCardId(){
+  const cards = state.cards || [];
+  const list = state.hideSoldCards ? cards.filter(c => !c.sold) : cards;
+  return list[0]?.id || "";
+}
+
+function ensureActiveCardValid(){
+  if (!state.hideSoldCards) return;
+
+  const active = (state.cards || []).find(c => c.id === state.activeCardId);
+  if (!active || active.sold){
+    state.activeCardId = getNextUnsoldCardId();
+  }
+}
 
   /* =========================
     SOLD TOGGLES
   ========================= */
-  function togglePokemonSold(id){
-    const p = (state.pokemon || []).find(x => x.id === id);
-    if (!p) return;
-    p.sold = !p.sold;
-    saveState();
-    buildPokemonMarquee();
-  }
+ function togglePokemonSold(id){
+  const p = (state.pokemon || []).find(x => x.id === id);
+  if (!p) return;
+  p.sold = !p.sold;
+
+  // Update existing DOM cards (both halves) without rebuilding marquee
+  document.querySelectorAll(`.poke-card[data-id="${CSS.escape(id)}"]`)
+    .forEach(el => el.classList.toggle("sold", !!p.sold));
+
+  saveState();
+}
+
 
   function toggleSpotSold(id){
     const s = (state.spots || []).find(x => x.id === id);
@@ -2320,20 +2429,24 @@ function renderAdminFields(){
   }
 
 
-  function toggleCardSold(id){
-    const c = (state.cards || []).find(x => x.id === id);
-    if (!c) return;
-    c.sold = !c.sold;
+function toggleCardSold(id){
+  const c = (state.cards || []).find(x => x.id === id);
+  if (!c) return;
+  c.sold = !c.sold;
 
-    // optional: if the card is tied to a spot, sell the spot too
-    if (c.spotId){
-      const s = (state.spots || []).find(x => x.id === c.spotId);
-      if (s) s.sold = c.sold;
-    }
-
-    saveState();
-    renderAll();
+  // if the card is tied to a spot, sell the spot too
+  if (c.spotId){
+    const s = (state.spots || []).find(x => x.id === c.spotId);
+    if (s) s.sold = c.sold;
   }
+
+  ensureActiveCardValid();
+  saveState();
+
+  // Only update what needs updating (don’t rebuild marquee)
+  renderMainCard();
+}
+
 
   /* =========================
     APPLY + RESET
@@ -2369,13 +2482,20 @@ state.showMainCard = !!(showMainCardToggle && showMainCardToggle.checked);
 
 
 
-  function resetSold(){
-    (state.pokemon||[]).forEach(x => x.sold = false);
-    (state.spots||[]).forEach(x => x.sold = false);
-    (state.cards||[]).forEach(x => x.sold = false);
-    saveState();
-    renderAll();
-  }
+function resetSold(){
+  (state.pokemon||[]).forEach(x => x.sold = false);
+  (state.spots||[]).forEach(x => x.sold = false);
+  (state.cards||[]).forEach(x => x.sold = false);
+
+  ensureActiveCardValid();
+  saveState();
+
+  // Don’t rebuild marquee; just update sold classes
+  syncPokemonSoldClasses();
+  renderMainCard();
+  renderHeader();
+}
+
 
   /* =========================
     AUTOPLAY
@@ -2387,22 +2507,26 @@ state.showMainCard = !!(showMainCardToggle && showMainCardToggle.checked);
     autoplayTimer = null;
   }
 
-  function startAutoplay(){
-    stopAutoplay();
-    const sec = parseInt(String(state.autoplaySec||0), 10) || 0;
-    if (sec <= 0) return;
+function startAutoplay(){
+  stopAutoplay();
+  const sec = parseInt(String(state.autoplaySec||0), 10) || 0;
+  if (sec <= 0) return;
 
-    autoplayTimer = setInterval(() => {
-      const cards = state.cards || [];
-      if (!cards.length) return;
+  autoplayTimer = setInterval(() => {
+    const cards = state.cards || [];
+    if (!cards.length) return;
 
-      const idx = cards.findIndex(c => c.id === state.activeCardId);
-      const next = cards[(idx + 1) % cards.length];
-      state.activeCardId = next.id;
-      saveState();
-      renderMainCard();
-    }, sec * 1000);
-  }
+    const pool = state.hideSoldCards ? cards.filter(c => !c.sold) : cards;
+    if (!pool.length) return;
+
+    const idx = pool.findIndex(c => c.id === state.activeCardId);
+    const next = pool[(idx + 1) % pool.length];
+    state.activeCardId = next.id;
+
+    saveState();
+    renderMainCard();
+  }, sec * 1000);
+}
 
   /* =========================
     ADMIN UI
@@ -2586,6 +2710,8 @@ function toggleAdmin(){
 
     card.sold = !!sold;
 
+    
+
     if (card.spotId){
       // sell spot
       const s = (state.spots||[]).find(x => x.id === card.spotId);
@@ -2599,6 +2725,9 @@ function toggleAdmin(){
       const tiedCards = (state.cards||[]).filter(c => c.spotId === card.spotId);
       for (const c of tiedCards) c.sold = !!sold;
     }
+
+      ensureActiveCardValid();
+
   }
 
 
@@ -2617,6 +2746,8 @@ function toggleAdmin(){
       setSoldById(state.spots, spot.id, !!sold);
       return;
     }
+
+
 
     // 2) If listing title matches a CARD label, sell that card (which can sync to spotId)
     const card = (state.cards || []).find(c => {
@@ -2696,6 +2827,7 @@ function toggleAdmin(){
 
 
   function handleSSEEvent(data){
+     let restartAutoplay = false;
     console.log("[SSE IN]", data);
     switch(String(data.type||"")){
       case "set_break":{
@@ -2727,6 +2859,7 @@ function toggleAdmin(){
       case "set_autoplay":{
         const sec = parseInt(String(data.sec||"0"), 10) || 0;
         state.autoplaySec = Math.max(0, sec);
+        restartAutoplay = true;
         break;
       }
   case "set_currency": {
@@ -2837,9 +2970,19 @@ function toggleAdmin(){
 
     }
 
-    saveState();
-    renderAll();
-    startAutoplay();
+saveState();
+
+// Only refresh what changed (no ticker reset now anyway, but this is better)
+renderHeader();      // break # + avg bid + logos
+renderBrand();       // banner lines
+renderTicker();  
+syncPokemonSoldClasses();
+    // now safe: won’t reset unless text changed
+renderMainCard();    // current card view
+
+// Only restart autoplay if the autoplay setting changed
+// (simple approach: just call startAutoplay if you actually handled set_autoplay)
+if (restartAutoplay) startAutoplay();
   }
 
 function sellFromLastSaleText(lastSaleText){
@@ -2912,6 +3055,12 @@ function sellFromLastSaleText(lastSaleText){
       // (Optional) if you *actually* use pokemon.spotId in your show.json, keep this:
       const tiedPokemon = (state.pokemon||[]).filter(x => x.spotId === item.id);
       for (const p of tiedPokemon) p.sold = !!sold;
+
+
+  // If we're hiding sold cards, make sure the active card isn't sold
+  
+    ensureActiveCardValid();
+  
 
     }
 
