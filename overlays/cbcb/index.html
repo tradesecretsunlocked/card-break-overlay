@@ -27,7 +27,7 @@
 
       --tileH: 52px;
       --gap: 3px;
-
+ --tickerDur: 25s;
       --cols: 8; /* changes per sport */
     }
 
@@ -37,9 +37,10 @@
       margin:0;
       background:transparent;
       font-family: "Arial Black", Arial, sans-serif;
-      width:920px;
-      min-height:520px;
+      width:1080px;
+      min-height:1000px;
       user-select:none;
+      margin:40px;
     }
 
     /* ===== CONTAINER ===== */
@@ -56,7 +57,7 @@
       display:flex;
       flex-direction:column;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
     }
 
     /* Subtle Texas/football “stadium stripe” accent */
@@ -185,6 +186,29 @@
       position: relative;
       z-index: 2;
     }
+/* ===== FLOATING LOGO OVERLAY (ALWAYS ON TOP OF TILES) ===== */
+.teams-wrapper{
+  position: relative;  /* you already have this, keep it */
+  overflow: visible;   /* you already have this, keep it */
+  z-index: 0;          /* IMPORTANT: define a baseline stacking context */
+}
+
+/* The floating logo overlay */
+.logo-float{
+  position: absolute;
+  left: 50%;
+  top: -85px;                 /* adjust this up/down */
+  transform: translateX(-50%);
+  z-index: 99999;             /* beats tiles/ticker/shimmers */
+  pointer-events: none;
+}
+
+.logo-float img{
+  height: 164px;              /* your current size */
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 2px 10px rgba(0,0,0,0.65));
+}
 
     /* Border wick sweep */
     .teams-wrapper::after{
@@ -258,15 +282,7 @@
       opacity:0;
       z-index:2;
       background:
-        linear-gradient(
-          120deg,
-          transparent 35%,
-          rgba(255,255,255,0.22) 45%,
-          rgba(245,200,75,0.55) 50%,
-          rgba(18,59,122,0.35) 54%,
-          rgba(255,255,255,0.18) 58%,
-          transparent 65%
-        );
+      linear-gradient(120deg, transparent 60%, rgba(255, 255, 255, 0.22) 45%, rgb(32 80 255) 93%, rgba(18, 59, 122, 0.35) 54%, rgba(255, 255, 255, 0.18) 58%, transparent 65%);
       transform: translateX(-140%) skewX(-18deg);
       transition: opacity 160ms ease;
       mix-blend-mode: screen;
@@ -370,13 +386,15 @@
       border: 2px solid rgba(245,200,75,0.40);
       overflow:visible;
       position:relative;
+      z-index: 50; 
     }
     .logo-slot img{
-      max-height: 325%;
-      max-width: 88%;
+      height: 164px;
+      width: auto;
       object-fit: contain;
       position: absolute;
-      top: -90px;
+       z-index: 999;  
+      top: -85px;
       filter: drop-shadow(0 2px 10px rgba(0,0,0,0.65));
     }
 
@@ -395,13 +413,14 @@
           rgba(10, 10, 10, 1) 100%);
       border: 2px solid var(--goldBorder);
       padding: 0 10px;
+      
     }
 
     .ticker-text{
       display:inline-block;
       white-space: nowrap;
       padding-left: 100%;
-      animation: tickerScroll 18s linear infinite;
+      animation: tickerScroll var(--tickerDur) linear infinite;
       font-weight: 900;
       letter-spacing: 0.8px;
       color: #fff;
@@ -423,10 +442,7 @@
 
     .stat-box{
       background:
-        linear-gradient(90deg,
-          rgba(10, 10, 10, 1) 0%,
-          rgba(11,42,91,0.92) 45%,
-          rgba(10, 10, 10, 1) 100%);
+linear-gradient(90deg, rgba(10, 10, 10, 1) 0%, rgb(38 100 199) 45%, rgba(10, 10, 10, 1) 100%);
       color:#fff;
       border-radius: 8px;
       text-align:center;
@@ -597,6 +613,105 @@
       outline:none;
     }
 
+/* ===== MODAL (OBS FRIENDLY) ===== */
+.modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.68);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index: 9999;
+}
+
+.modal-backdrop.show{ display:flex; }
+
+.modal{
+  width: 560px;
+  max-width: calc(100vw - 40px);
+  border-radius: 14px;
+  border: 3px solid rgba(245,200,75,0.65);
+  background:
+    linear-gradient(180deg, rgba(12,12,12,0.96), rgba(0,0,0,0.92));
+  box-shadow: 0 18px 40px rgba(0,0,0,0.65);
+  color: #fff;
+  padding: 12px;
+}
+
+.modal-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.modal-title{
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 16px;
+}
+
+.modal-x{
+  border: 2px solid rgba(245,200,75,0.6);
+  background: rgba(0,0,0,0.35);
+  color: #fff;
+  border-radius: 10px;
+  cursor:pointer;
+  font-weight: 900;
+  padding: 6px 10px;
+}
+
+.modal-body{
+  display:flex;
+  flex-direction:column;
+  gap: 10px;
+}
+
+.modal-row{
+  display:flex;
+  flex-direction:column;
+  gap: 6px;
+}
+
+.modal-label{
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  opacity: 0.95;
+  text-transform: uppercase;
+}
+
+.modal-input{
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 2px solid rgba(245,200,75,0.65);
+  background: rgba(0,0,0,0.35);
+  color:#fff;
+  font-weight: 900;
+  outline:none;
+}
+
+.modal-help{
+  font-size: 12px;
+  opacity: 0.78;
+  line-height: 1.2;
+}
+
+.modal-actions{
+  display:flex;
+  gap: 10px;
+  justify-content:flex-end;
+  margin-top: 12px;
+}
+
+.modal-slider{
+  width: 100%;
+}
+
+
     /* ===== SSE STATUS ===== */
     .sse{
       display:flex;
@@ -665,22 +780,16 @@
     <div class="sold-top-row">
       <div class="sold-list-title">SOLD TEAMS</div>
 
-      <div class="sold-controls">
-        <div class="break-set">
-          <input id="breakSetInput" type="text" placeholder="Set #" />
-          <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="applyBreakNumber()">SET</button>
-          <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="incrementBreak()">+1</button>
-        </div>
+<div class="sold-controls">
+  <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="openModal('break')">🧾 SET BREAK #</button>
+  <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="openModal('ticker')">📣 SET TICKER</button>
+  <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="openModal('title')">🏷️ SET TITLE</button>
 
-        <div class="ticker-edit">
-          <input id="tickerInput" type="text" placeholder="Ticker text (use • to separate)" />
-          <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="applyTicker()">APPLY</button>
-        </div>
+  <div class="sse" id="sseStatus">
+    SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
+  </div>
+</div>
 
-        <div class="sse" id="sseStatus">
-          SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
-        </div>
-      </div>
     </div>
 
     <div id="soldList" class="sold-list-grid"></div>
@@ -786,6 +895,191 @@
     const n = parseInt(val, 10);
     setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
   }
+
+  // ===== Modal state =====
+let MODAL_MODE = null;
+
+const SPEED_KEY = "cbcb.tickerSpeed";
+const SPEED_KEY_LEGACY = "rr.tickerSpeed";
+
+// seconds = faster -> smaller number
+function loadTickerSpeed(){
+  const raw = localStorage.getItem(SPEED_KEY) || localStorage.getItem(SPEED_KEY_LEGACY);
+  const n = parseFloat(raw || "18");
+  return Number.isFinite(n) ? clamp(n, 8, 40) : 18;
+}
+function saveTickerSpeed(sec){
+  localStorage.setItem(SPEED_KEY, String(sec));
+}
+function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
+function setTickerSpeed(seconds){
+  const s = clamp(Number(seconds), 8, 40);
+  document.documentElement.style.setProperty("--tickerDur", `${s}s`);
+  saveTickerSpeed(s);
+
+  // restart animation so it updates instantly in OBS
+  document.querySelectorAll(".ticker-text").forEach(el => {
+    el.style.animation = "none";
+    void el.offsetHeight;
+    el.style.animation = `tickerScroll ${s}s linear infinite`;
+  });
+}
+
+// ===== Title persistence =====
+const TITLE_KEY = "cbcb.overlayTitle";
+const TITLE_KEY_LEGACY = "rr.overlayTitle";
+
+function loadOverlayTitle(){
+  const raw = localStorage.getItem(TITLE_KEY) || localStorage.getItem(TITLE_KEY_LEGACY);
+  return (raw && String(raw).trim()) ? String(raw).trim() : "";
+}
+function saveOverlayTitle(t){
+  localStorage.setItem(TITLE_KEY, String(t || ""));
+}
+function setOverlayTitle(t){
+  const val = String(t || "").trim();
+  if (val){
+    document.getElementById("headerText").textContent = val;
+    saveOverlayTitle(val);
+  } else {
+    // fallback to sport default
+    setHeader();
+    saveOverlayTitle("");
+  }
+}
+
+// ===== Modal open/close/render =====
+function openModal(mode){
+  MODAL_MODE = mode;
+  const backdrop = document.getElementById("modalBackdrop");
+  const body = document.getElementById("modalBody");
+  const title = document.getElementById("modalTitle");
+  if (!backdrop || !body || !title) return;
+
+  body.innerHTML = "";
+
+  if (mode === "break"){
+    title.textContent = "SET BREAK NUMBER";
+    const current = loadBreakNumber();
+    body.innerHTML = `
+      <div class="modal-row">
+        <div class="modal-label">Break #</div>
+        <input class="modal-input" id="modalBreak" type="number" min="1" step="1" value="${current}" />
+        <div class="modal-help">Tip: Enter a number, hit APPLY. Works clean in OBS Browser Source.</div>
+      </div>
+    `;
+    setTimeout(()=>document.getElementById("modalBreak")?.focus(), 0);
+  }
+
+  if (mode === "ticker"){
+    title.textContent = "SET TICKER + SPEED";
+    const currentText = TICKER_LINES.join(" • ");
+    const currentSpeed = loadTickerSpeed();
+    body.innerHTML = `
+      <div class="modal-row">
+        <div class="modal-label">Ticker Text</div>
+        <input class="modal-input" id="modalTicker" type="text" value="${escapeHtml(currentText)}" />
+        <div class="modal-help">Use • to separate phrases. Example: "COWBOY CARD BREAKS • NFL HEAT • GOOD LUCK"</div>
+      </div>
+
+      <div class="modal-row">
+        <div class="modal-label">Scroll Speed</div>
+        <input class="modal-slider" id="modalSpeed" type="range" min="8" max="40" step="1" value="${currentSpeed}">
+        <div class="modal-help">Faster = lower number. Current: <span id="speedReadout">${currentSpeed}</span>s</div>
+      </div>
+    `;
+
+    setTimeout(()=>{
+      const s = document.getElementById("modalSpeed");
+      const r = document.getElementById("speedReadout");
+      if (s && r){
+        s.addEventListener("input", () => {
+          r.textContent = s.value;
+          setTickerSpeed(parseFloat(s.value));
+        });
+      }
+      document.getElementById("modalTicker")?.focus();
+    }, 0);
+  }
+
+  if (mode === "title"){
+    title.textContent = "SET HEADER TITLE";
+    const current = document.getElementById("headerText")?.textContent || "";
+    body.innerHTML = `
+      <div class="modal-row">
+        <div class="modal-label">Title</div>
+        <input class="modal-input" id="modalTitleInput" type="text" value="${escapeHtml(current)}" />
+        <div class="modal-help">Example: "NFL BOX BREAK" or "COWBOY CARD BREAKS • NFL". Leave blank to use sport default.</div>
+      </div>
+    `;
+    setTimeout(()=>document.getElementById("modalTitleInput")?.focus(), 0);
+  }
+
+  backdrop.classList.add("show");
+  backdrop.setAttribute("aria-hidden","false");
+}
+
+function closeModal(){
+  const backdrop = document.getElementById("modalBackdrop");
+  if (!backdrop) return;
+  backdrop.classList.remove("show");
+  backdrop.setAttribute("aria-hidden","true");
+  MODAL_MODE = null;
+}
+
+function applyModal(){
+  if (MODAL_MODE === "break"){
+    const val = parseInt(document.getElementById("modalBreak")?.value || "", 10);
+    setBreakNumber(Number.isFinite(val) && val > 0 ? val : 1);
+  }
+
+  if (MODAL_MODE === "ticker"){
+    const raw = (document.getElementById("modalTicker")?.value || "").trim();
+    const parts = raw.includes("•")
+      ? raw.split("•").map(s => s.trim()).filter(Boolean)
+      : [raw].filter(Boolean);
+
+    setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+
+    const speed = parseFloat(document.getElementById("modalSpeed")?.value || "18");
+    setTickerSpeed(speed);
+  }
+
+  if (MODAL_MODE === "title"){
+    const t = (document.getElementById("modalTitleInput")?.value || "").trim();
+    if (t) setOverlayTitle(t);
+    else setOverlayTitle(""); // revert to sport default
+  }
+
+  closeModal();
+}
+
+// Close modal on backdrop click (OBS friendly)
+document.addEventListener("click", (e) => {
+  const b = document.getElementById("modalBackdrop");
+  if (b && e.target === b) closeModal();
+});
+
+// Enter applies, Esc closes (OBS friendly)
+document.addEventListener("keydown", (e) => {
+  const b = document.getElementById("modalBackdrop");
+  if (!b || !b.classList.contains("show")) return;
+
+  if (e.key === "Escape") closeModal();
+  if (e.key === "Enter") applyModal();
+});
+
+// tiny sanitizer for modal default values
+function escapeHtml(str){
+  return String(str || "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
 
   // ===== Sport configs =====
   const breakTypes = {
@@ -940,16 +1234,14 @@
     return d;
   }
 
-  function makeLogoSlot(spanCols){
-    const slot = document.createElement("div");
-    slot.className = "logo-slot";
-    slot.style.gridColumn = `span ${spanCols}`;
-    const img = document.createElement("img");
-    img.src = LOGO_PRIMARY;
-    img.alt = "Cowboy Card Breaks Logo";
-    slot.appendChild(img);
-    return slot;
-  }
+function makeLogoSlot(spanCols){
+  const slot = document.createElement("div");
+  slot.className = "logo-slot";
+  slot.style.gridColumn = `span ${spanCols}`;
+  // no image here anymore — the floating overlay handles the logo
+  return slot;
+}
+
 
   function makeTickerSlot(spanCols){
     const slot = document.createElement("div");
@@ -962,9 +1254,24 @@
     return slot;
   }
 
+function makeFloatingLogo(){
+  const wrap = document.createElement("div");
+  wrap.className = "logo-float";
+
+  const img = document.createElement("img");
+  img.src = LOGO_PRIMARY;
+  img.alt = "Cowboy Card Breaks Logo";
+
+  wrap.appendChild(img);
+  return wrap;
+}
+
+
   function buildLayout(){
     const wrap = document.getElementById("teamsWrapper");
     wrap.innerHTML = "";
+    wrap.appendChild(makeFloatingLogo());
+
 
     const config = breakTypes[currentBreakType];
     document.documentElement.style.setProperty("--cols", String(config.cols));
@@ -1304,9 +1611,16 @@
   document.addEventListener("DOMContentLoaded", () => {
     setBreakNumber(loadBreakNumber());
     setTickerLines(loadTickerLines());
+   
+    // load and apply ticker speed + title
+setTickerSpeed(loadTickerSpeed());
+
 
     buildLayout();
     initSSE();
+
+    const savedTitle = loadOverlayTitle();
+if (savedTitle) setOverlayTitle(savedTitle);
 
     const ti = document.getElementById("tickerInput");
     if (ti){
@@ -1316,5 +1630,22 @@
     }
   });
 </script>
+<!-- ===== OBS-FRIENDLY MODAL ===== -->
+<div class="modal-backdrop" id="modalBackdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <div class="modal-title" id="modalTitle">SETTINGS</div>
+      <button class="modal-x" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-body" id="modalBody"></div>
+
+    <div class="modal-actions">
+      <button class="btn secondary" onclick="closeModal()">CANCEL</button>
+      <button class="btn" onclick="applyModal()">APPLY</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
