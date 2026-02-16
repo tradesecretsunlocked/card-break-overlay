@@ -432,14 +432,14 @@
       position:relative;
     }
     .logo-slot img{
-      max-height: 200px;
+      max-height: 185px;
       max-width: 1300%;
       object-fit: cover;
       position: absolute;
         transform-origin: 50% 60%;
   will-change: transform, filter;
   animation: logoBreathe 3.8s ease-in-out infinite;
-      top: -106px;
+      top: -90px;
       filter:
         drop-shadow(0 2px 10px rgba(0,0,0,0.70))
         drop-shadow(0 0 14px rgba(89,161,213,0.35));
@@ -986,6 +986,12 @@
   🏷 TITLE
 </button>
 
+<button class="btn ghost"
+  style="padding:8px 10px; font-size:12px;"
+  onclick="copySoldListTSV()">
+  📋 COPY SOLD LIST
+</button>
+
 
     <button class="btn ghost"
   id="openTickerEditorBtn"
@@ -1509,11 +1515,7 @@ function setDivisionBuyer(div, buyer){
 }
 
 
-  // ===== Header =====
-  function setHeader(){
-    const b = breakTypes[currentBreakType];
-    document.getElementById("headerText").textContent = `${b.name} BOX BREAK`;
-  }
+ 
 
   // ===== Tile builders =====
   function makeTeamDiv(team){
@@ -1897,9 +1899,20 @@ if (currentBreakType === "nfl" && nflDivisionView){
   }
 
 function updateStats(){
-  const total = breakTypes[currentBreakType].teams.length;
-  const sold = soldTeams.size;
-  const left = total - sold;
+  const isDiv = (currentBreakType === "nfl" && nflDivisionView);
+
+  let total, sold, left;
+
+  if (isDiv){
+    // 8 divisions total, sold if all 4 teams in that division are sold
+    total = NFL_DIV_ORDER.length; // should be 8
+    sold = NFL_DIV_ORDER.reduce((acc, div) => acc + (isDivisionSold(div) ? 1 : 0), 0);
+    left = total - sold;
+  } else {
+    total = breakTypes[currentBreakType].teams.length;
+    sold = soldTeams.size;
+    left = total - sold;
+  }
 
   const a = document.getElementById("teamsLeft");
   const b = document.getElementById("teamsSold");
@@ -1912,6 +1925,8 @@ function updateStats(){
   if (am) am.textContent = String(left);
   if (bm) bm.textContent = String(sold);
 }
+
+
 
 
   function updateSoldList(){
@@ -1979,12 +1994,28 @@ soldTeamsList.forEach(entry => {
   }
 
   function resetAll(){
-    soldTeams.clear();
-    soldTeamsList = [];
-    document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
-    updateStats();
-    updateSoldList();
+  soldTeams.clear();
+  soldTeamsList = [];
+
+  // clear sold styling on individual tiles
+  document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
+
+  // IMPORTANT: if in NFL Division View, also clear division overlay state + UI
+  if (currentBreakType === "nfl" && nflDivisionView){
+    divisionBuyers.clear();
+
+    // remove sold class from groups + reset overlay text to default
+    document.querySelectorAll(".division-group").forEach(g => {
+      g.classList.remove("sold");
+      const label = g.querySelector(".division-buyer");
+      if (label) label.textContent = "SOLD";
+    });
   }
+
+  updateStats();
+  updateSoldList();
+}
+
 
   // NEW BREAK = reset + increment break #
   function newBreak(){
@@ -2304,6 +2335,101 @@ function sseMarkUnsold(code){
     if (entry) entry.buyer = buyer || "";
     updateSoldList();
   }
+
+
+function formatExportDate(d = new Date()){
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function exportSoldListTSV(){
+  const breakNum = String(loadBreakNumber());
+  const dateStr = formatExportDate(new Date());
+
+  const isDiv = (currentBreakType === "nfl" && nflDivisionView);
+  const lines = [];
+
+  // header row (helps Sheets/Excel place columns)
+  lines.push(["Spot", "Buyer", "Break #", "Date"].join("\t"));
+
+  if (isDiv){
+    // Export one row per SOLD division (8 max)
+    // Use soldTeamsList entries to preserve buyer name edits
+    const divEntries = soldTeamsList
+      .filter(e => e && e.isDivision && e.div)
+      .slice();
+
+    // stable order: AFCE..NFCW
+    divEntries.sort((a,b) => NFL_DIV_ORDER.indexOf(a.div) - NFL_DIV_ORDER.indexOf(b.div));
+
+    divEntries.forEach(e => {
+      const spot = NFL_DIV_PRETTY[e.div] || e.div;
+      const buyer = String(e.buyer || "").trim();
+      lines.push([spot, buyer, breakNum, dateStr].join("\t"));
+    });
+  } else {
+    // Export one row per sold team
+    const currentBreak = breakTypes[currentBreakType];
+    soldTeamsList.forEach(e => {
+      if (!e || !e.code) return;
+      const team = currentBreak.teams.find(t => t.code === e.code);
+      const spot = team?.name ? team.name : e.code;
+      const buyer = String(e.buyer || "").trim();
+      lines.push([spot, buyer, breakNum, dateStr].join("\t"));
+    });
+  }
+
+  return lines.join("\n");
+}
+
+async function copySoldListTSV(){
+  const text = exportSoldListTSV();
+
+  // Prefer modern clipboard API
+  try{
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+      flashCopyButton();
+      return;
+    }
+  }catch(_){}
+
+  // Fallback: execCommand copy
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  ta.style.top = "0";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try{
+    document.execCommand("copy");
+    flashCopyButton();
+  }catch(_){
+    // last resort: do nothing (user can still manually select from console if needed)
+    alert("Copy failed. Please allow clipboard permissions or try a different browser.");
+  }finally{
+    document.body.removeChild(ta);
+  }
+}
+
+function flashCopyButton(){
+  // small UX: temporarily change the button text to "COPIED!"
+  const btns = Array.from(document.querySelectorAll("button"))
+    .filter(b => (b.textContent || "").includes("COPY SOLD LIST"));
+  const btn = btns[0];
+  if (!btn) return;
+
+  const old = btn.textContent;
+  btn.textContent = "✅ COPIED!";
+  setTimeout(() => btn.textContent = old, 900);
+}
+
+
 
   // ===== Init =====
   document.addEventListener("DOMContentLoaded", () => {
