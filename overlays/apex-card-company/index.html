@@ -43,7 +43,7 @@
       margin:0;
       background:transparent;
       font-family: "Arial Black", Arial, sans-serif;
-      width:920px;
+      width:1080px;
       min-height:520px;
       user-select:none;
       overflow:hidden;
@@ -1186,13 +1186,18 @@ function connectScoresSSE({ onEvent, onStatus }){
   if (sseScores) try { sseScores.close(); } catch(_){}
   sseScores = new EventSource(url);
 
-  const ingest = (e) => {
-    try{
-      const data = JSON.parse(e.data);
-      if (data?.type === "hello") return;
-      if (String(data?.type || "").toLowerCase() === "scores") onEvent?.(data);
-    }catch(_){}
-  };
+const ingest = (e) => {
+  try{
+    const data = JSON.parse(e.data);
+    if (data?.type === "hello") return;
+
+    if (String(data?.type || "").toLowerCase() === "scores") {
+      console.log("[SCORES SSE]", data);
+      onEvent?.(data);
+    }
+  }catch(_){}
+};
+
 
   sseScores.onmessage = ingest;
   try { sseScores.addEventListener("scores", ingest); } catch(_){}
@@ -1316,18 +1321,25 @@ function connectScoresSSE({ onEvent, onStatus }){
   function handleSSEEvent(data){
     if (!data || !data.type) return;
 
-    // Scores feed (ticker)
-    if (data.type === "scores" && ENABLE_SCORES){
-      const txt = normalizeScorePayloadToText(data);
-      if (txt){
-        SCORE_TEXT = txt;
-        SCORE_UPDATED_AT = Date.now();
-        // If currently in scores mode, refresh immediately
-        refreshTickerText();
-      }
-      return;
-    }
 
+    
+    // Scores feed (ticker)
+if (data.type === "scores" && ENABLE_SCORES){
+  const txt = normalizeScorePayloadToText(data);
+  if (txt){
+    
+    const wasEmpty = !SCORE_TEXT;
+    SCORE_TEXT = txt;
+    SCORE_UPDATED_AT = Date.now();
+
+    if (wasEmpty) tickerMode = "scores";
+    refreshTickerText();
+  }
+  return;
+}
+
+
+    
     // Break / sport control
     if (data.type === "set_break"){
       const n = parseInt(String(data.value || data.break || ""), 10);
