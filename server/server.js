@@ -24,26 +24,17 @@ function getChannelSet(name) {
 
 
 function broadcast(payload, channel = "main") {
-  const msg = `data: ${JSON.stringify(payload)}\n\n`;
+  const type = String(payload?.type || "message");
+  const msg = `event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`;
   const set = getChannelSet(channel);
 
-  console.log(
-    "[TSU Bridge] broadcast -> channel:",
-    channel,
-    "clients:",
-    set.size,
-    "payload.type:",
-    payload?.type
-  );
+  console.log("[TSU Bridge] broadcast -> channel:", channel, "clients:", set.size, "payload.type:", type);
 
   for (const res of set) {
-    try {
-      res.write(msg);
-    } catch (_) {
-      set.delete(res);
-    }
+    try { res.write(msg); } catch (_) { set.delete(res); }
   }
 }
+
 
 
 
