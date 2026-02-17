@@ -21,6 +21,36 @@ function getChannelSet(name) {
   if (!channels.has(ch)) channels.set(ch, new Set());
   return channels.get(ch);
 }
+function normalizeSport(s) {
+  const v = String(s || "").toLowerCase().trim();
+  return ["nfl", "nba", "mlb", "nil"].includes(v) ? v : "";
+}
+
+// NFL teams include 2-letter codes; NBA/MLB are 3 letters.
+// This helps avoid wrongly treating "IN" or "NO" as NBA/MLB codes.
+function inferSportFromCode(code) {
+  const c = String(code || "").toUpperCase().trim();
+  if (!c) return "";
+  if (c.length === 2) return "nfl";
+  if (c.length === 3) return ""; // could be any; don't decide from length alone
+  return "";
+}
+
+function inferSportFromTitle(title) {
+  const t = String(title || "").toLowerCase();
+  if (!t) return "";
+  if (t.includes("football") || t.includes("nfl")) return "nfl";
+  if (t.includes("basketball") || t.includes("nba")) return "nba";
+  if (t.includes("baseball") || t.includes("mlb")) return "mlb";
+  return "";
+}
+
+function extractCodeFromTitle(title) {
+  const raw = String(title || "");
+  // IMPORTANT: avoid grabbing "IN" "NO" etc as codes unless it's obviously a code token.
+  const m = raw.match(/\b([A-Z]{2,4})\b/);
+  return m?.[1] ? m[1] : "";
+}
 
 
 function broadcast(payload, channel = "main") {
@@ -167,6 +197,65 @@ function postEvent(req, res) {
     String(body.channel || req.header("x-channel") || "main").toLowerCase();
 
   console.log("[TSU Bridge] event in:", payload, "channel:", channel);
+
+function inferSportFromPayload(p){
+  const s = String(p?.sport || "").toLowerCase();
+  if (["nfl","nba","mlb"].includes(s)) return s;
+
+  const code = String(p?.code || "").toUpperCase();
+  const title = String(p?.title || "").toLowerCase();
+
+  // super simple heuristics (expand if needed)
+  if (title.includes("nfl") || title.includes("football")) return "nfl";
+  if (title.includes("mlb") || title.includes("baseball")) return "mlb";
+  if (title.includes("nba") || title.includes("basketball")) return "nba";
+
+  // if you want: infer by code sets (optional)
+  return "";
+}
+
+function postEvent(req, res) {
+  if (!requireKey(req, res)) return;
+
+  const body = req.body || {};
+const payload = {
+  ...body,
+  ts: typeof body.ts === "number" ? body.ts : Date.now(),
+};
+
+const channel =
+  String(body.channel || req.header("x-channel") || "main").toLowerCase();
+
+// ----- AUTO SPORT + CODE NORMALIZATION (NO CLIENT INTERACTION) -----
+if (payload.type === "team_sold") {
+  // 1) infer/normalize sport
+  const declared = normalizeSport(payload.sport);
+  const fromTitle = inferSportFromTitle(payload.title);
+  const fromCode = inferSportFromCode(payload.code);
+
+  const sport = declared || fromTitle || fromCode;
+
+  // 2) if sport known, force it into payload + tell overlays to switch
+  if (sport) {
+    payload.sport = sport;
+    broadcast({ type: "set_sport", sport, ts: Date.now() }, channel);
+  }
+
+  // 3) if code missing, attempt to extract from title
+  if (!payload.code) {
+    const maybe = extractCodeFromTitle(payload.title);
+    if (maybe) payload.code = maybe;
+  }
+}
+// ---------------------------------------------------------------
+
+console.log("[TSU Bridge] event in:", payload, "channel:", channel);
+
+broadcast(payload, channel);
+res.json({ ok: true });
+
+}
+
 
   broadcast(payload, channel);
   res.json({ ok: true });
