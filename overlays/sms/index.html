@@ -583,7 +583,7 @@ background-size: 140% auto; /* try 140–220% */
       width: var(--W);
       margin-top: 10px;
       border-radius: 14px;
-      background: rgba(0,0,0,0.55);
+      background: rgba(0, 0, 0, 0.842);
       border: 1px solid rgba(255,255,255,0.10);
       box-shadow: inset 0 0 0 1px rgba(242,140,24,0.12);
       padding: 10px;
@@ -603,7 +603,7 @@ background-size: 140% auto; /* try 140–220% */
     .pill{
       padding: 8px 14px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.12);
+      background: rgba(73, 71, 71, 0.788);
       border: 1px solid rgba(255,255,255,0.14);
       color:#fff;
       font-weight: 900;
@@ -629,7 +629,7 @@ background-size: 140% auto; /* try 140–220% */
       gap: 10px;
       padding: 8px 10px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.10);
+      background: rgba(75, 74, 74, 0.548);
       border: 1px solid rgba(255,255,255,0.10);
       box-shadow: inset 0 0 0 1px rgba(0,0,0,0.45);
     }
@@ -1783,20 +1783,22 @@ function connectSSE(url){
     setHighBid(0);
     setTopBuyer('');
 
-    if (BRIDGE_URL) {
-      CHANNELS.forEach(ch => {
-  connectSSE(`${BRIDGE_URL}/stream?channel=${encodeURIComponent(ch)}`);
-});
+if (BRIDGE_URL) {
+  if (!BRIDGE_KEY) {
+    console.warn("[Overlay] No BRIDGE_KEY set. Set localStorage tsu.key in DevTools.");
+  }
 
-      CHANNELS.forEach(ch => {
-  const url = `${BRIDGE_URL}/stream?channel=${encodeURIComponent(ch)}`;
-  console.log("[Overlay] SSE connecting:", url);
-  connectSSE(url);
-});
+  CHANNELS.forEach(ch => {
+    const url =
+      `${BRIDGE_URL}/stream?channel=${encodeURIComponent(ch)}&key=${encodeURIComponent(BRIDGE_KEY)}`;
+    console.log("[Overlay] SSE connecting:", url);
+    connectSSE(url);
+  });
 
-    } else {
-      console.warn("[Overlay] No BRIDGE_URL set. Add ?bridge=https://... to the overlay URL");
-    }
+} else {
+  console.warn("[Overlay] No BRIDGE_URL set. Set localStorage tsu.bridge or add ?bridge=https://...");
+}
+
 
     setInterval(rotateBanner, 9000);
   });
