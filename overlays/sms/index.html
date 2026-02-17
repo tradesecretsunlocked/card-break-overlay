@@ -904,7 +904,7 @@ document.documentElement.style.setProperty(
   const nbaImg = (f) => `${BASE}images/nba/${f}`;
   const nflImg = (f) => `${BASE}images/nfl/${f}`;
   const mlbImg = (f) => `${BASE}images/mlb/${f}`;
-  const bannerImg = (f) => `${BASE}images/ads/${f}`;
+  const bannerImg = (f) => new URL(f, location.href).href;
 
   // === Bridge URL (NO KEY in URL) ===
   // Provide via ?bridge=https://YOUR-RENDER-APP.onrender.com
@@ -918,6 +918,11 @@ document.documentElement.style.setProperty(
     const saved = localStorage.getItem('tsu.bridge');
     return saved ? saved.replace(/\/$/, '') : "";
   })();
+const CHANNELS = (() => {
+  const qs = new URLSearchParams(location.search).getAll('channel');
+  return (qs && qs.length) ? qs : ["main"];
+})();
+
 
   /* =========================
      Teams — filenames follow your standard folders
@@ -1549,40 +1554,42 @@ document.documentElement.style.setProperty(
     chasersPopup.classList.add("active");
   }
 
-  /* =========================
-     SSE handling (same behavior as Hit Chasers)
-  ========================== */
-  let _es = null;
 
-  function connectSSE(url){
-    if (_es) { try { _es.close(); } catch(_){} }
-    console.log("[Overlay] Connecting SSE:", url);
+/* =========================
+   SSE handling (multi-channel)
+========================== */
+const _esMap = new Map(); // url -> EventSource
 
-    _es = new EventSource(url);
+function connectSSE(url){
+  const prev = _esMap.get(url);
+  if (prev) { try { prev.close(); } catch(_){} }
 
-    _es.onopen = () => console.log("[Overlay] SSE OPEN");
-    _es.onerror = () => {
-      console.warn("[Overlay] SSE ERROR (retrying in 2.5s)");
-      try { _es.close(); } catch(_) {}
-      _es = null;
-      setTimeout(() => connectSSE(url), 2500);
-    };
+  console.log("[Overlay] Connecting SSE:", url);
+  const es = new EventSource(url);
+  _esMap.set(url, es);
 
-    _es.onmessage = (e) => {
-      try { handleSSEEvent(JSON.parse(e.data)); }
-      catch(err){ console.warn("[Overlay] bad JSON message:", e.data); }
-    };
+  es.onopen = () => console.log("[Overlay] SSE OPEN", url);
 
-    _es.addEventListener("event", (e) => {
-      try { handleSSEEvent(JSON.parse(e.data)); }
-      catch(err){ console.warn("[Overlay] bad JSON event:", e.data); }
-    });
+  es.onerror = () => {
+    console.warn("[Overlay] SSE ERROR (retrying in 2.5s)", url);
+    try { es.close(); } catch(_) {}
+    _esMap.delete(url);
+    setTimeout(() => connectSSE(url), 2500);
+  };
 
-    _es.addEventListener("message", (e) => {
-      try { handleSSEEvent(JSON.parse(e.data)); }
-      catch(err){ console.warn("[Overlay] bad JSON message:", e.data); }
-    });
-  }
+  const onAny = (e) => {
+    try { handleSSEEvent(JSON.parse(e.data)); }
+    catch(err){ console.warn("[Overlay] bad JSON:", e.data); }
+  };
+
+  es.onmessage = onAny;
+  es.addEventListener("event", onAny);
+  es.addEventListener("message", onAny);
+}
+
+
+
+  
 
   function handleSSEEvent(data){
     try{
@@ -1642,9 +1649,11 @@ document.documentElement.style.setProperty(
         setHeaderTitle(payload.value);
       }
 
-      if (type === "set_sport" || type === "sport_set"){
-        if (typeof payload.value === "string") setSport(payload.value);
-      }
+     if (type === "set_sport" || type === "sport_set"){
+  const v = payload.value ?? payload.sport;
+  if (typeof v === "string") setSport(v);
+}
+
 
       updateStats();
       renderSoldPanel();
@@ -1775,8 +1784,16 @@ document.documentElement.style.setProperty(
     setTopBuyer('');
 
     if (BRIDGE_URL) {
-      connectSSE(`${BRIDGE_URL}/stream`);
-      console.log("[Overlay] SSE connected:", `${BRIDGE_URL}/stream`);
+      CHANNELS.forEach(ch => {
+  connectSSE(`${BRIDGE_URL}/stream?channel=${encodeURIComponent(ch)}`);
+});
+
+      CHANNELS.forEach(ch => {
+  const url = `${BRIDGE_URL}/stream?channel=${encodeURIComponent(ch)}`;
+  console.log("[Overlay] SSE connecting:", url);
+  connectSSE(url);
+});
+
     } else {
       console.warn("[Overlay] No BRIDGE_URL set. Add ?bridge=https://... to the overlay URL");
     }

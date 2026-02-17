@@ -214,7 +214,47 @@ function inferSportFromPayload(p){
   return "";
 }
 
+function postEvent(req, res) {
+  if (!requireKey(req, res)) return;
 
+  const body = req.body || {};
+const payload = {
+  ...body,
+  ts: typeof body.ts === "number" ? body.ts : Date.now(),
+};
+
+const channel =
+  String(body.channel || req.header("x-channel") || "main").toLowerCase();
+
+// ----- AUTO SPORT + CODE NORMALIZATION (NO CLIENT INTERACTION) -----
+if (payload.type === "team_sold") {
+  // 1) infer/normalize sport
+  const declared = normalizeSport(payload.sport);
+  const fromTitle = inferSportFromTitle(payload.title);
+  const fromCode = inferSportFromCode(payload.code);
+
+  const sport = declared || fromTitle || fromCode;
+
+  // 2) if sport known, force it into payload + tell overlays to switch
+  if (sport) {
+    payload.sport = sport;
+    broadcast({ type: "set_sport", sport, ts: Date.now() }, channel);
+  }
+
+  // 3) if code missing, attempt to extract from title
+  if (!payload.code) {
+    const maybe = extractCodeFromTitle(payload.title);
+    if (maybe) payload.code = maybe;
+  }
+}
+// ---------------------------------------------------------------
+
+console.log("[TSU Bridge] event in:", payload, "channel:", channel);
+
+broadcast(payload, channel);
+res.json({ ok: true });
+
+}
 
 
   broadcast(payload, channel);
