@@ -1318,6 +1318,55 @@ const ingest = (e) => {
     return String(p?.sport || p?.league || p?.breakType || "").toLowerCase().trim();
   }
 
+function normTeamStr(s){
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function findCodeByTitle(title, sport){
+  const t = normTeamStr(title);
+  const teams = breakTypes[sport]?.teams || [];
+  for (const tm of teams){
+    const name = normTeamStr(tm.name);
+    const code = String(tm.code || "").toUpperCase();
+    if (!code) continue;
+
+    // match if title contains team name OR code
+    if (name && t.includes(name)) return code;
+    if (code && t.includes(code.toLowerCase())) return code;
+  }
+  return "";
+}
+function normalizeTitleForMatch(s){
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Match sold event to a team code using team.name OR team.code inside title
+function inferTeamCodeFromSaleTitle(title, breakType){
+  const t = normalizeTitleForMatch(title);
+  if (!t) return "";
+
+  const teams = breakTypes[breakType]?.teams || [];
+  for (const team of teams){
+    const code = String(team.code || "").toUpperCase();
+    const name = normalizeTitleForMatch(team.name);
+
+    // code exact token match (LAL, BOS, JAX, etc)
+    if (code && new RegExp(`\\b${code.toLowerCase()}\\b`).test(t)) return code;
+
+    // name contains match ("jacksonville jaguars")
+    if (name && t.includes(name)) return code;
+  }
+  return "";
+}
+
+
   function handleSSEEvent(data){
     if (!data || !data.type) return;
 
@@ -1366,16 +1415,27 @@ if (data.type === "scores" && ENABLE_SCORES){
     }
 
     // Team sold / unsold
-    if (data.type === "team_sold"){
-      const sport = getSportFromPayload(data);
-      // If payload specifies sport, enforce it
-      if (sport && sport !== currentBreakType) return;
+if (data.type === "team_sold"){
+  const sport = getSportFromPayload(data);
 
-      const code = getCodeFromPayload(data);
-      const buyer = getBuyerFromPayload(data);
-      if (code) sseMarkSold(code, buyer);
-      return;
-    }
+  // If payload specifies sport, auto-switch (no URL needed)
+  if (sport && sport !== currentBreakType && breakTypes[sport]) {
+    setSport(sport);
+  }
+
+  let code = getCodeFromPayload(data);
+  const buyer = getBuyerFromPayload(data);
+
+  // If code missing, infer from title (Jacksonville Jaguars -> JAX, etc)
+  if (!code) {
+    code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+  }
+
+  if (code) sseMarkSold(code, buyer);
+  return;
+}
+
+
 
     if (data.type === "team_unsold"){
       const code = getCodeFromPayload(data);
