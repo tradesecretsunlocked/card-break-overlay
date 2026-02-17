@@ -2003,7 +2003,9 @@ teamDiv.appendChild(label);
     /* =========================
        SSE Bridge (Whatnot Sale Bridge)
     ========================== */
-    let sse = null;
+let sse = null;        // primary channel (sales, resets, etc)
+let sseScores = null;  // scores channel (sports)
+
 
     function getBridgeUrl() {
   const q = new URLSearchParams(location.search).get("bridge");
@@ -2026,7 +2028,7 @@ function getBridgeKey() {
 }
 
 function getChannel(){
-  return new URLSearchParams(location.search).get("channel") || "main";
+  return new URLSearchParams(location.search).get("channel") || "sports";
 }
 function automationEnabled(){ return !!getBridgeUrl(); }
 
@@ -2055,6 +2057,8 @@ function connectSSE(url){
   setSSEStatus('error','connecting');
 
   try{
+        console.log("[overlay] EventSource URL:", url);
+
     sse = new EventSource(url);
 
     const ingest = (e) => {
@@ -2093,6 +2097,33 @@ function connectSSE(url){
   }
 }
 
+function connectScoresSSE(base){
+  if (sseScores) { try { sseScores.close(); } catch(_){} }
+  try{
+    const url = `${base}/stream?channel=sports`;
+    sseScores = new EventSource(url);
+
+    const ingest = (e) => {
+      try{
+        const data = JSON.parse(e.data);
+        if (data?.type === "hello") return;
+        // only feed scores into the normal handler
+        if (String(data?.type || "").toLowerCase() === "scores") {
+          handleSSEEvent(data);
+        }
+      }catch(_){}
+    };
+
+    sseScores.onmessage = ingest;
+    try { sseScores.addEventListener("scores", ingest); } catch(_){}
+    sseScores.onerror = () => {
+      try { sseScores.close(); } catch(_) {}
+      sseScores = null;
+      setTimeout(() => connectScoresSSE(base), 2500);
+    };
+  }catch(_){}
+}
+
 
 function startSSE(){
   if (!automationEnabled()){
@@ -2101,8 +2132,14 @@ function startSSE(){
   }
   const base = normalizeBridge(getBridgeUrl());
   const channel = getChannel();
+
+  // main channel for sales/stream events
   connectSSE(`${base}/stream?channel=${encodeURIComponent(channel)}`);
+
+  // scores ALWAYS come from channel=sports
+  connectScoresSSE(base);
 }
+
 
 
 

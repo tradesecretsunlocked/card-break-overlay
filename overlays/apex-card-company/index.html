@@ -1104,6 +1104,11 @@
     return (getParam("channel") || "main").toLowerCase();
   }
 
+function getScoresChannel(){
+  return (getParam("scoresChannel") || "sports").toLowerCase();
+}
+
+
   function getOverlayId() {
     return (getParam("overlay") || "apex-overlay").toLowerCase();
   }
@@ -1112,7 +1117,9 @@
     return !!getBridgeBase();
   }
 
-  let sse = null;
+  let sse = null;       // main channel
+let sseScores = null; // scores channel
+
 
   function setSSEStatus(state, msg){
     const wrap = document.getElementById('sseStatus');
@@ -1167,6 +1174,37 @@
       setTimeout(() => connectBridgeSSE({ onEvent, onStatus }), 2500);
     };
   }
+
+
+function connectScoresSSE({ onEvent, onStatus }){
+  if (!bridgeEnabled()) return;
+
+  const base = getBridgeBase();
+  const channel = getScoresChannel();
+  const url = `${base}/stream?channel=${encodeURIComponent(channel)}`;
+
+  if (sseScores) try { sseScores.close(); } catch(_){}
+  sseScores = new EventSource(url);
+
+  const ingest = (e) => {
+    try{
+      const data = JSON.parse(e.data);
+      if (data?.type === "hello") return;
+      if (String(data?.type || "").toLowerCase() === "scores") onEvent?.(data);
+    }catch(_){}
+  };
+
+  sseScores.onmessage = ingest;
+  try { sseScores.addEventListener("scores", ingest); } catch(_){}
+
+  sseScores.onerror = () => {
+    try { sseScores.close(); } catch(_){}
+    sseScores = null;
+    setTimeout(() => connectScoresSSE({ onEvent, onStatus }), 2500);
+  };
+}
+
+
 
   async function bridgePost(payload) {
     if (!bridgeEnabled()) return;
@@ -1253,7 +1291,7 @@
       // flip modes
       tickerMode = (tickerMode === "default") ? "scores" : "default";
       refreshTickerText();
-    }, 15000); // rotate every 15s
+    }, 22000); // rotate every 15s
   }
 
   /******************************************************************
@@ -1421,6 +1459,9 @@
       onEvent: handleSSEEvent,
       onStatus: (state, msg) => setSSEStatus(state, msg)
     });
+if (ENABLE_SCORES) {
+  connectScoresSSE({ onEvent: handleSSEEvent, onStatus: () => {} });
+}
 
     bridgeWarmup({ breakId: `apex:${currentBreakType}:${loadBreakNumber()}` });
   });
