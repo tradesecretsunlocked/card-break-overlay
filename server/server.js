@@ -18,9 +18,11 @@ function requireKey(req, res) {
 
   // Accept from query OR headers
   const qk = String(req.query.key || "").trim();
-  const hk =
-    String(req.header("x-api-key") || "").trim() ||
-    String(req.header("authorization") || "").replace(/^Bearer\s+/i, "").trim();
+const hk =
+  String(req.header("x-api-key") || "").trim() ||
+  String(req.header("x-bridge-key") || "").trim() ||
+  String(req.header("authorization") || "").replace(/^Bearer\s+/i, "").trim();
+
 
   const provided = qk || hk;
 
