@@ -1016,11 +1016,6 @@ function setHeaderTitle(txt){
     renderSoldPanel();
   }
 
-function setHighBid(val){
-  highBid = Number.isFinite(val) ? val : 0;
-  document.getElementById('highBidText').textContent =
-    highBid > 0 ? `$${highBid.toFixed(2)}` : '—';
-}
 
 
   function markSold(code){
@@ -1422,38 +1417,39 @@ function handleSSEEvent(data){
 
 // ---- THESE MUST BE OUTSIDE handleSSEEvent ----
 
-let _es = null;
-function connectSSE(url){
-  if (_es) { try { _es.close(); } catch(_){} }
+let _esMain = null;
+let _esSports = null;
+
+function connectSSEOne(url, slot){
+  if (slot.ref) { try { slot.ref.close(); } catch(_){} }
   console.log("[Overlay] Connecting SSE:", url);
 
-  _es = new EventSource(url);
+  const es = new EventSource(url);
+  slot.ref = es;
 
-  _es.onopen = () => console.log("[Overlay] SSE OPEN");
-  _es.onerror = () => {
-    console.warn("[Overlay] SSE ERROR (retrying in 2.5s)");
-    try { _es.close(); } catch(_) {}
-    _es = null;
-    setTimeout(() => connectSSE(url), 2500);
+  es.onopen = () => console.log("[Overlay] SSE OPEN:", url);
+  es.onerror = () => {
+    console.warn("[Overlay] SSE ERROR (retrying in 2.5s):", url);
+    try { es.close(); } catch(_) {}
+    slot.ref = null;
+    setTimeout(() => connectSSEOne(url, slot), 2500);
   };
 
-  // default SSE messages
-  _es.onmessage = (e) => {
-    try { handleSSEEvent(JSON.parse(e.data)); }
-    catch(err){ console.warn("[Overlay] bad JSON message:", e.data); }
+  es.onmessage = (e) => {
+    try { handleSSEEvent(JSON.parse(e.data)); } catch {}
   };
 
-  // named SSE events (server may emit: event: event)
-  _es.addEventListener("event", (e) => {
-    try { handleSSEEvent(JSON.parse(e.data)); }
-    catch(err){ console.warn("[Overlay] bad JSON event:", e.data); }
+  const EVENTS = ["hello","reset","team_sold","team_unsold","set_break","break_set","set_title","stream_stats","scores","banner_set"];
+  EVENTS.forEach((name) => {
+    es.addEventListener(name, (e) => {
+      try { handleSSEEvent(JSON.parse(e.data)); } catch {}
+    });
   });
+}
 
-  // also accept "message" explicitly
-  _es.addEventListener("message", (e) => {
-    try { handleSSEEvent(JSON.parse(e.data)); }
-    catch(err){ console.warn("[Overlay] bad JSON message:", e.data); }
-  });
+function connectBothChannels(bridgeUrl){
+  connectSSEOne(`${bridgeUrl}/stream?channel=main`, { get ref(){ return _esMain; }, set ref(v){ _esMain=v; } });
+  connectSSEOne(`${bridgeUrl}/stream?channel=sports`, { get ref(){ return _esSports; }, set ref(v){ _esSports=v; } });
 }
 
 
@@ -1613,21 +1609,22 @@ function openChasersPicker(){
 window.addEventListener('DOMContentLoaded', () => {
   loadBreakNum();
   loadChasers();
-loadHeaderTitle();
+  loadHeaderTitle();
+
   renderTeams();
   renderBanner();
-
   updateStreamStatsBox();
 
   if (BRIDGE_URL) {
-    connectSSE(`${BRIDGE_URL}/stream`);
-    console.log("[Overlay] SSE connected:", `${BRIDGE_URL}/stream`);
+    connectBothChannels(BRIDGE_URL);
+    console.log("[Overlay] SSE connected:", BRIDGE_URL);
   } else {
     console.warn("[Overlay] No BRIDGE_URL set. Add ?bridge=https://... to the overlay URL");
   }
 
   setInterval(rotateBanner, 9000);
 });
+
 
 </script>
 </body>
