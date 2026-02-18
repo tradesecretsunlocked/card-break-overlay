@@ -273,7 +273,7 @@ app.listen(PORT, () => {
 });
 
 // Poll NBA/NFL/MLB scores every 15s
-setInterval(tickScores, 15000);
-tickScores();
+setInterval(tickAllScores, 15000);
+tickAllScores();
 
 
