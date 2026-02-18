@@ -12,6 +12,24 @@ app.use(express.json({ limit: "256kb" }));
 const PORT = process.env.PORT || 3000;
 const BRIDGE_KEY = (process.env.BRIDGE_KEY || "").trim();
 
+function requireKey(req, res) {
+  // If no key is configured on the server, allow everything (open mode)
+  if (!BRIDGE_KEY) return true;
+
+  // Accept from query OR headers
+  const qk = String(req.query.key || "").trim();
+  const hk =
+    String(req.header("x-api-key") || "").trim() ||
+    String(req.header("authorization") || "").replace(/^Bearer\s+/i, "").trim();
+
+  const provided = qk || hk;
+
+  if (!provided || provided !== BRIDGE_KEY) {
+    res.status(401).json({ ok: false, error: "unauthorized" });
+    return false;
+  }
+  return true;
+}
 
 // Track SSE clients by channel
 const channels = new Map(); // channel -> Set<res>
@@ -68,7 +86,7 @@ function broadcast(payload, channel = "main") {
 
 
 
-// ===== ESPN NBA scoreboard (adds LIVE SCORES to same SSE stream) =====
+// ===== ESPN scoreboards (NBA/NFL/MLB) -> SAME SSE channel "sports" =====
 function yyyymmddChicago(d = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Chicago",
@@ -83,10 +101,7 @@ function yyyymmddChicago(d = new Date()) {
   return `${y}${m}${day}`;
 }
 
-async function fetchNBAScores() {
-  const date = yyyymmddChicago();
-  const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${date}`;
-
+async function fetchESPNScoreboard({ sport, url }) {
   const r = await fetch(url, { headers: { "User-Agent": "tsu-bridge" } });
   if (!r.ok) throw new Error(`ESPN fetch failed: ${r.status}`);
 
@@ -114,42 +129,65 @@ async function fetchNBAScores() {
     return { home: homeAbbr, homeScore, away: awayAbbr, awayScore, status };
   });
 
+  // If ESPN returns no events, make it obvious it's not an error.
+  if (!games.length) {
+    return [{
+      away: "—", awayScore: 0,
+      home: "—", homeScore: 0,
+      status: "No Games Found",
+    }];
+  }
+
   return games.slice(0, 4);
 }
 
-async function tickScores() {
-  try {
-    const games = await fetchNBAScores();
-    broadcast({ type: "scores", games, ts: Date.now() }, "sports");
+async function tickAllScores() {
+  const date = yyyymmddChicago();
 
-  } catch (_) {
-    broadcast({
-      type: "scores",
-      games: [{ away: "—", awayScore: 0, home: "—", homeScore: 0, status: "No feed" }],
-      ts: Date.now() ,
-    }, "sports");
+  const feeds = [
+    {
+      sport: "nba",
+      url: `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${date}`,
+    },
+    {
+      sport: "nfl",
+      url: `https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=${date}`,
+    },
+    {
+      sport: "mlb",
+      url: `https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?dates=${date}`,
+    },
+  ];
+
+  for (const f of feeds) {
+    try {
+      const games = await fetchESPNScoreboard(f);
+      broadcast({ type: "scores", sport: f.sport, games, ts: Date.now() }, "sports");
+    } catch (_) {
+      broadcast({
+        type: "scores",
+        sport: f.sport,
+        games: [{
+          away: "—", awayScore: 0,
+          home: "—", homeScore: 0,
+          status: "No Games Found",
+        }],
+        ts: Date.now(),
+      }, "sports");
+    }
   }
 }
 
 
-function requireKey(req, res) {
-  // If no BRIDGE_KEY is configured, run “open” (useful for dev).
-  if (!BRIDGE_KEY) return true;
-
-  const got = (req.header("x-bridge-key") || "").trim();
-  if (!got || got !== BRIDGE_KEY) {
-    res.status(401).json({ ok: false, error: "Unauthorized" });
-    return false;
-  }
-  return true;
-}
 
 // Health check
 app.get("/", (req, res) => res.send("TSU Bridge OK"));
 app.get("/health", (req, res) => res.json({ ok: true }));
 
 // SSE stream (primary)
+// SSE stream (primary)
 function sseHandler(req, res) {
+  // READ: open (no key required)
   const channel = String(req.query.channel || "main").toLowerCase();
   const set = getChannelSet(channel);
 
@@ -164,12 +202,8 @@ function sseHandler(req, res) {
   set.add(res);
 
   const ping = setInterval(() => {
-    try {
-      res.write(`: ping ${Date.now()}\n\n`);
-    } catch (_) {
-      clearInterval(ping);
-      set.delete(res);
-    }
+    try { res.write(`: ping ${Date.now()}\n\n`); }
+    catch (_) { clearInterval(ping); set.delete(res); }
   }, 25000);
 
   req.on("close", () => {
@@ -238,7 +272,8 @@ app.listen(PORT, () => {
   console.log(`[TSU Bridge] BRIDGE_KEY set: ${BRIDGE_KEY ? "yes" : "no (open mode)"}`);
 });
 
-// Poll NBA scores every 15s
+// Poll NBA/NFL/MLB scores every 15s
 setInterval(tickScores, 15000);
 tickScores();
+
 
