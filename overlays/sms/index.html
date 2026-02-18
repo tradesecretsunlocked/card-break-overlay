@@ -908,16 +908,28 @@ document.documentElement.style.setProperty(
 
   // === Bridge URL (NO KEY in URL) ===
   // Provide via ?bridge=https://YOUR-RENDER-APP.onrender.com
-  // Falls back to localStorage value (set once)
-  const BRIDGE_URL = (() => {
-    const q = new URLSearchParams(location.search).get('bridge');
-    if (q) {
-      localStorage.setItem('tsu.bridge', q.replace(/\/$/, ''));
-      return q.replace(/\/$/, '');
-    }
-    const saved = localStorage.getItem('tsu.bridge');
-    return saved ? saved.replace(/\/$/, '') : "";
-  })();
+
+const BRIDGE_URL = (() => {
+  const q = new URLSearchParams(location.search).get('bridge');
+  if (q && q.trim()) {
+    localStorage.setItem('tsu.bridge', q.trim().replace(/\/$/, ''));
+    return q.trim().replace(/\/$/, '');
+  }
+  const saved = localStorage.getItem('tsu.bridge');
+  return saved ? saved.replace(/\/$/, '') : "";
+})();
+
+const BRIDGE_KEY = (() => {
+  // optional URL fallback if you ever want it, but primary is localStorage
+  const q = new URLSearchParams(location.search).get('key');
+  if (q && q.trim()) {
+    localStorage.setItem('tsu.key', q.trim());
+    return q.trim();
+  }
+  return (localStorage.getItem('tsu.key') || '').trim();
+})();
+
+
 const CHANNELS = (() => {
   const qs = new URLSearchParams(location.search).getAll('channel');
   return (qs && qs.length) ? qs : ["main"];
@@ -1109,12 +1121,11 @@ const CHANNELS = (() => {
   function saveSport(){
     localStorage.setItem('sms.sport', currentSport);
   }
-  function loadSport(){
-    const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
-    const stored = (localStorage.getItem('sms.sport') || '').toLowerCase();
-    const pick = (qSport && breakTypes[qSport]) ? qSport : (breakTypes[stored] ? stored : 'nba');
-    currentSport = pick;
-  }
+function loadSport(){
+  const stored = (localStorage.getItem('sms.sport') || '').toLowerCase();
+  currentSport = breakTypes[stored] ? stored : 'nba';
+}
+
 
   function saveChasers(){
     localStorage.setItem(CHASERS_KEY, JSON.stringify([...chasersSet]));
@@ -1278,6 +1289,20 @@ const CHANNELS = (() => {
     soldOpen = !soldOpen;
     soldWrap.classList.toggle('active', soldOpen);
   }
+// ===== Scores (NBA/NFL/MLB) =====
+// SMS: rotate NBA -> NFL -> MLB in the LIVE SCORES box
+const SCORE_MODE = "cycle";           // fixed for SMS
+const CYCLE_MS = (() => {
+  const v = parseInt(LS.get("cycleMs", "6000"), 10);
+  return Number.isFinite(v) && v >= 1500 ? v : 6000;
+})();
+
+
+// store last scores per sport
+const scoresBySport = { nba: [], nfl: [], mlb: [] };
+let _scoreCycleTimer = null;
+let _cycleIdx = 0;
+const _cycleOrder = ["nba","nfl","mlb"];
 
   function renderSoldPanel(){
     soldGrid.innerHTML = '';
@@ -1403,24 +1428,65 @@ const CHANNELS = (() => {
   /* =========================
      Scoreboard
   ========================== */
-  function setScoreboard(games){
-    const host = document.getElementById('scoreboard');
-    host.innerHTML = '';
+function sportLabel(s){
+  return (s === "nba") ? "NBA" : (s === "nfl") ? "NFL" : (s === "mlb") ? "MLB" : String(s || "").toUpperCase();
+}
 
-    games.slice(0,4).forEach(g => {
-      const row = document.createElement('div');
-      row.className = 'scoreRow';
-      row.innerHTML = `
-        <span>${g.away} ${g.awayScore}  •  ${g.home} ${g.homeScore}</span>
-        <span class="muted">${g.status}</span>
-      `;
-      host.appendChild(row);
-    });
+function renderGameRows(host, games){
+  const list = Array.isArray(games) ? games : [];
+  const slice = list.slice(0, 4);
 
-    if (!games.length){
-      host.innerHTML = `<div class="scoreRow"><span class="muted">No games / feed…</span></div>`;
-    }
+  if (!slice.length){
+    const row = document.createElement('div');
+    row.className = 'scoreRow';
+    row.innerHTML = `<span class="muted">No Games Found</span>`;
+    host.appendChild(row);
+    return;
   }
+
+  slice.forEach(g => {
+    const row = document.createElement('div');
+    row.className = 'scoreRow';
+    row.innerHTML = `
+      <span>${g.away} ${g.awayScore}  •  ${g.home} ${g.homeScore}</span>
+      <span class="muted">${g.status}</span>
+    `;
+    host.appendChild(row);
+  });
+}
+
+function renderScores(){
+  const host = document.getElementById('scoreboard');
+  host.innerHTML = '';
+
+  if (SCORE_MODE === "cycle"){
+    const s = _cycleOrder[_cycleIdx % _cycleOrder.length];
+    const title = document.createElement('div');
+    title.className = 'scoreRow';
+    title.innerHTML = `<span class="muted">${sportLabel(s)} SCORES</span><span class="muted"></span>`;
+    host.appendChild(title);
+
+    renderGameRows(host, scoresBySport[s]);
+    return;
+  }
+
+  // GROUP mode (stack NBA then NFL then MLB)
+  ["nba","nfl","mlb"].forEach(s => {
+    const title = document.createElement('div');
+    title.className = 'scoreRow';
+    title.innerHTML = `<span class="muted">${sportLabel(s)}</span><span class="muted"></span>`;
+    host.appendChild(title);
+
+    renderGameRows(host, scoresBySport[s]);
+  });
+}
+
+function setScoreboard(games, sport){
+  const s = String(sport || "").toLowerCase();
+  if (!(s in scoresBySport)) return;
+  scoresBySport[s] = Array.isArray(games) ? games : [];
+  renderScores();
+}
 
   /* =========================
      Rotating Banner
@@ -1641,9 +1707,16 @@ function connectSSE(url){
         slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
       }
 
-      if (type === "scores" && Array.isArray(payload.games)){
-        setScoreboard(payload.games);
-      }
+     if (type === "scores" && Array.isArray(payload.games)){
+  const s = String(payload.sport || "").toLowerCase();
+  if (s === "nba" || s === "nfl" || s === "mlb"){
+    setScoreboard(payload.games, s);
+  } else {
+    // backward compat if server didn't send sport
+    setScoreboard(payload.games, "nba");
+  }
+}
+
 
       if (type === "set_title" && typeof payload.value === "string"){
         setHeaderTitle(payload.value);
@@ -1778,27 +1851,45 @@ function connectSSE(url){
     renderTeams();
     renderBanner();
     updateStreamStatsBox();
+renderScores();
+
+if (SCORE_MODE === "cycle") {
+  if (_scoreCycleTimer) clearInterval(_scoreCycleTimer);
+  _scoreCycleTimer = setInterval(() => {
+    _cycleIdx = (_cycleIdx + 1) % _cycleOrder.length;
+    renderScores();
+  }, CYCLE_MS);
+}
 
     // init per-break stats
     setHighBid(0);
     setTopBuyer('');
 
 if (BRIDGE_URL) {
-  if (!BRIDGE_KEY) {
-    console.warn("[Overlay] No BRIDGE_KEY set. Set localStorage tsu.key in DevTools.");
-  }
-
   CHANNELS.forEach(ch => {
-    const url =
-      `${BRIDGE_URL}/stream?channel=${encodeURIComponent(ch)}&key=${encodeURIComponent(BRIDGE_KEY)}`;
-    console.log("[Overlay] SSE connecting:", url);
+    const url = `${BRIDGE_URL}/stream?channel=${encodeURIComponent(ch)}`;
     connectSSE(url);
   });
+} 
 
-} else {
+// ===== Per-client settings (NO URL) =====
+// Set this per overlay file:
+//  - SMS: "sms"
+//  - Apex: "apex"
+//  - Wizard: "wizard"
+const CLIENT_ID = "sms";
+
+const LS = {
+  get(k, d=""){ const v = localStorage.getItem(`${CLIENT_ID}.${k}`); return (v==null ? d : v); },
+  set(k, v){ localStorage.setItem(`${CLIENT_ID}.${k}`, String(v)); }
+};
+
+
+else {
   console.warn("[Overlay] No BRIDGE_URL set. Set localStorage tsu.bridge or add ?bridge=https://...");
 }
 
+  
 
     setInterval(rotateBanner, 9000);
   });
