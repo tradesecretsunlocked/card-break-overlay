@@ -140,6 +140,7 @@ background-size: 140% auto; /* try 140–220% */
     .brand-left{
       display:flex;
       align-items:center;
+      max-width:440;
       gap: 10px;
       min-width: 260px;
     }
@@ -1663,9 +1664,29 @@ function connectSSE(url){
     catch(err){ console.warn("[Overlay] bad JSON:", e.data); }
   };
 
+
+// default "message" (this catches your initial hello + any data-only sends)
   es.onmessage = onAny;
   es.addEventListener("event", onAny);
   es.addEventListener("message", onAny);
+
+  // IMPORTANT: your server uses `event: <type>` so we must subscribe to those names
+  const SSE_EVENTS = [
+    "scores",
+    "team_sold", "sold", "sale",
+    "team_unsold", "unsold",
+    "reset",
+    "set_break", "break_set",
+    "banner_set",
+    "set_title",
+    "set_sport", "sport_set",
+    "stream_stats",
+    "overlay_warmup"
+  ];
+
+  SSE_EVENTS.forEach(ev => es.addEventListener(ev, onAny));
+
+
 }
 
 
