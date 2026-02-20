@@ -2028,7 +2028,8 @@ function getBridgeKey() {
 }
 
 function getChannel(){
-  return new URLSearchParams(location.search).get("channel") || "sports";
+ return new URLSearchParams(location.search).get("channel") || "sports";
+ return new URLSearchParams(location.search).get("channel") || "main";
 }
 function automationEnabled(){ return !!getBridgeUrl(); }
 
@@ -2081,6 +2082,7 @@ function connectSSE(url){
 
     // Named SSE events (server sends: event: team_sold)
     sse.addEventListener('team_sold', ingest);
+    sse.addEventListener('team_unsold', ingest);
     sse.addEventListener('stream_stats', ingest);
     sse.addEventListener('scores', ingest);
     sse.addEventListener('reset', ingest);
@@ -2167,10 +2169,13 @@ function startSSE(){
 
 
 function handleSSEEvent(data){
-  const type = String(data?.type || '').toLowerCase();
+  const payload =
+    (data && typeof data === "object" && data.data && typeof data.data === "object")
+      ? data.data
+      : data;
 
-  // ignore only hello
-  if (type === 'hello') return;
+  const type = String(payload?.type || payload?.event || '').toLowerCase();
+  if (!type || type === "hello") return;
 
   // ✅ handle scores properly
   if (type === 'scores' && Array.isArray(data?.games)) {
@@ -2196,15 +2201,15 @@ function handleSSEEvent(data){
     return;
   }
 
-  if (type === 'set_break'){
-    const n = parseInt(data?.breakNumber, 10);
-    if (Number.isFinite(n) && n > 0) setBreakNumber(n);
-    return;
-  }
+if (type === 'set_break'){
+  const n = parseInt(payload?.value ?? payload?.breakNumber ?? payload?.break ?? payload?.breakNum, 10);
+  if (Number.isFinite(n) && n > 0) setBreakNumber(n);
+  return;
+}
 
 if (type === 'team_sold'){
-  const sport = String(data?.sport || '').toLowerCase();
-  const buyer = String(data?.buyer || '').trim();
+const sport = String(payload?.sport || '').toLowerCase();
+const buyer = String(payload?.buyer || '').trim();
 
   // Always normalize the incoming title
   const incomingTitleRaw = String(data?.title || '');
@@ -2236,6 +2241,11 @@ if (type === 'team_sold'){
     }
   }
 
+  const sportKey = (sport || currentBreakType || '').toLowerCase();
+const checked = requireValidCodeOrBail(code, sportKey, incomingTitleRaw);
+if (!checked) return;
+code = checked;
+
   if (!soldTeams.has(code)){
     soldTeams.add(code);
     const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
@@ -2252,6 +2262,44 @@ if (type === 'team_sold'){
   return;
 }
 
+if (type === 'team_unsold'){
+  const sport = String(data?.sport || '').toLowerCase();
+
+  // If event tells us sport, switch
+  if (sport && breakTypes[sport] && sport !== currentBreakType){
+    currentBreakType = sport;
+    loadSoldState();
+    renderTeams();
+  }
+
+  const incomingTitleRaw = String(data?.title || '');
+  const incomingTitle = stripPrefixTitle(incomingTitleRaw);
+
+  let code = String(data?.code || '').trim().toUpperCase();
+
+  if ((sport || currentBreakType) === 'nil'){
+    code = inferCodeFromTitle(incomingTitle, 'nil');
+  } else {
+    if (!code) code = inferCodeFromTitle(incomingTitle, sport || currentBreakType);
+  }
+
+  if (!code) return;
+
+  if (soldTeams.has(code)){
+    soldTeams.delete(code);
+    const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+    if (el) el.classList.remove('sold');
+
+    const idx = soldTeamsList.findIndex(e => e.code === code);
+    if (idx !== -1) soldTeamsList.splice(idx, 1);
+
+    updateStats();
+    renderSoldPanel();
+    saveSoldState();
+  }
+
+  return;
+}
 
   if (type === 'buyer'){
     const code = String(data?.code || '').trim();
@@ -2375,6 +2423,18 @@ function inferCodeFromTitle(title, sportHint){
     }
   }
 
+
+  function isValidCodeForSport(code, sportKey){
+  if (!code || !sportKey || !breakTypes[sportKey]) return false;
+  const map = ensureLookup(sportKey);
+  return map.has(norm(code));
+}
+
+function requireValidCodeOrBail(code, sportKey, titleRaw){
+  if (isValidCodeForSport(code, sportKey)) return code;
+  console.warn("[overlay] invalid code for sport:", code, "sport:", sportKey, "title:", titleRaw);
+  return null;
+}
   return null;
 }
 
