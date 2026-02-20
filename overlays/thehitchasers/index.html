@@ -919,6 +919,8 @@ const BRIDGE_URL = (() => {
      State
   ========================== */
   let soldSet = new Set();
+  // Tracks which team is currently assigned to a given listing/product key
+const lastCodeByListingKey = new Map();
   let soldList = []; // {code,buyer}
   let breakNum = 1;
   let bannerIdx = 0;
@@ -1353,31 +1355,65 @@ function handleSSEEvent(data){
 
     console.log("[Overlay] SSE IN:", payload);
 
-    if (type === "team_sold" || type === "sold" || type === "sale"){
-      const code = (payload.code || "").toUpperCase() || inferNBACodeFromTitle(payload.title);
+if (type === "team_sold" || type === "sold" || type === "sale"){
+  const code = (payload.code || "").toUpperCase() || inferNBACodeFromTitle(payload.title);
 
-      if (code){
-        markSold(code);
+  // ✅ Use listingId/productId as the stable identity for respins/reassignments
+  const listingKey =
+    payload.listingId ||
+    payload.productId ||
+    payload.saleId ||            // optional if you add it later
+    payload.id ||
+    null;
 
-        if (payload.buyer){
-          const row = soldList.find(x => x.code === code);
-          if (row) row.buyer = payload.buyer;
-        }
-      } else {
-        console.warn("[Overlay] Could not match team from:", payload.title || payload);
+  if (code){
+
+    // ✅ If this listingKey was previously assigned to a different team, unmark the old one
+    if (listingKey){
+      const prevCode = lastCodeByListingKey.get(listingKey);
+      if (prevCode && prevCode !== code){
+        markUnsold(prevCode);
       }
-
-      if (Number.isFinite(payload.amount)) {
-        setHighBid(Math.max(highBid, payload.amount));
-      }
-
-      updateBuyerStats(payload.buyer, payload.amount);
+      lastCodeByListingKey.set(listingKey, code);
     }
 
-    if (type === "team_unsold" || type === "unsold"){
-      const code = (payload.code || "").toUpperCase() || inferNBACodeFromTitle(payload.title);
-      if (code) markUnsold(code);
+    // Now mark the new one
+    markSold(code);
+
+    if (payload.buyer){
+      const row = soldList.find(x => x.code === code);
+      if (row) row.buyer = payload.buyer;
     }
+
+  } else {
+    console.warn("[Overlay] Could not match team from:", payload.title || payload);
+  }
+
+  if (Number.isFinite(payload.amount)) {
+    setHighBid(Math.max(highBid, payload.amount));
+  }
+
+  updateBuyerStats(payload.buyer, payload.amount);
+}
+
+  if (type === "team_unsold" || type === "unsold"){
+  const code = (payload.code || "").toUpperCase() || inferNBACodeFromTitle(payload.title);
+
+  const listingKey =
+    payload.listingId ||
+    payload.productId ||
+    payload.saleId ||
+    payload.id ||
+    null;
+
+  if (code) markUnsold(code);
+
+  // ✅ Clear mapping if this unsold corresponds to the current assignment
+  if (listingKey){
+    const cur = lastCodeByListingKey.get(listingKey);
+    if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+  }
+}
 
     if (type === "reset") resetAll();
 
