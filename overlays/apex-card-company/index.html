@@ -819,20 +819,29 @@
     inp.value = TICKER_LINES.join(" • ");
   }
 
-function getDefaultTickerText(){
-  return TICKER_LINES.join(" • ");
+
+
+function isFreshSportScore(sport){
+  return (Date.now() - (SCORES_UPDATED_AT[sport] || 0)) < 1000 * 60 * 20;
 }
 
-function getScoresForCurrentSport(){
-  const sport = currentBreakType;
-  const txt = SCORES_BY_SPORT[sport] || "";
-  const fresh = (Date.now() - (SCORES_UPDATED_AT[sport] || 0)) < 1000 * 60 * 20;
-  return (ENABLE_SCORES && txt && fresh) ? txt : "";
+function getScoresAllSportsText(){
+  if (!ENABLE_SCORES) return "";
+
+  const order = ["nba","nfl","mlb"]; // keep it predictable
+  const parts = [];
+
+  for (const s of order){
+    const txt = (SCORES_BY_SPORT[s] || "").trim();
+    if (txt && isFreshSportScore(s)) parts.push(txt);
+  }
+
+  return parts.join(" • ");
 }
 
 function buildTickerLine(){
   const a = getDefaultTickerText();
-  const b = getScoresForCurrentSport();
+  const b = getScoresAllSportsText();
   return b ? `${a} • ${b}` : a;
 }
 
@@ -1736,9 +1745,9 @@ if (data.type === "scores" && ENABLE_SCORES){
     SCORES_UPDATED_AT[sport] = Date.now();
   }
 
-  // only repaint ticker if this update matches the current board sport
-  if (sport === currentBreakType) updateTickerMarquee();
-  return;
+// repaint ticker on ANY scores update (because ticker now includes all sports)
+updateTickerMarquee();
+return;
 }
 
 
