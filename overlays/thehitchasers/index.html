@@ -741,7 +741,7 @@ background: linear-gradient(130deg,
   </div>
 
   <div class="infoPanel wick" id="leftInfo">
-    <div class="infoTitle">LIVE SCORES</div>
+    <div class="infoTitle" id="scoresTitle">LIVE SCORES</div>
     <div class="infoBody" id="scoreboard">
       <div class="scoreRow"><span class="muted">Waiting for feed…</span></div>
     </div>
@@ -988,6 +988,49 @@ const lastCodeByListingKey = new Map();
   let highBid = 0;
   let buyerTotals = new Map();  // buyer -> total spent
   let lastSaleBuyer = '';
+// =========================
+// Scores rotation (NBA/NFL/MLB)
+// =========================
+const SCORES_BY_SPORT = { nba: null, nfl: null, mlb: null };
+const SCORE_SPORT_ORDER = ["nba", "nfl", "mlb"];
+let scoreSportIdx = 0;
+let scoreRotateTimer = null;
+
+function setScoresTitle(sport){
+  const el = document.getElementById("scoresTitle");
+  if (!el) return;
+  const tag = String(sport || "").toUpperCase();
+  el.textContent = tag ? `LIVE SCORES • ${tag}` : "LIVE SCORES";
+}
+
+function renderCurrentScoreSport(){
+  const sport = SCORE_SPORT_ORDER[scoreSportIdx % SCORE_SPORT_ORDER.length];
+  const games = SCORES_BY_SPORT[sport];
+
+  setScoresTitle(sport);
+
+  const hasRealGames = Array.isArray(games) && games.some(g => (g.status || "").toLowerCase() !== "no games found");
+if (hasRealGames) setScoreboard(games);
+else host.innerHTML = `<div class="scoreRow"><span class="muted">No ${sport.toUpperCase()} games right now</span></div>`;
+
+  if (Array.isArray(games) && games.length){
+    setScoreboard(games);
+  } else {
+    // If we don't have data yet, keep UI polite
+    const host = document.getElementById("scoreboard");
+    if (host) host.innerHTML = `<div class="scoreRow"><span class="muted">Waiting for ${sport.toUpperCase()}…</span></div>`;
+  }
+}
+
+function startScoreRotation(){
+  if (scoreRotateTimer) return; // already running
+  renderCurrentScoreSport();    // render immediately
+  scoreRotateTimer = setInterval(() => {
+    scoreSportIdx = (scoreSportIdx + 1) % SCORE_SPORT_ORDER.length;
+    renderCurrentScoreSport();
+  }, 8000); // rotate every 8s (change if you want)
+}
+
 
   const CHASERS_KEY = "hit.chasers";
 
@@ -1489,9 +1532,16 @@ if (type === "team_sold" || type === "sold" || type === "sale"){
       slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
     }
 
-    if (type === "scores" && Array.isArray(payload.games)){
-      setScoreboard(payload.games);
-    }
+  if (type === "scores" && Array.isArray(payload.games)){
+  const sport = String(payload.sport || payload.league || payload.breakType || "").toLowerCase().trim();
+  if (sport && SCORES_BY_SPORT[sport] !== undefined){
+    SCORES_BY_SPORT[sport] = payload.games;
+    // Start rotation as soon as the first scores arrive
+    startScoreRotation();
+    // If we're currently showing this sport, refresh immediately
+    renderCurrentScoreSport();
+  }
+}
 
     if (type === "set_title" && typeof payload.value === "string"){
       setHeaderTitle(payload.value);
@@ -1717,7 +1767,7 @@ window.addEventListener('DOMContentLoaded', () => {
   } else {
     console.warn("[Overlay] No BRIDGE_URL set. Add ?bridge=https://... to the overlay URL");
   }
-
+startScoreRotation();
   setInterval(rotateBanner, 9000);
 });
 
