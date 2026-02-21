@@ -38,16 +38,57 @@
     }
 
     *{ box-sizing:border-box; }
+body{
+  margin:0;                 /* kill the dead space */
+  background:transparent;
+  font-family:"Arial Black", Arial, sans-serif;
+  user-select:none;
+  overflow:hidden;
+}
+/* ===== FULLSCREEN BG VIDEO LAYER ===== */
+/* wrapper becomes the "canvas" that includes your margins */
+.overlay-wrap{
+  position: relative;
+  width: 1320px;       /* 1080 + (120*2) padding */
+  height: 840px;       /* pick your final overlay canvas height */
+  padding: 120px;
+  overflow: visible;    /* IMPORTANT: prevents growth */
+}
 
-    body{
-      margin:120px;
-      background:transparent;
-      font-family: "Arial Black", Arial, sans-serif;
-      width:1080px;
-      min-height:520px;
-      user-select:none;
-      overflow:hidden;
-    }
+/* video sits BEHIND everything, but only within the wrapper (not the whole screen) */
+.bg-video{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit: contain;        /* SHOW full video (no crop) */
+  object-position: center;    /* center it */
+  z-index:0;
+  pointer-events:none;
+  top:-99px;
+}
+
+.bg-dim{
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,0.25);
+  z-index:1;
+  pointer-events:none;
+}
+
+/* your overlay content goes above the video */
+.container,
+.sold-list-container,
+.popup-mask{
+  position: relative;
+  z-index: 2;
+   margin: 8px 0 0 0;   /* was auto centering */
+  width: 1080px;       /* lock to overlay width */
+}
+/* keep your original sizing behavior */
+.container{
+  width: 1080px; /* if you want it locked */
+}
 
 .container{
   /* logo-style: bright top -> dark graphite bottom */
@@ -167,7 +208,7 @@
     }
 
     .team{
-      background: #000;
+      background: #00000059;
       border: 2px solid rgba(243,146,5,0.62);
       border-radius: 6px;
       display:flex;
@@ -203,8 +244,8 @@
     }
 
     .team.sold img{
-      opacity: 0.22;
-      filter: grayscale(100%) brightness(0.35);
+      opacity: 0.92;
+      filter: grayscale(50%) brightness(0.45);
     }
 
     .team.flash{
@@ -380,12 +421,14 @@
     /* ===== SOLD LIST ===== */
     .sold-list-container{
       margin: 8px auto 0 auto;
-      width: 100%;
+      
+      width: 1080px;
       background: linear-gradient(180deg, rgba(5,6,7,1) 0%, rgba(15,20,26,1) 100%);
       border: 3px solid rgba(243,146,5,0.78);
       border-radius: 8px;
       padding: 6px 7px 8px;
       text-align:center;
+      overflow: hidden;
       box-shadow: 0 1px 3px rgba(0,0,0,0.45);
     }
 
@@ -625,6 +668,20 @@
 </head>
 
 <body>
+ <!-- FOREGROUND WRAPPER (keeps your margins) -->
+  <div class="overlay-wrap">
+  <!-- FULLSCREEN BACKGROUND VIDEO -->
+  <video class="bg-video" autoplay muted loop playsinline>
+    <source src="overlay-bg.mp4" type="video/mp4" />
+  </video>
+
+  <!-- Optional dark overlay so the UI pops more -->
+  <div class="bg-dim"></div>
+
+ 
+
+
+
   <div class="container">
     <div class="header" id="header">
       <div class="header-left">
@@ -1971,5 +2028,7 @@ if (ENABLE_SCORES) {
     bridgeWarmup({ breakId: `apex:${currentBreakType}:${loadBreakNumber()}` });
   });
 </script>
+ </div> <!-- /overlay-wrap -->
 </body>
+ 
 </html>
