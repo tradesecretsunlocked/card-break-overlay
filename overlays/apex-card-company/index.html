@@ -270,21 +270,43 @@
       padding: 0 10px;
     }
 
-    .ticker-text{
-      display:inline-block;
-      white-space: nowrap;
-      padding-left: 100%;
-      animation: tickerScroll 22s linear infinite;
-      font-weight: 900;
-      letter-spacing: 0.8px;
-      color: #fff;
-      font-size: 22px;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.60);
-    }
-    @keyframes tickerScroll{
-      0%{ transform: translateX(0); }
-      100%{ transform: translateX(-100%); }
-    }
+.ticker-slot{
+  border-radius: 10px;
+  height: var(--tileH);
+  display:flex;
+  align-items:center;
+  overflow:hidden;
+  background: linear-gradient(90deg, rgba(243,146,5,0.18), rgba(253,231,90,0.12), rgba(175,61,3,0.10));
+  border: 2px solid var(--goldBorder);
+  padding: 0 10px;
+}
+
+/* NEW */
+.ticker-track{
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  will-change: transform;
+  animation: tickerMarquee linear infinite;
+  animation-duration: var(--tickerDur, 24s);
+}
+
+.ticker-copy{
+  display:inline-block;
+  padding-right: 48px; /* spacing between repeats */
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  color: #fff;
+  font-size: 22px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.60);
+}
+
+@keyframes tickerMarquee{
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+
 
     /* ===== CONTROLS ROW ===== */
     .controls-row{
@@ -498,6 +520,107 @@
     .sse.connected .dot{ background: #3cff8a; box-shadow: 0 0 10px rgba(60,255,138,0.7); }
     .sse.error .dot{ background: #ff2f2f; box-shadow: 0 0 10px rgba(255,47,47,0.7); }
     .sse.connecting .dot{ background: #fde75a; box-shadow: 0 0 10px rgba(253,231,90,0.7); }
+
+
+/* ===== POPUPS (OBS-friendly) ===== */
+.popup-mask{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.78);
+  z-index: 99999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.popup-mask.hidden{ display:none; }
+
+.popup-card{
+  width: 720px;
+  max-width: 92%;
+  background: linear-gradient(135deg, rgba(15,20,26,0.98), rgba(5,6,7,0.98));
+  border-radius: 16px;
+  padding: 18px;
+  border: 2px solid rgba(243,146,5,0.85);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.85);
+  display:flex;
+  flex-direction:column;
+  gap: 12px;
+}
+
+.popup-title{
+  margin:0;
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-align:center;
+  font-weight: 900;
+  color: #fff;
+}
+
+.popup-row{
+  display:flex;
+  gap: 10px;
+  align-items:center;
+}
+
+.popup-input{
+  width: 100%;
+  padding: 12px 12px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 2px solid rgba(243,146,5,0.78);
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  outline:none;
+  font-weight: 900;
+}
+
+.popup-textarea{
+  width:100%;
+  height:220px;
+  resize:none;
+  background:#000;
+  color:#00ff9c;
+  border: 2px solid rgba(243,146,5,0.78);
+  border-radius: 10px;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+}
+
+.popup-buttons{
+  display:flex;
+  justify-content:space-between;
+  gap: 12px;
+}
+.popup-buttons button{
+  flex:1;
+  padding: 12px;
+  font-weight: 900;
+  cursor:pointer;
+  border-radius: 10px;
+  border: 2px solid rgba(253,231,90,0.55);
+  background: linear-gradient(135deg, rgba(243,146,5,1) 0%, rgba(175,61,3,0.98) 100%);
+  color:#fff;
+}
+
+.slider-wrap{
+  display:flex;
+  gap: 12px;
+  align-items:center;
+  color:#fff;
+  font-weight: 900;
+}
+.slider-wrap input[type="range"]{ width: 100%; }
+.slider-pill{
+  min-width: 110px;
+  text-align:center;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(243,146,5,0.78);
+  background: rgba(0,0,0,0.35);
+}
+
+
   </style>
 </head>
 
@@ -525,15 +648,20 @@
       <div class="controls-row">
         <button class="btn secondary" onclick="newBreak()">🧾 NEW BREAK</button>
 
-        <div class="stat-box">
-          <div id="teamsLeft">0</div>
-          <div class="stat-label">REMAINING</div>
-        </div>
+      <div class="stat-box">
+  <div id="teamsLeft">0</div>
+  <div class="stat-label">REMAINING</div>
+</div>
 
-        <div class="stat-box">
-          <div id="teamsSold">0</div>
-          <div class="stat-label">SOLD</div>
-        </div>
+<div class="stat-box" id="highBidBox" onclick="openHighBidPopup()">
+  <div id="highBidValue">$0</div>
+  <div class="stat-label">HIGH BID</div>
+</div>
+
+<div class="stat-box">
+  <div id="teamsSold">0</div>
+  <div class="stat-label">SOLD</div>
+</div>
 
         <button class="btn ghost" onclick="cycleSport()">⚙ CHANGE SPORT</button>
       </div>
@@ -545,16 +673,10 @@
       <div class="sold-list-title">SOLD TEAMS</div>
 
       <div class="sold-controls">
-        <div class="break-set">
-          <input id="breakSetInput" type="text" placeholder="Break #" />
-          <button class="btn" style="padding:8px 10px; font-size:12px;" onclick="applyBreakNumber()">SET</button>
-          <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="incrementBreak()">+1</button>
-        </div>
-
-        <div class="ticker-edit">
-          <input id="tickerInput" type="text" placeholder="Ticker text..." />
-          <button class="btn ghost" style="padding:8px 10px; font-size:14px;" onclick="applyTicker()">APPLY</button>
-        </div>
+<button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openBreakPopup()">SET BREAK</button>
+<button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="openTitlePopup()">SET TITLE</button>
+<button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openTickerPopup()">EDIT TICKER</button>
+<button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openExportPopup()">EXPORT TSV</button>
 
         <div class="sse" id="sseStatus">
           SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
@@ -564,6 +686,72 @@
 
     <div id="soldList" class="sold-list-grid"></div>
   </div>
+
+<!-- ===== POPUPS ===== -->
+
+<div id="breakPopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Set Break Number</h2>
+    <input id="breakPopupInput" class="popup-input" type="number" min="1" />
+    <div class="popup-buttons">
+      <button onclick="applyBreakPopup()">APPLY</button>
+      <button onclick="closeBreakPopup()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<div id="titlePopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Set Title</h2>
+    <input id="titlePopupInput" class="popup-input" type="text" placeholder="e.g. NBA BOX BREAK" />
+    <div class="popup-buttons">
+      <button onclick="applyTitlePopup()">APPLY</button>
+      <button onclick="closeTitlePopup()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<div id="tickerPopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Edit Ticker + Speed</h2>
+
+    <input id="tickerPopupInput" class="popup-input" type="text" placeholder="Use • to separate" />
+
+    <div class="slider-wrap">
+      <div class="slider-pill">SPEED</div>
+      <input id="tickerSpeedSlider" type="range" min="40" max="200" step="5" />
+      <div id="tickerSpeedValue" class="slider-pill">90 px/s</div>
+    </div>
+
+    <div class="popup-buttons">
+      <button onclick="applyTickerPopup()">APPLY</button>
+      <button onclick="closeTickerPopup()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<div id="exportPopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Export (TSV for Excel/Sheets)</h2>
+    <textarea id="exportBox" class="popup-textarea"></textarea>
+    <div class="popup-buttons">
+      <button id="copyExportBtn" onclick="copyExportTSV()">COPY</button>
+      <button onclick="closeExportPopup()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<div id="highBidPopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Set High Bid (this break)</h2>
+    <input id="highBidPopupInput" class="popup-input" type="number" min="0" step="1" placeholder="e.g. 250" />
+    <div class="popup-buttons">
+      <button onclick="applyHighBidPopup()">APPLY</button>
+      <button onclick="closeHighBidPopup()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
 
 <script>
   /******************************************************************
@@ -631,21 +819,46 @@
     inp.value = TICKER_LINES.join(" • ");
   }
 
-  function refreshTickerText(){
-    const t = ` ${getActiveTickerText()} `;
-    document.querySelectorAll(".ticker-text").forEach(el => {
-      el.textContent = t;
-      el.style.animation = "none";
-      void el.offsetHeight;
-      el.style.animation = "tickerScroll 22s linear infinite";
-    });
-  }
+function getDefaultTickerText(){
+  return TICKER_LINES.join(" • ");
+}
 
+function getScoresForCurrentSport(){
+  const sport = currentBreakType;
+  const txt = SCORES_BY_SPORT[sport] || "";
+  const fresh = (Date.now() - (SCORES_UPDATED_AT[sport] || 0)) < 1000 * 60 * 20;
+  return (ENABLE_SCORES && txt && fresh) ? txt : "";
+}
+
+function buildTickerLine(){
+  const a = getDefaultTickerText();
+  const b = getScoresForCurrentSport();
+  return b ? `${a} • ${b}` : a;
+}
+
+function updateTickerMarquee(){
+  const line = ` ${buildTickerLine()} `;
+
+  document.querySelectorAll(".ticker-track").forEach(track => {
+    const copies = track.querySelectorAll(".ticker-copy");
+    if (copies.length < 2) return;
+
+    copies[0].textContent = line;
+    copies[1].textContent = line;
+
+    requestAnimationFrame(() => {
+      const halfWidth = copies[0].getBoundingClientRect().width;
+      const pxPerSec = loadTickerSpeed(); // from slider
+      const dur = Math.max(12, Math.round(halfWidth / pxPerSec));
+      document.documentElement.style.setProperty("--tickerDur", `${dur}s`);
+    });
+  });
+}
   function setTickerLines(lines){
     TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
-    saveTickerLines(TICKER_LINES);
-    refreshTickerText();
-    syncTickerInput();
+saveTickerLines(TICKER_LINES);
+updateTickerMarquee();
+syncTickerInput();
   }
 
   function applyTicker(){
@@ -687,6 +900,157 @@
     const n = parseInt(val, 10);
     setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
   }
+
+/******************************************************************
+ * TITLE + TICKER SPEED + HIGH BID (persist)
+ ******************************************************************/
+const TITLE_KEY = "apex.customTitle";
+const TICKER_SPEED_KEY = "apex.tickerPxPerSec";
+const HIGH_BID_KEY_PREFIX = "apex.highBid."; // scoped per sport+break
+
+function getHighBidKey(){
+  return `${HIGH_BID_KEY_PREFIX}${currentBreakType}.${loadBreakNumber()}`;
+}
+
+function loadCustomTitle(){
+  return (localStorage.getItem(TITLE_KEY) || "").trim();
+}
+function saveCustomTitle(t){
+  localStorage.setItem(TITLE_KEY, String(t || "").trim());
+}
+
+function loadTickerSpeed(){
+  const n = parseInt(localStorage.getItem(TICKER_SPEED_KEY) || "90", 10);
+  return Number.isFinite(n) ? Math.min(200, Math.max(40, n)) : 90;
+}
+function saveTickerSpeed(n){
+  localStorage.setItem(TICKER_SPEED_KEY, String(n));
+}
+
+function loadHighBid(){
+  const raw = localStorage.getItem(getHighBidKey());
+  const n = parseFloat(raw || "0");
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+function saveHighBid(n){
+  localStorage.setItem(getHighBidKey(), String(n));
+}
+function setHighBid(n){
+  const val = Number.isFinite(n) && n >= 0 ? n : 0;
+  document.getElementById("highBidValue").textContent = `$${Math.floor(val)}`;
+  saveHighBid(val);
+}
+
+// ===== POPUP helpers =====
+function showPopup(id){ document.getElementById(id)?.classList.remove("hidden"); }
+function hidePopup(id){ document.getElementById(id)?.classList.add("hidden"); }
+
+// Break popup
+function openBreakPopup(){
+  const inp = document.getElementById("breakPopupInput");
+  if (inp) inp.value = String(loadBreakNumber());
+  showPopup("breakPopup");
+}
+function closeBreakPopup(){ hidePopup("breakPopup"); }
+function applyBreakPopup(){
+  const val = parseInt(document.getElementById("breakPopupInput")?.value || "1", 10);
+  setBreakNumber(Number.isFinite(val) && val > 0 ? val : 1);
+  // swap high bid scope to this break
+  setHighBid(loadHighBid());
+  closeBreakPopup();
+}
+
+// Title popup
+function openTitlePopup(){
+  const inp = document.getElementById("titlePopupInput");
+  if (inp) inp.value = loadCustomTitle() || document.getElementById("headerText")?.textContent || "";
+  showPopup("titlePopup");
+}
+function closeTitlePopup(){ hidePopup("titlePopup"); }
+function applyTitlePopup(){
+  const val = (document.getElementById("titlePopupInput")?.value || "").trim();
+  saveCustomTitle(val);
+  setHeader();
+  closeTitlePopup();
+}
+
+// Ticker popup
+function openTickerPopup(){
+  const inp = document.getElementById("tickerPopupInput");
+  if (inp) inp.value = TICKER_LINES.join(" • ");
+
+  const s = loadTickerSpeed();
+  const slider = document.getElementById("tickerSpeedSlider");
+  const pill = document.getElementById("tickerSpeedValue");
+  if (slider) slider.value = String(s);
+  if (pill) pill.textContent = `${s} px/s`;
+
+  showPopup("tickerPopup");
+}
+function closeTickerPopup(){ hidePopup("tickerPopup"); }
+
+function applyTickerPopup(){
+  const raw = (document.getElementById("tickerPopupInput")?.value || "").trim();
+  const parts = raw.includes("•")
+    ? raw.split("•").map(s => s.trim()).filter(Boolean)
+    : [raw].filter(Boolean);
+
+  setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+
+  const slider = document.getElementById("tickerSpeedSlider");
+  const s = parseInt(slider?.value || "90", 10);
+  saveTickerSpeed(Number.isFinite(s) ? s : 90);
+  updateTickerMarquee();
+
+  closeTickerPopup();
+}
+
+// Export popup
+function openExportPopup(){
+  const box = document.getElementById("exportBox");
+  if (box) box.value = buildExportTSV();
+  const btn = document.getElementById("copyExportBtn");
+  if (btn) btn.textContent = "COPY";
+  showPopup("exportPopup");
+}
+function closeExportPopup(){ hidePopup("exportPopup"); }
+
+async function copyExportTSV(){
+  const box = document.getElementById("exportBox");
+  const btn = document.getElementById("copyExportBtn");
+  if (!box) return;
+
+  const text = box.value || "";
+  try{
+    await navigator.clipboard.writeText(text);
+    if (btn) btn.textContent = "COPIED!";
+    setTimeout(() => { if (btn) btn.textContent = "COPY"; }, 900);
+  }catch(_){
+    box.focus();
+    box.select();
+    try{
+      const ok = document.execCommand("copy");
+      if (btn) btn.textContent = ok ? "COPIED!" : "SELECT + COPY";
+      setTimeout(() => { if (btn) btn.textContent = "COPY"; }, 900);
+    }catch(__){
+      if (btn) btn.textContent = "SELECT + COPY";
+    }
+  }
+}
+
+// High bid popup
+function openHighBidPopup(){
+  const inp = document.getElementById("highBidPopupInput");
+  if (inp) inp.value = String(loadHighBid());
+  showPopup("highBidPopup");
+}
+function closeHighBidPopup(){ hidePopup("highBidPopup"); }
+function applyHighBidPopup(){
+  const val = parseFloat(document.getElementById("highBidPopupInput")?.value || "0");
+  setHighBid(Number.isFinite(val) && val >= 0 ? val : 0);
+  closeHighBidPopup();
+}
+
 
   /******************************************************************
    * SPORT CONFIGS (NFL / MLB / NBA only)
@@ -822,19 +1186,18 @@
   let soldTeams = new Set();        // codes
   let soldTeamsList = [];           // {code,buyer}
 const lastCodeByListingKey = new Map(); // listing/product -> last assigned team code (handles respins)
-  // Scores / sports updates (from SSE)
-  let SCORE_TEXT = "";              // rendered string for ticker
-  let SCORE_UPDATED_AT = 0;         // ms
-  let tickerMode = "default";       // "default" | "scores"
-  let tickerRotateTimer = null;
+// Scores per sport (from SSE)
+const SCORES_BY_SPORT = { nba: "", nfl: "", mlb: "" };
+const SCORES_UPDATED_AT = { nba: 0, nfl: 0, mlb: 0 };
 
   /******************************************************************
    * HEADER
    ******************************************************************/
-  function setHeader(){
-    const b = breakTypes[currentBreakType];
-    document.getElementById("headerText").textContent = `${b.name} BOX BREAK`;
-  }
+function setHeader(){
+  const b = breakTypes[currentBreakType];
+  const custom = loadCustomTitle();
+  document.getElementById("headerText").textContent = custom ? custom : `${b.name} BOX BREAK`;
+}
 
   /******************************************************************
    * TILES
@@ -874,17 +1237,26 @@ const lastCodeByListingKey = new Map(); // listing/product -> last assigned team
     return slot;
   }
 
-  function makeTickerSlot(spanCols){
-    const slot = document.createElement("div");
-    slot.className = "ticker-slot";
-    slot.style.gridColumn = `span ${spanCols}`;
+function makeTickerSlot(spanCols){
+  const slot = document.createElement("div");
+  slot.className = "ticker-slot";
+  slot.style.gridColumn = `span ${spanCols}`;
 
-    const text = document.createElement("span");
-    text.className = "ticker-text";
-    text.textContent = ` ${getActiveTickerText()} `;
-    slot.appendChild(text);
-    return slot;
-  }
+  const track = document.createElement("div");
+  track.className = "ticker-track";
+
+  const c1 = document.createElement("span");
+  c1.className = "ticker-copy";
+
+  const c2 = document.createElement("span");
+  c2.className = "ticker-copy";
+
+  track.appendChild(c1);
+  track.appendChild(c2);
+
+  slot.appendChild(track);
+  return slot;
+}
 
   /******************************************************************
    * LAYOUT BUILDER
@@ -966,10 +1338,11 @@ const lastCodeByListingKey = new Map(); // listing/product -> last assigned team
       wrap.appendChild(r4);
     }
 
-    setHeader();
-    updateStats();
-    updateSoldList();
-    refreshTickerText(); // ensure ticker shows the right mode immediately
+  setHeader();
+updateStats();
+updateSoldList();
+updateTickerMarquee(); // ensure ticker shows correct text immediately
+setHighBid(loadHighBid());
   }
 
   /******************************************************************
@@ -1054,12 +1427,11 @@ const lastCodeByListingKey = new Map(); // listing/product -> last assigned team
     updateSoldList();
   }
 
-  function newBreak(){
-    resetAll();
-    incrementBreak();
-    // Optional outbound:
-    // bridgePost({ type:"new_break", sport: currentBreakType, break: loadBreakNumber() });
-  }
+function newBreak(){
+  resetAll();
+  incrementBreak();
+  setHighBid(0);
+}
 
   function cycleSport(){
     const types = Object.keys(breakTypes);
@@ -1068,11 +1440,12 @@ const lastCodeByListingKey = new Map(); // listing/product -> last assigned team
     buildLayout();
   }
 
-  function setSport(type){
-    if (!breakTypes[type]) return;
-    currentBreakType = type;
-    buildLayout();
-  }
+function setSport(type){
+  if (!breakTypes[type]) return;
+  currentBreakType = type;
+  buildLayout();
+  updateTickerMarquee(); // <-- ensure ticker swaps to that sport's stored scores
+}
 
   /******************************************************************
    * REQUIRED SSE BRIDGE CLIENT (updated standard)
@@ -1278,27 +1651,7 @@ const ingest = (e) => {
     return TICKER_LINES.join("   •   ");
   }
 
-  function getActiveTickerText(){
-    // If scores enabled and we have a fresh score string, rotate into it
-    if (ENABLE_SCORES && SCORE_TEXT && (Date.now() - SCORE_UPDATED_AT) < 1000 * 60 * 20){
-      return (tickerMode === "scores") ? SCORE_TEXT : getDefaultTickerText();
-    }
-    return getDefaultTickerText();
-  }
 
-  function startTickerRotation(){
-    if (tickerRotateTimer) clearInterval(tickerRotateTimer);
-    tickerMode = "default";
-
-    // Only rotate if scores enabled AND we have scores
-    tickerRotateTimer = setInterval(() => {
-      if (!ENABLE_SCORES) { tickerMode = "default"; return; }
-      if (!SCORE_TEXT) { tickerMode = "default"; return; }
-      // flip modes
-      tickerMode = (tickerMode === "default") ? "scores" : "default";
-      refreshTickerText();
-    }, 22000); // rotate every 15s
-  }
 
   /******************************************************************
    * AUTOMATION EVENT HANDLING (team + buyer + whatnot + scores)
@@ -1375,20 +1728,37 @@ function inferTeamCodeFromSaleTitle(title, breakType){
     
     // Scores feed (ticker)
 if (data.type === "scores" && ENABLE_SCORES){
+  const sport = String(data.sport || data.league || "").toLowerCase().trim();
   const txt = normalizeScorePayloadToText(data);
-  if (txt){
-    
-    const wasEmpty = !SCORE_TEXT;
-    SCORE_TEXT = txt;
-    SCORE_UPDATED_AT = Date.now();
 
-    if (wasEmpty) tickerMode = "scores";
-    refreshTickerText();
+  if (sport && txt){
+    SCORES_BY_SPORT[sport] = txt;
+    SCORES_UPDATED_AT[sport] = Date.now();
   }
+
+  // only repaint ticker if this update matches the current board sport
+  if (sport === currentBreakType) updateTickerMarquee();
   return;
 }
 
 
+if (data.type === "set_title"){
+  const t = String(data.title || data.value || "").trim();
+  if (t){
+    saveCustomTitle(t);
+    setHeader();
+  }
+  return;
+}
+
+if (data.type === "high_bid"){
+  const n = parseFloat(data.amount ?? data.value ?? data.bid ?? "0");
+  if (Number.isFinite(n) && n >= 0){
+    const cur = loadHighBid();
+    if (n > cur) setHighBid(n);
+  }
+  return;
+}
     
     // Break / sport control
     if (data.type === "set_break"){
@@ -1520,6 +1890,31 @@ if (data.type === "team_unsold") {
     updateSoldList();
   }
 
+function formatNow(){
+  // Simple + consistent for spreadsheets
+  return new Date().toISOString();
+}
+
+function buildExportTSV(){
+  const breakNum = loadBreakNumber();
+  const sport = currentBreakType.toUpperCase();
+  const date = formatNow();
+
+  // Header row
+  let tsv = "Team\tBuyer\tDate\tBreak#\tSport\n";
+
+  const currentBreak = breakTypes[currentBreakType];
+  soldTeamsList.forEach(entry => {
+    const teamObj = currentBreak.teams.find(t => t.code === entry.code);
+    const teamName = (teamObj?.name || entry.code || "").toString();
+    const buyer = (entry.buyer || "").toString().replace(/\t|\n/g, " ").trim();
+    tsv += `${teamName}\t${buyer}\t${date}\t${breakNum}\t${sport}\n`;
+  });
+
+  return tsv;
+}
+
+
   /******************************************************************
    * INIT
    ******************************************************************/
@@ -1539,8 +1934,22 @@ if (data.type === "team_unsold") {
       });
     }
 
-    startTickerRotation();
-    refreshTickerText();
+ updateTickerMarquee();
+
+// ticker speed live label
+const speedSlider = document.getElementById("tickerSpeedSlider");
+const speedValue = document.getElementById("tickerSpeedValue");
+if (speedSlider && speedValue){
+  speedSlider.addEventListener("input", () => {
+    const v = parseInt(speedSlider.value || "90", 10);
+    speedValue.textContent = `${v} px/s`;
+  });
+}
+
+// initialize speed + high bid display
+document.documentElement.style.setProperty("--tickerDur", "24s");
+setHighBid(loadHighBid());
+
 
     connectBridgeSSE({
       onEvent: handleSSEEvent,
