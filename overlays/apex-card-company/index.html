@@ -821,7 +821,7 @@
   let currentBreakType = "nba";
   let soldTeams = new Set();        // codes
   let soldTeamsList = [];           // {code,buyer}
-
+const lastCodeByListingKey = new Map(); // listing/product -> last assigned team code (handles respins)
   // Scores / sports updates (from SSE)
   let SCORE_TEXT = "";              // rendered string for ticker
   let SCORE_UPDATED_AT = 0;         // ms
@@ -1048,6 +1048,7 @@
   function resetAll(){
     soldTeams.clear();
     soldTeamsList = [];
+    lastCodeByListingKey.clear();
     document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
     updateStats();
     updateSoldList();
@@ -1163,7 +1164,7 @@ let sseScores = null; // scores channel
     sse.onmessage = ingest;
 
     // keep named events compatibility (REQUIRED)
-    ["team_sold","buyer","reset","set_break","scores","stream_stats","whatnot_purchase","purchase"].forEach(t => {
+  ["team_sold","team_unsold","buyer","reset","set_break","set_sport","scores","stream_stats","whatnot_purchase","purchase"].forEach(t => {
       try { sse.addEventListener(t, ingest); } catch(_){}
     });
 
@@ -1415,10 +1416,10 @@ if (data.type === "scores" && ENABLE_SCORES){
     }
 
     // Team sold / unsold
-if (data.type === "team_sold"){
+if (data.type === "team_sold") {
   const sport = getSportFromPayload(data);
 
-  // If payload specifies sport, auto-switch (no URL needed)
+  // auto-switch sport if included
   if (sport && sport !== currentBreakType && breakTypes[sport]) {
     setSport(sport);
   }
@@ -1426,9 +1427,17 @@ if (data.type === "team_sold"){
   let code = getCodeFromPayload(data);
   const buyer = getBuyerFromPayload(data);
 
-  // If code missing, infer from title (Jacksonville Jaguars -> JAX, etc)
-  if (!code) {
-    code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+  // infer code from title if missing
+  if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+
+  // ✅ respin handling via listing/product identity
+  const listingKey = data.listingId || data.productId || data.saleId || data.id || null;
+  if (listingKey && code) {
+    const prevCode = lastCodeByListingKey.get(listingKey);
+    if (prevCode && prevCode !== code) {
+      sseMarkUnsold(prevCode);
+    }
+    lastCodeByListingKey.set(listingKey, code);
   }
 
   if (code) sseMarkSold(code, buyer);
@@ -1436,13 +1445,19 @@ if (data.type === "team_sold"){
 }
 
 
+if (data.type === "team_unsold") {
+  let code = getCodeFromPayload(data);
+  if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
 
-    if (data.type === "team_unsold"){
-      const code = getCodeFromPayload(data);
-      if (code) sseMarkUnsold(code);
-      return;
-    }
+  const listingKey = data.listingId || data.productId || data.saleId || data.id || null;
+  if (code) sseMarkUnsold(code);
 
+  if (listingKey) {
+    const cur = lastCodeByListingKey.get(listingKey);
+    if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+  }
+  return;
+}
     // Whatnot purchase automation (robust)
     // Common shapes:
     // {type:"whatnot_purchase", sport:"nba", code:"LAL", buyer:"Mike"}
