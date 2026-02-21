@@ -164,45 +164,48 @@
       position: relative;
       border-radius: 14px;
     }
-    .wick::after{
-      content:"";
-      position:absolute; inset:4px;
-      border-radius: inherit;
-      pointer-events:none;
-      z-index: 0;
+.wick::after{
+  content:"";
+  position:absolute;
+  inset:-2px;                 /* slightly OUTSIDE so glow stays off content */
+  border-radius: inherit;
+  pointer-events:none;
+  z-index: 20;
 
+background: linear-gradient(130deg,
+  rgba(255,221,122,0) 0%,
+  rgba(255,221,122,0) 38%,   /* dead zone before the spark */
+  rgba(255,250,210,1) 48%,   /* hot core starts */
+  rgba(255,221,122,0.95) 52%,
+  rgba(216,178,76,0.85) 58%,
+  rgba(255,221,122,0) 68%,   /* spark dies out */
+  rgba(255,221,122,0) 100%   /* dead zone after spark */
+);
+  background-size: 300% 300%;
+  animation: wickRun 5s ease-in-out infinite alternate;
 
-      /* “hot wick” highlight */
-      background:
-        linear-gradient(130deg,
-          transparent 0%,
-          rgba(255,221,122,0) 35%,
-          rgba(255,221,122,0.85) 50%,
-          rgba(216,178,76,0.45) 56%,
-          rgba(255,221,122,0) 70%,
-          transparent 100%);
-      background-size: 300% 300%;
-      animation: wickRun 5.5s linear infinite;
+  /* border-only mask */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  padding: 4px;
 
-      /* mask to border only */
-      -webkit-mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
-      mask:
-        linear-gradient(#000 0 0) content-box,
-        linear-gradient(#000 0 0);
-      mask-composite: exclude;
-      padding: 2px;
-
-      filter: blur(7px);
-      opacity: 0.95;
-      mix-blend-mode: screen;
-    }
+  /* IMPORTANT: no blur, no blend-mode */
+  filter:
+    drop-shadow(0 0 10px rgba(255,221,122,0.95))
+    drop-shadow(0 0 22px rgba(216,178,76,0.75));
+  opacity: 1;
+}
+    
 
     @keyframes wickRun{
       0%   { background-position:   0% 50%; }
-      100% { background-position: 100% 50%; }
+      100% { background-position: 100% 100%; }
     }
 
     /* Team boards */
@@ -214,6 +217,9 @@
       overflow: hidden;
       box-shadow: inset 0 0 0 1px rgba(216,178,76,0.12);
     }
+
+
+
     .board > *{ position: relative; z-index: 2; }
 
     .colgrid{
@@ -230,30 +236,74 @@
       align-items: stretch;
       justify-content: space-evenly;
     }
+.cam-wrap{
+  position: relative;
+  border-radius: 16px;
+  overflow: visible;          /* glow can extend outward */
+}
 
-    .cam{
-      height: var(--camH);
-      border-radius: 16px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(0,0,0,0.25));
-      border: 1px solid rgba(255,255,255,0.10);
-      box-shadow:
-        inset 0 0 0 2px rgba(0,0,0,0.35),
-        0 0 0 1px rgba(216,178,76,0.15);
-      position: relative;
-      overflow: hidden;
-    }
 
-    /* gives “camera glass” feel without text */
-    .cam::before{
-      content:"";
-      position:absolute; inset:0;
-      background:
-        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), transparent 55%),
-        radial-gradient(circle at 70% 70%, rgba(216,178,76,0.10), transparent 55%),
-        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.20));
-      opacity: .9;
-      pointer-events:none;
-    }
+.cam{
+  height: var(--camH);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(0,0,0,0.25));
+  border: 1px solid rgba(255,255,255,0.10);
+  box-shadow:
+    inset 0 0 0 2px rgba(0,0,0,0.35),
+    0 0 0 1px rgba(216,178,76,0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.board.wick,
+.infoPanel.wick,
+.banner.wick,
+.cam.wick{
+  overflow: visible !important;
+}
+
+/* NEW: actual background image layer */
+.cam .cam-bg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit: cover;          /* fill like a tile overlay */
+  object-position: center;
+  opacity: 0.95;              /* tune to taste */
+  filter: saturate(1.05) contrast(1.05);
+  z-index: 1;                 /* sits under the glass + under border effects */
+  pointer-events:none;
+}
+
+/* NEW: darken a touch so it doesn't overpower everything */
+.cam::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: linear-gradient(
+    180deg,
+    rgba(0,0,0,0.10),
+    rgba(0,0,0,0.40)
+  );
+  z-index: 2;
+  pointer-events:none;
+}
+
+/* camera “glass” highlight stays on top */
+.cam::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), transparent 55%),
+    radial-gradient(circle at 70% 70%, rgba(216,178,76,0.10), transparent 55%),
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.20));
+  opacity: .9;
+  pointer-events:none;
+  z-index: 3;
+}
+
 
     /* Bottom teams (10 teams) */
     .bottomGrid{
@@ -346,6 +396,9 @@
   box-shadow: inset 0 0 0 1px rgba(216,178,76,0.12);
   min-height: 108px; /* tune */
 }
+
+/* Let the wick glow breathe */
+
 
 .infoPanel > *{ position: relative; z-index: 2; }
 
@@ -697,7 +750,11 @@
 
 <!-- CENTER (camera + bottom 10 teams) stays the same -->
 <div class="center">
-  <div class="cam wick" id="camFrame"></div>
+<div class="cam-wrap wick">
+  <div class="cam" id="camFrame">
+    <img id="camBg" class="cam-bg" alt="" />
+  </div>
+</div>
   <div class="bottomGrid" id="bottomGrid"></div>
 </div>
 
@@ -838,6 +895,9 @@
   const bannerImg = (f) => `${BASE}images/ads/${f}`;           // <-- optional banner images here
 
   document.getElementById('brandLogo').src = LOGO_PATH;
+
+  const CAM_BG_PATH = `${BASE}images/ads/camera-bg.png`;
+document.getElementById('camBg').src = CAM_BG_PATH;
 
   // === Bridge URL (NO KEY in URL) ===
 // Provide via ?bridge=https://YOUR-RENDER-APP.onrender.com
