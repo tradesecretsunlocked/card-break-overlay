@@ -971,9 +971,10 @@ transform-origin: center;
 }
 .sold-panel-slot {
   width: 99%;
-  height: 160px; /* 🔒 fixed height prevents layout shift */
+  height: 160px;           /* fixed reserved space */
   position: relative;
-  overflow:  visible;
+  overflow: visible;
+  display: block;          /* always present */
 }
 
 
@@ -1208,6 +1209,7 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
     <div class="main">
 <div class="teams-section">
   <div id="conferenceLeft" class="conference"></div>
+<div id="scoreboard" class="scoreboard"></div>
 
   <!-- CENTER CONTROL BAR (RESTORED) -->
   <div class="control-bar visible mini" id="centerControlBar">
@@ -1436,35 +1438,105 @@ const BRIDGE_KEY = (() => {
   return localStorage.getItem('noc.key') || "";
 })();
 
+// ===== Feature flags =====
+const ENABLE_SCORES = (() => {
+  const v = (new URLSearchParams(location.search).get('scores') || '').toLowerCase();
+  return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+})();
+
+let sseMain = null;
+let sseSports = null;
+
+function getBreakId(){
+  const el = document.getElementById('breakIdDisplay');
+  const v = el ? String(el.textContent || '').trim() : '';
+  return v && v !== '—' ? v : '';
+}
+
+function bridgeEventsUrl(){
+  if (!BRIDGE_URL) return '';
+  const base = normalizeBridge(BRIDGE_URL);
+  const q = BRIDGE_KEY ? `?key=${encodeURIComponent(BRIDGE_KEY)}` : '';
+  return `${base}/events${q}`;
+}
+
+async function bridgePost(payload){
+  const url = bridgeEventsUrl();
+  if (!url) return;
+  try{
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {})
+    });
+  }catch(e){
+    console.warn('[bridgePost] failed', e);
+  }
+}
+
+function bridgeWarmup(channel){
+  bridgePost({
+    type: 'overlay_warmup',
+    overlay: 'noc',
+    channel: channel || 'main',
+    sport: currentBreakType,
+    breakId: getBreakId()
+  });
+}
+
+
 // Reconnect loop like your working overlay
-function connectSSE(url){
-  if (sse) { try { sse.close(); } catch(_){} }
-  setSSEStatus('error', 'connecting');
+function connectSSE(url, which = 'main'){
+  const setRef = (ref) => {
+    if (which === 'sports') sseSports = ref;
+    else sseMain = ref;
+  };
+  const getRef = () => (which === 'sports' ? sseSports : sseMain);
+
+  const existing = getRef();
+  if (existing) { try { existing.close(); } catch(_){} }
+
+  setSSEStatus('error', `connecting ${which}`);
 
   try{
-    sse = new EventSource(url);
+    const es = new EventSource(url);
+    setRef(es);
 
-    sse.onopen = () => {
-      console.log('[SSE] open');
+    es.onopen = () => {
+      console.log(`[SSE] open (${which})`);
       setSSEStatus('connected', 'connected');
+      bridgeWarmup(which);
     };
 
-    sse.onmessage = (e) => {
+    // default message channel
+    es.onmessage = (e) => {
       try{
         const data = JSON.parse(e.data);
-        console.log('[SSE] message', data);
         handleSSEEvent(data);
       }catch(err){
         console.warn('[SSE] bad payload', e.data);
       }
     };
 
-    sse.onerror = (err) => {
-      console.warn('[SSE] error', err);
+    // named events channel (server broadcasts event: <type>)
+    const TYPES = ['team_sold','team_unsold','buyer_update','reset','set_break','set_sport','scores'];
+    TYPES.forEach(t => {
+      es.addEventListener(t, (e) => {
+        try{
+          const data = JSON.parse(e.data);
+          // ensure type exists even if payload omitted it
+          if (!data.type) data.type = t;
+          handleSSEEvent(data);
+        }catch(_){}
+      });
+    });
+
+    es.onerror = (err) => {
+      console.warn(`[SSE] error (${which})`, err);
       setSSEStatus('error', 'reconnecting');
-      try { sse.close(); } catch(_) {}
-      sse = null;
-      setTimeout(() => connectSSE(url), 2500);
+      try { es.close(); } catch(_) {}
+      setRef(null);
+      setTimeout(() => connectSSE(url, which), 2500);
     };
   }catch(e){
     console.warn('[SSE] failed to create EventSource', e);
@@ -1478,7 +1550,6 @@ function normalizeBridge(u){
     .replace(/\/$/, '')
     .replace(/\/(events|stream)(\/.*)?$/,''); // strips accidental /events or /stream
 }
-
 function initSSE(){
   if (!BRIDGE_URL){
     setSSEStatus('error', 'missing bridge');
@@ -1486,12 +1557,19 @@ function initSSE(){
   }
 
   const base = normalizeBridge(BRIDGE_URL);
-  const url = `${base}/stream`;
 
-  console.log('[SSE] connecting:', url);
-  connectSSE(url);
+  // MAIN channel
+  const mainUrl = `${base}/stream?channel=main`;
+  console.log('[SSE] connecting main:', mainUrl);
+  connectSSE(mainUrl, 'main');
+
+  // SPORTS channel (optional, only if ?scores=1)
+  if (ENABLE_SCORES){
+    const sportsUrl = `${base}/stream?channel=sports`;
+    console.log('[SSE] connecting sports:', sportsUrl);
+    connectSSE(sportsUrl, 'sports');
+  }
 }
-
 
 
 
@@ -1847,18 +1925,17 @@ document.documentElement.style.setProperty('--team-cols', cols);
       const [leftConf, rightConf] = config.conferences;
       buildConference(leftEl, leftConf, config.divisions[leftConf]);
       buildConference(rightEl, rightConf, config.divisions[rightConf]);
-      updateStats();
-      fitAllNilTiles(); 
+updateStats();
+fitAllNilTiles();
+updateScoreboard();
     }
 
 function toggleSoldPanel() {
   soldPanelVisible = !soldPanelVisible;
 
   const panel = document.getElementById('soldPanel');
-  const slot = document.getElementById('soldPanelSlot');
-  if (!panel || !slot) return;
+  if (!panel) return;
 
-  slot.style.display = soldPanelVisible ? 'block' : 'none';
   panel.classList.toggle('hidden', !soldPanelVisible);
 
   const btn = document.querySelector('.sold-toggle-btn');
@@ -1869,18 +1946,17 @@ function toggleSoldPanel() {
 
 
 
-
 function renderSoldPanel() {
   const panel = document.getElementById('soldPanel');
-  const slot = document.getElementById('soldPanelSlot');
+
   if (!panel || !slot) return;
 
   if (soldTeamsList.length === 0) {
-    slot.style.display = 'none';
+    
     return;
   }
 
-  slot.style.display = 'block';
+  
   panel.innerHTML = '';
 
   soldTeamsList.forEach(entry => {
@@ -1917,6 +1993,15 @@ buyerInput.placeholder = 'Buyer';
 buyerInput.value = entry.buyer || '';
 buyerInput.addEventListener('input', e => {
   entry.buyer = e.target.value;
+  saveBuyer(entry.code, entry.buyer);
+});
+
+buyerInput.addEventListener('blur', () => {
+  postBuyerUpdate(entry.code, entry.buyer);
+});
+
+buyerInput.addEventListener('change', () => {
+  postBuyerUpdate(entry.code, entry.buyer);
 });
 
 item.appendChild(buyerInput);
@@ -1926,9 +2011,6 @@ panel.appendChild(item);
 
   if (soldPanelVisible) panel.classList.remove('hidden');
 
-soldPanelVisible = true;
-slot.style.display = 'block';
-panel.classList.remove('hidden');
 
 
   
@@ -2224,7 +2306,8 @@ function applyBreakNumber() {
       const types = Object.keys(breakTypes);
       const idx = types.indexOf(currentBreakType);
       currentBreakType = types[(idx + 1) % types.length];
-      document.getElementById('sportSelect').value = currentBreakType;
+      const sel = document.getElementById('sportSelect');
+if (sel) sel.value = currentBreakType;
       renderTeams();
     }
 
@@ -2243,6 +2326,44 @@ function loadNilEntries(){
 
 function saveNilEntries(entries){
   localStorage.setItem(NIL_STORE_KEY, JSON.stringify(entries || []));
+}
+
+function buyerStoreKey(){
+  const b = getBreakId() || 'noBreak';
+  return `noc.buyers.${currentBreakType}.${b}`;
+}
+
+function loadBuyerMap(){
+  try{
+    const raw = localStorage.getItem(buyerStoreKey());
+    const obj = raw ? JSON.parse(raw) : {};
+    return (obj && typeof obj === 'object') ? obj : {};
+  }catch{
+    return {};
+  }
+}
+
+function saveBuyer(code, buyer){
+  const map = loadBuyerMap();
+  map[code] = buyer || '';
+  localStorage.setItem(buyerStoreKey(), JSON.stringify(map));
+}
+
+function getSavedBuyer(code){
+  const map = loadBuyerMap();
+  return map[code] || '';
+}
+
+function postBuyerUpdate(code, buyer){
+  bridgePost({
+    type: 'buyer_update',
+    overlay: 'noc',
+    channel: 'main',
+    sport: currentBreakType,
+    breakId: getBreakId(),
+    code,
+    buyer: buyer || ''
+  });
 }
 
 function makeCodeFromName(name, idx){
@@ -2408,10 +2529,7 @@ function mockUnsold(){
   if (!code) return;
   handleSSEEvent({ type: 'team_unsold', code });
 }
-breakTypes.nil = buildNilBreakTypeFromEntries(loadNilEntries());
-renderBreakTypeButtons();
-updateNilToolsVisibility();
-renderTeams();
+
 
     // Initialise on load
  window.addEventListener('DOMContentLoaded', () => {
@@ -2441,7 +2559,14 @@ document.getElementById('rotatorLogo').src =
 
 
 updateNilToolsVisibility();
+function applyScoresPayload(data){
+  if (!data || !data.games) return;
+  // Update in-memory scoreboard for current sport
+  if (!breakTypes[data.sport]) return;
 
+  breakTypes[data.sport].scoreboard = Array.isArray(data.games) ? data.games : [];
+  if (data.sport === currentBreakType) updateScoreboard();
+}
 
     function handleSSEEvent(data) {
   switch (data.type) {
@@ -2468,6 +2593,11 @@ updateNilToolsVisibility();
       if (out) out.textContent = data.value || '—';
       break;
 
+      case 'scores':
+  if (!ENABLE_SCORES) return;
+  applyScoresPayload(data);
+  break;
+
     case 'set_sport':
       setBreakType(data.sport);
       break;
@@ -2477,8 +2607,11 @@ updateNilToolsVisibility();
 function sseMarkSold(code, buyer = '') {
   if (soldTeams.has(code)) return;
 
+  const stored = getSavedBuyer(code);
+  const finalBuyer = (buyer || stored || '');
+
   soldTeams.add(code);
-  soldTeamsList.push({ code, buyer });
+  soldTeamsList.push({ code, buyer: finalBuyer });
 
   const tile = document.querySelector(`[data-team-code="${code}"]`);
   if (tile) tile.classList.add('sold');
@@ -2517,10 +2650,10 @@ function sseMarkUnsold(code) {
 
 function sseUpdateBuyer(code, buyer) {
   const entry = soldTeamsList.find(t => t.code === code);
-  if (entry) entry.buyer = buyer;
+  if (entry) entry.buyer = buyer || '';
+  saveBuyer(code, buyer || '');
   renderSoldPanel();
 }
-
 
    
 

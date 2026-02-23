@@ -1,20 +1,129 @@
 (() => {
-  // ---- Defaults (set once via chrome.storage, see notes below)
+  /**
+   * TSU Standard content.js (Whatnot Extension)
+   * - Replace DEFAULTS.bridgeUrl per client
+   * - Everything else stays standardized
+   *
+   * Requires: injected.js providing:
+   *  - WHATNOT_SPY_INJECTED_READY
+   *  - WHATNOT_SPY_FETCH_SOLD_ITEMS
+   */
+
+  // =========================
+  // 1) Per-client defaults
+  // =========================
   const DEFAULTS = {
-    bridgeUrl: "https://tsu-bridge-thc.onrender.com",
-    bridgeKey: ""
+    // ✅ ONLY THING YOU MUST CHANGE PER CLIENT:
+    bridgeUrl: "https://tsu-bridge-sms.onrender.com",
+
+    // Optional: set via chrome.storage or localStorage override
+    bridgeKey: "",
+
+    // optional: "nfl" | "nba" | "mlb" | "nil"
+    sport: "",
+
+    // optional: useful metadata
+    overlayId: "",       // e.g. "sms"
+    channel: "main",     // usually main
+    pollMs: 3000,        // Whatnot poll interval
+    summaryEvery: 5      // send stream_stats every N loops
   };
 
-  function sleep(ms) {
-    return new Promise((r) => setTimeout(r, ms));
+  // =========================
+  // 2) Tiny utils
+  // =========================
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  const cleanUrl = (u) => String(u || "").trim().replace(/\/$/, "");
+
+  const cleanSport = (s) => {
+    const v = String(s || "").trim().toLowerCase();
+    if (!v) return "";
+    return ["nfl", "nba", "mlb", "nil"].includes(v) ? v : "";
+  };
+
+  const clampInt = (n, d, min, max) => {
+    const v = parseInt(n, 10);
+    if (!Number.isFinite(v)) return d;
+    return Math.max(min, Math.min(max, v));
+  };
+
+  // Prefer explicit 2–4 char tokens like BUF, NYJ, LAL
+  function inferCodeFromTitle(title, sport) {
+    const t = String(title || "");
+    const m = t.match(/\b([A-Z]{2,4})\b/);
+    if (m && m[1]) return m[1];
+
+    // Minimal NFL fallback (overlay itself should have full lookup)
+    const s = t.toLowerCase();
+    const NFL = [
+      ["jaguars", "JAX"], ["jets", "NYJ"], ["giants", "NYG"], ["cowboys", "DAL"],
+      ["49ers", "SF"], ["packers", "GB"], ["patriots", "NE"], ["raiders", "LV"],
+      ["chargers", "LAC"], ["rams", "LAR"], ["buccaneers", "TB"],
+    ];
+
+    if (sport === "nfl") {
+      for (const [k, code] of NFL) if (s.includes(k)) return code;
+    }
+    return "";
   }
 
-  function cleanUrl(u) {
-    return String(u || "").trim().replace(/\/$/, "");
+  function stripPrefixTitle(title) {
+    const raw = String(title || "").trim();
+    if (!raw) return "";
+    // Whatnot often uses "STREAM NAME - ITEM TITLE"
+    const parts = raw.split(" - ").map((s) => s.trim()).filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : raw;
   }
 
+  function isBadTitle(t) {
+    const raw = String(t || "").trim();
+    if (!raw) return true;
+
+    const s = raw.toLowerCase();
+    if (s === "sale" || s === "—") return true;
+
+    const tail = stripPrefixTitle(raw);
+    if (!tail || tail.toLowerCase() === "sale") return true;
+
+    return false;
+  }
+
+  function parsePrice(node) {
+    // Whatnot GraphQL returns cents in price.amount most of the time
+    const p =
+      node?.price ||
+      node?.finalPrice ||
+      node?.listing?.price ||
+      node?.listing?.finalPrice ||
+      null;
+
+    let cents = null;
+    let currency = "USD";
+
+    if (p && typeof p === "object") {
+      if (typeof p.currency === "string") currency = p.currency;
+      if (typeof p.amount === "number") cents = p.amount;
+      if (typeof p.value === "number") cents = p.value;
+    } else if (typeof p === "number") {
+      cents = p;
+    } else if (typeof p === "string" && p.trim()) {
+      const num = Number(p);
+      if (Number.isFinite(num)) cents = num;
+    }
+
+    let amount = 0;
+    if (typeof cents === "number" && Number.isFinite(cents)) {
+      amount = Number.isInteger(cents) ? cents / 100 : cents;
+    }
+
+    return { amount, currency, cents };
+  }
+
+  // =========================
+  // 3) Whatnot Live ID
+  // =========================
   function getLiveIdFromUrl() {
-    // Works for common Whatnot patterns like /live/<id> or any URL containing a UUID-ish id
     const href = location.href;
 
     const liveMatch = href.match(/\/live\/([a-z0-9-]+)/i);
@@ -26,6 +135,9 @@
     return null;
   }
 
+  // =========================
+  // 4) injected.js bridge
+  // =========================
   function injectInjectedJs() {
     const src = chrome.runtime.getURL("injected.js");
     const s = document.createElement("script");
@@ -55,7 +167,6 @@
         if (msg.type === `${type}_RESULT`) {
           clearTimeout(timeout);
           window.removeEventListener("message", onMsg);
-
           if (msg.success) resolve(msg.data);
           else reject(new Error(msg.error || "Injected error"));
         }
@@ -66,51 +177,78 @@
     });
   }
 
-async function getConfig() {
-  return new Promise((resolve) => {
-    chrome.storage.sync.get(DEFAULTS, (cfg) => {
-      // Console/onboarding overrides (page localStorage)
-      // In DevTools console on whatnot.com you can run:
-      // localStorage.setItem("tsu.bridgeUrl", "https://tsu-bridge-hvault.onrender.com");
-      // localStorage.setItem("tsu.bridgeKey", "YOUR_KEY_HERE");
+  // =========================
+  // 5) Config resolution
+  // =========================
+  async function getConfig() {
+    return new Promise((resolve) => {
+      chrome.storage.sync.get(DEFAULTS, (cfg) => {
+        let bridgeUrl = cleanUrl(cfg.bridgeUrl);
+        let bridgeKey = String(cfg.bridgeKey || "").trim();
+        let sport = cleanSport(cfg.sport);
+        let overlayId = String(cfg.overlayId || "").trim();
+        let channel = String(cfg.channel || "main").trim().toLowerCase() || "main";
+        let pollMs = clampInt(cfg.pollMs, DEFAULTS.pollMs, 1000, 20000);
+        let summaryEvery = clampInt(cfg.summaryEvery, DEFAULTS.summaryEvery, 1, 50);
 
-      let bridgeUrl = cleanUrl(cfg.bridgeUrl);
-      let bridgeKey = String(cfg.bridgeKey || "").trim();
+        // Local overrides (DevTools on whatnot.com)
+        try {
+          const lsUrl = cleanUrl(localStorage.getItem("tsu.bridgeUrl"));
+          const lsKey = String(localStorage.getItem("tsu.bridgeKey") || "").trim();
+          const lsSport = cleanSport(localStorage.getItem("tsu.sport"));
+          const lsOverlayId = String(localStorage.getItem("tsu.overlayId") || "").trim();
+          const lsChannel = String(localStorage.getItem("tsu.channel") || "").trim().toLowerCase();
+          const lsPollMs = localStorage.getItem("tsu.pollMs");
+          const lsSummaryEvery = localStorage.getItem("tsu.summaryEvery");
 
-      try {
-        const lsUrl = cleanUrl(localStorage.getItem("tsu.bridgeUrl"));
-        const lsKey = String(localStorage.getItem("tsu.bridgeKey") || "").trim();
+          if (lsUrl) bridgeUrl = lsUrl;
+          if (lsKey) bridgeKey = lsKey;
+          if (lsSport) sport = lsSport;
+          if (lsOverlayId) overlayId = lsOverlayId;
+          if (lsChannel) channel = lsChannel;
+          if (lsPollMs) pollMs = clampInt(lsPollMs, pollMs, 1000, 20000);
+          if (lsSummaryEvery) summaryEvery = clampInt(lsSummaryEvery, summaryEvery, 1, 50);
+        } catch (_) {}
 
-        if (lsUrl) bridgeUrl = lsUrl;
-        if (lsKey) bridgeKey = lsKey;
-      } catch (_) {}
-
-      resolve({ bridgeUrl, bridgeKey });
+        resolve({ bridgeUrl, bridgeKey, sport, overlayId, channel, pollMs, summaryEvery });
+      });
     });
-  });
-}
+  }
 
-
+  // =========================
+  // 6) Bridge POST (standard)
+  // =========================
 async function sendEvent(cfg, payload) {
   if (!cfg.bridgeUrl) return;
 
   const url = `${cfg.bridgeUrl}/events`;
+  const body = {
+    ts: Date.now(),
+    channel: cfg.channel || "main",
+    overlay_id: cfg.overlayId || undefined,
+    ...payload
+  };
 
   try {
     const r = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-bridge-key": cfg.bridgeKey
+
+        // ✅ New standard
+        "x-bridge-key": cfg.bridgeKey,
+
+        // ✅ Backward-compatible fallback
+        "x-api-key": cfg.bridgeKey
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(body)
     });
 
     if (!r.ok) {
       const txt = await r.text().catch(() => "");
       console.warn("[TSU] POST /events failed:", r.status, txt);
     } else {
-      console.log("[TSU] POST /events ok:", payload);
+      console.log("[TSU] POST /events ok:", body.type, body);
     }
   } catch (e) {
     console.warn("[TSU] POST /events error:", e?.message || e);
@@ -118,7 +256,9 @@ async function sendEvent(cfg, payload) {
 }
 
 
-  // ---- Main
+  // =========================
+  // 7) Main loop
+  // =========================
   injectInjectedJs();
 
   let injectedReady = false;
@@ -131,7 +271,7 @@ async function sendEvent(cfg, payload) {
   });
 
   (async () => {
-    // Wait for injected to announce readiness
+    // Wait for injected.js
     for (let i = 0; i < 40 && !injectedReady; i++) await sleep(250);
     if (!injectedReady) {
       console.warn("[TSU] injected.js never became ready.");
@@ -152,30 +292,37 @@ async function sendEvent(cfg, payload) {
 
     console.log("[TSU] liveId:", liveId);
     console.log("[TSU] bridge:", cfg.bridgeUrl);
+    console.log("[TSU] channel:", cfg.channel, "overlay_id:", cfg.overlayId || "(none)", "sport:", cfg.sport || "(none)");
 
-    // Dedupe set for sold item ids
-    const seen = new Set();
+    // Optional warmup event (helps keep Render awake + confirms traffic)
+    await sendEvent(cfg, {
+      type: "overlay_warmup",
+      liveId,
+      sport: cfg.sport || ""
+    });
 
-    // Buyer stats (count-based top buyer)
+    // Dedupe: id -> lastTitleSent (only after title becomes usable)
+    const seen = new Map();
+
+
+
+    // listingId -> lastCode (used to detect respins)
+const lastCodeByListing = new Map();
+
+    // Buyer stats (count-based)
     const buyerCounts = new Map();
     let lastSaleText = "—";
+    let loops = 0;
 
     while (true) {
       try {
-        // Fetch sold items (latest page)
         const sold = await requestInjected("WHATNOT_SPY_FETCH_SOLD_ITEMS", { liveId, after: null });
 
         const edges = sold?.edges || [];
-        // edges likely newest-first, but not guaranteed. We'll process oldest->newest for sane “last sale”
-        const nodes = edges
-          .map((e) => e?.node)
-          .filter(Boolean)
-          .reverse();
+        const nodes = edges.map((e) => e?.node).filter(Boolean).reverse();
 
         for (const n of nodes) {
-          const id = n.id || n._id || n.createdAt || JSON.stringify(n);
-          if (seen.has(id)) continue;
-          seen.add(id);
+          const id = n?.id || n?._id || n?.createdAt || JSON.stringify(n);
 
           const buyer =
             n?.buyer?.username ||
@@ -183,71 +330,97 @@ async function sendEvent(cfg, payload) {
             n?.buyer?.displayName ||
             "Unknown";
 
-          // price fields vary: sometimes cents, sometimes amount object.
-          let amount = 0;
-          const raw =
-            n?.price?.amount ||
-            n?.price?.value ||
-            n?.price ||
-            n?.finalPrice?.amount ||
-            n?.finalPrice;
+          const rawTitle =
+            n?.listing?.title ||
+            n?.listing?.subtitle ||
+            n?.listing?.description ||
+            n?.title ||
+            n?.product?.title ||
+            "Sale";
 
-          if (typeof raw === "number") amount = raw;
-          if (typeof raw === "string") amount = Number(raw) || 0;
+          const title = stripPrefixTitle(rawTitle);
 
-          // Heuristic: if this is cents, normalize (common in APIs)
-          if (amount > 0 && amount >= 1000 && Number.isInteger(amount)) {
-            // Only do this if it looks like cents. (10.00 = 1000)
-            amount = amount / 100;
-          }
+          // Skip already sent identical
+          const prevTitle = seen.get(id);
+          if (prevTitle && prevTitle === title) continue;
 
-        const title =
-  n?.listing?.title ||
-  n?.listing?.description ||
-  n?.title ||
-  n?.product?.title ||
-  "Sale";
+          // If title isn't ready, do NOT mark as seen
+          if (isBadTitle(rawTitle) || isBadTitle(title)) continue;
 
+          // Now we can mark as seen
+          seen.set(id, title);
+
+          
+          const price = parsePrice(n);
+          const amount = price.amount;
+
+          const sport = (cfg.sport || "").toLowerCase();
+          let code = "";
+          if (sport !== "nil") code = inferCodeFromTitle(title, sport);
 
           lastSaleText = `${buyer} • ${title} • $${amount.toFixed(2)}`;
-
           buyerCounts.set(buyer, (buyerCounts.get(buyer) || 0) + 1);
 
-          // Send a NEW SALE event (overlay uses this to update high bid per break)
-        const eventPayload = {
-        type: "team_sold",
-         buyer,
-         amount,
-         title,
-  
-           // optional extras for debugging / future matching
+          const eventPayload = {
+            type: "team_sold",
+            saleId: id,
+            buyer,
+            title,
+            amount,
+            amountCents: price.cents,
+            currency: price.currency,
+            sport,
+            code,
             listingId: n?.listing?.id || null,
-           productId: n?.product?.id || null
+            productId: n?.listing?.product?.id || n?.product?.id || null,
+            liveId
           };
 
-console.log("[TSU] sending event:", eventPayload);
-await sendEvent(cfg, eventPayload);
 
+const listingKey = eventPayload.listingId || eventPayload.productId || id;
+const prevCode = lastCodeByListing.get(listingKey);
+
+// If listingKey had a different team before, this is a respin/reassign.
+// Emit unsold for the previous team so the overlay can unmark it.
+if (prevCode && eventPayload.code && prevCode !== eventPayload.code) {
+  await sendEvent(cfg, {
+    type: "team_unsold",
+    code: prevCode,
+    // optional debug context:
+    listingId: eventPayload.listingId,
+    productId: eventPayload.productId,
+    liveId
+  });
+}
+
+// Update last known assignment
+if (eventPayload.code) lastCodeByListing.set(listingKey, eventPayload.code);
+
+          console.log("[TSU] sending event:", eventPayload);
+          await sendEvent(cfg, eventPayload);
         }
 
-        // Send summary stats occasionally (doesn't include “highBid snapshot” so it won’t break resets)
-        let topBuyer = "—";
-        let topBuyerCount = 0;
-        for (const [b, c] of buyerCounts.entries()) {
-          if (c > topBuyerCount) {
-            topBuyerCount = c;
-            topBuyer = b;
+        // periodic summary
+        loops++;
+        if (loops % cfg.summaryEvery === 0) {
+          let topBuyer = "—";
+          let topBuyerCount = 0;
+          for (const [b, c] of buyerCounts.entries()) {
+            if (c > topBuyerCount) {
+              topBuyerCount = c;
+              topBuyer = b;
+            }
           }
+
+          await sendEvent(cfg, {
+            type: "stream_stats",
+            topBuyer,
+            lastSale: lastSaleText,
+            liveId
+          });
         }
 
-        await sendEvent(cfg, {
-          type: "stream_stats",
-          topBuyer,
-          lastSale: lastSaleText
-        });
-
-        // Poll cadence
-        await sleep(3000);
+        await sleep(cfg.pollMs);
       } catch (err) {
         console.warn("[TSU] poll error:", err?.message || err);
         await sleep(5000);
