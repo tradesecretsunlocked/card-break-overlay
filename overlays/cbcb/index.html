@@ -323,8 +323,8 @@
     }
 
     .team.sold img{
-      opacity: 0.22;
-      filter: grayscale(100%) brightness(0.35);
+      opacity: 0.82;
+      filter: grayscale(50%) brightness(0.35);
     }
 
     .team.flash{ animation: soldFlash 260ms ease; }
@@ -398,38 +398,46 @@
       filter: drop-shadow(0 2px 10px rgba(0,0,0,0.65));
     }
 
-    /* ===== TICKER ROW ===== */
-    .ticker-slot{
-      border-radius: 10px;
-      height: var(--tileH);
-      display:flex;
-      align-items:center;
-      overflow:hidden;
-      background:
-        linear-gradient(90deg,
-          rgba(10, 10, 10, 1) 0%,
-          rgba(11,42,91,0.95) 35%,
-          rgba(91,53,24,0.92) 65%,
-          rgba(10, 10, 10, 1) 100%);
-      border: 2px solid var(--goldBorder);
-      padding: 0 10px;
-      
-    }
+/* ===== TICKER ROW ===== */
+.ticker-slot{
+  border-radius: 10px;
+  height: var(--tileH);
+  display:flex;
+  align-items:center;
+  overflow:hidden;
+  background:
+    linear-gradient(90deg,
+      rgba(10, 10, 10, 1) 0%,
+      rgba(11,42,91,0.95) 35%,
+      rgba(91,53,24,0.92) 65%,
+      rgba(10, 10, 10, 1) 100%);
+  border: 2px solid var(--goldBorder);
+  padding: 0 10px;
+}
 
-    .ticker-text{
-      display:inline-block;
-      white-space: nowrap;
-      padding-left: 100%;
-      animation: tickerScroll var(--tickerDur) linear infinite;
-      font-weight: 900;
-      letter-spacing: 0.8px;
-      color: #fff;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.65);
-    }
-    @keyframes tickerScroll{
-      0%{ transform: translateX(0); }
-      100%{ transform: translateX(-100%); }
-    }
+/* NEW: seamless marquee (2 copies, never empty) */
+.ticker-track{
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  will-change: transform;
+  animation: tickerMarquee linear infinite;
+  animation-duration: var(--tickerDur, 18s);
+}
+
+.ticker-copy{
+  display:inline-block;
+  padding-right: 48px; /* spacing between repeats */
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.65);
+}
+
+@keyframes tickerMarquee{
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
 
     /* ===== CONTROLS ROW ===== */
     .controls-row{
@@ -842,15 +850,38 @@ linear-gradient(90deg, rgba(10, 10, 10, 1) 0%, rgb(38 100 199) 45%, rgba(10, 10,
 
   let TICKER_LINES = loadTickerLines();
 
-  function refreshTickerText(){
-    const t = ` ${TICKER_LINES.join("   •   ")} `;
-    document.querySelectorAll(".ticker-text").forEach(el => {
-      el.textContent = t;
-      el.style.animation = "none";
-      void el.offsetHeight;
-      el.style.animation = "tickerScroll 18s linear infinite";
-    });
+// ===== Scores -> ticker (never overwrites client ticker lines) =====
+let SCORE_ROTATE_TIMER = null;
+let SCORE_LINES = [];
+let SCORE_IDX = 0;
+let SCORE_CURRENT = "";
+let LAST_SCORE_AT = 0;
+
+function scoresAreFresh(){
+  return (Date.now() - LAST_SCORE_AT) < 1000 * 60 * 20; // 20 min
+}
+
+function buildTickerLine(){
+  const base = TICKER_LINES.join("   •   ");
+  if (ENABLE_SCORES && SCORE_CURRENT && scoresAreFresh()){
+    return `${base}   •   LIVE SCORES: ${SCORE_CURRENT}`;
   }
+  return base;
+}
+
+function updateTickerMarquee(){
+  const line = ` ${buildTickerLine()} `;
+
+  document.querySelectorAll(".ticker-track").forEach(track => {
+    const copies = track.querySelectorAll(".ticker-copy");
+    if (copies.length < 2) return;
+
+    copies[0].textContent = line;
+    copies[1].textContent = line;
+  });
+}
+  
+
 
   function syncTickerInput(){
     const inp = document.getElementById("tickerInput");
@@ -858,12 +889,12 @@ linear-gradient(90deg, rgba(10, 10, 10, 1) 0%, rgb(38 100 199) 45%, rgba(10, 10,
     inp.value = TICKER_LINES.join(" • ");
   }
 
-  function setTickerLines(lines){
-    TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
-    saveTickerLines(TICKER_LINES);
-    refreshTickerText();
-    syncTickerInput();
-  }
+function setTickerLines(lines){
+  TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
+  saveTickerLines(TICKER_LINES);
+  updateTickerMarquee();
+  syncTickerInput();
+}
 
   function applyTicker(){
     const raw = (document.getElementById("tickerInput")?.value || "").trim();
@@ -958,13 +989,6 @@ function setTickerSpeed(seconds){
   const s = clamp(Number(seconds), 8, 40);
   document.documentElement.style.setProperty("--tickerDur", `${s}s`);
   saveTickerSpeed(s);
-
-  // restart animation so it updates instantly in OBS
-  document.querySelectorAll(".ticker-text").forEach(el => {
-    el.style.animation = "none";
-    void el.offsetHeight;
-    el.style.animation = `tickerScroll ${s}s linear infinite`;
-  });
 }
 
 // ===== Title persistence =====
@@ -1284,16 +1308,26 @@ function makeLogoSlot(spanCols){
 }
 
 
-  function makeTickerSlot(spanCols){
-    const slot = document.createElement("div");
-    slot.className = "ticker-slot";
-    slot.style.gridColumn = `span ${spanCols}`;
-    const text = document.createElement("span");
-    text.className = "ticker-text";
-    text.textContent = ` ${TICKER_LINES.join("   •   ")} `;
-    slot.appendChild(text);
-    return slot;
-  }
+function makeTickerSlot(spanCols){
+  const slot = document.createElement("div");
+  slot.className = "ticker-slot";
+  slot.style.gridColumn = `span ${spanCols}`;
+
+  const track = document.createElement("div");
+  track.className = "ticker-track";
+
+  const c1 = document.createElement("span");
+  c1.className = "ticker-copy";
+
+  const c2 = document.createElement("span");
+  c2.className = "ticker-copy";
+
+  track.appendChild(c1);
+  track.appendChild(c2);
+  slot.appendChild(track);
+
+  return slot;
+}
 
 function makeFloatingLogo(){
   const wrap = document.createElement("div");
@@ -1376,7 +1410,7 @@ function makeFloatingLogo(){
     }
 
     setHeader();
-    refreshTickerText();
+    updateTickerMarquee();
     updateStats();
     updateSoldList();
   }
@@ -1870,9 +1904,7 @@ function formatGameLine(g){
   return `${away} ${aS} • ${home} ${hS} • ${st}`;
 }
 
-let SCORE_ROTATE_TIMER = null;
-let SCORE_LINES = [];
-let LAST_SCORE_AT = 0;
+
 
 function normalizeScorePayloadToLines(data){
   if (!data) return [];
@@ -1919,22 +1951,24 @@ function handleSportsEvent(data){
 
   SCORE_LINES = lines.slice(0, 6);
   LAST_SCORE_AT = Date.now();
+  SCORE_IDX = 0;
+SCORE_CURRENT = SCORE_LINES[0] || "";
+updateTickerMarquee();
 
   if (SCORE_ROTATE_TIMER) clearInterval(SCORE_ROTATE_TIMER);
 
-  let idx = 0;
-  const apply = () => {
-    const line = SCORE_LINES[idx % SCORE_LINES.length];
-    idx++;
-    // KEEP your base ticker line 1, inject scores into line 2
-    setTickerLines([DEFAULT_TICKER_LINES[0], `LIVE SCORES: ${line}`]);
-  };
+const apply = () => {
+  if (!SCORE_LINES.length) return;
+  SCORE_CURRENT = SCORE_LINES[SCORE_IDX % SCORE_LINES.length];
+  SCORE_IDX++;
+  updateTickerMarquee();
+};
 
-  apply();
-  SCORE_ROTATE_TIMER = setInterval(apply, 8000);
-}
+apply();
+SCORE_ROTATE_TIMER = setInterval(apply, 8000);
+} // <-- ADD THIS LINE to close handleSportsEvent
 
-  function sseMarkSold(code, buyer=""){
+function sseMarkSold(code, buyer=""){
     if (!code) return;
     if (soldTeams.has(code)) return;
     soldTeams.add(code);
@@ -1978,6 +2012,7 @@ setTickerSpeed(loadTickerSpeed());
 
 
     buildLayout();
+    updateTickerMarquee();
     initSSE();
 
     const savedTitle = loadOverlayTitle();
