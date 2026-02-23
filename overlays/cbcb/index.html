@@ -850,10 +850,18 @@ linear-gradient(90deg, rgba(10, 10, 10, 1) 0%, rgb(38 100 199) 45%, rgba(10, 10,
 
   let TICKER_LINES = loadTickerLines();
 
-// ===== Scores -> ticker (never overwrites client ticker lines) =====
+// ===== Scores -> ticker (multi-sport, not tied to active sport) =====
 let SCORE_ROTATE_TIMER = null;
-let SCORE_LINES = [];
-let SCORE_IDX = 0;
+
+// latest lines per sport
+const SCORE_BY_SPORT = { nfl: [], nba: [], mlb: [] };
+
+// arrival order (sports that have sent scores recently)
+let SCORE_SPORT_ORDER = []; // e.g. ["nba","mlb","nfl"]
+
+let SCORE_LINE_IDX = 0;
+let SCORE_SPORT_IDX = 0;
+
 let SCORE_CURRENT = "";
 let LAST_SCORE_AT = 0;
 
@@ -863,9 +871,11 @@ function scoresAreFresh(){
 
 function buildTickerLine(){
   const base = TICKER_LINES.join("   •   ");
+
   if (ENABLE_SCORES && SCORE_CURRENT && scoresAreFresh()){
     return `${base}   •   LIVE SCORES: ${SCORE_CURRENT}`;
   }
+
   return base;
 }
 
@@ -1943,29 +1953,50 @@ function handleSportsEvent(data){
   const sport = normalizeSport(data.sport);
   if (!sport) return;
 
-  // only show scores for the currently selected sport
-  if (sport !== currentBreakType) return;
-
   const lines = normalizeScorePayloadToLines(data);
   if (!lines.length) return;
 
-  SCORE_LINES = lines.slice(0, 6);
+  // store latest lines for that sport
+  SCORE_BY_SPORT[sport] = lines.slice(0, 6);
   LAST_SCORE_AT = Date.now();
-  SCORE_IDX = 0;
-SCORE_CURRENT = SCORE_LINES[0] || "";
-updateTickerMarquee();
 
-  if (SCORE_ROTATE_TIMER) clearInterval(SCORE_ROTATE_TIMER);
+  // update sport arrival order (move sport to the end)
+  SCORE_SPORT_ORDER = SCORE_SPORT_ORDER.filter(s => s !== sport);
+  SCORE_SPORT_ORDER.push(sport);
 
-const apply = () => {
-  if (!SCORE_LINES.length) return;
-  SCORE_CURRENT = SCORE_LINES[SCORE_IDX % SCORE_LINES.length];
-  SCORE_IDX++;
+  // reset indexes so we show the freshest update quickly
+  SCORE_SPORT_IDX = SCORE_SPORT_ORDER.length - 1; // start with most recent sport
+  SCORE_LINE_IDX = 0;
+
+  const apply = () => {
+    if (!SCORE_SPORT_ORDER.length) return;
+
+    const s = SCORE_SPORT_ORDER[SCORE_SPORT_IDX % SCORE_SPORT_ORDER.length];
+    const arr = SCORE_BY_SPORT[s] || [];
+    if (!arr.length) return;
+
+    const line = arr[SCORE_LINE_IDX % arr.length];
+
+    // Sport tag so NBA/NFL/MLB don't look mixed
+    SCORE_CURRENT = `${s.toUpperCase()}: ${line}`;
+
+    SCORE_LINE_IDX++;
+
+    // after cycling through this sport’s lines, move to next sport
+    if (SCORE_LINE_IDX % arr.length === 0){
+      SCORE_SPORT_IDX++;
+    }
+
+    updateTickerMarquee();
+  };
+
+  // show immediately
   updateTickerMarquee();
-};
+  apply();
 
-apply();
-SCORE_ROTATE_TIMER = setInterval(apply, 8000);
+  // restart rotation timer
+  if (SCORE_ROTATE_TIMER) clearInterval(SCORE_ROTATE_TIMER);
+  SCORE_ROTATE_TIMER = setInterval(apply, 8000);
 } // <-- ADD THIS LINE to close handleSportsEvent
 
 function sseMarkSold(code, buyer=""){
