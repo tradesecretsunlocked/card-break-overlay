@@ -1475,10 +1475,17 @@ function makeFloatingLogo(){
 // TSU Bridge Standard Helpers
 // =========================
 const BRIDGE_LS = {
-  URL: "tsu.bridgeUrl",
-  KEY: "tsu.bridgeKey",
+  // ✅ Overlay-page standard keys
+  URL: "tsu.bridge",
+  KEY: "tsu.key",
+
+  // Overlay-specific (ok to keep)
   OVERLAY: "tsu.overlayId",
   CHANNEL: "tsu.channel",
+
+  // ✅ Legacy extension keys (read-only fallbacks)
+  URL_LEGACY: "tsu.bridgeUrl",
+  KEY_LEGACY: "tsu.bridgeKey",
 };
 
 function getParam(name){
@@ -1495,30 +1502,51 @@ function getBridgeBase(){
   const q = getParam("bridge");
   if (q){
     const cleaned = normalizeBridge(q);
-    localStorage.setItem(BRIDGE_LS.URL, cleaned);
+    localStorage.setItem(BRIDGE_LS.URL, cleaned);          // ✅ tsu.bridge
     return cleaned;
   }
 
+  // ✅ Prefer overlay standard
+  const std = localStorage.getItem(BRIDGE_LS.URL);
+  if (std) return std.trim().replace(/\/$/, "");
+
+  // ✅ Fallback to legacy extension key, and migrate forward
+  const legacy = localStorage.getItem(BRIDGE_LS.URL_LEGACY);
+  if (legacy){
+    const cleaned = String(legacy).trim().replace(/\/$/, "");
+    localStorage.setItem(BRIDGE_LS.URL, cleaned);          // migrate
+    return cleaned;
+  }
+
+  // extra old fallbacks you already had (fine)
   return (
-    localStorage.getItem("tsu.bridgeUrl") ||
     localStorage.getItem("cbcb.bridge") ||
     localStorage.getItem("rr.bridge") ||
     ""
-  );
+  ).trim().replace(/\/$/, "");
 }
 
 function getBridgeKey(){
   const q = getParam("key");
   if (q){
-    localStorage.setItem(BRIDGE_LS.KEY, q.trim());
-    return q.trim();
+    const k = q.trim();
+    localStorage.setItem(BRIDGE_LS.KEY, k);               // ✅ tsu.key
+    return k;
   }
 
-  return (
-    localStorage.getItem("tsu.bridgeKey") ||
-    localStorage.getItem("cbcb.bridge.key") ||
-    ""
-  ).trim();
+  // ✅ Prefer overlay standard
+  const std = (localStorage.getItem(BRIDGE_LS.KEY) || "").trim();
+  if (std) return std;
+
+  // ✅ Fallback to legacy extension key, and migrate forward
+  const legacy = (localStorage.getItem(BRIDGE_LS.KEY_LEGACY) || "").trim();
+  if (legacy){
+    localStorage.setItem(BRIDGE_LS.KEY, legacy);          // migrate
+    return legacy;
+  }
+
+  // extra old fallback you had (fine)
+  return (localStorage.getItem("cbcb.bridge.key") || "").trim();
 }
 
 function getChannel(){
@@ -1650,15 +1678,15 @@ async function bridgePost(payload){
 }
 
 function bridgeWarmup(extra = {}){
-  return bridgePost({
-    type: "overlay_warmup",
-    overlay: OVERLAY_ID,
-    channel: CHANNEL_MAIN,
-    ts: Date.now(),
-    breakId: computeBreakId(),
-    sport: currentBreakType,
-    ...extra,
-  });
+return bridgePost({
+  type: "overlay_warmup",
+  overlay_id: OVERLAY_ID,   // ✅ standard
+  channel: CHANNEL_MAIN,
+  ts: Date.now(),
+  breakId: computeBreakId(),
+  sport: currentBreakType,
+  ...extra,
+});
 }
 
 function initSSE(){
