@@ -924,10 +924,17 @@ function computeBreakId(){
 }
 
 function breakIdMatches(payload){
-  // if server/extension includes breakId, enforce it; otherwise allow
   const incoming = String(payload?.breakId || "").trim();
-  if (!incoming) return true;
-  return incoming === computeBreakId();
+  if (!incoming) return true; // if none provided, accept
+
+  // Accept exact match
+  if (incoming === computeBreakId()) return true;
+
+  // Accept suffix match like "*-nfl-12" etc
+  const sport = String(currentBreakType || "").toLowerCase();
+  const n = String(loadBreakNumber());
+  const suffix = `-${sport}-${n}`;
+  return incoming.endsWith(suffix);
 }
 
   // ===== Modal state =====
@@ -1468,10 +1475,10 @@ function makeFloatingLogo(){
 // TSU Bridge Standard Helpers
 // =========================
 const BRIDGE_LS = {
-  URL: "cbcb.bridge",
-  KEY: "cbcb.bridge.key",
-  OVERLAY: "cbcb.overlayId",
-  CHANNEL: "cbcb.channel",
+  URL: "tsu.bridgeUrl",
+  KEY: "tsu.bridgeKey",
+  OVERLAY: "tsu.overlayId",
+  CHANNEL: "tsu.channel",
 };
 
 function getParam(name){
@@ -1491,11 +1498,13 @@ function getBridgeBase(){
     localStorage.setItem(BRIDGE_LS.URL, cleaned);
     return cleaned;
   }
-  const tsu = (localStorage.getItem("tsu.bridgeUrl") || "").trim();
-  if (tsu) return normalizeBridge(tsu);
 
-  const saved = localStorage.getItem(BRIDGE_LS.URL) || localStorage.getItem("rr.bridge") || "";
-  return saved ? normalizeBridge(saved) : "";
+  return (
+    localStorage.getItem("tsu.bridgeUrl") ||
+    localStorage.getItem("cbcb.bridge") ||
+    localStorage.getItem("rr.bridge") ||
+    ""
+  );
 }
 
 function getBridgeKey(){
@@ -1504,7 +1513,12 @@ function getBridgeKey(){
     localStorage.setItem(BRIDGE_LS.KEY, q.trim());
     return q.trim();
   }
-  return (localStorage.getItem(BRIDGE_LS.KEY) || localStorage.getItem("tsu.bridgeKey") || "").trim();
+
+  return (
+    localStorage.getItem("tsu.bridgeKey") ||
+    localStorage.getItem("cbcb.bridge.key") ||
+    ""
+  ).trim();
 }
 
 function getChannel(){
@@ -1522,7 +1536,12 @@ function getOverlayId(){
 }
 
 // Features
-const ENABLE_SCORES = getParam("scores") === "1";
+// scores ON by default; disable with ?scores=0
+const ENABLE_SCORES = (getParam("scores") === null) ? true : (getParam("scores") === "1");
+
+function getScoresChannel(){
+  return String(getParam("scoresChannel") || "sports").toLowerCase().trim() || "sports";
+}
 // =========================
 // SSE Bridge (Multi-channel)
 // - main channel: sales/team assignment
@@ -1535,6 +1554,7 @@ const BRIDGE_BASE = getBridgeBase();
 const BRIDGE_KEY = getBridgeKey();
 const CHANNEL_MAIN = getChannel();
 const OVERLAY_ID = getOverlayId();
+const lastCodeByListingKey = new Map();
 
 function setSSEStatus(state, msg){
   const wrap = document.getElementById('sseStatus');
@@ -1587,8 +1607,14 @@ function connectOneSSE({ channel, onEvent, onOpenLabel, refSetter }){
   es.onmessage = ingest;
 
   // named events too (server broadcasts `event: ${type}`)
-  ["team_sold","team_unsold","buyer_update","reset","set_break","set_sport","set_ticker","set_title","stream_stats","scores","sale","purchase"]
-    .forEach(t => es.addEventListener(t, ingest));
+[
+  "team_sold","team_unsold",
+  "buyer","buyer_update",
+  "reset","set_break","set_sport","set_ticker","set_title",
+  "scores",
+  "sale","purchase","whatnot_purchase",
+  "stream_stats"
+].forEach(t => es.addEventListener(t, ingest));
 
   es.onerror = () => {
     setSSEStatus("error", "RETRY");
@@ -1650,14 +1676,14 @@ function initSSE(){
   });
 
   // sports channel (scores) optional
-  if (ENABLE_SCORES){
-    connectOneSSE({
-      channel: "sports",
-      onOpenLabel: "ON",
-      onEvent: handleSportsEvent,
-      refSetter: function(v){ return arguments.length ? setSportsRef(v) : setSportsRef(); },
-    });
-  }
+ if (ENABLE_SCORES){
+  connectOneSSE({
+    channel: getScoresChannel(), // default "sports"
+    onOpenLabel: "ON",
+    onEvent: handleSportsEvent,
+    refSetter: function(v){ return arguments.length ? setSportsRef(v) : setSportsRef(); },
+  });
+}
 
   bridgeWarmup();
 }
@@ -1705,7 +1731,12 @@ function handleSSEEvent(data){
       const title = data.title || data.itemTitle || data.listingTitle || "";
       code = inferTeamCodeFromTitle(title, sport);
     }
-
+const listingKey = data.listingId || data.productId || data.saleId || data.id || null;
+if (listingKey && code){
+  const prev = lastCodeByListingKey.get(listingKey);
+  if (prev && prev !== code) sseMarkUnsold(prev);
+  lastCodeByListingKey.set(listingKey, code);
+}
     const buyer =
       String(data.buyer || data.buyerName || data.username || "").trim();
 
@@ -1714,9 +1745,17 @@ function handleSSEEvent(data){
   }
 
   switch (t){
-    case "team_unsold":
-      sseMarkUnsold(String(data.code || "").toUpperCase().trim());
-      break;
+  case "team_unsold": {
+  const code = String(data.code || "").toUpperCase().trim();
+  sseMarkUnsold(code);
+
+  const listingKey = data.listingId || data.productId || data.saleId || data.id || null;
+  if (listingKey){
+    const cur = lastCodeByListingKey.get(listingKey);
+    if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+  }
+  break;
+}
 
     case "buyer_update":
     case "buyer":
@@ -1793,8 +1832,6 @@ function normalizeSport(s){
 // =========================
 // Sports channel events (scores)
 // =========================
-let SCORE_ROTATE_TIMER = null;
-let SCORE_LINES = [];
 
 function formatGameLine(g){
   const away = String(g?.away || "AWAY");
@@ -1805,21 +1842,55 @@ function formatGameLine(g){
   return `${away} ${aS} • ${home} ${hS} • ${st}`;
 }
 
+let SCORE_ROTATE_TIMER = null;
+let SCORE_LINES = [];
+let LAST_SCORE_AT = 0;
+
+function normalizeScorePayloadToLines(data){
+  if (!data) return [];
+
+  // 1) {text:"..."}
+  if (typeof data.text === "string" && data.text.trim()){
+    return [data.text.trim()];
+  }
+
+  // 2) {lines:[...]}
+  if (Array.isArray(data.lines) && data.lines.length){
+    return data.lines.map(x => String(x).trim()).filter(Boolean);
+  }
+
+  // 3) {games:[{away,awayScore,home,homeScore,status}]}
+  const games = Array.isArray(data.games) ? data.games : [];
+  if (games.length){
+    return games.map(g => {
+      const away = String(g.away || "AWAY");
+      const home = String(g.home || "HOME");
+      const aS = Number(g.awayScore ?? 0);
+      const hS = Number(g.homeScore ?? 0);
+      const st = String(g.status || "—").replace(/\s+/g," ").trim();
+      return `${away} ${aS}-${hS} ${home} (${st})`;
+    }).filter(Boolean);
+  }
+
+  return [];
+}
+
 function handleSportsEvent(data){
   if (!ENABLE_SCORES) return;
   if (!data || typeof data !== "object") return;
-
   if (String(data.type || "").toLowerCase() !== "scores") return;
 
   const sport = normalizeSport(data.sport);
   if (!sport) return;
 
+  // only show scores for the currently selected sport
   if (sport !== currentBreakType) return;
 
-  const games = Array.isArray(data.games) ? data.games : [];
-  SCORE_LINES = games.map(formatGameLine).filter(Boolean);
+  const lines = normalizeScorePayloadToLines(data);
+  if (!lines.length) return;
 
-  if (!SCORE_LINES.length) return;
+  SCORE_LINES = lines.slice(0, 6);
+  LAST_SCORE_AT = Date.now();
 
   if (SCORE_ROTATE_TIMER) clearInterval(SCORE_ROTATE_TIMER);
 
@@ -1827,7 +1898,8 @@ function handleSportsEvent(data){
   const apply = () => {
     const line = SCORE_LINES[idx % SCORE_LINES.length];
     idx++;
-    setTickerLines([DEFAULT_TICKER_LINES[0], `LIVE: ${line}`]);
+    // KEEP your base ticker line 1, inject scores into line 2
+    setTickerLines([DEFAULT_TICKER_LINES[0], `LIVE SCORES: ${line}`]);
   };
 
   apply();
