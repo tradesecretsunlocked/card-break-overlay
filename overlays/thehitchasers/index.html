@@ -50,7 +50,7 @@
         0 0 0 1px rgba(0,0,0,0.8),
         0 16px 40px rgba(0,0,0,0.75),
         0 0 30px rgba(216,178,76,0.18);
-      padding: 20px;
+      padding: 8px;
       inset:20px;
       position: relative;
       overflow: hidden;
@@ -153,7 +153,7 @@
     .main{
       margin-top: 10px;
       display:grid;
-      grid-template-columns: 255px 1fr 255px;
+      grid-template-columns: 260px 1fr 260px;
       gap: 10px;
       z-index: 2;
       position: relative;
@@ -403,7 +403,7 @@ background: linear-gradient(130deg,
 .infoPanel > *{ position: relative; z-index: 2; }
 
 .infoTitle{
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 1px;
   font-size: 14px;
   text-transform: uppercase;
@@ -415,15 +415,15 @@ background: linear-gradient(130deg,
 .infoBody{
   display:flex;
   flex-direction: column;
-  gap: 4px;
-  font-weight: 900;
+  gap: 8px;
+  font-weight: 700;
 }
 
 .scoreRow{
   display:flex;
   justify-content: space-between;
   gap: 4px;
-  font-size: 15px;
+  font-size: 14px;
   opacity: 1;
 }
 
@@ -997,10 +997,10 @@ const lastCodeByListingKey = new Map();
   let buyerTotals = new Map();  // buyer -> total spent
   let lastSaleBuyer = '';
 // =========================
-// Scores rotation (NBA/NFL/MLB)
+// Scores rotation (NBA only)
 // =========================
-const SCORES_BY_SPORT = { nba: null, nfl: null, mlb: null };
-const SCORE_SPORT_ORDER = ["nba", "nfl", "mlb"];
+const SCORES_BY_SPORT = { nba: null };
+const SCORE_SPORT_ORDER = ["nba"];
 let scoreSportIdx = 0;
 let scoreRotateTimer = null;
 
@@ -1039,9 +1039,8 @@ function startScoreRotation(){
   if (scoreRotateTimer) return; // already running
   renderCurrentScoreSport();    // render immediately
   scoreRotateTimer = setInterval(() => {
-    scoreSportIdx = (scoreSportIdx + 1) % SCORE_SPORT_ORDER.length;
-    renderCurrentScoreSport();
-  }, 8000); // rotate every 8s (change if you want)
+    renderCurrentScoreSport();  // no rotation needed
+  }, 8000);
 }
 
 
@@ -1550,13 +1549,15 @@ const listingKey =
       slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
     }
 
-  if (type === "scores" && Array.isArray(payload.games)){
-  const sport = String(payload.sport || payload.league || payload.breakType || "").toLowerCase().trim();
-  if (sport && SCORES_BY_SPORT[sport] !== undefined){
-    SCORES_BY_SPORT[sport] = payload.games;
-    // Start rotation as soon as the first scores arrive
+if (type === "scores" && Array.isArray(payload.games)){
+  const sport = String(payload.sport || payload.league || payload.breakType || "")
+    .toLowerCase()
+    .trim();
+
+  // NBA only (ignore NFL/MLB safely)
+  if (sport === "nba"){
+    SCORES_BY_SPORT.nba = payload.games;
     startScoreRotation();
-    // If we're currently showing this sport, refresh immediately
     renderCurrentScoreSport();
   }
 }
