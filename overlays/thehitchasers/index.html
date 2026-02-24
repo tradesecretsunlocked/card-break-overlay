@@ -588,7 +588,7 @@ background: linear-gradient(130deg,
       border: 1px solid rgba(255,255,255,0.10);
       box-shadow: inset 0 0 0 1px rgba(216,178,76,0.12);
       padding: 8px;
-    DISPLay:visible;
+    display:none;
       position: relative;
       z-index: 5;
       left:19px;
@@ -905,17 +905,22 @@ document.getElementById('camBg').src = CAM_BG_PATH;
   // === Bridge URL (NO KEY in URL) ===
 // Provide via ?bridge=https://YOUR-RENDER-APP.onrender.com
 // Falls back to localStorage value (set once)
+function cleanUrl(u){ return String(u || "").trim().replace(/\/$/, ""); }
+function normalizeBridge(u){
+  // strips trailing /events or /stream if someone pastes those
+  return cleanUrl(u).replace(/\/(events|stream)(\/.*)?$/,"");
+}
+
 const BRIDGE_URL = (() => {
   const q = new URLSearchParams(location.search).get('bridge');
   if (q) {
-    localStorage.setItem('tsu.bridge', q.replace(/\/$/, ''));
-    return q.replace(/\/$/, '');
+    const cleaned = normalizeBridge(q);
+    localStorage.setItem('tsu.bridge', cleaned);
+    return cleaned;
   }
   const saved = localStorage.getItem('tsu.bridge');
-  return saved ? saved.replace(/\/$/, '') : "";
+  return saved ? normalizeBridge(saved) : "";
 })();
-
-
   /* =========================
      NBA Teams (30)
      File names match Jumbo standard: hawks.png, celtics.png, 76ers.png, etc.
@@ -1012,19 +1017,24 @@ function renderCurrentScoreSport(){
 
   setScoresTitle(sport);
 
-  const hasRealGames = Array.isArray(games) && games.some(g => (g.status || "").toLowerCase() !== "no games found");
-if (hasRealGames) setScoreboard(games);
-else host.innerHTML = `<div class="scoreRow"><span class="muted">No ${sport.toUpperCase()} games right now</span></div>`;
+  const host = document.getElementById("scoreboard");
+  if (!host) return;
 
-  if (Array.isArray(games) && games.length){
+  const hasRealGames =
+    Array.isArray(games) &&
+    games.some(g => String(g.status || "").toLowerCase() !== "no games found");
+
+  if (hasRealGames){
     setScoreboard(games);
+    return;
+  }
+
+  if (Array.isArray(games)){
+    host.innerHTML = `<div class="scoreRow"><span class="muted">No ${sport.toUpperCase()} games right now</span></div>`;
   } else {
-    // If we don't have data yet, keep UI polite
-    const host = document.getElementById("scoreboard");
-    if (host) host.innerHTML = `<div class="scoreRow"><span class="muted">Waiting for ${sport.toUpperCase()}…</span></div>`;
+    host.innerHTML = `<div class="scoreRow"><span class="muted">Waiting for ${sport.toUpperCase()}…</span></div>`;
   }
 }
-
 function startScoreRotation(){
   if (scoreRotateTimer) return; // already running
   renderCurrentScoreSport();    // render immediately
@@ -1125,23 +1135,30 @@ function setHeaderTitle(txt){
   }
 
 
+function markSold(code){
+  if (!code) return;
 
-  function markSold(code){
-    const el = document.querySelector(`[data-team-code="${code}"]`);
-    if (!el) return;
-    soldSet.add(code);
-    el.classList.add('sold');
-    if (!soldList.some(x => x.code === code)) soldList.push({code, buyer:''});
-  }
+  // update state first (always)
+  soldSet.add(code);
+  if (!soldList.some(x => x.code === code)) soldList.push({code, buyer:''});
 
-  function markUnsold(code){
-    const el = document.querySelector(`[data-team-code="${code}"]`);
-    if (!el) return;
-    soldSet.delete(code);
-    el.classList.remove('sold');
-    const idx = soldList.findIndex(x => x.code === code);
-    if (idx !== -1) soldList.splice(idx, 1);
-  }
+  // update DOM second (if present)
+  const el = document.querySelector(`[data-team-code="${code}"]`);
+  if (el) el.classList.add('sold');
+}
+
+function markUnsold(code){
+  if (!code) return;
+
+  // update state first (always)
+  soldSet.delete(code);
+  const idx = soldList.findIndex(x => x.code === code);
+  if (idx !== -1) soldList.splice(idx, 1);
+
+  // update DOM second (if present)
+  const el = document.querySelector(`[data-team-code="${code}"]`);
+  if (el) el.classList.remove('sold');
+}
 
   function toggleTeam(code){
     soldSet.has(code) ? markUnsold(code) : markSold(code);
@@ -1465,12 +1482,11 @@ if (type === "team_sold" || type === "sold" || type === "sale"){
   const code = (payload.code || "").toUpperCase() || inferNBACodeFromTitle(payload.title);
 
   // ✅ Use listingId/productId as the stable identity for respins/reassignments
-  const listingKey =
-    payload.listingId ||
-    payload.productId ||
-    payload.saleId ||            // optional if you add it later
-    payload.id ||
-    null;
+const listingKey =
+  payload.listingId ||
+  payload.saleId ||
+  payload.id ||
+  null;
 
   if (code){
 
@@ -1505,12 +1521,11 @@ if (type === "team_sold" || type === "sold" || type === "sale"){
   if (type === "team_unsold" || type === "unsold"){
   const code = (payload.code || "").toUpperCase() || inferNBACodeFromTitle(payload.title);
 
-  const listingKey =
-    payload.listingId ||
-    payload.productId ||
-    payload.saleId ||
-    payload.id ||
-    null;
+const listingKey =
+  payload.listingId ||
+  payload.saleId ||
+  payload.id ||
+  null;
 
   if (code) markUnsold(code);
 
@@ -1583,17 +1598,30 @@ function connectSSEOne(url, slot){
     slot.ref = null;
     setTimeout(() => connectSSEOne(url, slot), 2500);
   };
+const ingest = (e) => {
+  try { handleSSEEvent(JSON.parse(e.data)); } catch {}
+};
 
-  es.onmessage = (e) => {
-    try { handleSSEEvent(JSON.parse(e.data)); } catch {}
-  };
+es.onmessage = ingest;
 
-  const EVENTS = ["hello","reset","team_sold","team_unsold","set_break","break_set","set_title","stream_stats","scores","banner_set"];
-  EVENTS.forEach((name) => {
-    es.addEventListener(name, (e) => {
-      try { handleSSEEvent(JSON.parse(e.data)); } catch {}
-    });
-  });
+// Named events (server emits: event: <type>)
+[
+  "hello",
+  "reset",
+
+  // sales
+  "team_sold","sold","sale","purchase",
+  "team_unsold","unsold",
+
+  // controls
+  "set_break","break_set",
+  "set_title",
+  "banner_set",
+
+  // info
+  "stream_stats",
+  "scores"
+].forEach((name) => es.addEventListener(name, ingest));
 }
 
 function connectBothChannels(bridgeUrl){
