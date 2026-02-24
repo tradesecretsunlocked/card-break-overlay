@@ -1815,7 +1815,9 @@ function handleSSEEvent(data){
       const title = data.title || data.itemTitle || data.listingTitle || "";
       code = inferTeamCodeFromTitle(title, sport);
     }
-const listingKey = data.listingId || data.productId || data.saleId || data.id || null;
+// IMPORTANT: productId is NOT unique for team sales (it's the same product for all teams).
+// Use listingId (if it ever exists) or saleId (unique per purchase). Do NOT use productId here.
+const listingKey = data.listingId || data.saleId || data.id || null;
 if (listingKey && code){
   const prev = lastCodeByListingKey.get(listingKey);
   if (prev && prev !== code) sseMarkUnsold(prev);
@@ -1833,7 +1835,7 @@ if (listingKey && code){
   const code = String(data.code || "").toUpperCase().trim();
   sseMarkUnsold(code);
 
-  const listingKey = data.listingId || data.productId || data.saleId || data.id || null;
+ const listingKey = data.listingId || data.saleId || data.id || null;
   if (listingKey){
     const cur = lastCodeByListingKey.get(listingKey);
     if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
