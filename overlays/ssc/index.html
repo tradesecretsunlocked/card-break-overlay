@@ -351,7 +351,12 @@
     .stat-box .value{ font-size: 27px; font-weight: 900; }
     .stat-box .label{ font-size: 14px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.92; }
 
-    .sold-stat{ cursor:pointer; }
+    /* Hidden toggle switch (still clickable) */
+.sold-stat{
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: auto;
+}
 
     .ticker{
       width:100%;
@@ -367,7 +372,7 @@
       display:inline-block;
       white-space:nowrap;
       padding-left:100%;
-      animation: ticker-scroll 20s linear infinite;
+     animation: ticker-scroll var(--ticker-speed, 20s) linear infinite;
       font-weight:900;
       letter-spacing: 0.6px;
       color:#fff;
@@ -615,16 +620,18 @@
   </div>
 
   <div id="soldPanelWrap" class="sold-panel-wrap hidden">
-    <div class="sold-control-bar">
-      <div class="sold-panel-title">SOLD TEAMS</div>
-      <button class="pill-toggle" id="setBreakBtn">Set Break #</button>
-      <button class="pill-toggle" id="changeSportBtn">Change Sport</button>
-      <button class="pill-toggle" id="exportAssignmentsBtn">Export CSV</button>
+<div class="sold-control-bar">
+  <div class="sold-panel-title">SOLD TEAMS</div>
+  <button class="pill-toggle" id="setBreakBtn">Set Break #</button>
+  <button class="pill-toggle" id="changeSportBtn">Change Sport</button>
+  <button class="pill-toggle" id="tickerBtn">Ticker</button>
+  <button class="pill-toggle" id="titleBtn">Title</button>
+  <button class="pill-toggle" id="exportAssignmentsBtn">Export CSV</button>
 
-      <div class="sse-status" id="sseStatus">
-        SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
-      </div>
-    </div>
+  <div class="sse-status" id="sseStatus">
+    SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
+  </div>
+</div>
 
     <div id="soldPanel" class="sold-panel"></div>
   </div>
@@ -650,7 +657,45 @@
       </div>
     </div>
   </div>
+<!-- TICKER EDIT POPUP -->
+<div id="tickerEditPopup" class="export-popup hidden">
+  <div class="export-popup-content" style="max-width:560px;">
+    <h2>Update Ticker</h2>
 
+    <label style="font-weight:900;letter-spacing:0.6px;text-transform:uppercase;font-size:12px;">
+      Text
+    </label>
+    <input id="tickerEditInput" type="text" style="padding:10px;font-size:16px;border-radius:10px;border:2px solid rgba(137,14,0,0.55);background:#000;color:#fff;" />
+
+    <label style="display:flex;justify-content:space-between;align-items:center;font-weight:900;letter-spacing:0.6px;text-transform:uppercase;font-size:12px;">
+      <span>Speed</span>
+      <span id="tickerSpeedLabel">20s</span>
+    </label>
+    <input id="tickerSpeedInput" type="range" min="8" max="45" step="1" />
+
+    <div class="export-popup-buttons">
+      <button id="applyTickerEdit">Apply</button>
+      <button id="closeTickerEdit">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- TITLE EDIT POPUP -->
+<div id="titleEditPopup" class="export-popup hidden">
+  <div class="export-popup-content" style="max-width:560px;">
+    <h2>Update Title</h2>
+
+    <label style="font-weight:900;letter-spacing:0.6px;text-transform:uppercase;font-size:12px;">
+      Title
+    </label>
+    <input id="titleEditInput" type="text" style="padding:10px;font-size:16px;border-radius:10px;border:2px solid rgba(137,14,0,0.55);background:#000;color:#fff;" />
+
+    <div class="export-popup-buttons">
+      <button id="applyTitleEdit">Apply</button>
+      <button id="closeTitleEdit">Cancel</button>
+    </div>
+  </div>
+</div>
 <script>
   // =========================
   // 0) Dynamic base path
@@ -1048,16 +1093,16 @@ if (soldTeamsList.length === 0) {
     wrap.classList.remove('hidden');
   }
 
-  function exportBuyerAssignmentsCSV(){
-    const breakNum = document.getElementById("breakIdDisplay")?.textContent?.trim() || "";
-    let csv = "Name,Break#,Team,Sport,BreakId\n";
-    soldTeamsList.forEach(entry => {
-      const buyer = (entry.buyer || "").replace(/,/g, " ");
-      const team = entry.code;
-      csv += `${buyer},${breakNum},${team},${currentBreakType},${computeBreakId()}\n`;
-    });
-    return csv;
-  }
+function exportBuyerAssignmentsCSV(){
+  const breakNum = document.getElementById("breakIdDisplay")?.textContent?.trim() || "";
+  let tsv = "Name\tBreak#\tTeam\tSport\tBreakId\n";
+  soldTeamsList.forEach(entry => {
+    const buyer = (entry.buyer || "").replace(/\t/g, " ").replace(/\n/g, " ").trim();
+    const team = entry.code;
+    tsv += `${buyer}\t${breakNum}\t${team}\t${currentBreakType}\t${computeBreakId()}\n`;
+  });
+  return tsv;
+}
 
   function resetAll(){
     soldTeams.clear();
@@ -1310,7 +1355,27 @@ if (soldTeamsList.length === 0) {
         setBreakNumberUI(currentBreakNumber);
       }
     }
+if (data.type === "set_ticker") {
+  const newText = String(data.tickerText || "").trim();
+  const speed = parseInt(data.tickerSpeed, 10);
 
+  const el = document.getElementById("tickerText");
+  if (el) el.textContent = newText;
+
+  if (Number.isFinite(speed)) {
+    document.documentElement.style.setProperty("--ticker-speed", `${speed}s`);
+    localStorage.setItem("ssc.tickerSpeed", String(speed));
+  }
+
+  localStorage.setItem("ssc.tickerText", newText);
+}
+
+if (data.type === "set_title") {
+  const newTitle = String(data.titleText || "").trim();
+  const titleEl = document.querySelector(".brand-title");
+  if (titleEl) titleEl.textContent = newTitle;
+  localStorage.setItem("ssc.titleText", newTitle);
+}
     updateStats();
     renderSoldPanel();
   }
@@ -1364,7 +1429,119 @@ changeSportBtn?.addEventListener("click", () => cycleSport());
         ts: Date.now()
       });
     });
+// ---------- Ticker + Title controls (sold panel) ----------
+const tickerBtn = document.getElementById("tickerBtn");
+const titleBtn  = document.getElementById("titleBtn");
 
+// Ticker popup elements
+const tickerEditPopup = document.getElementById("tickerEditPopup");
+const tickerEditInput = document.getElementById("tickerEditInput");
+const tickerSpeedInput = document.getElementById("tickerSpeedInput");
+const tickerSpeedLabel = document.getElementById("tickerSpeedLabel");
+const applyTickerEdit = document.getElementById("applyTickerEdit");
+const closeTickerEdit = document.getElementById("closeTickerEdit");
+
+// Title popup elements
+const titleEditPopup = document.getElementById("titleEditPopup");
+const titleEditInput = document.getElementById("titleEditInput");
+const applyTitleEdit = document.getElementById("applyTitleEdit");
+const closeTitleEdit = document.getElementById("closeTitleEdit");
+
+// Load saved ticker/title on boot
+const savedTicker = localStorage.getItem("ssc.tickerText");
+if (savedTicker) {
+  const el = document.getElementById("tickerText");
+  if (el) el.textContent = savedTicker;
+}
+
+const savedTickerSpeed = parseInt(localStorage.getItem("ssc.tickerSpeed"), 10);
+if (Number.isFinite(savedTickerSpeed) && savedTickerSpeed >= 8 && savedTickerSpeed <= 45) {
+  document.documentElement.style.setProperty("--ticker-speed", `${savedTickerSpeed}s`);
+}
+
+const savedTitle = localStorage.getItem("ssc.titleText");
+if (savedTitle) {
+  const titleEl = document.querySelector(".brand-title");
+  if (titleEl) titleEl.textContent = savedTitle;
+}
+
+// Open ticker editor
+tickerBtn?.addEventListener("click", () => {
+  const currentText = document.getElementById("tickerText")?.textContent || "";
+  tickerEditInput.value = currentText.trim();
+
+  const cur = parseInt(localStorage.getItem("ssc.tickerSpeed"), 10);
+  const speed = (Number.isFinite(cur) ? cur : 20);
+  tickerSpeedInput.value = String(speed);
+  tickerSpeedLabel.textContent = `${speed}s`;
+
+  tickerEditPopup.classList.remove("hidden");
+});
+
+// Slider label live update
+tickerSpeedInput?.addEventListener("input", () => {
+  const speed = parseInt(tickerSpeedInput.value, 10);
+  tickerSpeedLabel.textContent = `${speed}s`;
+});
+
+// Apply ticker changes
+applyTickerEdit?.addEventListener("click", () => {
+  const newText = (tickerEditInput.value || "").trim();
+  const speed = parseInt(tickerSpeedInput.value, 10);
+
+  const el = document.getElementById("tickerText");
+  if (el) el.textContent = newText;
+
+  if (Number.isFinite(speed)) {
+    document.documentElement.style.setProperty("--ticker-speed", `${speed}s`);
+    localStorage.setItem("ssc.tickerSpeed", String(speed));
+  }
+
+  localStorage.setItem("ssc.tickerText", newText);
+  tickerEditPopup.classList.add("hidden");
+
+  bridgePostSafe({
+    type: "set_ticker",
+    tickerText: newText,
+    tickerSpeed: speed,
+    breakType: currentBreakType,
+    breakId: computeBreakId(),
+    ts: Date.now()
+  });
+});
+
+closeTickerEdit?.addEventListener("click", () => {
+  tickerEditPopup.classList.add("hidden");
+});
+
+// Open title editor
+titleBtn?.addEventListener("click", () => {
+  const titleEl = document.querySelector(".brand-title");
+  titleEditInput.value = (titleEl?.textContent || "").trim();
+  titleEditPopup.classList.remove("hidden");
+});
+
+// Apply title
+applyTitleEdit?.addEventListener("click", () => {
+  const newTitle = (titleEditInput.value || "").trim();
+  const titleEl = document.querySelector(".brand-title");
+  if (titleEl) titleEl.textContent = newTitle;
+
+  localStorage.setItem("ssc.titleText", newTitle);
+  titleEditPopup.classList.add("hidden");
+
+  bridgePostSafe({
+    type: "set_title",
+    titleText: newTitle,
+    breakType: currentBreakType,
+    breakId: computeBreakId(),
+    ts: Date.now()
+  });
+});
+
+closeTitleEdit?.addEventListener("click", () => {
+  titleEditPopup.classList.add("hidden");
+});
     closeBreakEdit.addEventListener('click', () => breakEditPopup.classList.add('hidden'));
 
     // Export popup wires
@@ -1378,18 +1555,26 @@ changeSportBtn?.addEventListener("click", () => cycleSport());
       exportAssignmentsBox.value = exportBuyerAssignmentsCSV();
       exportAssignmentsPopup.classList.remove("hidden");
     });
-
-    copyAssignmentsBtn?.addEventListener("click", () => {
+copyAssignmentsBtn?.addEventListener("click", async () => {
+  const text = exportAssignmentsBox.value || "";
+  try{
+    if (navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(text);
+      copyAssignmentsBtn.textContent = "Copied!";
+    } else {
       exportAssignmentsBox.focus();
       exportAssignmentsBox.select();
-      try{
-        const success = document.execCommand("copy");
-        copyAssignmentsBtn.textContent = success ? "Copied!" : "Select + Copy";
-        setTimeout(() => (copyAssignmentsBtn.textContent = "Copy CSV"), 1000);
-      }catch(_){
-        copyAssignmentsBtn.textContent = "Select + Copy";
-      }
-    });
+      const success = document.execCommand("copy");
+      copyAssignmentsBtn.textContent = success ? "Copied!" : "Select + Copy";
+    }
+  }catch(_){
+    exportAssignmentsBox.focus();
+    exportAssignmentsBox.select();
+    document.execCommand("copy");
+    copyAssignmentsBtn.textContent = "Select + Copy";
+  }
+  setTimeout(() => (copyAssignmentsBtn.textContent = "Copy CSV"), 1000);
+});
 
     closeAssignmentsBtn?.addEventListener("click", () => {
       exportAssignmentsPopup.classList.add("hidden");
