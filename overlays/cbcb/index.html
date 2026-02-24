@@ -2004,21 +2004,36 @@ function handleSportsEvent(data){
   SCORE_ROTATE_TIMER = setInterval(apply, 8000);
 } // <-- ADD THIS LINE to close handleSportsEvent
 
-function sseMarkSold(code, buyer=""){
-    if (!code) return;
-    if (soldTeams.has(code)) return;
-    soldTeams.add(code);
-    soldTeamsList.push({ code, buyer });
+function sseMarkSold(code, buyer = "") {
+  if (!code) return;
 
-    const tile = document.querySelector(`[data-team-code="${code}"]`);
-    if (tile){
-      tile.classList.add("sold","flash");
-      setTimeout(()=>tile.classList.remove("flash"), 280);
+  // If it's not sold yet, normal add
+  if (!soldTeams.has(code)) {
+    soldTeams.add(code);
+
+    // ensure we don't duplicate list entries
+    const existing = soldTeamsList.find(e => e.code === code);
+    if (!existing) {
+      soldTeamsList.push({ code, buyer: buyer || "" });
+    } else if (buyer) {
+      existing.buyer = buyer;
     }
 
-    updateStats();
-    updateSoldList();
+    const tile = document.querySelector(`[data-team-code="${code}"]`);
+    if (tile) {
+      tile.classList.add("sold", "flash");
+      setTimeout(() => tile.classList.remove("flash"), 280);
+    }
+  } else if (buyer) {
+    // ✅ already sold, but buyer can arrive/resolve later or be resent—update it
+    const entry = soldTeamsList.find(e => e.code === code);
+    if (entry) entry.buyer = buyer;
+    else soldTeamsList.push({ code, buyer }); // safety fallback
   }
+
+  updateStats();
+  updateSoldList();
+}
 
   function sseMarkUnsold(code){
     if (!code) return;
@@ -2032,11 +2047,13 @@ function sseMarkSold(code, buyer=""){
     updateSoldList();
   }
 
-  function sseUpdateBuyer(code, buyer){
-    const entry = soldTeamsList.find(t => t.code === code);
-    if (entry) entry.buyer = buyer || "";
-    updateSoldList();
-  }
+function sseUpdateBuyer(code, buyer) {
+  if (!code) return;
+  const entry = soldTeamsList.find(t => t.code === code);
+  if (entry) entry.buyer = buyer || "";
+  else if (soldTeams.has(code)) soldTeamsList.push({ code, buyer: buyer || "" });
+  updateSoldList();
+}
 
   // ===== Init =====
   document.addEventListener("DOMContentLoaded", () => {
