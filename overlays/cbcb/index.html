@@ -849,6 +849,7 @@ linear-gradient(90deg, rgba(10, 10, 10, 1) 0%, rgb(38 100 199) 45%, rgba(10, 10,
   }
 
   let TICKER_LINES = loadTickerLines();
+  let TICKER_LOCKED = false;
 
 // ===== Scores -> ticker (multi-sport, not tied to active sport) =====
 let SCORE_ROTATE_TIMER = null;
@@ -870,7 +871,9 @@ function scoresAreFresh(){
 }
 
 function buildTickerLine(){
-  const base = TICKER_LINES.join("   •   ");
+  const base = (TICKER_LINES && TICKER_LINES.length)
+    ? TICKER_LINES.join("   •   ")
+    : DEFAULT_TICKER_LINES.join("   •   ");
 
   if (ENABLE_SCORES && SCORE_CURRENT && scoresAreFresh()){
     return `${base}   •   LIVE SCORES: ${SCORE_CURRENT}`;
@@ -899,8 +902,17 @@ function updateTickerMarquee(){
     inp.value = TICKER_LINES.join(" • ");
   }
 
-function setTickerLines(lines){
-  TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
+function setTickerLines(lines, { lock = true } = {}){
+  const next = Array.isArray(lines)
+    ? lines.map(x => String(x).trim()).filter(Boolean)
+    : [];
+
+  if (!next.length) return; // ignore empty updates (do not revert)
+
+  TICKER_LINES = next;
+
+  if (lock) TICKER_LOCKED = true;
+
   saveTickerLines(TICKER_LINES);
   updateTickerMarquee();
   syncTickerInput();
@@ -1685,7 +1697,7 @@ function connectOneSSE({ channel, onEvent, onOpenLabel, refSetter }){
   "reset","set_break","set_sport","set_ticker","set_title",
   "scores",
   "sale","purchase","whatnot_purchase",
-  "stream_stats"
+ 
 ].forEach(t => es.addEventListener(t, ingest));
 
   es.onerror = () => {
@@ -1848,28 +1860,21 @@ if (listingKey && code){
       if (data.sport) setSport(String(data.sport).toLowerCase());
       break;
 
-    case "set_ticker": {
-      if (Array.isArray(data.lines)) {
-        setTickerLines(data.lines.map(x => String(x)));
-      } else if (typeof data.text === "string") {
-        const parts = data.text.split("•").map(s => s.trim()).filter(Boolean);
-        setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
-      }
-      break;
-    }
+ case "set_ticker": {
+  if (Array.isArray(data.lines)) {
+    setTickerLines(data.lines, { lock: true });
+  } else if (typeof data.text === "string") {
+    const parts = data.text.split("•").map(s => s.trim()).filter(Boolean);
+    if (parts.length) setTickerLines(parts, { lock: true });
+  }
+  break;
+}
 
     case "set_title":
       if (typeof data.title === "string") setOverlayTitle(data.title);
       break;
 
-    case "stream_stats": {
-      // keep your existing behavior if you like
-      const lastSale = String(data.lastSale || "").trim();
-      if (lastSale && lastSale !== "—") {
-        setTickerLines([DEFAULT_TICKER_LINES[0], lastSale]);
-      }
-      break;
-    }
+
   }
 }
 
@@ -2036,7 +2041,7 @@ function sseMarkSold(code, buyer=""){
   // ===== Init =====
   document.addEventListener("DOMContentLoaded", () => {
     setBreakNumber(loadBreakNumber());
-    setTickerLines(loadTickerLines());
+    setTickerLines(loadTickerLines(), { lock: true });
    
     // load and apply ticker speed + title
 setTickerSpeed(loadTickerSpeed());
