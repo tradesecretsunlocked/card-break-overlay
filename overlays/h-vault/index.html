@@ -1173,40 +1173,110 @@ function gridUnitsUsed(container){
       }catch(e){}
     }
 
+// ===== TSU Bridge Standard (overlay-only) =====
+const BRIDGE_LS = {
+  URL: "overlay.bridge.url",
+  KEY: "overlay.bridge.key",
+  // TSU compatibility fallbacks:
+  TSU_URL_A: "tsu.bridgeUrl",
+  TSU_KEY_A: "tsu.bridgeKey",
+  TSU_URL_B: "tsu.url",
+  TSU_KEY_B: "tsu.key",
+};
+
+function cleanUrl(u){ return String(u || "").trim().replace(/\/$/, ""); }
+function normalizeBridge(u){
+  // strips trailing /events or /stream too
+  return cleanUrl(u).replace(/\/(events|stream)(\/.*)?$/,"");
+}
+
+function getBridgeBase(){
+  const q = param("bridge");
+  if (q && q.trim()){
+    const cleaned = normalizeBridge(q);
+    localStorage.setItem(BRIDGE_LS.URL, cleaned);
+    return cleaned;
+  }
+
+  const stored =
+    localStorage.getItem(BRIDGE_LS.URL) ||
+    localStorage.getItem(BRIDGE_LS.TSU_URL_A) ||
+    localStorage.getItem(BRIDGE_LS.TSU_URL_B) ||
+    "";
+
+  const cleaned = normalizeBridge(stored);
+  if (cleaned) localStorage.setItem(BRIDGE_LS.URL, cleaned);
+  return cleaned;
+}
+
+function getBridgeKey(){
+  const q = param("key");
+  if (q && q.trim()){
+    localStorage.setItem(BRIDGE_LS.KEY, q.trim());
+    return q.trim();
+  }
+
+  const stored =
+    localStorage.getItem(BRIDGE_LS.KEY) ||
+    localStorage.getItem(BRIDGE_LS.TSU_KEY_A) ||
+    localStorage.getItem(BRIDGE_LS.TSU_KEY_B) ||
+    "";
+
+  const cleaned = String(stored || "").trim();
+  if (cleaned) localStorage.setItem(BRIDGE_LS.KEY, cleaned);
+  return cleaned;
+}
+
+function getChannel(){ return (param("channel") || "main").toLowerCase().trim(); }
+function getScoresChannel(){ return (param("scoresChannel") || "sports").toLowerCase().trim(); }
+function getOverlayId(){ return (param("overlay") || "hvault").toLowerCase().trim(); }
+function bridgeEnabled(){ return !!getBridgeBase(); }
+
+// optional feature toggle
+const ENABLE_SCORES = (param("scores") === null) ? false : (param("scores") === "1");
+
     // ===== SSE =====
     const sseStatusEl = document.getElementById("sseStatus");
     const sseTextEl = document.getElementById("sseText");
-    let es = null;
+    
 
     function setSseStatus(mode, text){
-      if (!sseStatusEl || !sseTextEl) return;
-      sseStatusEl.classList.remove("connected","error");
-      if (mode) sseStatusEl.classList.add(mode);
-      sseTextEl.textContent = text || "SSE";
-    }
-
-    function getBridgeId(){
-      const qp = param("bridge");
-      if (qp && String(qp).trim()) return String(qp).trim();
-      return "";
-    }
-
-function cleanBridgeUrl(u){
-  return String(u || "").trim().replace(/\/$/, "");
+  if (!sseStatusEl || !sseTextEl) return;
+  sseStatusEl.classList.remove("connected","error");
+  if (mode === "connected") sseStatusEl.classList.add("connected");
+  if (mode === "error") sseStatusEl.classList.add("error");
+  sseTextEl.textContent = text || "SSE";
 }
 
-async function warmupEvents(){
-  const bridge = cleanBridgeUrl(getBridgeId());
-  const url = bridge ? `${bridge}/health` : `/health`;
 
-  try{
-    const r = await fetch(url, { method: "GET" });
-    console.log("[Overlay] warmup ok:", r.status);
-  }catch(e){
-    console.warn("[Overlay] warmup failed:", e);
-  }
+
+
+async function bridgePost(payload){
+  if (!bridgeEnabled()) return;
+  const base = getBridgeBase();
+  const key = getBridgeKey();
+
+  await fetch(`${base}/events`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(key ? { "x-bridge-key": key } : {}),
+    },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
 }
 
+function bridgeWarmup(extra = {}){
+  return bridgePost({
+    type: "overlay_warmup",
+    overlay: getOverlayId(),
+    channel: getChannel(),
+    ts: Date.now(),
+    breakId: getBreakId(),
+    sport: currentBreakType,
+    ...extra,
+  });
+}
 
 
     function normalizeSport(s){
@@ -1331,48 +1401,77 @@ if (
 
     }
 
-function cleanBridgeUrl(u){
-  return String(u || "").trim().replace(/\/$/, "");
+
+let sseMain = null;
+let sseScores = null;
+
+function connectBridgeSSE({ onEvent, onStatus }){
+  if (!bridgeEnabled()){
+    onStatus?.("error", "MISSING");
+    return;
+  }
+
+  const base = getBridgeBase();
+  const url = `${base}/stream?channel=${encodeURIComponent(getChannel())}`;
+
+  if (sseMain) { try { sseMain.close(); } catch(_){} }
+  onStatus?.("connecting", "CONNECTING");
+
+  const es = new EventSource(url);
+  sseMain = es;
+
+  const ingest = (e) => {
+    try{
+      const data = JSON.parse(e.data);
+      if (data?.type === "hello") return;
+      onEvent?.(data, { eventName: e?.type || "message" });
+    }catch(err){
+      console.warn("[SSE parse error]", err, e?.data);
+    }
+  };
+
+  es.onopen = () => onStatus?.("connected", "ON");
+  es.onmessage = ingest;
+
+  // REQUIRED: named events compatibility
+  ["team_sold","team_unsold","buyer","buyer_update","reset","set_break","set_sport","scores","stream_stats","whatnot_purchase","purchase","sale"]
+    .forEach(t => { try { es.addEventListener(t, ingest); } catch(_){} });
+
+  es.onerror = () => {
+    onStatus?.("error", "RETRY");
+    try { es.close(); } catch(_) {}
+    sseMain = null;
+    setTimeout(() => connectBridgeSSE({ onEvent, onStatus }), 2500);
+  };
 }
 
-function startSse(){
-  try{
-    if (es) { try{ es.close(); }catch(e){} es = null; }
+function connectScoresSSE({ onEvent }){
+  if (!bridgeEnabled()) return;
 
-    const bridge = cleanBridgeUrl(getBridgeId());
+  const base = getBridgeBase();
+  const url = `${base}/stream?channel=${encodeURIComponent(getScoresChannel())}`;
 
-    // IMPORTANT:
-    // If bridge is provided, connect directly to that origin.
-    // Otherwise fall back to same-origin (/stream) for local/dev setups.
-    const url = bridge ? `${bridge}/stream` : `/stream`;
+  if (sseScores) { try { sseScores.close(); } catch(_){} }
 
-    es = new EventSource(url);
+  const es = new EventSource(url);
+  sseScores = es;
 
-    es.onopen = () => {
-  console.log("[Overlay] SSE open:", url);
-  setSseStatus("connected","SSE ON");
-};
+  const ingest = (e) => {
+    try{
+      const data = JSON.parse(e.data);
+      if (data?.type === "hello") return;
+      if (String(data?.type || "").toLowerCase() === "scores") onEvent?.(data, { eventName: e?.type || "message" });
+    }catch(_){}
+  };
 
-es.onerror = (e) => {
-  console.warn("[Overlay] SSE error:", e);
-  setSseStatus("error","SSE ERR");
-};
+  es.onmessage = ingest;
+  try { es.addEventListener("scores", ingest); } catch(_){}
 
-es.onmessage = (msg) => {
-  console.log("[Overlay] SSE msg:", msg.data);
-  try{ handleBridgeEvent(JSON.parse(msg.data)); }
-  catch(e){ console.warn("[Overlay] SSE parse fail:", e, msg.data); }
-};
-
-es.addEventListener("event", (msg) => {
-  console.log("[Overlay] SSE event:", msg.data);
-  try{ handleBridgeEvent(JSON.parse(msg.data)); }
-  catch(e){ console.warn("[Overlay] SSE parse fail:", e, msg.data); }
-});
-
-  }catch(e){
-    setSseStatus("error","SSE ERR");
-  }
+  es.onerror = () => {
+    try { es.close(); } catch(_) {}
+    sseScores = null;
+    setTimeout(() => connectScoresSSE({ onEvent }), 2500);
+  };
 }
 
 
@@ -1382,9 +1481,23 @@ es.addEventListener("event", (msg) => {
       updateHeader();
       initializeGrid();
       restoreState();
+bridgeWarmup(); // POST /events (optional, safe)
 
-      warmupEvents();
-      startSse();
+connectBridgeSSE({
+  onEvent: (data) => handleBridgeEvent(data),
+  onStatus: (mode, text) => {
+    // map status to your UI
+    if (mode === "connected") setSseStatus("connected", "SSE ON");
+    else if (mode === "connecting") setSseStatus("", "SSE ...");
+    else setSseStatus("error", "SSE ERR");
+  }
+});
+
+if (ENABLE_SCORES) {
+  connectScoresSSE({
+    onEvent: (data) => handleBridgeEvent(data)
+  });
+}
 
       const inp = document.getElementById("breakSetInput");
       if (inp){
