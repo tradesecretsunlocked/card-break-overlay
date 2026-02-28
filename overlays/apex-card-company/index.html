@@ -1853,39 +1853,39 @@ if (data.type === "high_bid"){
 // ✅ REPLACE/RESPIN handling should be OPT-IN only.
 // Otherwise repeated purchases from the same listingId/productId will "unsell" prior teams.
     // Team sold
-    if (data.type === "team_sold") {
-      const sport = getSportFromPayload(data);
+// Team sold (supports reassignment by same saleId)
+if (data.type === "team_sold") {
+  const sport = getSportFromPayload(data);
 
-      // optional: auto-switch sport if included
-      if (sport && sport !== currentBreakType && breakTypes[sport]) {
-        setSport(sport);
-      }
+  // optional: auto-switch sport if included
+  if (sport && sport !== currentBreakType && breakTypes[sport]) {
+    setSport(sport);
+  }
 
-      let code = getCodeFromPayload(data);
-      const buyer = getBuyerFromPayload(data);
+  let code = getCodeFromPayload(data);
+  const buyer = getBuyerFromPayload(data);
 
-      // infer code from title if missing
-      if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+  // infer code from title if missing
+  if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
 
-      // ✅ IMPORTANT: productId is NOT unique for team sales (often reused).
-      // listingId (if unique) OR saleId/id (unique per purchase) are safe.
-      const listingKey = data.listingId || data.saleId || data.id || null;
+  // ✅ IMPORTANT:
+  // Prefer a UNIQUE purchase key first (saleId/id). listingId can be reused.
+  const listingKey = data.saleId || data.id || data.listingId || null;
 
-      // ✅ respin/replace support: ONLY when explicitly flagged
-      const isReplace =
-        !!(data.replace || data.respin || data.isRespin || data.swap || data.mode === "replace");
-
-      if (isReplace && listingKey && code) {
-        const prevCode = lastCodeByListingKey.get(listingKey);
-        if (prevCode && prevCode !== code) {
-          sseMarkUnsold(prevCode);
-        }
-        lastCodeByListingKey.set(listingKey, code);
-      }
-
-      if (code) sseMarkSold(code, buyer);
-      return;
+  // ✅ Overlay-only reassignment rule:
+  // If we see the SAME purchase key again but with a DIFFERENT team,
+  // unsell the previous team automatically.
+  if (listingKey && code) {
+    const prevCode = lastCodeByListingKey.get(listingKey);
+    if (prevCode && prevCode !== code) {
+      sseMarkUnsold(prevCode);
     }
+    lastCodeByListingKey.set(listingKey, code);
+  }
+
+  if (code) sseMarkSold(code, buyer);
+  return;
+}
 
     // Team unsold
     if (data.type === "team_unsold") {
