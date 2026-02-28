@@ -1251,7 +1251,7 @@ function applyHighBidPopup(){
   let currentBreakType = "nba";
   let soldTeams = new Set();        // codes
   let soldTeamsList = [];           // {code,buyer}
-const lastCodeByListingKey = new Map(); // listing/product -> last assigned team code (handles respins)
+const lastCodeByListingKey = new Map(); // listingId/saleId -> last assigned team code (handles respins)
 // Scores per sport (from SSE)
 const SCORES_BY_SPORT = { nba: "", nfl: "", mlb: "" };
 const SCORES_UPDATED_AT = { nba: 0, nfl: 0, mlb: 0 };
@@ -1338,9 +1338,7 @@ function makeTickerSlot(spanCols){
 
     const teams = config.teams;
 
-    // Local sport switching should clear board
-    soldTeams.clear();
-    soldTeamsList = [];
+// NOTE: do not auto-clear here; clear only on reset/newBreak/manual actions
 
     if (config.layout === "NBA_MLB_30"){
       // 8 cols
@@ -1852,48 +1850,59 @@ if (data.type === "high_bid"){
     }
 
     // Team sold / unsold
-if (data.type === "team_sold") {
-  const sport = getSportFromPayload(data);
+// ✅ REPLACE/RESPIN handling should be OPT-IN only.
+// Otherwise repeated purchases from the same listingId/productId will "unsell" prior teams.
+    // Team sold
+    if (data.type === "team_sold") {
+      const sport = getSportFromPayload(data);
 
-  // auto-switch sport if included
-  if (sport && sport !== currentBreakType && breakTypes[sport]) {
-    setSport(sport);
-  }
+      // optional: auto-switch sport if included
+      if (sport && sport !== currentBreakType && breakTypes[sport]) {
+        setSport(sport);
+      }
 
-  let code = getCodeFromPayload(data);
-  const buyer = getBuyerFromPayload(data);
+      let code = getCodeFromPayload(data);
+      const buyer = getBuyerFromPayload(data);
 
-  // infer code from title if missing
-  if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+      // infer code from title if missing
+      if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
 
-  // ✅ respin handling via listing/product identity
-  const listingKey = data.listingId || data.productId || data.saleId || data.id || null;
-  if (listingKey && code) {
-    const prevCode = lastCodeByListingKey.get(listingKey);
-    if (prevCode && prevCode !== code) {
-      sseMarkUnsold(prevCode);
+      // ✅ IMPORTANT: productId is NOT unique for team sales (often reused).
+      // listingId (if unique) OR saleId/id (unique per purchase) are safe.
+      const listingKey = data.listingId || data.saleId || data.id || null;
+
+      // ✅ respin/replace support: ONLY when explicitly flagged
+      const isReplace =
+        !!(data.replace || data.respin || data.isRespin || data.swap || data.mode === "replace");
+
+      if (isReplace && listingKey && code) {
+        const prevCode = lastCodeByListingKey.get(listingKey);
+        if (prevCode && prevCode !== code) {
+          sseMarkUnsold(prevCode);
+        }
+        lastCodeByListingKey.set(listingKey, code);
+      }
+
+      if (code) sseMarkSold(code, buyer);
+      return;
     }
-    lastCodeByListingKey.set(listingKey, code);
-  }
 
-  if (code) sseMarkSold(code, buyer);
-  return;
-}
+    // Team unsold
+    if (data.type === "team_unsold") {
+      let code = getCodeFromPayload(data);
+      if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
 
+      // ✅ IMPORTANT: do NOT use productId here
+      const listingKey = data.listingId || data.saleId || data.id || null;
 
-if (data.type === "team_unsold") {
-  let code = getCodeFromPayload(data);
-  if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+      if (code) sseMarkUnsold(code);
 
-  const listingKey = data.listingId || data.productId || data.saleId || data.id || null;
-  if (code) sseMarkUnsold(code);
-
-  if (listingKey) {
-    const cur = lastCodeByListingKey.get(listingKey);
-    if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
-  }
-  return;
-}
+      if (listingKey) {
+        const cur = lastCodeByListingKey.get(listingKey);
+        if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+      }
+      return;
+    }
     // Whatnot purchase automation (robust)
     // Common shapes:
     // {type:"whatnot_purchase", sport:"nba", code:"LAL", buyer:"Mike"}
@@ -1919,8 +1928,10 @@ if (data.type === "team_unsold") {
     if (!code) return;
 
     if (!soldTeams.has(code)){
-      soldTeams.add(code);
-      soldTeamsList.push({ code, buyer: buyer || "" });
+  soldTeams.add(code);
+if (!soldTeamsList.some(x => x.code === code)) {
+  soldTeamsList.push({ code, buyer: buyer || "" });
+}
 
       const tile = document.querySelector(`[data-team-code="${code}"]`);
       if (tile){
