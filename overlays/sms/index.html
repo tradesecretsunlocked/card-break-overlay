@@ -1093,27 +1093,26 @@ const CHANNELS = (() => {
   let buyerTotals = new Map();  // buyer -> total spent
 
   // =========================
-// SALE DEDUPE (saleId)
 // =========================
-const SEEN_SALES_MAX = 800;     // cap memory
-const seenSaleIds = new Set();
-const seenSaleQueue = [];       // keep insertion order for eviction
+// SALE TRACKING (saleId -> teamCode)
+// Supports "reassign": same saleId comes in again with a NEW title/team.
+// =========================
+const saleIdToCode = new Map();     // saleId -> code (e.g. "CIN")
+const SEEN_SALES_MAX = 800;         // cap memory
+const seenSaleQueue = [];           // insertion order for eviction
 
-function wasSaleSeen(saleId){
+function rememberSaleId(saleId){
   const id = String(saleId || "").trim();
-  if (!id) return false;
+  if (!id) return;
 
-  if (seenSaleIds.has(id)) return true;
-
-  seenSaleIds.add(id);
-  seenSaleQueue.push(id);
-
-  // evict oldest
-  while (seenSaleQueue.length > SEEN_SALES_MAX){
-    const old = seenSaleQueue.shift();
-    seenSaleIds.delete(old);
+  // keep queue unique-ish
+  if (!saleIdToCode.has(id)) {
+    seenSaleQueue.push(id);
+    while (seenSaleQueue.length > SEEN_SALES_MAX){
+      const old = seenSaleQueue.shift();
+      saleIdToCode.delete(old);
+    }
   }
-  return false;
 }
 
   // chasers
@@ -1436,18 +1435,19 @@ const _cycleOrder = ["nba","nfl","mlb"];
   /* =========================
      Reset / Next break
   ========================== */
-  function resetAll(){
-    soldSet.clear();
-    soldList = [];
-    document.querySelectorAll('.tile').forEach(t => t.classList.remove('sold'));
-    updateStats();
-    renderSoldPanel();
+function resetAll(){
+  soldSet.clear();
+  soldList = [];
+  saleIdToCode.clear();
 
-    // per-break stats reset
-    setHighBid(0);
-    buyerTotals = new Map();
-    setTopBuyer('');
-  }
+  document.querySelectorAll('.tile').forEach(t => t.classList.remove('sold'));
+  updateStats();
+  renderSoldPanel();
+
+  setHighBid(0);
+  buyerTotals = new Map();
+  setTopBuyer('');
+}
 
   function nextBreak(){
     resetAll();
@@ -1742,50 +1742,74 @@ const onAny = (e) => {
 
       console.log("[Overlay] SSE IN:", payload);
 
-      if (type === "team_sold" || type === "sold" || type === "sale"){
+if (type === "team_sold" || type === "sold" || type === "sale"){
   const sid = payload.saleId || payload.saleID || payload.sale_id;
 
-  // IMPORTANT: don't "return" from the whole handler on duplicates,
-  // because that prevents stats/render updates from running.
-  const isDup = (sid && wasSaleSeen(sid));
-  if (isDup){
-    console.log("[Overlay] Duplicate sale ignored:", sid);
+  // Determine which team this sale is for
+  const code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
+
+  // If we can’t match a team, bail safely (don’t touch state)
+  if (!code){
+    console.warn("[Overlay] Could not match team from:", payload.title || payload);
   } else {
-    const code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
-
-    if (code){
-      markSold(code);
-
-      if (payload.buyer){
-        const row = soldList.find(x => x.code === code);
-        if (row) row.buyer = payload.buyer;
+    // If this saleId was previously mapped to a different team, UNSELL the old one
+    if (sid){
+      const prevCode = saleIdToCode.get(String(sid).trim());
+      if (prevCode && prevCode !== code){
+        markUnsold(prevCode); // <-- THIS is what you were missing for "reassign"
       }
-    } else {
-      console.warn("[Overlay] Could not match team from:", payload.title || payload);
+
+      // Update mapping + memory cap
+      saleIdToCode.set(String(sid).trim(), code);
+      rememberSaleId(sid);
     }
 
-// normalize buyer + amount (amount often arrives as "12.00")
-const buyer =
-  (typeof payload.buyer === "string" && payload.buyer.trim()) ? payload.buyer.trim() :
-  (typeof payload.buyerName === "string" && payload.buyerName.trim()) ? payload.buyerName.trim() :
-  (typeof payload.name === "string" && payload.name.trim()) ? payload.name.trim() :
-  "";
+    // Mark the current team sold
+    markSold(code);
 
-const amt = Number(payload.amount ?? payload.price ?? payload.bid ?? payload.highBid);
-
-if (Number.isFinite(amt)) {
-  setHighBid(Math.max(highBid, amt));
-}
-
-updateBuyerStats(buyer, amt);
+    // If buyer provided, store it on the soldList row
+    if (payload.buyer){
+      const row = soldList.find(x => x.code === code);
+      if (row) row.buyer = payload.buyer;
+    }
   }
+
+  // normalize buyer + amount (amount often arrives as "12.00")
+  const buyer =
+    (typeof payload.buyer === "string" && payload.buyer.trim()) ? payload.buyer.trim() :
+    (typeof payload.buyerName === "string" && payload.buyerName.trim()) ? payload.buyerName.trim() :
+    (typeof payload.name === "string" && payload.name.trim()) ? payload.name.trim() :
+    "";
+
+  const amt = Number(payload.amount ?? payload.price ?? payload.bid ?? payload.highBid);
+
+  if (Number.isFinite(amt)) {
+    setHighBid(Math.max(highBid, amt));
+  }
+
+  updateBuyerStats(buyer, amt);
 }
 
 
-      if (type === "team_unsold" || type === "unsold"){
-        const code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
-        if (code) markUnsold(code);
-      }
+
+ if (type === "team_unsold" || type === "unsold"){
+  const sid = payload.saleId || payload.saleID || payload.sale_id;
+
+  // Prefer saleId mapping if present (most reliable)
+  let code = null;
+
+  if (sid){
+    code = saleIdToCode.get(String(sid).trim()) || null;
+    saleIdToCode.delete(String(sid).trim());
+  }
+
+  // Fallback to payload code/title matching
+  if (!code){
+    code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
+  }
+
+  if (code) markUnsold(code);
+}
 
       if (type === "reset") resetAll();
 
