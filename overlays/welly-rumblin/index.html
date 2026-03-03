@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, initial-scale=1.0"/>
+  <title>Welly + Rumblin Bumblin Cards — NFL Overlay (Local)</title>
+
+  <style>
+    :root{
+      /* ===== WELLY + RUMBLIN BUMBLIN (neon) ===== */
+      --bg0:#02040a;
+      --bg1:#040b14;
+      --panel: rgba(0,0,0,0.42);
+
+      --neonCyan:#2fe8ff;
+      --neonCyan2:#0aa9ff;
+      --neonGreen:#63ff3a;
+      --neonGreen2:#1fff8a;
+
+      --white:#ffffff;
+      --muted: rgba(255,255,255,0.82);
+
+      --W:1080px;
+
+      --tileH: 64px;
+      --gap: 6px;
+
+      --sideCols: 2;
+      --bottomCols: 8;
+
+      --radius: 16px;
+      --tileR: 14px;
+
+      --camW: 510px;
+      --camH: 270px;
+
+      /* ticker */
+      --tickerDur: 22s;
+    }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:80px;
+      background:transparent;
+      font-family: Arial, sans-serif;
+      color: var(--white);
+      width: var(--W);
+      user-select:none;
+      overflow:hidden;
+    }
+
+    /* ===== Border Wick Sweep (reusable) ===== */
+    .wick{ position:relative; border-radius: inherit; }
+    .wick::after{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: inherit;
+      pointer-events:none;
+      z-index: 20;
+
+      background: linear-gradient(130deg,
+        rgba(47,232,255,0) 0%,
+        rgba(47,232,255,0) 35%,
+        rgba(255,255,255,1) 48%,
+        rgba(47,232,255,0.95) 52%,
+        rgba(99,255,58,0.90) 58%,
+        rgba(47,232,255,0) 68%,
+        rgba(47,232,255,0) 100%
+      );
+      background-size: 320% 320%;
+      animation: wickRun 5.2s ease-in-out infinite alternate;
+
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      mask-composite: exclude;
+      padding: 4px;
+
+      filter:
+        drop-shadow(0 0 12px rgba(47,232,255,0.95))
+        drop-shadow(0 0 22px rgba(99,255,58,0.70));
+      opacity: 1;
+    }
+    @keyframes wickRun{
+      0%   { background-position:   0% 50%; }
+      100% { background-position: 100% 100%; }
+    }
+
+    /* ===== Overlay frame ===== */
+    .overlay{
+      width: var(--W);
+      border-radius: var(--radius);
+      padding: 10px;
+      position: relative;
+      overflow: hidden;
+
+      background:
+        radial-gradient(900px 520px at 22% 0%, rgba(47,232,255,0.13), transparent 55%),
+        radial-gradient(900px 520px at 78% 20%, rgba(99,255,58,0.10), transparent 60%),
+        radial-gradient(700px 420px at 60% 90%, rgba(10,169,255,0.10), transparent 60%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+
+      border: 2px solid rgba(47,232,255,0.30);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.85),
+        0 18px 44px rgba(0,0,0,0.78),
+        0 0 24px rgba(47,232,255,0.12),
+        0 0 18px rgba(99,255,58,0.10);
+    }
+
+    .overlay::before{
+      content:"";
+      position:absolute; inset:-40px;
+      background:
+        radial-gradient(circle at 18% 22%, rgba(47,232,255,0.10), transparent 58%),
+        radial-gradient(circle at 78% 34%, rgba(99,255,58,0.10), transparent 62%),
+        radial-gradient(circle at 52% 88%, rgba(255,255,255,0.05), transparent 58%);
+      filter: blur(14px);
+      opacity: .95;
+      pointer-events:none;
+    }
+
+    /* ===== Header ===== */
+    .header{
+      position: relative;
+      height: 78px;
+      border-radius: 14px;
+      background: linear-gradient(266deg, rgb(12 46 2 / 80%) 18%, rgb(163 244 255 / 95%) 50%, rgb(11 44 2 / 90%) 82%);
+      border: 1px solid rgba(255,255,255,0.08);
+      display:flex;
+      align-items:center;
+      padding: 10px 14px;
+      overflow: visible;
+      z-index: 10;
+    }
+
+    .brand-left{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      min-width: 290px;
+    }
+
+    .brand-left .title{
+      font-weight: 900;
+      letter-spacing: 2px;
+      font-size: 22px;
+      max-width:390px;
+      text-transform: uppercase;
+      color: #eaffff;
+      text-shadow:
+        0 2px 0 rgba(0,0,0,0.85),
+        0 0 14px rgba(47,232,255,0.22);
+      opacity: 0.98;
+      white-space: normal;
+    }
+
+
+
+    .brand-center{
+      position:absolute;
+      left:50%;
+      top: 70%;
+      transform: translate(-50%,-50%);
+      pointer-events:none;
+      z-index: 999;
+    }
+    .brand-center img{
+      height: 199px;
+      width:auto;
+      filter:
+        drop-shadow(0 12px 20px rgba(0,0,0,0.70))
+        drop-shadow(0 0 14px rgba(47,232,255,0.30))
+        drop-shadow(0 0 12px rgba(99,255,58,0.22));
+    }
+
+    .header-right{
+      margin-left:auto;
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      z-index: 12;
+    }
+
+    .pill{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.55);
+      border: 1px solid rgba(47,232,255,0.40);
+      box-shadow:
+        inset 0 0 0 1px rgba(47,232,255,0.08),
+        0 0 14px rgba(47,232,255,0.08);
+      white-space: nowrap;
+    }
+    .pill .label{
+      font-size: 16px;
+      letter-spacing: 1px;
+      opacity: .90;
+      text-transform: uppercase;
+    }
+    .pill .value{
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: #eaffff;
+      text-shadow: 0 2px 0 rgba(0,0,0,0.8);
+      min-width: 90px;
+      text-align:right;
+    }
+
+    /* ===== Main layout ===== */
+    .main{
+      margin-top: 10px;
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 2;
+      position: relative;
+    }
+
+    .board{
+      border-radius: 14px;
+      background: rgba(0,0,0,0.34);
+      border: 1px solid rgba(47,232,255,0.30);
+      box-shadow:
+        inset 0 0 0 1px rgba(47,232,255,0.08),
+        0 0 18px rgba(47,232,255,0.08);
+      padding: 10px;
+      overflow:hidden;
+      position: relative;
+    }
+    .board > *{ position: relative; z-index: 2; }
+
+    .top-wrap{
+      display:grid;
+      grid-template-columns: 1fr var(--camW) 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .side-column{
+      display:grid;
+      grid-template-columns: repeat(var(--sideCols), 1fr);
+      gap: var(--gap);
+      align-content: start;
+    }
+
+    .camera-box{
+      height: var(--camH);
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.07), rgba(0,0,0,0.25));
+      border: 1px solid rgba(99,255,58,0.32);
+      box-shadow:
+        inset 0 0 0 2px rgba(0,0,0,0.35),
+        0 0 0 1px rgba(47,232,255,0.14),
+        0 0 18px rgba(99,255,58,0.10);
+      position: relative;
+      overflow: hidden;
+    }
+    .camera-box::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), transparent 55%),
+        radial-gradient(circle at 70% 70%, rgba(47,232,255,0.12), transparent 55%),
+        radial-gradient(circle at 55% 55%, rgba(99,255,58,0.10), transparent 58%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.20));
+      opacity: .95;
+      pointer-events:none;
+    }
+
+
+    .bottom-grid{
+      display:grid;
+      grid-template-columns: repeat(var(--bottomCols), 1fr);
+      gap: var(--gap);
+      margin-top: 10px;
+      align-content: start;
+    }
+
+    /* ===== Tiles ===== */
+    .team{
+      height: var(--tileH);
+      border-radius: var(--tileR);
+      background: rgba(10,10,10,0.78);
+      border: 2px solid rgb(64, 211, 248);
+      box-shadow:
+        inset 0 0 0 1px rgba(0,0,0,0.55),
+        0 6px 14px rgba(0,0,0,0.42),
+        0 0 10px rgba(47,232,255,0.08);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      transition: transform .20s ease, box-shadow .20s ease, border-color .22s ease, filter .20s ease;
+      will-change: transform;
+    }
+
+/* ===== Tile shimmer layer (does NOT use ::after) ===== */
+.team .shimmer{
+  position:absolute;
+  inset:-40%;
+  pointer-events:none;
+  z-index: 2; /* below image/text, below sold X */
+  opacity: 0;
+
+  background: linear-gradient(120deg,
+    rgba(255,255,255,0) 35%,
+    rgba(255,255,255,0.18) 45%,
+    rgba(255,255,255,0.70) 50%,
+    rgba(255,255,255,0.18) 55%,
+    rgba(255,255,255,0) 65%
+  );
+
+  transform: translateX(-140%) rotate(0.001deg);
+  filter: blur(0.2px);
+}
+
+.team:hover .shimmer{
+  opacity: 1;
+  animation: tileShimmer 0.65s ease-out 1;
+}
+
+@keyframes tileShimmer{
+  0%   { transform: translateX(-140%) rotate(0.001deg); }
+  100% { transform: translateX(140%)  rotate(0.001deg); }
+}
+
+    .team::before{
+      content:"";
+      position:absolute;
+      inset:-18px;
+      background: radial-gradient(circle at 20% 70%, rgba(47,232,255,0.30), transparent 55%);
+      filter: blur(14px);
+      opacity: 0.55;
+      animation: tileGlowDrift 4.6s ease-in-out infinite;
+      z-index: 1;
+      pointer-events:none;
+    }
+    @keyframes tileGlowDrift{
+      0%   { transform: translate(-4px, 2px) scale(0.98); opacity: 0.34; }
+      50%  { transform: translate(6px,-2px) scale(1.05); opacity: 0.62; }
+      100% { transform: translate(-4px, 2px) scale(0.98); opacity: 0.34; }
+    }
+
+.team:hover{
+  transform: translateY(-3px) scale(1.03);
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,0.55),
+    0 14px 28px rgba(0,0,0,0.62),
+    0 0 18px rgba(99,255,58,0.14);
+  border-color: rgba(99,255,58,0.85);
+}
+/* ===== Tile shimmer on hover ===== */
+.team::after{
+  content:"";
+  position:absolute;
+  inset:-40%;
+  z-index: 2;              /* above glow, below sold X (sold uses z-index:3) */
+  pointer-events:none;
+
+  /* angled bright band + soft edges */
+  background: linear-gradient(120deg,
+    rgba(255,255,255,0) 35%,
+    rgba(255,255,255,0.20) 45%,
+    rgba(255,255,255,0.65) 50%,
+    rgba(255,255,255,0.20) 55%,
+    rgba(255,255,255,0) 65%
+  );
+
+  transform: translateX(-140%) rotate(0.001deg);
+  opacity: 0;
+  filter: blur(0.2px);
+}
+
+.team:hover::after{
+  opacity: 1;
+  animation: tileShimmer 0.65s ease-out 1;
+}
+
+@keyframes tileShimmer{
+  0%   { transform: translateX(-140%) rotate(0.001deg); }
+  100% { transform: translateX(140%)  rotate(0.001deg); }
+}
+    .team img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter:
+        drop-shadow(0 6px 10px rgba(0,0,0,0.55));
+      z-index: 3;
+      position: relative;
+      transition: transform .22s ease, filter .22s ease;
+      
+    }
+
+    .team .fallback-code{
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.9);
+      font-size: 14px;
+      text-transform: uppercase;
+      z-index: 3;
+      position: relative;
+    }
+
+    .team.sold img{
+      filter: grayscale(1) brightness(0.45);
+      opacity: 0.95;
+    }
+    .team.sold::after{
+      content:"✕";
+      position:absolute; inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 52px;
+      font-weight: 900;
+      color: rgba(153, 9, 9, 0.95);
+      text-shadow:
+        0 0 10px rgba(47,232,255,0.65),
+        0 0 18px rgba(99,255,58,0.40),
+        0 8px 22px rgba(0,0,0,0.85);
+      z-index: 4;
+      pointer-events:none;
+    }
+    .team.sold::before{ opacity: 0.12; animation:none; }
+
+    .team.flash{ animation: soldFlash 260ms ease; }
+    @keyframes soldFlash{
+      0%{ box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 0 rgba(47,232,255,0.0); }
+      50%{ box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 22px rgba(47,232,255,0.55); }
+      100%{ box-shadow: inset 0 0 0 1px rgba(0,0,0,0.55), 0 0 0 rgba(47,232,255,0.0); }
+    }
+
+    /* ===== Controls row (2 buttons / 2 stats) ===== */
+    .controls{
+      display:grid;
+      grid-template-columns: 260px 1fr 1fr 260px;
+      gap: 10px;
+      align-items: stretch;
+      margin-top: 10px;
+    }
+    .ctl{
+      height: 64px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.62), rgba(0,0,0,0.30));
+      border: 2px solid rgba(165,224,255,1);
+      box-shadow:
+        inset 0 0 0 1px rgba(47,232,255,0.08),
+        0 0 14px rgba(47,232,255,0.06);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      position: relative;
+      overflow:hidden;
+      font-size: 20px;
+    }
+    .ctl.btn{
+      cursor:pointer;
+      color: #eaffff;
+      background: linear-gradient(180deg, rgba(47,232,255,0.22), rgba(0,0,0,0.30));
+      border-color: rgba(165,224,255,1);
+    }
+    .ctl.btn:hover{
+      border-color: rgba(99,255,58,0.70);
+      box-shadow:
+        inset 0 0 0 1px rgba(47,232,255,0.08),
+        0 0 18px rgba(99,255,58,0.10);
+    }
+    .ctl.btn:active{ transform: translateY(1px); }
+
+    .ctl.stat{
+      flex-direction:column;
+      gap: 2px;
+    }
+    .ctl.stat .v{
+      font-size: 26px;
+      line-height: 1;
+      color:#fff;
+      text-shadow: 0 2px 0 rgba(0,0,0,0.85);
+    }
+    .ctl.stat .l{
+      font-size: 12px;
+      letter-spacing: 1px;
+      opacity: .92;
+      color: rgba(255,255,255,0.90);
+    }
+
+    /* Sold stat toggles sold panel (hidden toggle behavior) */
+    .ctl.stat.sold-toggle{ cursor:pointer; }
+    .ctl.stat.sold-toggle::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:auto;
+    }
+
+    /* ===== Ticker ===== */
+    .ticker{
+      height: 44px;
+      border-radius: 14px;
+      overflow:hidden;
+      border: 1px solid rgba(99,255,58,0.30);
+      background: linear-gradient(90deg,
+        rgba(47,232,255,0.12),
+        rgba(0,0,0,0.60),
+        rgba(99,255,58,0.10)
+      );
+      box-shadow:
+        inset 0 0 0 1px rgba(47,232,255,0.08),
+        0 0 14px rgba(99,255,58,0.06);
+      padding: 0 10px;
+      display:flex;
+      align-items:center;
+    }
+    .ticker-track{
+      display:flex;
+      width:max-content;
+      will-change: transform;
+      animation: tickerMarquee linear infinite;
+      animation-duration: var(--tickerDur);
+    }
+    .ticker-text{
+      display:inline-block;
+      white-space:nowrap;
+      font-weight: 900;
+      letter-spacing: 1px;
+      font-size: 18px;
+      line-height: 44px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.96);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.65);
+      padding-right: 48px;
+    }
+    @keyframes tickerMarquee{
+      0%{ transform: translateX(0); }
+      100%{ transform: translateX(-50%); }
+    }
+
+    /* ===== Sold panel ===== */
+    .sold-wrap{
+      border-radius: 14px;
+      background: rgba(0,0,0,0.38);
+      border: 1px solid rgba(47,232,255,0.26);
+      box-shadow:
+        inset 0 0 0 1px rgba(47,232,255,0.06),
+        0 0 14px rgba(47,232,255,0.06);
+      padding: 10px;
+      overflow:hidden;
+      transition: opacity .18s ease, max-height .18s ease, transform .18s ease;
+    }
+
+    .sold-wrap.hidden{
+      opacity: 0.0;
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      transform: translateY(-6px);
+      pointer-events:none;
+      border-width: 0;
+      margin-top: -10px;
+    }
+
+    .sold-top{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .sold-title{
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.95);
+      text-shadow: 0 0 12px rgba(47,232,255,0.12);
+    }
+
+    .sold-actions{
+      display:flex;
+      gap: 8px;
+      align-items:center;
+      flex-wrap: wrap;
+      justify-content:flex-end;
+      margin-left:auto;
+    }
+
+    .mini-btn{
+      border: 0;
+      cursor:pointer;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color:#fff;
+      background: linear-gradient(180deg, rgba(47,232,255,0.22), rgba(0,0,0,0.35));
+      border: 1px solid rgba(47,232,255,0.45);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.30);
+    }
+    .mini-btn:hover{
+      border-color: rgba(99,255,58,0.70);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.40);
+    }
+    .mini-btn:active{ transform: translateY(1px); box-shadow:none; }
+
+    .mini-btn.danger{
+      background: linear-gradient(180deg, rgba(99,255,58,0.22), rgba(0,0,0,0.35));
+      border-color: rgba(99,255,58,0.55);
+    }
+
+    .sold-grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px 12px;
+    }
+
+    .sold-row{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      background: rgba(0,0,0,0.60);
+      border-radius: 12px;
+      padding: 4px 6px;
+      border: 1px solid rgba(47,232,255,0.30);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.35);
+      overflow:hidden;
+    }
+
+    .sold-team-img{
+      width: 26px;
+      height: 26px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background:#000;
+      flex: 0 0 auto;
+    }
+
+    .sold-team-name{
+      font-weight: 900;
+      color:#f9fafb;
+      min-width: 64px;
+      text-transform: uppercase;
+      font-size: 13px;
+      opacity: 0.95;
+      letter-spacing: 0.6px;
+      flex: 0 0 auto;
+    }
+
+    .sold-buyer-input{
+      flex: 1 1 auto;
+      min-width: 0;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 8px 10px;
+      outline:none;
+      background: rgba(255,255,255,0.06);
+      color:#fff;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+    }
+
+    /* ===== Popup (OBS-friendly) ===== */
+    .popup-mask{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.70);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index: 9999;
+    }
+    .popup{
+      width: 760px;
+      max-width: calc(100% - 40px);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.92), rgba(0,0,0,0.70));
+      border: 1px solid rgba(47,232,255,0.38);
+      box-shadow:
+        0 18px 44px rgba(0,0,0,0.80),
+        0 0 22px rgba(47,232,255,0.14),
+        0 0 18px rgba(99,255,58,0.10);
+      padding: 16px;
+      position: relative;
+      overflow:hidden;
+    }
+    .popup.wick{ border-radius: 18px; }
+
+    .popup-title{
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: rgba(255,255,255,0.96);
+    }
+
+    .popup-row{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .popup-label{
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 12px;
+      opacity: 0.90;
+      min-width: 140px;
+    }
+
+    .popup-input{
+      flex: 1 1 auto;
+      min-width: 220px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(47,232,255,0.32);
+      background: rgba(255,255,255,0.06);
+      color:#fff;
+      font-weight: 800;
+      outline:none;
+    }
+
+    .popup-range{
+      flex: 1 1 auto;
+      min-width: 260px;
+    }
+
+    .popup-actions{
+      display:flex;
+      gap: 10px;
+      justify-content:flex-end;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    .popup-btn{
+      border:0;
+      cursor:pointer;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color:#fff;
+      background: linear-gradient(180deg, rgba(47,232,255,0.22), rgba(0,0,0,0.35));
+      border: 1px solid rgba(47,232,255,0.45);
+    }
+    .popup-btn:hover{ border-color: rgba(99,255,58,0.70); }
+    .popup-btn:active{ transform: translateY(1px); }
+
+    .popup-btn.cancel{
+      background: linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,0,0,0.35));
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    .hint{
+      font-size: 12px;
+      opacity: 0.82;
+      margin-top: -4px;
+      margin-bottom: 10px;
+      color: rgba(255,255,255,0.85);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="overlay" id="overlayRoot">
+    <div class="header wick">
+      <div class="brand-left">
+        <div>
+          <div class="title" id="headerTitle">WELLY + RUMBLIN BUMBLIN CARDS • NFL</div>
+          
+        </div>
+      </div>
+
+      <div class="brand-center">
+        <img id="brandLogo" alt="Welly + Rumblin Bumblin Cards" />
+      </div>
+
+      <div class="header-right">
+        <div class="pill">
+          <span class="label">Break #</span>
+          <span id="breakNumDisplay" class="value">1</span>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="board wick">
+        <div class="top-wrap">
+          <div id="leftColumn" class="side-column"></div>
+
+          <div class="camera-box wick" id="camFrame">
+        
+          </div>
+
+          <div id="rightColumn" class="side-column"></div>
+        </div>
+
+        <div id="bottomGrid" class="bottom-grid"></div>
+
+        <!-- 2 buttons + 2 stats -->
+        <div class="controls">
+          <div class="ctl btn" onclick="resetAll()">Reset</div>
+          <div class="ctl stat">
+            <div class="v" id="teamsLeft">0</div>
+            <div class="l">Remaining</div>
+          </div>
+
+          <!-- SOLD stat contains invisible toggle (click the tile) -->
+          <div class="ctl stat sold-toggle" onclick="toggleSoldPanel()">
+            <div class="v" id="teamsSold">0</div>
+            <div class="l">Sold (Click)</div>
+          </div>
+
+      <div class="ctl btn" onclick="nextBreak()">Next Break</div>
+      </div>
+
+      <div class="ticker wick">
+        <div id="tickerTrack" class="ticker-track">
+          <div id="tickerA" class="ticker-text">WELCOME TO WELLY + RUMBLIN BUMBLIN CARDS • FOLLOW • LIKE • SHARE •</div>
+          <div id="tickerB" class="ticker-text">WELCOME TO WELLY + RUMBLIN BUMBLIN CARDS • FOLLOW • LIKE • SHARE •</div>
+        </div>
+      </div>
+
+      <div id="soldWrap" class="sold-wrap wick">
+        <div class="sold-top">
+          <div class="sold-title">Sold Teams</div>
+
+<div class="sold-actions">
+  <button class="mini-btn" onclick="openTitlePopup()">Update Title</button>
+  <button class="mini-btn" onclick="openBreakPopup()">Set Break #</button>
+  <button class="mini-btn" onclick="openTickerPopup()">Set Ticker</button>
+  <button class="mini-btn danger" onclick="resetAll()">Reset</button>
+</div>
+        </div>
+
+        <div id="soldList" class="sold-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OBS-friendly popup -->
+  <div id="popupMask" class="popup-mask">
+    <div id="popupBox" class="popup wick" role="dialog" aria-modal="true">
+      <div id="popupTitle" class="popup-title">Update</div>
+      <div id="popupHint" class="hint"></div>
+
+      <div id="popupBody"></div>
+
+      <div class="popup-actions">
+        <button class="popup-btn cancel" onclick="closePopup(false)">Cancel</button>
+        <button class="popup-btn" onclick="closePopup(true)">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // 0) Asset base (standard ../../)
+    // =========================
+    const BASE = (() => {
+      const isGhPages = location.hostname.endsWith("github.io");
+      if (isGhPages) {
+        const parts = location.pathname.split("/").filter(Boolean);
+        const repo = parts.length ? parts[0] : "";
+        return `/${repo}/`;
+      }
+      return "../../";
+    })();
+
+    const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+    const imgPathLogos = (f) => `${BASE}images/logos/${f}`;
+
+    const BRAND_LOGO_CANDIDATES = [
+      imgPathLogos("Welly-rumble-logo.png"),
+      imgPathLogos("welly-rumble-logo.PNG")
+    ];
+
+    function setBrandLogo(){
+      const el = document.getElementById("brandLogo");
+      if (!el) return;
+      let i = 0;
+      const tryNext = () => { if (i < BRAND_LOGO_CANDIDATES.length) el.src = BRAND_LOGO_CANDIDATES[i++]; };
+      el.onerror = tryNext;
+      tryNext();
+    }
+
+    // =========================
+    // 1) NFL-only data
+    // =========================
+    const breakTypes = {
+      nfl: {
+        name: "NFL",
+        bottomCols: 8,
+        teams: [
+          { code: "ARI", name: "cardinals",   image: imgPathNFL("cardinals.png") },
+          { code: "ATL", name: "falcons",     image: imgPathNFL("falcons.png") },
+          { code: "BAL", name: "ravens",      image: imgPathNFL("ravens.png") },
+          { code: "BUF", name: "bills",       image: imgPathNFL("bills.png") },
+          { code: "CAR", name: "panthers",    image: imgPathNFL("panthers.png") },
+          { code: "CHI", name: "bears",       image: imgPathNFL("bears.png") },
+          { code: "CIN", name: "bengals",     image: imgPathNFL("bengals.png") },
+          { code: "CLE", name: "browns",      image: imgPathNFL("browns.png") },
+          { code: "DAL", name: "cowboys",     image: imgPathNFL("cowboys.png") },
+          { code: "DEN", name: "broncos",     image: imgPathNFL("broncos.png") },
+          { code: "DET", name: "lions",       image: imgPathNFL("lions.png") },
+          { code: "GB",  name: "packers",     image: imgPathNFL("packers.png") },
+          { code: "HOU", name: "texans",      image: imgPathNFL("texans.png") },
+          { code: "IND", name: "colts",       image: imgPathNFL("colts.png") },
+          { code: "JAX", name: "jaguars",     image: imgPathNFL("jaguars.png") },
+          { code: "KC",  name: "chiefs",      image: imgPathNFL("chiefs.png") },
+          { code: "LV",  name: "raiders",     image: imgPathNFL("raiders.png") },
+          { code: "LAC", name: "chargers",    image: imgPathNFL("chargers.png") },
+          { code: "LAR", name: "rams",        image: imgPathNFL("rams.png") },
+          { code: "MIA", name: "dolphins",    image: imgPathNFL("dolphins.png") },
+          { code: "MIN", name: "vikings",     image: imgPathNFL("vikings.png") },
+          { code: "NE",  name: "patriots",    image: imgPathNFL("patriots.png") },
+          { code: "NO",  name: "saints",      image: imgPathNFL("saints.png") },
+          { code: "NYG", name: "giants",      image: imgPathNFL("giants.png") },
+          { code: "NYJ", name: "jets",        image: imgPathNFL("jets.png") },
+          { code: "PHI", name: "eagles",      image: imgPathNFL("eagles.png") },
+          { code: "PIT", name: "steelers",    image: imgPathNFL("steelers.png") },
+          { code: "SF",  name: "49ers",       image: imgPathNFL("49ers.png") },
+          { code: "SEA", name: "seahawks",    image: imgPathNFL("seahawks.png") },
+          { code: "TB",  name: "buccaneers",  image: imgPathNFL("buccaneers.png") },
+          { code: "TEN", name: "titans",      image: imgPathNFL("titans.png") },
+          { code: "WAS", name: "commanders",  image: imgPathNFL("commanders.png") }
+        ]
+      }
+    };
+
+    let currentBreakType = "nfl";
+
+    // =========================
+    // 2) Local state (no SSE)
+    // =========================
+    const state = {
+      sold: new Set(),              // indices
+      buyerByCode: {},              // { code: buyerName }
+      headerTitle: "",
+      breakNum: 1,
+      tickerText: "",
+      tickerDurSec: 22
+    };
+
+    function todayKey(){
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const day = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${day}`;
+    }
+
+
+
+    function setBottomCols(n){
+      document.documentElement.style.setProperty("--bottomCols", String(n));
+    }
+
+    // =========================
+    // 3) Tiles
+    // =========================
+    function createTeamTile(team, idx){
+      const div = document.createElement("div");
+      div.className = "team";
+      div.dataset.idx = String(idx);
+      div.dataset.code = team.code;
+
+
+      const shimmer = document.createElement("div");
+shimmer.className = "shimmer";
+div.appendChild(shimmer);
+
+      const img = document.createElement("img");
+      img.alt = team.code;
+      img.src = team.image;
+
+      img.onerror = () => {
+        img.remove();
+        const fb = document.createElement("div");
+        fb.className = "fallback-code";
+        fb.textContent = team.code;
+        div.appendChild(fb);
+      };
+
+      div.appendChild(img);
+
+      div.addEventListener("click", () => toggleTeam(idx));
+      return div;
+    }
+
+    function initializeGrid(){
+      const left = document.getElementById("leftColumn");
+      const right = document.getElementById("rightColumn");
+      const bottom = document.getElementById("bottomGrid");
+      if (!left || !right || !bottom) return;
+
+      left.innerHTML = "";
+      right.innerHTML = "";
+      bottom.innerHTML = "";
+
+      const cfg = breakTypes[currentBreakType];
+      setBottomCols(cfg.bottomCols);
+
+      const teams = cfg.teams;
+      const leftTeams = teams.slice(0, 8);
+      const rightTeams = teams.slice(8, 16);
+      const bottomTeams = teams.slice(16);
+
+      leftTeams.forEach((t, i) => left.appendChild(createTeamTile(t, i)));
+      rightTeams.forEach((t, i) => right.appendChild(createTeamTile(t, i + 8)));
+      bottomTeams.forEach((t, i) => bottom.appendChild(createTeamTile(t, i + 16)));
+
+      // apply persisted sold state to visuals
+      refreshTileClasses();
+      updateStats();
+      updateHeader();
+      updateSoldList();
+    }
+
+    function refreshTileClasses(){
+      document.querySelectorAll(".team").forEach(el => {
+        const idx = parseInt(el.dataset.idx, 10);
+        if (!Number.isFinite(idx)) return;
+
+        if (state.sold.has(idx)) el.classList.add("sold");
+        else el.classList.remove("sold");
+      });
+    }
+
+    function toggleTeam(idx){
+      const el = document.querySelector(`.team[data-idx="${idx}"]`);
+      if (!el) return;
+
+      if (state.sold.has(idx)) state.sold.delete(idx);
+      else state.sold.add(idx);
+
+      el.classList.add("flash");
+      setTimeout(() => el.classList.remove("flash"), 300);
+
+      refreshTileClasses();
+      updateStats();
+      updateSoldList();
+      persistState();
+    }
+
+    // =========================
+    // 4) Stats / Header / Sold list
+    // =========================
+    function updateStats(){
+      const cfg = breakTypes[currentBreakType];
+      const total = cfg.teams.length;
+      const sold = state.sold.size;
+      const remaining = total - sold;
+
+      const elSold = document.getElementById("teamsSold");
+      const elLeft = document.getElementById("teamsLeft");
+      if (elSold) elSold.textContent = String(sold);
+      if (elLeft) elLeft.textContent = String(remaining);
+    }
+
+    function updateHeader(){
+      const title = document.getElementById("headerTitle");
+      const breakNum = document.getElementById("breakNumDisplay");
+   
+
+      if (title){
+        title.textContent = (state.headerTitle || "WELLY + RUMBLIN BUMBLIN CARDS • NFL").toUpperCase();
+      }
+      if (breakNum) breakNum.textContent = String(state.breakNum || 1);
+      
+    }
+
+    function updateSoldList(){
+      const soldList = document.getElementById("soldList");
+      if (!soldList) return;
+
+      soldList.innerHTML = "";
+      const cfg = breakTypes[currentBreakType];
+
+      // stable sort by team index
+      const soldIdx = Array.from(state.sold).sort((a,b)=>a-b);
+
+      soldIdx.forEach((idx) => {
+        const t = cfg.teams[idx];
+        if (!t) return;
+
+        const row = document.createElement("div");
+        row.className = "sold-row";
+
+        const img = document.createElement("img");
+        img.className = "sold-team-img";
+        img.alt = t.code;
+        img.src = t.image;
+        img.onerror = () => { img.style.display = "none"; };
+
+        const name = document.createElement("div");
+        name.className = "sold-team-name";
+        name.textContent = t.code;
+
+        const inp = document.createElement("input");
+        inp.className = "sold-buyer-input";
+        inp.type = "text";
+        inp.placeholder = "Buyer";
+        inp.value = state.buyerByCode[t.code] || "";
+        inp.addEventListener("input", () => {
+          state.buyerByCode[t.code] = inp.value;
+          persistState();
+        });
+
+        row.appendChild(img);
+        row.appendChild(name);
+        row.appendChild(inp);
+        soldList.appendChild(row);
+      });
+    }
+
+    // =========================
+    // 5) Sold panel toggle
+    // =========================
+    function toggleSoldPanel(force){
+      const wrap = document.getElementById("soldWrap");
+      if (!wrap) return;
+
+      const hidden = wrap.classList.contains("hidden");
+      const next = (typeof force === "boolean") ? !force : hidden; // force=true => show
+      if (next) wrap.classList.remove("hidden");
+      else wrap.classList.add("hidden");
+    }
+
+    // =========================
+    // 6) Ticker
+    // =========================
+    function setTicker(text, durSec){
+      const a = document.getElementById("tickerA");
+      const b = document.getElementById("tickerB");
+      const root = document.documentElement;
+
+      const cleaned = String(text || "").trim() || "WELCOME TO WELLY + RUMBLIN BUMBLIN CARDS • FOLLOW • LIKE • SHARE •";
+      const sec = clampInt(durSec, 22, 8, 60);
+
+      if (a) a.textContent = cleaned;
+      if (b) b.textContent = cleaned;
+
+      root.style.setProperty("--tickerDur", `${sec}s`);
+
+      state.tickerText = cleaned;
+      state.tickerDurSec = sec;
+      persistState();
+    }
+
+    // =========================
+    // 7) Popups (OBS-friendly)
+    // =========================
+    const popup = {
+      open: false,
+      onApply: null
+    };
+
+    function openPopup({ title, hint, bodyHtml, onApply }){
+      const mask = document.getElementById("popupMask");
+      const box = document.getElementById("popupBox");
+      const t = document.getElementById("popupTitle");
+      const h = document.getElementById("popupHint");
+      const body = document.getElementById("popupBody");
+
+      if (!mask || !box || !t || !h || !body) return;
+
+      popup.open = true;
+      popup.onApply = onApply || null;
+
+      t.textContent = title || "Update";
+      h.textContent = hint || "";
+      body.innerHTML = bodyHtml || "";
+
+      mask.style.display = "flex";
+
+      // focus first input
+      setTimeout(() => {
+        const first = body.querySelector("input, textarea, select");
+        if (first) first.focus();
+      }, 20);
+    }
+
+    function closePopup(apply){
+      const mask = document.getElementById("popupMask");
+      const body = document.getElementById("popupBody");
+      if (!mask || !body) return;
+
+      if (apply && typeof popup.onApply === "function"){
+        popup.onApply(body);
+      }
+
+      popup.open = false;
+      popup.onApply = null;
+      mask.style.display = "none";
+      body.innerHTML = "";
+    }
+
+    // ESC + Enter behavior
+    document.addEventListener("keydown", (e) => {
+      if (!popup.open) return;
+      if (e.key === "Escape") closePopup(false);
+      if (e.key === "Enter") {
+        const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : "";
+        const isTextArea = tag === "textarea";
+        if (!isTextArea) {
+          e.preventDefault();
+          closePopup(true);
+        }
+      }
+    });
+
+    function openTitlePopup(){
+      openPopup({
+        title: "Update Title",
+        hint: "Sets the header title text (persists locally).",
+        bodyHtml: `
+          <div class="popup-row">
+            <div class="popup-label">Title</div>
+            <input id="pTitle" class="popup-input" type="text" value="${escapeHtml(state.headerTitle || "WELLY + RUMBLIN BUMBLIN CARDS • NFL")}" />
+          </div>
+        `,
+        onApply: (body) => {
+          const v = body.querySelector("#pTitle")?.value ?? "";
+          state.headerTitle = String(v).trim() || "WELLY + RUMBLIN BUMBLIN CARDS • NFL";
+          updateHeader();
+          persistState();
+        }
+      });
+    }
+
+    function openBreakPopup(){
+      openPopup({
+        title: "Set Break #",
+        hint: "Updates the Break # and Break ID. (Local overlay only.)",
+        bodyHtml: `
+          <div class="popup-row">
+            <div class="popup-label">Break #</div>
+            <input id="pBreak" class="popup-input" type="number" min="1" step="1" value="${escapeHtml(String(state.breakNum || 1))}" />
+          </div>
+        `,
+        onApply: (body) => {
+          const v = body.querySelector("#pBreak")?.value ?? "";
+          state.breakNum = clampInt(v, 1, 1, 9999);
+          updateHeader();
+          persistState(true);
+        }
+      });
+    }
+
+    function openTickerPopup(){
+      openPopup({
+        title: "Set Ticker / Marquee",
+        hint: "Text + speed. Lower seconds = faster scroll.",
+        bodyHtml: `
+          <div class="popup-row">
+            <div class="popup-label">Ticker Text</div>
+            <input id="pTicker" class="popup-input" type="text" value="${escapeHtml(state.tickerText || "")}" placeholder="Enter ticker text..." />
+          </div>
+
+          <div class="popup-row">
+            <div class="popup-label">Speed (seconds)</div>
+            <input id="pSpeed" class="popup-range" type="range" min="8" max="60" step="1" value="${escapeHtml(String(state.tickerDurSec || 22))}" />
+            <input id="pSpeedNum" class="popup-input" style="max-width:120px;" type="number" min="8" max="60" step="1" value="${escapeHtml(String(state.tickerDurSec || 22))}" />
+          </div>
+        `,
+        onApply: (body) => {
+          const txt = body.querySelector("#pTicker")?.value ?? "";
+          const secA = body.querySelector("#pSpeed")?.value ?? "";
+          const secB = body.querySelector("#pSpeedNum")?.value ?? secA;
+          const sec = clampInt(secB, clampInt(secA, 22, 8, 60), 8, 60);
+          setTicker(String(txt).trim(), sec);
+        }
+      });
+
+      // link slider <-> number live
+      setTimeout(() => {
+        const mask = document.getElementById("popupMask");
+        if (!mask) return;
+        const s = mask.querySelector("#pSpeed");
+        const n = mask.querySelector("#pSpeedNum");
+        if (!s || !n) return;
+
+        const syncToNum = () => { n.value = String(s.value); };
+        const syncToSlider = () => { s.value = String(n.value); };
+
+        s.addEventListener("input", syncToNum);
+        n.addEventListener("input", syncToSlider);
+      }, 40);
+    }
+
+function nextBreak(){
+  if (!confirm("Go to NEXT BREAK? This will clear sold teams + buyers.")) return;
+
+  state.breakNum = clampInt((state.breakNum || 1) + 1, 2, 1, 9999);
+  state.sold.clear();
+  state.buyerByCode = {};
+
+  refreshTileClasses();
+  updateStats();
+  updateSoldList();
+  updateHeader();
+  persistState(true);
+}
+
+
+    // =========================
+    // 8) Reset / persistence
+    // =========================
+    function resetAll(){
+      if (!confirm("Reset all sold teams + buyers for this break?")) return;
+
+      state.sold.clear();
+      state.buyerByCode = {};
+
+      refreshTileClasses();
+      updateStats();
+      updateSoldList();
+      persistState();
+    }
+
+    const LS_KEYS = {
+      title: "welly.title",
+      tickerText: "welly.ticker.text",
+      tickerDur: "welly.ticker.dur",
+      sold: "welly.sold",
+      buyers: "welly.buyers",
+      breakNumByDay: "welly.breakNum.byDay"
+    };
+
+    function persistState(forceBreakNum){
+      try {
+        localStorage.setItem(LS_KEYS.title, state.headerTitle || "");
+        localStorage.setItem(LS_KEYS.tickerText, state.tickerText || "");
+        localStorage.setItem(LS_KEYS.tickerDur, String(state.tickerDurSec || 22));
+        localStorage.setItem(LS_KEYS.sold, JSON.stringify(Array.from(state.sold)));
+        localStorage.setItem(LS_KEYS.buyers, JSON.stringify(state.buyerByCode || {}));
+
+        // per-day break # (so it doesn't carry across days)
+        const day = todayKey();
+        const mapRaw = localStorage.getItem(LS_KEYS.breakNumByDay) || "{}";
+        const map = safeJson(mapRaw, {});
+        map[day] = state.breakNum || 1;
+
+        if (forceBreakNum) {
+          // nothing extra, just ensures write
+        }
+        localStorage.setItem(LS_KEYS.breakNumByDay, JSON.stringify(map));
+      } catch (e) {}
+    }
+
+    function loadState(){
+      try {
+        state.headerTitle = (localStorage.getItem(LS_KEYS.title) || "").trim();
+
+        const day = todayKey();
+        const map = safeJson(localStorage.getItem(LS_KEYS.breakNumByDay) || "{}", {});
+        state.breakNum = clampInt(map[day], 1, 1, 9999);
+
+        state.tickerText = (localStorage.getItem(LS_KEYS.tickerText) || "").trim();
+        state.tickerDurSec = clampInt(localStorage.getItem(LS_KEYS.tickerDur), 22, 8, 60);
+
+        const soldArr = safeJson(localStorage.getItem(LS_KEYS.sold) || "[]", []);
+        state.sold = new Set((Array.isArray(soldArr) ? soldArr : []).map(n => parseInt(n,10)).filter(Number.isFinite));
+
+        state.buyerByCode = safeJson(localStorage.getItem(LS_KEYS.buyers) || "{}", {});
+      } catch (e) {}
+    }
+
+    // =========================
+    // 9) Tiny utils
+    // =========================
+    function safeJson(raw, fallback){
+      try { return JSON.parse(raw); } catch(e){ return fallback; }
+    }
+
+    function clampInt(n, d, min, max){
+      const v = parseInt(n, 10);
+      if (!Number.isFinite(v)) return d;
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    // =========================
+    // 10) Boot
+    // =========================
+    (function initOverlay(){
+      setBrandLogo();
+      loadState();
+      initializeGrid();
+      setTicker(state.tickerText, state.tickerDurSec);
+
+      // start with sold panel visible by default
+      toggleSoldPanel(true);
+    })();
+  </script>
+</body>
+</html>
