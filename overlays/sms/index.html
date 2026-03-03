@@ -1306,22 +1306,30 @@ function buildTile(team){
   /* =========================
      Sold / Toggle
   ========================== */
-  function markSold(code){
-    const el = document.querySelector(`[data-team-code="${code}"]`);
-    if (!el) return;
-    soldSet.add(code);
-    el.classList.add('sold');
-    if (!soldList.some(x => x.code === code)) soldList.push({code, buyer:''});
-  }
+ function markSold(code){
+  if (!code) return;
 
-  function markUnsold(code){
-    const el = document.querySelector(`[data-team-code="${code}"]`);
-    if (!el) return;
-    soldSet.delete(code);
-    el.classList.remove('sold');
-    const idx = soldList.findIndex(x => x.code === code);
-    if (idx !== -1) soldList.splice(idx, 1);
-  }
+  // Always update state first
+  soldSet.add(code);
+  if (!soldList.some(x => x.code === code)) soldList.push({code, buyer:''});
+
+  // Then try to update the DOM (if it exists right now)
+  const el = document.querySelector(`[data-team-code="${code}"]`);
+  if (el) el.classList.add('sold');
+}
+
+function markUnsold(code){
+  if (!code) return;
+
+  // Always update state first
+  soldSet.delete(code);
+  const idx = soldList.findIndex(x => x.code === code);
+  if (idx !== -1) soldList.splice(idx, 1);
+
+  // Then try to update the DOM (if it exists right now)
+  const el = document.querySelector(`[data-team-code="${code}"]`);
+  if (el) el.classList.remove('sold');
+}
 
   function toggleTeam(code){
     soldSet.has(code) ? markUnsold(code) : markSold(code);
@@ -1766,7 +1774,7 @@ if (type === "team_sold" || type === "sold" || type === "sale"){
 
     // Mark the current team sold
     markSold(code);
-
+console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "tile exists?", !!document.querySelector(`[data-team-code="${code}"]`));
     // If buyer provided, store it on the soldList row
     if (payload.buyer){
       const row = soldList.find(x => x.code === code);
