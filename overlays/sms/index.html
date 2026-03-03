@@ -1231,11 +1231,44 @@ function loadSport(){
     return null;
   }
 
-  function applySportCSS(){
-    const cfg = breakTypes[currentSport];
-    document.documentElement.style.setProperty('--bottomCols', String(cfg.bottomCols));
-  }
+  
 
+ 
+ // ===== EXTRA GUARD (like the working file) =====
+// If the bridge sends a code that doesn't exist in the current sport,
+// we bail instead of marking the wrong tile sold.
+function normalizeCodeAliases(code, sportKey){
+  const c = String(code || "").toUpperCase().trim();
+  const s = String(sportKey || "").toLowerCase();
+  if (!c) return c;
+
+  // Common feed aliases
+  if (s === "mlb" && c === "WAS") return "WSH"; // Nationals (your MLB list uses WSH)
+  if (s === "nfl" && c === "JAC") return "JAX"; // Jaguars
+  return c;
+}
+
+function isValidCodeForSport(code, sportKey){
+  const s = String(sportKey || "").toLowerCase();
+  if (!code || !breakTypes[s]) return false;
+  const lookup = buildLookup(breakTypes[s].teams);
+  return lookup.has(norm(code));
+}
+
+// REQUIRED because your SSE code calls it
+function requireValidCodeOrBail(code, sportKey, titleRaw){
+  const c = normalizeCodeAliases(code, sportKey);
+  if (isValidCodeForSport(c, sportKey)) return c;
+
+  console.warn("[Overlay] invalid code for sport:", c, "sport:", sportKey, "title:", titleRaw);
+  return null;
+}
+
+// Keep ONLY ONE applySportCSS in the entire file.
+function applySportCSS(){
+  const cfg = breakTypes[currentSport];
+  document.documentElement.style.setProperty('--bottomCols', String(cfg.bottomCols));
+}
   function updateHeaderSport(){
     const cfg = breakTypes[currentSport];
     const el = document.getElementById("headerTitle");
@@ -1740,21 +1773,32 @@ const onAny = (e) => {
 
   
 
-  function handleSSEEvent(data){
-    try{
-      if (!data || typeof data !== "object") return;
+function handleSSEEvent(data){
+  try{
+    if (!data || typeof data !== "object") return;
 
-      const payload = data.data && typeof data.data === "object" ? data.data : data;
-      const type = String(payload.type || payload.event || "").toLowerCase();
-      if (!type) return;
+    // Keep the original/root type (important when sender wraps under .data)
+    const rootType = String(data.type || data.event || "").toLowerCase();
 
-      console.log("[Overlay] SSE IN:", payload);
+    // Some bridges send { type, data:{...} }
+    const payload = (data.data && typeof data.data === "object") ? data.data : data;
+
+    // Prefer payload type, but fall back to root type
+    const type = String(payload.type || payload.event || rootType || "").toLowerCase();
+    if (!type || type === "hello") return;
+
+    console.log("[Overlay] SSE IN:", { type, payload });
 
 if (type === "team_sold" || type === "sold" || type === "sale"){
   const sid = payload.saleId || payload.saleID || payload.sale_id;
 
   // Determine which team this sale is for
-  const code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
+let code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
+
+  // EXTRA GUARD: verify code belongs to currentSport (bail if not)
+  const checked = requireValidCodeOrBail(code, currentSport, payload.title || "");
+  if (!checked) return;
+  code = checked;
 
   // If we can’t match a team, bail safely (don’t touch state)
   if (!code){
@@ -1815,6 +1859,11 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
   if (!code){
     code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
   }
+
+   // EXTRA GUARD: verify code belongs to currentSport (bail if not)
+  const checked = requireValidCodeOrBail(code, currentSport, payload.title || "");
+  if (!checked) return;
+  code = checked;
 
   if (code) markUnsold(code);
 }
