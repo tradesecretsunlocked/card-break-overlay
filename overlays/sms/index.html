@@ -1092,6 +1092,30 @@ const CHANNELS = (() => {
   let highBid = 0;
   let buyerTotals = new Map();  // buyer -> total spent
 
+  // =========================
+// SALE DEDUPE (saleId)
+// =========================
+const SEEN_SALES_MAX = 800;     // cap memory
+const seenSaleIds = new Set();
+const seenSaleQueue = [];       // keep insertion order for eviction
+
+function wasSaleSeen(saleId){
+  const id = String(saleId || "").trim();
+  if (!id) return false;
+
+  if (seenSaleIds.has(id)) return true;
+
+  seenSaleIds.add(id);
+  seenSaleQueue.push(id);
+
+  // evict oldest
+  while (seenSaleQueue.length > SEEN_SALES_MAX){
+    const old = seenSaleQueue.shift();
+    seenSaleIds.delete(old);
+  }
+  return false;
+}
+
   // chasers
   const CHASERS_KEY = "sms.chasers";
   const DEFAULT_CHASERS = new Set(["LAL","OKC","GSW","DAL","HOU","BOS","KC","BUF","SF","LAD"]);
@@ -1229,20 +1253,25 @@ function loadSport(){
   /* =========================
      Tile / Render
   ========================== */
-  function buildTile(team){
-    const d = document.createElement('div');
-    d.className = 'tile';
-    d.dataset.teamCode = team.code;
+function buildTile(team){
+  const d = document.createElement('div');
+  d.className = 'tile';
+  d.dataset.teamCode = team.code;
 
-    const img = document.createElement('img');
-    img.src = team.image;
-    img.alt = team.name;
-    img.onerror = () => { d.textContent = team.code; };
+  // NEW: FX layer (for glow + shimmer)
+  const fx = document.createElement('div');
+  fx.className = 'fx';
+  d.appendChild(fx);
 
-    d.appendChild(img);
-    d.addEventListener('click', () => toggleTeam(team.code));
-    return d;
-  }
+  const img = document.createElement('img');
+  img.src = team.image;
+  img.alt = team.name;
+  img.onerror = () => { d.textContent = team.code; };
+
+  d.appendChild(img);
+  d.addEventListener('click', () => toggleTeam(team.code));
+  return d;
+}
 
   function getSportCount(){ return breakTypes[currentSport].count; }
 
@@ -1659,11 +1688,21 @@ function connectSSE(url){
     setTimeout(() => connectSSE(url), 2500);
   };
 
-  const onAny = (e) => {
-    try { handleSSEEvent(JSON.parse(e.data)); }
-    catch(err){ console.warn("[Overlay] bad JSON:", e.data); }
-  };
+const onAny = (e) => {
+  try {
+    const obj = JSON.parse(e.data);
 
+    // If the server uses SSE event names (event: team_sold) and sends JSON
+    // without {type}, inject the event name so handleSSEEvent works.
+    if (obj && typeof obj === "object" && !obj.type && !obj.event && e && e.type && e.type !== "message") {
+      obj.type = e.type;
+    }
+
+    handleSSEEvent(obj);
+  } catch (err) {
+    console.warn("[Overlay] bad JSON:", e.data);
+  }
+};
 
 // default "message" (this catches your initial hello + any data-only sends)
   es.onmessage = onAny;
@@ -1704,25 +1743,44 @@ function connectSSE(url){
       console.log("[Overlay] SSE IN:", payload);
 
       if (type === "team_sold" || type === "sold" || type === "sale"){
-        const code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
+  const sid = payload.saleId || payload.saleID || payload.sale_id;
 
-        if (code){
-          markSold(code);
+  // IMPORTANT: don't "return" from the whole handler on duplicates,
+  // because that prevents stats/render updates from running.
+  const isDup = (sid && wasSaleSeen(sid));
+  if (isDup){
+    console.log("[Overlay] Duplicate sale ignored:", sid);
+  } else {
+    const code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
 
-          if (payload.buyer){
-            const row = soldList.find(x => x.code === code);
-            if (row) row.buyer = payload.buyer;
-          }
-        } else {
-          console.warn("[Overlay] Could not match team from:", payload.title || payload);
-        }
+    if (code){
+      markSold(code);
 
-        if (Number.isFinite(payload.amount)) {
-          setHighBid(Math.max(highBid, payload.amount));
-        }
-
-        updateBuyerStats(payload.buyer, payload.amount);
+      if (payload.buyer){
+        const row = soldList.find(x => x.code === code);
+        if (row) row.buyer = payload.buyer;
       }
+    } else {
+      console.warn("[Overlay] Could not match team from:", payload.title || payload);
+    }
+
+// normalize buyer + amount (amount often arrives as "12.00")
+const buyer =
+  (typeof payload.buyer === "string" && payload.buyer.trim()) ? payload.buyer.trim() :
+  (typeof payload.buyerName === "string" && payload.buyerName.trim()) ? payload.buyerName.trim() :
+  (typeof payload.name === "string" && payload.name.trim()) ? payload.name.trim() :
+  "";
+
+const amt = Number(payload.amount ?? payload.price ?? payload.bid ?? payload.highBid);
+
+if (Number.isFinite(amt)) {
+  setHighBid(Math.max(highBid, amt));
+}
+
+updateBuyerStats(buyer, amt);
+  }
+}
+
 
       if (type === "team_unsold" || type === "unsold"){
         const code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
@@ -1742,6 +1800,20 @@ function connectSSE(url){
         const slides = document.querySelectorAll('.banner-inner');
         slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
       }
+
+      if (type === "stream_stats"){
+  // content.js sends: { topBuyer, lastSale, liveId, ... }
+  // optional (if you add the patch below): { highBid, topBuyerSpent, topBuyerCount }
+  if (typeof payload.topBuyer === "string" && payload.topBuyer.trim()){
+    setTopBuyer(payload.topBuyer.trim());
+  }
+
+  // Optional: allow extension-driven high bid if provided
+  const hb = payload.highBid ?? payload.highestBid ?? payload.high_bid;
+  if (Number.isFinite(hb)){
+    setHighBid(Math.max(highBid, hb));
+  }
+}
 
      if (type === "scores" && Array.isArray(payload.games)){
   const s = String(payload.sport || "").toLowerCase();
