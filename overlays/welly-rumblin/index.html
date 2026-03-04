@@ -336,17 +336,17 @@
   100% { transform: translateX(140%)  rotate(0.001deg); }
 }
 
-    .team::before{
-      content:"";
-      position:absolute;
-      inset:-18px;
-      background: radial-gradient(circle at 20% 70%, rgba(47,232,255,0.30), transparent 55%);
-      filter: blur(14px);
-      opacity: 0.55;
-      animation: tileGlowDrift 4.6s ease-in-out infinite;
-      z-index: 1;
-      pointer-events:none;
-    }
+ /* Glow layer moved off ::before so SOLD X can use ::before */
+.team .glow{
+  position:absolute;
+  inset:-18px;
+  background: radial-gradient(circle at 20% 70%, rgba(47,232,255,0.30), transparent 55%);
+  filter: blur(14px);
+  opacity: 0.55;
+  animation: tileGlowDrift 4.6s ease-in-out infinite;
+  z-index: 1;
+  pointer-events:none;
+}
     @keyframes tileGlowDrift{
       0%   { transform: translate(-4px, 2px) scale(0.98); opacity: 0.34; }
       50%  { transform: translate(6px,-2px) scale(1.05); opacity: 0.62; }
@@ -418,23 +418,25 @@
       filter: grayscale(1) brightness(0.45);
       opacity: 0.95;
     }
-    .team.sold::after{
-      content:"✕";
-      position:absolute; inset:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size: 52px;
-      font-weight: 900;
-      color: rgba(153, 9, 9, 0.95);
-      text-shadow:
-        0 0 10px rgba(47,232,255,0.65),
-        0 0 18px rgba(99,255,58,0.40),
-        0 8px 22px rgba(0,0,0,0.85);
-      z-index: 4;
-      pointer-events:none;
-    }
-    .team.sold::before{ opacity: 0.12; animation:none; }
+/* SOLD marker uses ::before (OBS-safe) */
+.team.sold::before{
+  content:"X";
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform: translate(-50%, -50%);
+  font-size: 56px;
+  font-weight: 900;
+  color: rgb(255, 5, 5);
+  text-shadow:
+    0 0 10px rgba(47,232,255,0.65),
+    0 0 18px rgba(99,255,58,0.40),
+    0 8px 22px rgba(0,0,0,0.85);
+  z-index: 999;           /* force above everything */
+  pointer-events:none;
+  line-height: 1;
+}
+    .team.sold .glow{ opacity: 0.12; animation:none; }
 
     .team.flash{ animation: soldFlash 260ms ease; }
     @keyframes soldFlash{
@@ -992,9 +994,13 @@
       div.dataset.code = team.code;
 
 
-      const shimmer = document.createElement("div");
+const shimmer = document.createElement("div");
 shimmer.className = "shimmer";
 div.appendChild(shimmer);
+
+const glow = document.createElement("div");
+glow.className = "glow";
+div.appendChild(glow);
 
       const img = document.createElement("img");
       img.alt = team.code;
@@ -1222,6 +1228,42 @@ div.appendChild(shimmer);
       body.innerHTML = "";
     }
 
+function openConfirmPopup({ title, message, okText, cancelText, onOk }){
+  const ok = okText || "OK";
+  const cancel = cancelText || "Cancel";
+
+  openPopup({
+    title: title || "Confirm",
+    hint: "",
+    bodyHtml: `
+      <div style="
+        font-weight:900;
+        font-size:16px;
+        line-height:1.35;
+        padding: 10px 6px 14px 6px;
+        color: rgba(255,255,255,0.92);
+        text-shadow: 0 2px 10px rgba(0,0,0,0.55);
+      ">
+        ${escapeHtml(message || "Are you sure?")}
+      </div>
+    `,
+    onApply: () => {
+      if (typeof onOk === "function") onOk();
+    }
+  });
+
+  // Change button labels in the popup footer
+  const mask = document.getElementById("popupMask");
+  if (mask){
+    const btns = mask.querySelectorAll(".popup-actions .popup-btn");
+    const cancelBtn = btns[0];
+    const applyBtn  = btns[1];
+    if (cancelBtn) cancelBtn.textContent = cancel;
+    if (applyBtn) applyBtn.textContent = ok;
+  }
+}
+
+
     // ESC + Enter behavior
     document.addEventListener("keydown", (e) => {
       if (!popup.open) return;
@@ -1316,26 +1358,35 @@ div.appendChild(shimmer);
     }
 
 function nextBreak(){
-  if (!confirm("Go to NEXT BREAK? This will clear sold teams + buyers.")) return;
+  openConfirmPopup({
+    title: "Next Break",
+    message: "Go to NEXT BREAK? This will clear sold teams + buyers.",
+    okText: "Next Break",
+    cancelText: "Cancel",
+    onOk: () => {
+      state.breakNum = clampInt((state.breakNum || 1) + 1, 2, 1, 9999);
+      state.sold.clear();
+      state.buyerByCode = {};
 
-  state.breakNum = clampInt((state.breakNum || 1) + 1, 2, 1, 9999);
-  state.sold.clear();
-  state.buyerByCode = {};
-
-  refreshTileClasses();
-  updateStats();
-  updateSoldList();
-  updateHeader();
-  persistState(true);
+      refreshTileClasses();
+      updateStats();
+      updateSoldList();
+      updateHeader();
+      persistState(true);
+    }
+  });
 }
-
 
     // =========================
     // 8) Reset / persistence
     // =========================
-    function resetAll(){
-      if (!confirm("Reset all sold teams + buyers for this break?")) return;
-
+function resetAll(){
+  openConfirmPopup({
+    title: "Reset Break",
+    message: "Reset all sold teams + buyers for this break?",
+    okText: "Reset",
+    cancelText: "Cancel",
+    onOk: () => {
       state.sold.clear();
       state.buyerByCode = {};
 
@@ -1344,7 +1395,8 @@ function nextBreak(){
       updateSoldList();
       persistState();
     }
-
+  });
+}
     const LS_KEYS = {
       title: "welly.title",
       tickerText: "welly.ticker.text",
