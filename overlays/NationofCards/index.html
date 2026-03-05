@@ -102,7 +102,7 @@
 
   .brand-title{
   font-family: 'Bangers', system-ui, sans-serif;
-  font-size: 42px;
+  font-size: 38px;
   line-height: 1;
   margin-bottom: 2px;
   text-transform: uppercase;
@@ -121,7 +121,7 @@
       font-size: 12px;
       font-weight: 600;
       margin-top: 2px;
-      margin-bottom: -7px;
+      margin-bottom: 0px;
       opacity: 0.99;
     }
 
@@ -711,10 +711,10 @@ transform-origin: center;
 
 .top-rotator{
   position:absolute;
-  left:50%;
+  left:52%;
   top:41px;
   transform:translate(-50%,-50%);
-  width:420px;
+  width:471px;
   height:80px;
 
 
@@ -737,7 +737,7 @@ transform-origin: center;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:25px;
+  font-size:22px;
   font-weight:900;
   letter-spacing:1px;
   text-transform:uppercase;
@@ -976,10 +976,25 @@ transform-origin: center;
   border: 1px solid rgba(255,255,255,0.2);
 }
 
+/* SOLD HEADER ROW: single row always */
 .sold-header-controls{
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 140px;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: nowrap;          /* <- single row */
+}
+
+
+/* left and right groups */
+.sold-left,
+.sold-right{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;          /* <- single row */
+  min-width: 0;
 }
 
 /* tighten title since it now lives in a row */
@@ -1016,6 +1031,40 @@ transform-origin: center;
 .conference::-webkit-scrollbar {
   display: none;
 }
+
+
+.sold-left{
+  min-width: 0;
+  overflow-x: auto;     /* allow scroll instead of clipping */
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.sold-left::-webkit-scrollbar{ display:none; }
+
+.breaktype-buttons{
+  display:flex;
+  flex-wrap: nowrap;   /* keep in one line */
+  gap: 5px;
+}
+.breaktype-buttons{
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.breaktype-buttons::-webkit-scrollbar{
+  display:none;
+}
+
+/* SSE: smaller + no "SSE:" label now */
+.sse-status.sse-compact{
+  font-size: 10px;
+  padding: 3px 7px;
+  gap: 6px;
+}
+.sse-status.sse-compact .dot{
+  width: 8px;
+  height: 8px;
+}
+
 .sold-panel-slot {
   width: 99%;
   height: 160px;           /* fixed reserved space */
@@ -1255,27 +1304,7 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
     </div>
 <div class="main">
 
-  <!-- INLINE CONTROLS (now sits with team selection area) -->
-  <div class="inline-controls">
 
-    <div class="left">
-      <div class="breaktype-buttons" id="breakTypeButtons"></div>
-
-      <div class="nil-tools" id="nilTools" style="display:none; gap:6px; align-items:center;">
-        <input id="nilCsvInput" type="file" accept=".csv,text/csv" style="display:none;" />
-        <button class="inline-btn" onclick="openNilModal()">Edit NIL Items</button>
-        <button class="inline-btn" onclick="openTickerModal()">Ticker</button>
-      </div>
-    </div>
-
-    <div class="right">
-      <button class="inline-btn" onclick="openBreakModal()">Break #</button>
-      <button class="inline-btn" onclick="openRotatorModal()">Header Text</button>
-      <button class="inline-btn" onclick="toggleTitles()">Titles</button>
-      <button id="mockBtn" class="inline-btn admin-only" onclick="toggleMock()" style="display:none;">Mock</button>
-    </div>
-
-  </div>
 
   <div class="teams-section">
     <div id="conferenceLeft" class="conference"></div>
@@ -1312,26 +1341,37 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
     
   
 
-    
 <div class="sold-header-row">
-  
-
   <div class="sold-header-controls">
-    <div class="sold-panel-title">SOLD TEAMS</div>
-    <button class="sold-toggle-btn" onclick="toggleSoldPanel()">
-      Toggle Sold
-    </button>
 
-<button class="sold-toggle-btn" onclick="toggleTitles()">Titles</button>
+    <!-- LEFT: sport buttons + NIL tools -->
+    <div class="sold-left">
+      <div class="breaktype-buttons" id="breakTypeButtons"></div>
 
-    <div class="sse-status" id="sseStatus">
-      SSE:
-      <span class="dot" id="sseDot"></span>
-      <span id="sseText">disconnected</span>
+      <div class="nil-tools" id="nilTools" style="display:none; gap:6px; align-items:center;">
+        <input id="nilCsvInput" type="file" accept=".csv,text/csv" style="display:none;" />
+        <button class="sold-toggle-btn" onclick="openNilModal()">Edit NIL Items</button>
+        <button class="sold-toggle-btn" onclick="openTickerModal()">Ticker</button>
+      </div>
     </div>
+
+    <!-- RIGHT: actions + SSE -->
+    <div class="sold-right">
+      <button class="sold-toggle-btn" onclick="toggleSoldPanel()">Toggle Sold</button>
+      <button class="sold-toggle-btn" onclick="openBreakModal()">Break #</button>
+      <button class="sold-toggle-btn" onclick="openRotatorModal()">Header Text</button>
+      <button class="sold-toggle-btn" onclick="toggleTitles()">Titles</button>
+
+      <button id="mockBtn" class="sold-toggle-btn admin-only" onclick="toggleMock()" style="display:none;">Mock</button>
+
+      <div class="sse-status sse-compact" id="sseStatus">
+        <span class="dot" id="sseDot"></span>
+        <span id="sseText">disconnected</span>
+      </div>
+    </div>
+
   </div>
 </div>
-
 
 
 
@@ -1344,7 +1384,69 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
 </div>
   </div>
 
+<!-- BREAK MODAL -->
+<div id="breakModal" class="nil-modal hidden">
+  <div class="nil-modal-inner" style="width:min(420px, 92vw);">
+    <h2>Break Number</h2>
 
+    <input id="breakModalInput"
+      type="text"
+      style="width:100%;height:46px;border-radius:12px;padding:10px;font-weight:900;font-size:18px;"
+      placeholder="Enter Break #"
+    />
+
+    <div class="nil-modal-actions">
+      <button onclick="applyBreakFromModal()">Apply</button>
+      <button class="secondary" onclick="closeBreakModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROTATOR MODAL (Header Text) -->
+<div id="rotatorModal" class="nil-modal hidden">
+  <div class="nil-modal-inner">
+    <h2>Header Text</h2>
+    <textarea id="rotatorInput" placeholder="One line per side (logo hides automatically)"></textarea>
+    <div class="nil-modal-actions">
+      <button onclick="applyRotatorText()">Apply</button>
+      <button class="secondary" onclick="closeRotatorModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- NIL MODAL -->
+<div id="nilModal" class="nil-modal hidden">
+  <div class="nil-modal-inner">
+    <h2>NIL Items</h2>
+    <textarea id="nilTextInput" placeholder="Paste or type one item per line"></textarea>
+    <div class="nil-modal-actions">
+      <button class="secondary" onclick="triggerNilCsv()">Import CSV</button>
+      <button onclick="applyNilText()">Apply</button>
+      <button class="secondary" onclick="closeNilModal()">Close</button>
+      <button class="secondary" onclick="clearNilEntries()">Clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- TICKER MODAL -->
+<div id="tickerModal" class="nil-modal hidden">
+  <div class="nil-modal-inner" style="width:min(560px, 92vw);">
+    <h2>Ticker</h2>
+
+    <textarea id="tickerInput" style="width:100%;height:140px;border-radius:12px;padding:12px;font-weight:800;"></textarea>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;">
+      <div style="font-weight:900;letter-spacing:1px;text-transform:uppercase;">Speed:</div>
+      <input id="tickerSpeed" type="range" min="6" max="60" step="1" />
+      <div id="tickerSpeedLabel" style="font-weight:900;">20s</div>
+    </div>
+
+    <div class="nil-modal-actions">
+      <button onclick="applyTickerSettings()">Apply</button>
+      <button class="secondary" onclick="closeTickerModal()">Close</button>
+    </div>
+  </div>
+</div>
   <script>
 
   // Dynamic base path for images
@@ -1355,7 +1457,7 @@ transition: transform 0.15s ease, box-shadow 0.15s ease;
       const repo = parts.length ? parts[0] : '';
       return `/${repo}/`;
     }
-    return '../..\/'; 
+    return '../../'; 
   }        )();
     
   function getQueryParam(name) {
@@ -2541,22 +2643,6 @@ function getAnyVisibleTeamCode(){
 }
 
 
-<div id="breakModal" class="nil-modal hidden">
-  <div class="nil-modal-inner" style="width:min(420px, 92vw);">
-    <h2>Break Number</h2>
-
-    <input id="breakModalInput"
-      type="text"
-      style="width:100%;height:46px;border-radius:12px;padding:10px;font-weight:900;font-size:18px;"
-      placeholder="Enter Break #"
-    />
-
-    <div class="nil-modal-actions">
-      <button onclick="applyBreakFromModal()">Apply</button>
-      <button class="secondary" onclick="closeBreakModal()">Close</button>
-    </div>
-  </div>
-</div>
 
 
 let mockEnabled = false;
@@ -2598,7 +2684,7 @@ function mockToggleRandom(){
 }
 
 document.getElementById('rotatorLogo').src =
-  `${BASE}images/logos/ratedrookiesURL.png`;
+  `${BASE}images/logos/NoC-logo.png`;
 
 
 
@@ -2666,9 +2752,7 @@ refreshTicker();
 
 });
 
-document.getElementById('rotatorLogo').src =
-  `${BASE}images/logos/NoC-logo.png`;
-
+document.getElementById('rotatorLogo').src = `${BASE}images/logos/NoC-logo.png`;
 
 updateNilToolsVisibility();
 function applyScoresPayload(data){
@@ -2770,6 +2854,16 @@ function sseUpdateBuyer(code, buyer) {
   saveBuyer(code, buyer || '');
   renderSoldPanel();
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+  // ...
+  const rot = document.getElementById('rotatorLogo');
+  if (rot) rot.src = `${BASE}images/logos/NoC-logo.png`;
+
+  const brandLogo = document.getElementById('brandLogo');
+  if (brandLogo) brandLogo.src = `${BASE}images/logos/NoC-logo.png`;
+  // ...
+});
 
    
 

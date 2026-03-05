@@ -83,7 +83,7 @@
 
     .header{
       position: relative;
-      background: linear-gradient(90deg, rgba(7,19,37,1) 0%, rgba(244,123,32,0.55) 50%, rgba(7,19,37,1) 100%);
+      background: linear-gradient(164deg, navy 0%, rgb(244 123 32 / 85%) 50%, navy);
       color: var(--white);
       padding: 6px 10px;
       margin: -6px -6px 6px -6px;
@@ -165,10 +165,15 @@
       z-index: 1;
     }
 
-    .teams-wrapper > *{
-      position: relative;
-      z-index: 2;
-    }
+  .teams-wrapper > *{
+  position: relative;
+  z-index: 1; /* default rows */
+}
+
+/* the row that contains the logo needs to sit ABOVE the rows beneath it */
+.row-grid.row-logo{
+  z-index: 50;
+}
 
     .teams-wrapper::after{
       content:"";
@@ -448,14 +453,16 @@
           drop-shadow(0 0 22px rgba(245,210,138,0.35));
       }
     }
-
+.logo-slot{ z-index: 60; }
+.logo-slot img{ z-index: 61; }
     .ticker-slot{
       border-radius: 10px;
       height: var(--tileH);
       display:flex;
       align-items:center;
       overflow:hidden;
-      background: linear-gradient(90deg, rgba(7,19,37,1) 0%, rgba(244,123,32,0.55) 50%, rgba(7,19,37,1) 100%);
+      background: linear-gradient(
+27deg, navy 0%, rgb(80, 42, 7) 50%, navy);
       border: 2px solid var(--accentBorder);
       padding: 0 10px;
     }
@@ -464,6 +471,7 @@
       display:inline-block;
       white-space: nowrap;
       padding-left: 100%;
+      font-size:22px;
       animation: tickerScroll 22s linear infinite;
       font-weight: 900;
       letter-spacing: 0.8px;
@@ -479,13 +487,14 @@
     .controls-row{
       margin-top: 2px;
       display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 720px 1fr;
       gap: 20px;
       align-items: stretch;
     }
 
     .stat-box{
-      background: linear-gradient(90deg, rgba(7,19,37,1) 0%, rgba(244,123,32,0.55) 50%, rgba(7,19,37,1) 100%);
+      background: linear-gradient(
+        318deg, navy 0%, rgb(244 123 32 / 85%) 50%, navy);
       color:#fff;
       border-radius: 8px;
       text-align:center;
@@ -495,34 +504,89 @@
       display:flex;
       flex-direction:column;
       justify-content:center;
-      font-size: 18px;
+      font-size: 22px;
       border: 2px solid var(--accentBorder);
       min-height: 58px;
     }
 
     .stat-label{
-      font-size: 11px;
+      font-size: 14px;
       letter-spacing: 1px;
       margin-top: 2px;
       opacity: 0.95;
     }
 
     /* Placeholder for flip promo box */
-    .promo-placeholder{
-      border-radius: 8px;
-      border: 2px dashed rgba(255,255,255,0.55);
-      background: rgba(0,0,0,0.20);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      font-weight: 900;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: rgba(255,255,255,0.85);
-      min-height: 58px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
-    }
+/* ===== PROMO BOX ===== */
+
+.promo-box{
+  position:relative;
+  border-radius:10px;
+  border:3px solid var(--accentBorder);
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:58px;
+
+  background:
+    radial-gradient(circle at 50% 0%, rgba(244,123,32,0.35), transparent 60%),
+    linear-gradient(140deg,#081a36,#02070f);
+
+  box-shadow:
+    0 0 18px rgba(244,123,32,0.45),
+    inset 0 0 12px rgba(0,0,0,0.75);
+}
+
+/* animated glow */
+.promo-box::before{
+  content:"";
+  position:absolute;
+  inset:-60%;
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent,
+      rgba(245,210,138,0.9),
+      rgba(244,123,32,1),
+      transparent
+    );
+  animation:promoSpin 6s linear infinite;
+  opacity:.35;
+}
+
+@keyframes promoSpin{
+  from{ transform:rotate(0deg); }
+  to{ transform:rotate(360deg); }
+}
+
+.promo-inner{
+  position:relative;
+  z-index:2;
+  text-align:center;
+  width:100%;
+  background:rgba(0,0,0,0.15)
+}
+
+.promo-text{
+  font-size:24px;
+  font-weight:900;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:#fff;
+
+  text-shadow:
+    0 0 10px rgb(90, 53, 6,1),
+    0 2px 8px rgba(0,0,0,0.9);
+
+  animation:promoPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes promoPulse{
+  0%{ transform:scale(1); }
+  50%{ transform:scale(1.05); }
+  100%{ transform:scale(1); }
+}
 
     .btn{
       background: linear-gradient(135deg, rgba(245,210,138,1) 0%, rgba(244,123,32,1) 100%);
@@ -649,7 +713,7 @@
       letter-spacing: 1px;
       text-transform: uppercase;
       opacity: 0.95;
-      padding: 6px 8px;
+      padding: 6px 1px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.12);
       background: rgba(0,0,0,0.18);
@@ -694,9 +758,13 @@
           <div class="stat-label">REMAINING</div>
         </div>
 
-        <div class="promo-placeholder" id="promoFlipSlot">
-          PROMO FLIP BOX (PLACEHOLDER)
-        </div>
+       <div class="promo-box" id="promoFlipSlot">
+  <div class="promo-inner">
+    <div class="promo-text" id="promoText">
+      SEE 2 PICK 1
+    </div>
+  </div>
+</div>
 
         <div class="stat-box">
           <div id="teamsSold">0</div>
@@ -719,12 +787,13 @@
         <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="openTitleEditor()">🏷 TITLE</button>
         <button class="btn ghost" id="openTickerEditorBtn" style="padding:8px 10px; font-size:12px;" onclick="openTickerEditor()">📰 TICKER</button>
 
-        <div class="sse" id="sseStatus">
+        
+<button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="openPromoEditor()">🎁 PROMO</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="copySoldListTSV()">📋 COPY SOLD</button>
+      </div>
+      <div class="sse" id="sseStatus">
           SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
         </div>
-
-        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="copySoldListTSV()">📋 COPY SOLD LIST</button>
-      </div>
     </div>
 
     <div id="soldList" class="sold-list-grid"></div>
@@ -755,7 +824,7 @@
     TITLE: "barn.title",
     BRIDGE: "tsu.bridge",
     KEY: "tsu.key",
-
+PROMOS: "barn.promos",
     OVERLAY: "tsu.overlayId",
     CHANNEL: "tsu.channel",
 
@@ -841,6 +910,48 @@
     localStorage.setItem(LS.TITLE, String(t || "").trim());
   }
 
+/* ===== PROMO ROTATOR ===== */
+
+const DEFAULT_PROMOS = [
+  "visit us online 👉 BARNBREAKS.COM",
+  "Use Promo code: 'MONKEY'",
+  "Subscribe on YouTube @BARNBREAKS"
+];
+
+function loadPromos(){
+  try{
+    const raw = localStorage.getItem(LS.PROMOS);
+    if(!raw) return DEFAULT_PROMOS.slice();
+    const arr = JSON.parse(raw);
+    if(Array.isArray(arr) && arr.length) return arr;
+  }catch(_){}
+  return DEFAULT_PROMOS.slice();
+}
+
+function savePromos(arr){
+  localStorage.setItem(LS.PROMOS, JSON.stringify(arr));
+}
+
+let PROMO_LINES = loadPromos();
+let promoIndex = 0;
+
+function rotatePromo(){
+  const el = document.getElementById("promoText");
+  if(!el) return;
+
+  promoIndex++;
+  if(promoIndex >= PROMO_LINES.length) promoIndex = 0;
+
+  el.style.opacity = 0;
+
+  setTimeout(()=>{
+    el.textContent = PROMO_LINES[promoIndex];
+    el.style.opacity = 1;
+  },300);
+}
+
+setInterval(rotatePromo, 5000);
+
   let TITLE_OVERRIDE = loadTitleOverride();
 
   function setHeader(){
@@ -873,6 +984,36 @@
     setHeader();
     closeTitleEditor();
   }
+
+function openPromoEditor(){
+  const modal = document.getElementById("promoModal");
+  const ta = document.getElementById("promoModalTextarea");
+  if(!modal || !ta) return;
+
+  ta.value = PROMO_LINES.join("\n");
+  modal.classList.add("open");
+}
+
+function closePromoEditor(){
+  document.getElementById("promoModal").classList.remove("open");
+}
+
+function applyPromoFromModal(){
+  const raw = document.getElementById("promoModalTextarea").value;
+
+  const lines = raw
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  PROMO_LINES = lines.length ? lines : DEFAULT_PROMOS.slice();
+  savePromos(PROMO_LINES);
+
+  promoIndex = -1;
+  rotatePromo();
+
+  closePromoEditor();
+}
 
   function loadBreakNumber(){
     const raw = localStorage.getItem(LS.BREAK);
@@ -1226,8 +1367,8 @@
     if (config.layout === "NBA_MLB_30"){
       let idx = 0;
 
-      const r1 = document.createElement("div");
-      r1.className = "row-grid";
+const r1 = document.createElement("div");
+r1.className = "row-grid row-logo";
       for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
       r1.appendChild(makeLogoSlot(2));
       for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
@@ -1249,8 +1390,8 @@
     if (config.layout === "NFL_32"){
       let idx = 0;
 
-      const r1 = document.createElement("div");
-      r1.className = "row-grid";
+     const r1 = document.createElement("div");
+r1.className = "row-grid row-logo";
       for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
       r1.appendChild(makeLogoSlot(2));
       for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
@@ -1279,8 +1420,8 @@
     if (config.layout === "SOCCER_20"){
       let idx = 0;
 
-      const r1 = document.createElement("div");
-      r1.className = "row-grid";
+const r1 = document.createElement("div");
+r1.className = "row-grid row-logo";
       for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
       r1.appendChild(makeLogoSlot(2));
       for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
@@ -1781,6 +1922,32 @@
     </div>
   </div>
 </div>
+
+<!-- ===== PROMO EDITOR ===== -->
+<div class="modal-backdrop" id="promoModal">
+  <div class="modal-panel" role="dialog">
+
+    <div class="modal-head">
+      <div class="modal-title">Promo Messages</div>
+
+      <div class="modal-actions">
+        <button class="btn secondary" onclick="applyPromoFromModal()">APPLY</button>
+        <button class="btn ghost" onclick="closePromoEditor()">CLOSE</button>
+      </div>
+    </div>
+
+    <div class="ticker-editor">
+      <textarea id="promoModalTextarea"
+      placeholder="Enter one promo per line&#10;Example:&#10;SEE 2 PICK 1&#10;STASH OR PASS&#10;BONUS HITS"></textarea>
+    </div>
+
+    <div class="ticker-hint">
+      Each line becomes a rotating promo message.
+    </div>
+
+  </div>
+</div>
+
 
 <!-- ===== Break # Editor Modal ===== -->
 <div class="modal-backdrop" id="breakModal">
