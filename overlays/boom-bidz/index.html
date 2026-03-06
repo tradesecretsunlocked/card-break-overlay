@@ -275,28 +275,20 @@ position:relative;
       line-height: 1.0;
     }
 
-    .hdr-sub{
-      font-size: 16px;
-      letter-spacing: 1px;
-      color: rgba(250,245,221,0.82);
-      text-transform: uppercase;
-      white-space: nowrap;
-      overflow:hidden;
-      text-overflow: ellipsis;
-    }
+
 
 .hdr-center{
   position:relative;
-  top:-113px;
+  top:-140px;
   left:50%;
   transform:translateX(-50%);
   height:auto;
   pointer-events:auto;
   z-index:50;
-inter-events:none;}
+}
     
 .hdr-center img{
-  height: 367px;
+  height: 400px;
   width:auto;
   object-fit:cover;
   position:absolute;
@@ -360,7 +352,7 @@ inter-events:none;}
   height: 100%;
   border-radius: var(--r);
   position:relative;
-  overflow:hidden;
+  overflow:visible;
   background: linear-gradient(135deg, rgba(250,245,221,0.08), rgba(0,0,0,0.25));
   border: 2px solid rgba(250,245,221,0.20);
   box-shadow:
@@ -376,6 +368,90 @@ inter-events:none;}
     linear-gradient(180deg, rgba(250,245,221,0.05), rgba(0,0,0,0.20));
   opacity: .9;
   pointer-events:none;
+}
+
+
+/* ===== CAMERA WICK BORDER FIXED ===== */
+.heroCamBox,
+.lowerInner{
+  position:relative;
+  isolation:isolate;
+}
+
+/* static border glow */
+.heroCamBox::after,
+.lowerInner::after{
+  content:"";
+  position:absolute;
+  inset:-3px;
+  border-radius:inherit;
+  pointer-events:none;
+  z-index:50;
+  border:3px solid rgba(250,245,221,0.18);
+  box-shadow:
+    0 0 10px rgba(234,66,2,0.25),
+    0 0 18px rgba(244,172,20,0.14),
+    inset 0 0 8px rgba(0,0,0,0.6);
+}
+
+/* moving ember lives on a dedicated overlay layer */
+.heroCamBox .wick,
+.lowerInner .wick{
+  position:absolute;
+  inset:-14px;
+  pointer-events:none;
+  z-index:60;
+}
+
+.heroCamBox .wick::before,
+.lowerInner .wick::before{
+  content:"";
+  position:absolute;
+  width:26px;
+  height:26px;
+  pointer-events:none;
+
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.98) 0 12%, rgba(255,255,255,0) 13%),
+    linear-gradient(0deg, rgba(250,245,221,0) 0%, rgba(250,245,221,1) 42%, rgba(244,172,20,1) 50%, rgba(234,66,2,1) 58%, rgba(250,245,221,0) 100%),
+    linear-gradient(90deg, rgba(250,245,221,0) 0%, rgba(250,245,221,1) 42%, rgba(244,172,20,1) 50%, rgba(234,66,2,1) 58%, rgba(250,245,221,0) 100%),
+    linear-gradient(45deg, rgba(250,245,221,0) 0%, rgba(250,245,221,0.95) 44%, rgba(244,172,20,1) 50%, rgba(234,66,2,0.95) 56%, rgba(250,245,221,0) 100%),
+    linear-gradient(-45deg, rgba(250,245,221,0) 0%, rgba(250,245,221,0.95) 44%, rgba(244,172,20,1) 50%, rgba(234,66,2,0.95) 56%, rgba(250,245,221,0) 100%);
+
+  background-repeat:no-repeat;
+  background-position:center;
+background-size:
+  26px 26px,
+  8px 26px,
+  26px 8px,
+  26px 8px,
+  26px 8px;
+
+  filter:
+    drop-shadow(0 0 4px #fff)
+    drop-shadow(0 0 8px #F4AC14)
+    drop-shadow(0 0 14px #EA4202);
+
+  animation: fuseTravel 26s linear infinite, wickFlicker 0.55s ease-in-out infinite alternate;
+}
+
+@keyframes fuseTravel{
+  0%   { top:0; left:0; }
+  25%  { top:0; left:calc(100% - 28px); }
+  50%  { top:calc(100% - 28px); left:calc(100% - 28px); }
+  75%  { top:calc(100% - 28px); left:0; }
+  100% { top:0; left:0; }
+}
+
+@keyframes wickFlicker{
+  0%{
+    transform: scale(0.92) rotate(0deg);
+    opacity: 0.88;
+  }
+  100%{
+    transform: scale(1.08) rotate(8deg);
+    opacity: 1;
+  }
 }
 
 /* Mid row: SOLD | CHASE | REMAINING */
@@ -394,6 +470,7 @@ inter-events:none;}
   align-items:center;
   justify-content:center;
   text-align:center;
+  border:1px solid rgba(255, 68, 0, 0.671)
 }
 .midStat .v{
   font-size: 46px;
@@ -437,7 +514,7 @@ inter-events:none;}
   border-radius: var(--r);
   border: 2px solid rgba(250,245,221,0.20);
   background: rgba(0,0,0,0.18);
-  overflow:hidden;
+  overflow:visible;
 }
 
 /* subtle grid + glow */
@@ -446,6 +523,7 @@ inter-events:none;}
   position:absolute;
   inset:-60px -60px -10px -60px;
   pointer-events:none;
+  z-index:1;
   background:
     repeating-linear-gradient(to right, transparent 0 14px, var(--gridRed2) 14px 15px),
     repeating-linear-gradient(to bottom, transparent 0 14px, var(--gridRed2) 14px 15px),
@@ -489,18 +567,18 @@ inter-events:none;}
           rgba(0,0,0,0.45) 100%);
       border: 1px solid rgba(250,245,221,0.14);
     }
-    .ticker span{
-      display:inline-block;
-      white-space: nowrap;
-      padding-left: 100%;
-      will-change: transform;
-      animation: tickerScroll 22s linear infinite;
-      font-size: 26px;
-      letter-spacing: 1px;
-      font-weight: 900;
-      color:#fff;
-      text-shadow: 0 2px 14px rgba(0,0,0,0.85);
-    }
+.ticker span{
+  display:inline-block;
+  white-space: nowrap;
+  padding-left: 100%;
+  will-change: transform;
+  animation: tickerScroll 22s linear infinite;
+  font-size: var(--topTickerSize, 30px);
+  letter-spacing: 1px;
+  font-weight: 900;
+  color:#fff;
+  text-shadow: 0 2px 14px rgba(0,0,0,0.85);
+}
     @keyframes tickerScroll{
       0%{ transform: translateX(0); }
       100%{ transform: translateX(-100%); }
@@ -527,7 +605,7 @@ inter-events:none;}
   padding-left: 100%;
   will-change: transform;
   animation: scoresScroll 18s linear infinite;
-  font-size: 18px;
+  font-size: var(--scoresTickerSize, 34px);
   letter-spacing: 1px;
   font-weight: 900;
   color:#fff;
@@ -645,20 +723,21 @@ inter-events:none;}
       pointer-events:none;
     }
 
-    .camLabel{
-      position:absolute;
-      left: 12px;
-      top: 10px;
-      padding: 7px 9px;
-      border-radius: 999px;
-      background: rgba(0,0,0,0.45);
-      border: 1px solid rgba(250,245,221,0.14);
-      font-size: 12px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      opacity: 0.90;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.85);
-    }
+.camLabel{
+  position:absolute;
+  left: 12px;
+  top: 10px;
+  padding: 7px 9px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(250,245,221,0.14);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.90;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.85);
+  z-index: 70;
+}
 
     /* ===== Mini controls (HIDDEN by default; show in admin) ===== */
     .miniControls{
@@ -741,19 +820,10 @@ inter-events:none;}
       position:relative;
       z-index:2;
       text-align:center; /* center EVERYTHING */
+      border:1px solid orangered
     }
 
-    .chaseKicker{
-      font-size: 13px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: rgba(250,245,221,0.82);
-      text-shadow: 0 2px 10px rgba(0,0,0,0.85);
-      display:flex;
-      align-items:center;
-      justify-content:center; /* centered kicker row */
-      gap: 14px;
-    }
+
 
     /* Stylized, centered rotating text */
     .chaseMain{
@@ -761,7 +831,7 @@ inter-events:none;}
       letter-spacing: 1px;
       line-height: 1.05;
       font-weight: 900;
-      white-space: nowrap;
+      white-space: normal;
       overflow:hidden;
       text-overflow: ellipsis;
       text-align:center;
@@ -883,11 +953,19 @@ inter-events:none;}
       filter: grayscale(0.3);
     }
 
-    /* ===== Admin panel ===== */
- .admin{
+    
+/* ===== Click-to-edit modal ===== */
+.modalMask{
   position:fixed;
-  left: 40%;
-  top: 40%;
+  inset:0;
+  background: rgba(0,0,0,0.65);
+  z-index: 999999;
+  display:none;
+}
+.modal{
+  position:absolute;
+  left:45%;
+  top:50%;
   transform: translate(-50%, -50%);
   width: 900px;
   max-height: 85vh;
@@ -895,66 +973,67 @@ inter-events:none;}
   background: rgba(0,0,0,0.92);
   border: 2px solid rgba(250,245,221,0.25);
   border-radius: 22px;
-  padding: 30px;
-  z-index: 99999;
+  padding: 26px;
   box-shadow: 0 40px 100px rgba(0,0,0,0.85);
-  display:none;
   color:#fff;
   font-family: Arial, sans-serif;
 }
- .admin h3{
-  margin: 0 0 20px 0;
-  font-size: 28px;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      opacity: 0.92;
-    }
-    .admin .row{
-      display:flex;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .admin label{
-      font-size: 21px;
-      letter-spacing: 0.8px;
-      text-transform: uppercase;
-      opacity: 0.85;
-      display:block;
-      margin-bottom: 6px;
-    }
-    .admin input[type="text"],
-    .admin input[type="number"],
-    .admin textarea{
-        font-size:18px;
-padding:16px;
-      width:100%;
-      border-radius: 10px;
-      border: 1px solid rgba(250,245,221,0.16);
-      background: rgba(250,245,221,0.06);
-      color:#fff;
-      padding: 10px;
-      outline:none;
-      font-weight: 700;
-    }
-   .admin textarea{
-  height: 220px;
-      resize:none;
-      font-weight: 600;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 22px;
-      line-height: 1.2;
-    }
-    .admin .btnRow{
-      display:flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .admin .hint{
-      font-size: 11px;
-      opacity: 0.78;
-      line-height: 1.25;
-      margin-top: 8px;
-    }
+.modal h3{
+  margin: 0 0 14px 0;
+  font-size: 26px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.modal label{
+  display:block;
+  margin: 14px 0 6px;
+  font-size: 16px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.modal input[type="text"],
+.modal input[type="number"],
+.modal input[type="range"],
+.modal select,
+.modal textarea{
+  width:100%;
+  border-radius: 12px;
+  border: 1px solid rgba(250,245,221,0.16);
+  background: rgba(250,245,221,0.06);
+  color:#bd4b00;
+  padding: 14px;
+  outline:none;
+  font-weight: 700;
+  font-size: 18px;
+}
+.modal textarea{
+  height: 240px;
+  resize:none;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 20px;
+  line-height: 1.2;
+}
+.modal .btnRow{
+  display:flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+#brandLogo,
+#soldPanel,
+#topTickerBar,
+#promoPanel,
+#scoresTickerBar{
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+#soldPanel:active{
+  transform: translateY(1px);
+}
+
   </style>
 </head>
 
@@ -970,8 +1049,8 @@ padding:16px;
         <!-- HEADER -->
         <div class="header panel">
           <div class="hdr-left">
-            <div id="hdrTitle" class="hdr-title">BOOMBIDZ CHASE BOARD</div>
-            <div id="hdrSub" class="hdr-sub">LIVE IN THE USA • CHASE TRACKING</div>
+            <div id="hdrTitle" class="hdr-title">BOOMBIDZ</div>
+            
           </div>
 
           <div class="hdr-center">
@@ -988,32 +1067,30 @@ padding:16px;
         </div>
 
         <!-- MARQUEE -->
-        <div class="ticker panel">
-          <span id="tickerText">WELCOME TO BOOMBIDZ — CHASE SPOTS BELOW — GOOD LUCK!</span>
+        <div id="topTickerBar" class="ticker panel">
+          <span id="tickerText">Follow on Socials 👉 @boombidz - use code 'BOOM' - check show notes</span>
         </div>
 
  <!-- HERO CAMERA (FULL WIDTH) -->
 <div class="heroCamRow panel">
-  <div class="heroCamBox">
-    <div class="camLabel">CAMERA (16:9)</div>
-  </div>
+<div class="heroCamBox">
+  <div class="wick"></div>
+  
+</div>
 </div>
 
 <!-- MID ROW: SOLD | CHASE | REMAINING -->
 <div class="midChaseRow">
-  <div class="midStat panel">
+  <div id="soldPanel" class="midStat panel">
     <div id="soldCount" class="v">0</div>
     <div class="k">Sold</div>
    
   </div>
 
-  <div id="chasePanel" class="chasePanel panel">
+  <div id="promoPanel" class="chasePanel panel">
     <div class="soldOverlay">✕</div>
     <div class="chaseInner">
-      <div class="chaseKicker">
-        <span>CHASE</span>
-        <span id="chaseIndexText">1 / 1</span>
-      </div>
+
 
       <div id="chaseMain" class="chaseMain">Loading…</div>
 
@@ -1030,32 +1107,21 @@ padding:16px;
 </div>
 
 <!-- LIVE SCORES MARQUEE -->
-<div class="scoresTicker panel">
+<div id="scoresTickerBar" class="scoresTicker panel">
   <span id="scoresText">MIA: 62 Q2 3:17 • BOS: 72 • LAL: 73 • MLB: ...</span>
 </div>
 
 <!-- LOWER BIG PANEL (SECOND CAMERA / STAGE) -->
 <div class="lowerStage panel">
-  <div class="lowerInner">
-    <div class="lowerHud">
-      <span id="sseText">SSE: idle</span>
-    </div>
+<div class="lowerInner">
+  <div class="wick"></div>
+  <div class="lowerHud">
+    <span id="sseText">SSE: idle</span>
   </div>
 </div>
-
-<!-- Mini control panel (hidden unless admin mode) -->
-<div class="miniControls panel">
-  <button id="btnReset" class="btn">Reset</button>
-  <button id="btnNext" class="btn secondary">Next Chase</button>
-  <button id="btnPrev" class="btn ghost">Prev</button>
-
-  <div class="smallField">
-    <span>Marquee Speed</span>
-    <input id="marqueeSpeed" type="range" min="8" max="60" step="1" value="22" />
-  </div>
-
-  <button id="btnAdmin" class="btn ghost">Admin</button>
 </div>
+
+
 
     
             </div>
@@ -1067,557 +1133,655 @@ padding:16px;
 
     <!-- BELOW TOP SECTION: INTENTIONALLY EMPTY/TRANSPARENT -->
 
-    <!-- ADMIN PANEL -->
-    <div id="admin" class="admin">
-      <h3>Admin Panel (local)</h3>
+<!-- HEADER MODAL -->
+<div id="headerModalMask" class="modalMask">
+  <div class="modal">
+    <h3>Header / Break / Top Marquee</h3>
 
-      <div class="row">
-        <div style="flex:1;">
-          <label>Header Title</label>
-          <input id="admTitle" type="text" value="BOOMBIDZ CHASE BOARD" />
-        </div>
-      </div>
+    <label>Title</label>
+    <input id="headerTitleInput" type="text" />
 
-      <div class="row">
-        <div style="flex:1;">
-          <label>Break # (editable)</label>
-          <input id="admBreak" type="number" min="1" step="1" value="1" />
-        </div>
-        <div style="flex:1;">
-          <label>Auto Increment Daily</label>
-          <button id="admInc" class="btn" style="width:100%;">Increment</button>
-        </div>
-      </div>
+    <label>Break #</label>
+    <input id="headerBreakInput" type="number" min="1" step="1" />
 
-      <div class="row">
-        <div style="flex:1;">
-          <label>Marquee Text</label>
-          <input id="admTicker" type="text" value="WELCOME TO BOOMBIDZ — CHASE SPOTS BELOW — GOOD LUCK!" />
-        </div>
-      </div>
+    <label>Top Marquee Text</label>
+    <textarea id="headerTickerInput"></textarea>
 
-      <div class="row">
-        <div style="flex:1;">
-          <label>Chase Spots (one per line)</label>
-          <textarea id="admChaseLines">Chase Spot 1
-Chase Spot 2
-Chase Spot 3</textarea>
-        </div>
-      </div>
+    <label>Top Marquee Speed</label>
+    <input id="headerTickerSpeedInput" type="range" min="8" max="60" step="1" />
 
-      <div class="btnRow">
-        <button id="admApply" class="btn secondary">Apply</button>
-        <button id="admClose" class="btn ghost">Close</button>
-        <button id="admClearSold" class="btn">Clear Sold</button>
-      </div>
+    <label>Top Marquee Font Size</label>
+    <select id="headerTickerSizeInput">
+      <option value="24">Small</option>
+      <option value="30">Medium</option>
+      <option value="36">Large</option>
+    </select>
 
-      <div class="hint">
-        Optional config file: <b>show.json</b><br/>
-        Minimal shape:
-        <br/>{"title":"...","breakNo":1,"ticker":"...","autoplaySec":5,"chase":[{"id":"c1","label":"..."}, ...]}
-        <br/><br/>
-        SSE only activates when URL includes <b>?bridge=...</b>
-      </div>
+    <div class="btnRow">
+      <button id="headerResetBtn" class="btn ghost">Reset Sold</button>
+      <button id="headerNextBreakBtn" class="btn">Next Break</button>
+      <button id="headerSaveBtn" class="btn secondary">Save</button>
+      <button id="headerCloseBtn" class="btn ghost">Close</button>
     </div>
   </div>
+</div>
+
+<!-- PROMO MODAL -->
+<div id="promoModalMask" class="modalMask">
+  <div class="modal">
+    <h3>Promo Banner Settings</h3>
+
+    <label>Promo Lines (one per line)</label>
+    <textarea id="promoLinesInput"></textarea>
+
+    <label>Flip Timer (seconds)</label>
+    <input id="promoFlipInput" type="number" min="1" step="1" />
+
+    <div class="btnRow">
+      <button id="promoSaveBtn" class="btn secondary">Save</button>
+      <button id="promoCloseBtn" class="btn ghost">Close</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- SCORES / CHASE MODAL -->
+<div id="scoresModalMask" class="modalMask">
+  <div class="modal">
+    <h3>Scores / Chase Cards Marquee</h3>
+
+    <label>Chase Cards (one per line)</label>
+    <textarea id="scoresCardsInput"></textarea>
+
+    <label>Scroll Speed</label>
+    <input id="scoresSpeedInput" type="range" min="8" max="60" step="1" />
+
+    <label>Font Size</label>
+    <select id="scoresSizeInput">
+      <option value="24">Small</option>
+      <option value="34">Medium</option>
+      <option value="42">Large</option>
+    </select>
+
+    <div class="btnRow">
+      <button id="scoresSaveBtn" class="btn secondary">Save</button>
+      <button id="scoresCloseBtn" class="btn ghost">Close</button>
+    </div>
+  </div>
+</div>
 
   <script>
-    const qs = new URLSearchParams(location.search);
-    const ADMIN_ON = qs.get("admin") === "1";
-    const ENABLE_SCORES = qs.get("scores") === "1";
-    const OVERLAY_ID = (qs.get("overlay") || "boombidz-chase").toLowerCase();
-    const CHANNEL_MAIN = (qs.get("channel") || "main").toLowerCase();
-    const CHANNEL_SCORES = (qs.get("scoresChannel") || "sports").toLowerCase();
+   const qs = new URLSearchParams(location.search);
+const ENABLE_SCORES = qs.get("scores") === "1";
+const OVERLAY_ID = (qs.get("overlay") || "boombidz-chase").toLowerCase();
+const CHANNEL_MAIN = (qs.get("channel") || "main").toLowerCase();
+const CHANNEL_SCORES = (qs.get("scoresChannel") || "sports").toLowerCase();
 
-    if (ADMIN_ON) document.body.classList.add("adminOn");
+const BRIDGE_LS = { URL: "overlay.bridge.url", KEY: "overlay.bridge.key" };
 
-    const BRIDGE_LS = { URL: "overlay.bridge.url", KEY: "overlay.bridge.key" };
+function cleanUrl(u){
+  return String(u || "").trim().replace(/\/$/, "").replace(/\/(events|stream)(\/.*)?$/, "");
+}
+function getParam(name){ return qs.get(name); }
 
-    function cleanUrl(u){
-      return String(u || "").trim().replace(/\/$/, "").replace(/\/(events|stream)(\/.*)?$/, "");
+function getBridgeBase(){
+  const q = getParam("bridge");
+  if (q && q.trim()){
+    const cleaned = cleanUrl(q);
+    if (cleaned) localStorage.setItem(BRIDGE_LS.URL, cleaned);
+    return cleaned;
+  }
+  return cleanUrl(localStorage.getItem(BRIDGE_LS.URL) || "");
+}
+
+function getBridgeKey(){
+  const q = getParam("key");
+  if (q && q.trim()){
+    localStorage.setItem(BRIDGE_LS.KEY, q.trim());
+    return q.trim();
+  }
+  return (localStorage.getItem(BRIDGE_LS.KEY) || "").trim();
+}
+
+function bridgeEnabled(){ return !!getBridgeBase(); }
+
+function todayKey(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+const LS_KEY = `boombidz.overlay.${todayKey()}`;
+const DAILY_COUNTER_KEY = `boombidz.breakCounter.${todayKey()}`;
+
+const state = {
+  title: "BOOMBIDZ",
+  breakNo: 1,
+
+  topTicker: "Follow on Socials 👉 @boombidz - use code 'BOOM' - check show notes",
+  topTickerSpeed: 22,
+  topTickerSize: 30,
+
+  promos: ["Promo Spot 1", "Promo Spot 2", "Promo Spot 3"],
+  promoIndex: 0,
+  promoFlipSec: 5,
+
+  chaseCards: ["Chase Card 1", "Chase Card 2", "Chase Card 3"],
+  soldCount: 0,
+  scoresTickerSpeed: 18,
+  scoresTickerSize: 34,
+
+  scoresBySport: {
+    NBA: "NBA: —",
+    MLB: "MLB: —"
+  }
+};
+
+const el = {
+  hdrTitle: document.getElementById("hdrTitle"),
+  brandLogo: document.getElementById("brandLogo"),
+  breakNo: document.getElementById("breakNo"),
+
+  soldPanel: document.getElementById("soldPanel"),
+  soldCount: document.getElementById("soldCount"),
+  remCount: document.getElementById("remCount"),
+
+  topTickerBar: document.getElementById("topTickerBar"),
+  tickerText: document.getElementById("tickerText"),
+
+  promoPanel: document.getElementById("promoPanel"),
+  chaseMain: document.getElementById("chaseMain"),
+
+  scoresTickerBar: document.getElementById("scoresTickerBar"),
+  scoresText: document.getElementById("scoresText"),
+
+  sseText: document.getElementById("sseText"),
+
+  headerModalMask: document.getElementById("headerModalMask"),
+  headerTitleInput: document.getElementById("headerTitleInput"),
+  headerBreakInput: document.getElementById("headerBreakInput"),
+  headerTickerInput: document.getElementById("headerTickerInput"),
+  headerTickerSpeedInput: document.getElementById("headerTickerSpeedInput"),
+  headerTickerSizeInput: document.getElementById("headerTickerSizeInput"),
+  headerResetBtn: document.getElementById("headerResetBtn"),
+  headerNextBreakBtn: document.getElementById("headerNextBreakBtn"),
+  headerSaveBtn: document.getElementById("headerSaveBtn"),
+  headerCloseBtn: document.getElementById("headerCloseBtn"),
+
+  promoModalMask: document.getElementById("promoModalMask"),
+  promoLinesInput: document.getElementById("promoLinesInput"),
+  promoFlipInput: document.getElementById("promoFlipInput"),
+  promoSaveBtn: document.getElementById("promoSaveBtn"),
+  promoCloseBtn: document.getElementById("promoCloseBtn"),
+
+  scoresModalMask: document.getElementById("scoresModalMask"),
+  scoresCardsInput: document.getElementById("scoresCardsInput"),
+  scoresSpeedInput: document.getElementById("scoresSpeedInput"),
+  scoresSizeInput: document.getElementById("scoresSizeInput"),
+  scoresSaveBtn: document.getElementById("scoresSaveBtn"),
+  scoresCloseBtn: document.getElementById("scoresCloseBtn")
+};
+
+let rotTimer = null;
+let sseMain = null;
+let sseScores = null;
+
+function computeBreakId(){
+  return `${todayKey()}-chase-${Number(state.breakNo || 1)}`;
+}
+
+function ensureDailyCounter(){
+  const v = Number(localStorage.getItem(DAILY_COUNTER_KEY) || "1");
+  if (!Number.isFinite(v) || v < 1){
+    localStorage.setItem(DAILY_COUNTER_KEY, "1");
+    return 1;
+  }
+  return v;
+}
+
+function setDailyCounter(n){
+  const v = Math.max(1, Number(n || 1));
+  localStorage.setItem(DAILY_COUNTER_KEY, String(v));
+  state.breakNo = v;
+  saveLocal();
+}
+
+function incrementDailyCounter(){
+  const v = ensureDailyCounter() + 1;
+  setDailyCounter(v);
+  return v;
+}
+
+function loadLocal(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== "object") return;
+
+    if (typeof data.title === "string") state.title = data.title;
+    if (Number.isFinite(+data.breakNo)) state.breakNo = +data.breakNo;
+
+    if (typeof data.topTicker === "string") state.topTicker = data.topTicker;
+    if (Number.isFinite(+data.topTickerSpeed)) state.topTickerSpeed = Math.max(8, +data.topTickerSpeed);
+    if (Number.isFinite(+data.topTickerSize)) state.topTickerSize = Math.max(18, +data.topTickerSize);
+
+    if (Array.isArray(data.promos) && data.promos.length){
+      state.promos = data.promos.map(v => String(v || "").trim()).filter(Boolean);
     }
-    function getParam(name){ return qs.get(name); }
+    if (Number.isFinite(+data.promoIndex)) state.promoIndex = +data.promoIndex;
+    if (Number.isFinite(+data.promoFlipSec)) state.promoFlipSec = Math.max(1, +data.promoFlipSec);
 
-    function getBridgeBase(){
-      const q = getParam("bridge");
-      if (q && q.trim()){
-        const cleaned = cleanUrl(q);
-        if (cleaned) localStorage.setItem(BRIDGE_LS.URL, cleaned);
-        return cleaned;
-      }
-      return cleanUrl(localStorage.getItem(BRIDGE_LS.URL) || "");
+    if (Array.isArray(data.chaseCards)){
+      state.chaseCards = data.chaseCards.map(v => String(v || "").trim()).filter(Boolean);
     }
-    function getBridgeKey(){
-      const q = getParam("key");
-      if (q && q.trim()){
-        localStorage.setItem(BRIDGE_LS.KEY, q.trim());
-        return q.trim();
-      }
-      return (localStorage.getItem(BRIDGE_LS.KEY) || "").trim();
+    if (Number.isFinite(+data.soldCount)) state.soldCount = Math.max(0, +data.soldCount);
+    if (Number.isFinite(+data.scoresTickerSpeed)) state.scoresTickerSpeed = Math.max(8, +data.scoresTickerSpeed);
+    if (Number.isFinite(+data.scoresTickerSize)) state.scoresTickerSize = Math.max(18, +data.scoresTickerSize);
+
+    if (data.scoresBySport && typeof data.scoresBySport === "object"){
+      state.scoresBySport = {
+        NBA: String(data.scoresBySport.NBA || "NBA: —"),
+        MLB: String(data.scoresBySport.MLB || "MLB: —")
+      };
     }
-    function bridgeEnabled(){ return !!getBridgeBase(); }
+  }catch(_){}
+}
 
-    function todayKey(){
-      const d = new Date();
-      const y = d.getFullYear();
-      const m = String(d.getMonth()+1).padStart(2,"0");
-      const day = String(d.getDate()).padStart(2,"0");
-      return `${y}-${m}-${day}`;
-    }
+function saveLocal(){
+  localStorage.setItem(LS_KEY, JSON.stringify({
+    title: state.title,
+    breakNo: state.breakNo,
+    topTicker: state.topTicker,
+    topTickerSpeed: state.topTickerSpeed,
+    topTickerSize: state.topTickerSize,
+    promos: state.promos,
+    promoIndex: state.promoIndex,
+    promoFlipSec: state.promoFlipSec,
+    chaseCards: state.chaseCards,
+    soldCount: state.soldCount,
+    scoresTickerSpeed: state.scoresTickerSpeed,
+    scoresTickerSize: state.scoresTickerSize,
+    scoresBySport: state.scoresBySport
+  }));
+}
 
-    const state = {
-        soldCount: 0,
-
-      title: "BOOMBIDZ CHASE BOARD",
-      sub: "LIVE IN THE USA • CHASE TRACKING",
-      breakNo: 1,
-      ticker: "WELCOME TO BOOMBIDZ — CHASE SPOTS BELOW — GOOD LUCK!",
-      autoplaySec: 5,
-      chase: [
-        { id:"c1", label:"Chase Spot 1" },
-        { id:"c2", label:"Chase Spot 2" },
-        { id:"c3", label:"Chase Spot 3" }
-      ],
-      sold: {},
-      activeIndex: 0
-    };
-
-    function computeBreakId(){
-      const n = Number(state.breakNo || 1);
-      return `${todayKey()}-chase-${n}`;
-    }
-
-    const el = {
-      hdrTitle: document.getElementById("hdrTitle"),
-      hdrSub: document.getElementById("hdrSub"),
-      breakNo: document.getElementById("breakNo"),
-      tickerText: document.getElementById("tickerText"),
-      soldCount: document.getElementById("soldCount"),
-      remCount: document.getElementById("remCount"),
-
-
-      marqueeSpeed: document.getElementById("marqueeSpeed"),
-
-      chasePanel: document.getElementById("chasePanel"),
-      chaseMain: document.getElementById("chaseMain"),
-
-      chaseIndexText: document.getElementById("chaseIndexText"),
-brandLogo: document.getElementById("brandLogo"),
-scoresText: document.getElementById("scoresText"),
-      sseText: document.getElementById("sseText"),
-
-      btnReset: document.getElementById("btnReset"),
-      btnNext: document.getElementById("btnNext"),
-      btnPrev: document.getElementById("btnPrev"),
-      btnAdmin: document.getElementById("btnAdmin"),
-
-      admin: document.getElementById("admin"),
-      admTitle: document.getElementById("admTitle"),
-      admBreak: document.getElementById("admBreak"),
-      admInc: document.getElementById("admInc"),
-      admTicker: document.getElementById("admTicker"),
-      admChaseLines: document.getElementById("admChaseLines"),
-      admApply: document.getElementById("admApply"),
-      admClose: document.getElementById("admClose"),
-      admClearSold: document.getElementById("admClearSold"),
-    };
-
-    const LS_KEY = `boombidz.chase.${todayKey()}`;
-    const DAILY_COUNTER_KEY = `boombidz.breakCounter.${todayKey()}`;
-
-    function loadLocal(){
-      try{
-        const raw = localStorage.getItem(LS_KEY);
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        if (data && typeof data === "object"){
-          if (typeof data.title === "string") state.title = data.title;
-          if (typeof data.sub === "string") state.sub = data.sub;
-          if (Number.isFinite(+data.breakNo)) state.breakNo = +data.breakNo;
-          if (typeof data.ticker === "string") state.ticker = data.ticker;
-          if (Number.isFinite(+data.autoplaySec)) state.autoplaySec = Math.max(1, +data.autoplaySec);
-          if (Array.isArray(data.chase) && data.chase.length){
-            state.chase = data.chase.map((c,i)=>({
-              id: String(c.id || `c${i+1}`),
-              label: String(c.label || `Chase Spot ${i+1}`)
-            }));
-          }
-          if (data.sold && typeof data.sold === "object") state.sold = data.sold;
-          if (Number.isFinite(+data.activeIndex)) state.activeIndex = Math.max(0, Math.min(state.chase.length-1, +data.activeIndex));
-        }
-      }catch(_){}
-    }
-
-    function saveLocal(){
-      localStorage.setItem(LS_KEY, JSON.stringify({
-        title: state.title,
-        sub: state.sub,
-        breakNo: state.breakNo,
-        ticker: state.ticker,
-        autoplaySec: state.autoplaySec,
-        chase: state.chase,
-        sold: state.sold,
-        activeIndex: state.activeIndex
-      }));
-    }
-
-    function ensureDailyCounter(){
-      const v = Number(localStorage.getItem(DAILY_COUNTER_KEY) || "1");
-      if (!Number.isFinite(v) || v < 1){
-        localStorage.setItem(DAILY_COUNTER_KEY, "1");
-        return 1;
-      }
-      return v;
-    }
-    function setDailyCounter(n){
-      const v = Math.max(1, Number(n || 1));
-      localStorage.setItem(DAILY_COUNTER_KEY, String(v));
-      state.breakNo = v;
-      saveLocal();
-    }
-    function incrementDailyCounter(){
-      const v = ensureDailyCounter() + 1;
-      setDailyCounter(v);
-      return v;
-    }
-
-    function updateTickerSpeed(seconds){
-      const s = Math.max(8, Math.min(60, Number(seconds || 22)));
-      el.tickerText.style.animationDuration = `${s}s`;
-    }
 function counts(){
-  const total = state.chase.length || 0;
-  const sold  = Math.max(0, Number(state.soldCount || 0));
-  const rem   = Math.max(0, total - sold);
-  return { sold, rem };
+  const total = state.chaseCards.length;
+  const sold = Math.max(0, Math.min(total, Number(state.soldCount || 0)));
+  const rem = Math.max(0, total - sold);
+  return { total, sold, rem };
 }
 
-    function setActiveIndex(i){
-      const n = state.chase.length || 1;
-      state.activeIndex = ((i % n) + n) % n;
-      saveLocal();
-      renderChase();
-    }
-
-function setScoresLine(text){
-  if (!el.scoresText) return;
-  el.scoresText.textContent = String(text || "").trim() || "—";
+function applyCssVars(){
+  document.documentElement.style.setProperty("--topTickerSize", `${state.topTickerSize}px`);
+  document.documentElement.style.setProperty("--scoresTickerSize", `${state.scoresTickerSize}px`);
+  if (el.tickerText) el.tickerText.style.animationDuration = `${state.topTickerSpeed}s`;
+  if (el.scoresText) el.scoresText.style.animationDuration = `${state.scoresTickerSpeed}s`;
 }
-function renderChase(){
-  const n = state.chase.length || 1;
-  const idx = Math.max(0, Math.min(n-1, state.activeIndex));
-  const item = state.chase[idx] || { label:"Chase Spot" };
 
-  el.chaseMain.textContent = item.label || "—";
-  el.chaseIndexText.textContent = `${idx + 1} / ${n}`;
+function renderHeader(){
+  if (el.hdrTitle) el.hdrTitle.textContent = state.title || "BOOMBIDZ";
+  if (el.breakNo) el.breakNo.textContent = String(state.breakNo || 1);
+  if (el.tickerText) el.tickerText.textContent = state.topTicker || "—";
+  applyCssVars();
+}
+
+function renderPromo(){
+  if (!Array.isArray(state.promos) || !state.promos.length) state.promos = ["Promo Spot 1"];
+  const n = state.promos.length;
+  state.promoIndex = ((state.promoIndex % n) + n) % n;
+  if (el.chaseMain) el.chaseMain.textContent = state.promos[state.promoIndex] || "—";
 
   const c = counts();
-  el.soldCount.textContent = String(c.sold);
-  el.remCount.textContent  = String(c.rem);
+  if (el.soldCount) el.soldCount.textContent = String(c.sold);
+  if (el.remCount) el.remCount.textContent = String(c.rem);
 }
-    function renderHeader(){
-      el.hdrTitle.textContent = state.title || "BOOMBIDZ CHASE BOARD";
-      el.hdrSub.textContent = state.sub || "";
-      el.breakNo.textContent = String(state.breakNo || 1);
-      el.tickerText.textContent = state.ticker || "";
 
-    }
+function updateScoresMarquee(){
+  const nba = String(state.scoresBySport.NBA || "NBA: —").trim() || "NBA: —";
+  const mlb = String(state.scoresBySport.MLB || "MLB: —").trim() || "MLB: —";
+  const hitsLine = (state.chaseCards && state.chaseCards.length) ? state.chaseCards.join(", ") : "—";
 
+  const out = `Live Scores - ${nba} - Big Hits In Break: ${hitsLine} - Live Scores - ${mlb}`;
+  if (el.scoresText) el.scoresText.textContent = out;
 
+  const c = counts();
+  if (el.soldCount) el.soldCount.textContent = String(c.sold);
+  if (el.remCount) el.remCount.textContent = String(c.rem);
 
+  applyCssVars();
+}
 
-    let rotTimer = null;
-    function startRotator(){
-      stopRotator();
-      const ms = Math.max(1500, Number(state.autoplaySec || 5) * 1000);
-      rotTimer = setInterval(() => setActiveIndex(state.activeIndex + 1), ms);
-    }
-    function stopRotator(){
-      if (rotTimer) clearInterval(rotTimer);
-      rotTimer = null;
-    }
-
-    function adminShow(show){
-      el.admin.style.display = show ? "block" : "none";
-    }
-    function adminHydrate(){
-      el.admTitle.value = state.title || "";
-      el.admBreak.value = String(state.breakNo || 1);
-      el.admTicker.value = state.ticker || "";
-      el.admChaseLines.value = state.chase.map(c => c.label).join("\n");
-    }
-    function adminApply(){
-      state.title = String(el.admTitle.value || "").trim() || "BOOMBIDZ CHASE BOARD";
-      state.breakNo = Math.max(1, Number(el.admBreak.value || 1));
-      setDailyCounter(state.breakNo);
-
-      state.ticker = String(el.admTicker.value || "").trim();
-
-      const lines = String(el.admChaseLines.value || "")
-        .split("\n").map(s => s.trim()).filter(Boolean);
-
-      if (lines.length){
-        state.chase = lines.map((label,i)=>({ id:`c${i+1}`, label }));
-        const newSold = {};
-        state.chase.forEach(c => { if (state.sold[c.id]) newSold[c.id] = true; });
-        state.sold = newSold;
-        state.activeIndex = Math.max(0, Math.min(state.chase.length-1, state.activeIndex));
-      }
-
-      saveLocal();
-      renderHeader();
-      renderChase();
-      startRotator();
-    }
-
-    let sseMain = null;
-    let sseScores = null;
-
-    function setSSEStatus(stateName, msg){
-      el.sseText.textContent = `SSE: ${msg || stateName || "idle"}`;
-      el.sseStatus.classList.remove("connected","error");
-      if (stateName === "connected") el.sseStatus.classList.add("connected");
-      if (stateName === "error") el.sseStatus.classList.add("error");
-    }
-
-    function connectSSE({ channel, onEvent, onStatus }){
-      if (!bridgeEnabled()){
-        onStatus?.("error","missing bridge");
-        return null;
-      }
-      const base = getBridgeBase();
-      const url = `${base}/stream?channel=${encodeURIComponent(channel)}`;
-
-      onStatus?.("connecting","connecting");
-      const es = new EventSource(url);
-
-      const ingest = (e) => {
-        try{
-          const data = JSON.parse(e.data);
-          if (data?.type === "hello") return;
-          onEvent?.(data, channel);
-        }catch(err){
-          console.warn("[SSE parse error]", err, e.data);
-        }
-      };
-
-      es.onopen = () => onStatus?.("connected","connected");
-      es.onmessage = ingest;
-
-      ["sale","sold","purchase","team_sold","reset","set_break","scores","stream_stats","buyer"].forEach(t=>{
-        es.addEventListener(t, ingest);
-      });
-
-      es.onerror = () => {
-        onStatus?.("error","reconnecting");
-        try{ es.close(); }catch(_){}
-        setTimeout(() => startSSE(), 2500);
-      };
-
-      return es;
-    }
-
-    async function bridgePost(payload){
-      if (!bridgeEnabled()) return;
-      const base = getBridgeBase();
-      const key = getBridgeKey();
-      await fetch(`${base}/events`, {
-        method: "POST",
-        headers: {
-          "Content-Type":"application/json",
-          ...(key ? { "x-bridge-key": key } : {})
-        },
-        body: JSON.stringify(payload)
-      }).catch(()=>{});
-    }
-
-    function bridgeWarmup(){
-      return bridgePost({
-        type: "overlay_warmup",
-        overlay_id: OVERLAY_ID,
-        channel: CHANNEL_MAIN,
-        ts: Date.now(),
-        breakId: computeBreakId()
-      });
-    }
-
-    function applySaleFromSSE(evt){
-      const breakId = String(evt?.breakId || evt?.break_id || "");
-      if (breakId && breakId !== computeBreakId()) return;
-
-      const chaseId = String(evt?.slot || evt?.tile_id || evt?.chaseId || evt?.chase_id || "").trim();
-      const title = String(evt?.title || evt?.item || evt?.sku || "").trim().toLowerCase();
-
-      let hit = null;
-      if (chaseId) hit = state.chase.find(c => c.id.toLowerCase() === chaseId.toLowerCase());
-      if (!hit && title) hit = state.chase.find(c => title.includes(String(c.label || "").toLowerCase()));
-
-if (hit){
-  state.soldCount = Math.max(0, Number(state.soldCount || 0)) + 1;
-  state.remCount  = Math.max(0, Number(state.remCount || 0) - 1);
+function setPromoIndex(i){
+  const n = Math.max(1, state.promos.length);
+  state.promoIndex = ((i % n) + n) % n;
   saveLocal();
-  renderChase();
+  renderPromo();
 }
-    }
 
-    function handleSSEEvent(evt, channel){
-      const type = String(evt?.type || "").toLowerCase();
-      if (type === "reset"){ resetAll(); return; }
+function startRotator(){
+  stopRotator();
+  const ms = Math.max(1000, Number(state.promoFlipSec || 5) * 1000);
+  rotTimer = setInterval(() => setPromoIndex(state.promoIndex + 1), ms);
+}
 
-      if (channel === CHANNEL_MAIN){
-        if (["sale","sold","purchase","team_sold"].includes(type)) applySaleFromSSE(evt);
-        if (type === "set_break" || type === "next_break"){
-          const bn = Number(evt?.breakNo || evt?.break_no);
-          if (Number.isFinite(bn) && bn >= 1){
-            setDailyCounter(bn);
-            renderHeader();
-          }
-        }
+function stopRotator(){
+  if (rotTimer) clearInterval(rotTimer);
+  rotTimer = null;
+}
+
+function resetSold(){
+  state.soldCount = 0;
+  saveLocal();
+  renderPromo();
+  updateScoresMarquee();
+}
+
+function setScoresLine(text){
+  const line = String(text || "").trim();
+  if (!line) return;
+
+  const upper = line.toUpperCase();
+  if (upper.startsWith("NBA")) state.scoresBySport.NBA = line;
+  else if (upper.startsWith("MLB")) state.scoresBySport.MLB = line;
+  else if (!state.scoresBySport.NBA || state.scoresBySport.NBA === "NBA: —") state.scoresBySport.NBA = line;
+  else state.scoresBySport.MLB = line;
+
+  saveLocal();
+  updateScoresMarquee();
+}
+
+function openHeaderModal(){
+  if (!el.headerModalMask) return;
+  el.headerTitleInput.value = state.title || "";
+  el.headerBreakInput.value = String(state.breakNo || 1);
+  el.headerTickerInput.value = state.topTicker || "";
+  el.headerTickerSpeedInput.value = String(state.topTickerSpeed || 22);
+  el.headerTickerSizeInput.value = String(state.topTickerSize || 30);
+  el.headerModalMask.style.display = "block";
+}
+
+function closeHeaderModal(){
+  if (el.headerModalMask) el.headerModalMask.style.display = "none";
+}
+
+function saveHeaderModal(){
+  state.title = String(el.headerTitleInput.value || "").trim() || "BOOMBIDZ";
+  state.breakNo = Math.max(1, Number(el.headerBreakInput.value || 1));
+  state.topTicker = String(el.headerTickerInput.value || "").trim() || "—";
+  state.topTickerSpeed = Math.max(8, Number(el.headerTickerSpeedInput.value || 22));
+  state.topTickerSize = Math.max(18, Number(el.headerTickerSizeInput.value || 30));
+
+  setDailyCounter(state.breakNo);
+  saveLocal();
+  renderHeader();
+  closeHeaderModal();
+}
+
+function openPromoModal(){
+  if (!el.promoModalMask) return;
+  el.promoLinesInput.value = (state.promos || []).join("\n");
+  el.promoFlipInput.value = String(state.promoFlipSec || 5);
+  el.promoModalMask.style.display = "block";
+}
+
+function closePromoModal(){
+  if (el.promoModalMask) el.promoModalMask.style.display = "none";
+}
+
+function savePromoModal(){
+  const lines = String(el.promoLinesInput.value || "")
+    .split("\n")
+    .map(v => v.trim())
+    .filter(Boolean);
+
+  state.promos = lines.length ? lines : ["Promo Spot 1"];
+  state.promoFlipSec = Math.max(1, Number(el.promoFlipInput.value || 5));
+  state.promoIndex = 0;
+
+  saveLocal();
+  renderPromo();
+  startRotator();
+  closePromoModal();
+}
+
+function openScoresModal(){
+  if (!el.scoresModalMask) return;
+  el.scoresCardsInput.value = (state.chaseCards || []).join("\n");
+  el.scoresSpeedInput.value = String(state.scoresTickerSpeed || 18);
+  el.scoresSizeInput.value = String(state.scoresTickerSize || 34);
+  el.scoresModalMask.style.display = "block";
+}
+
+function closeScoresModal(){
+  if (el.scoresModalMask) el.scoresModalMask.style.display = "none";
+}
+
+function saveScoresModal(){
+  const lines = String(el.scoresCardsInput.value || "")
+    .split("\n")
+    .map(v => v.trim())
+    .filter(Boolean);
+
+  state.chaseCards = lines;
+  state.scoresTickerSpeed = Math.max(8, Number(el.scoresSpeedInput.value || 18));
+  state.scoresTickerSize = Math.max(18, Number(el.scoresSizeInput.value || 34));
+
+  const c = counts();
+  if (state.soldCount > c.total) state.soldCount = c.total;
+
+  saveLocal();
+  renderPromo();
+  updateScoresMarquee();
+  closeScoresModal();
+}
+
+function setSSEStatus(stateName, msg){
+  if (!el.sseText) return;
+  el.sseText.textContent = `SSE: ${msg || stateName || "idle"}`;
+}
+
+function connectSSE({ channel, onEvent, onStatus }){
+  if (!bridgeEnabled()){
+    onStatus?.("error", "missing bridge");
+    return null;
+  }
+
+  const base = getBridgeBase();
+  const url = `${base}/stream?channel=${encodeURIComponent(channel)}`;
+
+  onStatus?.("connecting", "connecting");
+  const es = new EventSource(url);
+
+  const ingest = (e) => {
+    try{
+      const data = JSON.parse(e.data);
+      if (data?.type === "hello") return;
+      onEvent?.(data, channel);
+    }catch(_){}
+  };
+
+  es.onopen = () => onStatus?.("connected", "connected");
+  es.onmessage = ingest;
+
+  ["sale","sold","purchase","team_sold","reset","set_break","scores","stream_stats","buyer"].forEach(t => {
+    es.addEventListener(t, ingest);
+  });
+
+  es.onerror = () => {
+    onStatus?.("error", "reconnecting");
+    try{ es.close(); }catch(_){}
+    setTimeout(() => startSSE(), 2500);
+  };
+
+  return es;
+}
+
+async function bridgePost(payload){
+  if (!bridgeEnabled()) return;
+  const base = getBridgeBase();
+  const key = getBridgeKey();
+
+  await fetch(`${base}/events`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(key ? { "x-bridge-key": key } : {})
+    },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
+}
+
+function bridgeWarmup(){
+  return bridgePost({
+    type: "overlay_warmup",
+    overlay_id: OVERLAY_ID,
+    channel: CHANNEL_MAIN,
+    ts: Date.now(),
+    breakId: computeBreakId()
+  });
+}
+
+function applySaleFromSSE(evt){
+  const breakId = String(evt?.breakId || evt?.break_id || "");
+  if (breakId && breakId !== computeBreakId()) return;
+
+  const c = counts();
+  if (c.rem <= 0) return;
+
+  state.soldCount = c.sold + 1;
+  saveLocal();
+  renderPromo();
+  updateScoresMarquee();
+}
+
+function handleSSEEvent(evt, channel){
+  const type = String(evt?.type || "").toLowerCase();
+
+  if (type === "reset"){
+    resetSold();
+    return;
+  }
+
+  if (channel === CHANNEL_MAIN){
+    if (["sale","sold","purchase","team_sold"].includes(type)) applySaleFromSSE(evt);
+
+    if (type === "set_break" || type === "next_break"){
+      const bn = Number(evt?.breakNo || evt?.break_no);
+      if (Number.isFinite(bn) && bn >= 1){
+        setDailyCounter(bn);
+        renderHeader();
       }
+    }
+  }
+
   if (channel === CHANNEL_SCORES){
-  const line = String(evt?.line || evt?.text || evt?.ticker || evt?.scores || "").trim();
-  if (line) setScoresLine(line);
-}
-    }
-
-    function startSSE(){
-      if (sseMain) try{ sseMain.close(); }catch(_){}
-      if (sseScores) try{ sseScores.close(); }catch(_){}
-      sseMain = null; sseScores = null;
-
-      if (!bridgeEnabled()){
-        setSSEStatus("error","idle (no bridge)");
-        return;
-      }
-
-      sseMain = connectSSE({ channel: CHANNEL_MAIN, onEvent: handleSSEEvent, onStatus: setSSEStatus });
-
-      if (ENABLE_SCORES){
-        sseScores = connectSSE({ channel: CHANNEL_SCORES, onEvent: handleSSEEvent, onStatus: () => {} });
-      }
-
-      bridgeWarmup();
-    }
-
-    function resetAll(){
-      state.sold = {};
-      state.activeIndex = 0;
-      saveLocal();
-      renderChase();
-    }
-
-    async function loadShowJson(){
-      try{
-        const r = await fetch("show.json", { cache: "no-store" });
-        if (!r.ok) return;
-        const cfg = await r.json();
-        if (!cfg || typeof cfg !== "object") return;
-
-        if (typeof cfg.title === "string") state.title = cfg.title;
-        if (typeof cfg.sub === "string") state.sub = cfg.sub;
-        if (Number.isFinite(+cfg.breakNo)) state.breakNo = Math.max(1, +cfg.breakNo);
-        if (typeof cfg.ticker === "string") state.ticker = cfg.ticker;
-        if (Number.isFinite(+cfg.autoplaySec)) state.autoplaySec = Math.max(1, +cfg.autoplaySec);
-
-        const arr = Array.isArray(cfg.chase) ? cfg.chase : (Array.isArray(cfg.spots) ? cfg.spots : null);
-        if (arr && arr.length){
-          state.chase = arr.map((c,i)=>({
-            id: String(c.id || `c${i+1}`),
-            label: String(c.label || c.name || `Chase Spot ${i+1}`)
-          }));
-        }
-
-        setDailyCounter(state.breakNo);
-        saveLocal();
-      }catch(_){}
-    }
-
-    if (el.btnReset) el.btnReset.addEventListener("click", resetAll);
-    if (el.btnNext) el.btnNext.addEventListener("click", () => setActiveIndex(state.activeIndex + 1));
-    if (el.btnPrev) el.btnPrev.addEventListener("click", () => setActiveIndex(state.activeIndex - 1));
-
-function openAdmin(){
-  if (!el.admin) return;
-  document.body.classList.add("adminOn");
-  adminHydrate();
-  adminShow(true);
-}
-function closeAdmin(){
-  if (!el.admin) return;
-  adminShow(false);
+    const line = String(evt?.line || evt?.text || evt?.ticker || evt?.scores || "").trim();
+    if (line) setScoresLine(line);
+  }
 }
 
-/* SECRET: click logo opens admin */
-if (el.brandLogo){
-  el.brandLogo.style.pointerEvents = "auto";
-  el.brandLogo.style.cursor = "pointer";
-  el.brandLogo.addEventListener("click", openAdmin);
-}
+function startSSE(){
+  if (sseMain) try{ sseMain.close(); }catch(_){}
+  if (sseScores) try{ sseScores.close(); }catch(_){}
+  sseMain = null;
+  sseScores = null;
 
-/* SECRET: click SOLD increments sold */
-if (el.soldCount){
-  el.soldCount.style.cursor = "pointer";
-  el.soldCount.addEventListener("click", () => {
-    const total = state.chase.length || 0;
-    const sold  = Math.max(0, Number(state.soldCount || 0));
+  if (!bridgeEnabled()){
+    setSSEStatus("error", "idle (no bridge)");
+    return;
+  }
 
-    if (sold >= total) return; // prevent overflow
-
-    state.soldCount = sold + 1;
-
-    saveLocal();
-    renderChase();
+  sseMain = connectSSE({
+    channel: CHANNEL_MAIN,
+    onEvent: handleSSEEvent,
+    onStatus: setSSEStatus
   });
-}
 
-/* SECRET: click REM decrements rem, increments sold */
-if (el.remCount){
-  el.remCount.style.cursor = "pointer";
-  el.remCount.addEventListener("click", () => {
-    const rem = Math.max(0, Number(state.remCount || 0));
-    if (rem <= 0) return;
-    state.remCount  = rem - 1;
-    state.soldCount = Math.max(0, Number(state.soldCount || 0)) + 1;
-    saveLocal();
-    renderChase();
-  });
-}
-
-    if (el.admClose) el.admClose.addEventListener("click", () => adminShow(false));
-    if (el.admApply) el.admApply.addEventListener("click", () => { adminApply(); adminShow(false); });
-    if (el.admClearSold) el.admClearSold.addEventListener("click", () => { resetAll(); adminHydrate(); });
-    if (el.admInc) el.admInc.addEventListener("click", () => {
-      const v = incrementDailyCounter();
-      el.admBreak.value = String(v);
-      renderHeader();
+  if (ENABLE_SCORES){
+    sseScores = connectSSE({
+      channel: CHANNEL_SCORES,
+      onEvent: handleSSEEvent,
+      onStatus: () => {}
     });
+  }
 
-    if (el.marqueeSpeed){
-      el.marqueeSpeed.addEventListener("input", (e) => updateTickerSpeed(e.target.value));
-      updateTickerSpeed(el.marqueeSpeed.value);
-    } else {
-      updateTickerSpeed(22);
-    }
-
-
-
-    async function init(){
-      if (ADMIN_ON) adminShow(true);
-      state.breakNo = ensureDailyCounter();
-
-      loadLocal();
-      await loadShowJson();
-if (!Number.isFinite(+state.remCount) || state.remCount <= 0){
-  state.remCount = state.chase.length || 0;
+  bridgeWarmup();
 }
-      renderHeader();
-      setScoresLine("MIA: 62 Q2 3:17 • BOS: 72 • LAL: 73 • MLB: ...");
-      renderChase();
-      startRotator();
-      startSSE();
-    }
 
-    init();
+function bindModalClose(maskEl, closeFn){
+  if (!maskEl) return;
+  maskEl.addEventListener("click", (e) => {
+    if (e.target === maskEl) closeFn();
+  });
+}
+
+function bindUI(){
+  if (el.brandLogo) el.brandLogo.addEventListener("click", openHeaderModal);
+ if (el.soldPanel) el.soldPanel.addEventListener("click", () => {
+  const c = counts();
+  if (c.rem <= 0) return;
+  state.soldCount = c.sold + 1;
+  saveLocal();
+  renderPromo();
+  updateScoresMarquee();
+});
+  if (el.topTickerBar) el.topTickerBar.addEventListener("click", openHeaderModal);
+
+  if (el.promoPanel) el.promoPanel.addEventListener("click", openPromoModal);
+
+  if (el.scoresTickerBar) el.scoresTickerBar.addEventListener("click", openScoresModal);
+
+  if (el.headerCloseBtn) el.headerCloseBtn.addEventListener("click", closeHeaderModal);
+  if (el.headerSaveBtn) el.headerSaveBtn.addEventListener("click", saveHeaderModal);
+  if (el.headerResetBtn) el.headerResetBtn.addEventListener("click", () => {
+    resetSold();
+    closeHeaderModal();
+  });
+  if (el.headerNextBreakBtn) el.headerNextBreakBtn.addEventListener("click", () => {
+    state.breakNo = incrementDailyCounter();
+    saveLocal();
+    renderHeader();
+    closeHeaderModal();
+  });
+
+  if (el.promoCloseBtn) el.promoCloseBtn.addEventListener("click", closePromoModal);
+  if (el.promoSaveBtn) el.promoSaveBtn.addEventListener("click", savePromoModal);
+
+  if (el.scoresCloseBtn) el.scoresCloseBtn.addEventListener("click", closeScoresModal);
+  if (el.scoresSaveBtn) el.scoresSaveBtn.addEventListener("click", saveScoresModal);
+
+  bindModalClose(el.headerModalMask, closeHeaderModal);
+  bindModalClose(el.promoModalMask, closePromoModal);
+  bindModalClose(el.scoresModalMask, closeScoresModal);
+}
+
+async function init(){
+  state.breakNo = ensureDailyCounter();
+  loadLocal();
+
+  if (!Array.isArray(state.promos) || !state.promos.length) state.promos = ["Promo Spot 1"];
+  if (!Array.isArray(state.chaseCards)) state.chaseCards = [];
+  if (state.soldCount > state.chaseCards.length) state.soldCount = state.chaseCards.length;
+
+  if (!state.scoresBySport.NBA) state.scoresBySport.NBA = "NBA: —";
+  if (!state.scoresBySport.MLB) state.scoresBySport.MLB = "MLB: —";
+
+  bindUI();
+  renderHeader();
+  renderPromo();
+  updateScoresMarquee();
+  startRotator();
+  startSSE();
+}
+
+init();
   </script>
+
+
 </body>
 </html>
