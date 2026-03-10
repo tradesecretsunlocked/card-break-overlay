@@ -87,7 +87,7 @@
       border-radius: 14px;
       padding: 6px 10px;
       background:
-       linear-gradient(90deg, rgb(32 40 26) 15%, rgb(248, 232, 89) 50%, rgb(31 40 26)85%);
+       linear-gradient(90deg, rgb(32 40 26) 15%, rgb(222 195 130) 50%, rgb(31 40 26) 85%);
       border: 2px solid var(--borderSoft);
       position:relative;
       z-index: 2;
@@ -468,55 +468,68 @@
     }
 
     /* ===== Ticker ===== */
-    .ticker{
-      width:100%;
-      overflow:hidden;
-      height: 40px;
-      border-radius: 12px;
-      background: linear-gradient(90deg, rgba(240,240,192,0.16), rgba(0,0,0,0.70), rgba(208,176,96,0.18));
-      border: 2px solid rgba(240,240,192,0.16);
-    }
+/* ===== Marquee ===== */
+.ticker{
+  width:100%;
+  overflow:hidden;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(240,240,192,0.16), rgba(0,0,0,0.70), rgba(208,176,96,0.18));
+  border: 2px solid rgba(240,240,192,0.16);
+  position: relative;
+}
 
-    .ticker-text{
-      display:inline-block;
-      white-space:nowrap;
-      padding-left:100%;
-      animation: tickerScroll 20s linear infinite;
-      font-weight: 900;
-      letter-spacing: 0.8px;
-      font-size: 18px;
-      line-height: 40px;
-      text-transform: uppercase;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.65);
-      color: rgba(240,240,192,0.96);
-    }
+.ticker-track{
+  display:flex;
+  align-items:center;
+  width:max-content;
+  min-width:100%;
+  animation: marqueeScroll 26s linear infinite;
+  will-change: transform;
+}
 
-    @keyframes tickerScroll{
-      0%{ transform: translateX(0); }
-      100%{ transform: translateX(-100%); }
-    }
+.ticker-text{
+  flex: 0 0 auto;
+  white-space: nowrap;
+  display:inline-block;
+  padding-right: 60px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  font-size: 18px;
+  line-height: 40px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.65);
+  color: rgba(240,240,192,0.96);
+}
 
+@keyframes marqueeScroll{
+  0%{ transform: translateX(0); }
+  100%{ transform: translateX(-50%); }
+}
     /* ===== Control panel ===== */
-    .control-panel{
-      width:100%;
-      border: 2px solid rgba(240,240,192,0.16);
-      border-radius: 14px;
-      padding: 8px;
-      background: rgba(0,0,0,0.08);
-      display:flex;
-      flex-direction:row;
-      gap: 8px;
-      justify-content: space-between;
-      align-items:center;
-      flex-wrap: wrap;
-    }
+.control-panel{
+  width:100%;
+  border: 2px solid rgba(240,240,192,0.16);
+  border-radius: 14px;
+  padding: 8px;
+  background: rgba(0,0,0,0.08);
+  display:flex;
+  flex-direction:row;
+  gap: 8px;
+  justify-content: space-between;
+  align-items:center;
+  flex-wrap: nowrap;
+}
 
-    .breaktype-buttons{
-      display:flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items:center;
-    }
+.breaktype-buttons{
+  display:flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  align-items:center;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
 
     .breaktype-btn{
       background: rgba(0,0,0,0.55);
@@ -536,13 +549,24 @@
       box-shadow: 0 0 0 2px rgba(240,240,192,0.10);
     }
 
-    .control-actions{
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin-left:auto;
-    }
+.control-actions{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  margin-left: 10px;
+  flex: 0 0 auto;
+}
+.breaktype-btn{
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+#nilItemsBtn{
+  max-width: 132px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
     .pill-btn{
       background: linear-gradient(180deg, rgba(240,240,192,0.18), rgba(0,0,0,0.35));
@@ -572,27 +596,33 @@
     }
 
     /* ===== SOLD header row ===== */
-    .sold-header-row{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap: 12px;
-      padding: 6px 10px;
-      margin-top: 2px;
-      border-radius: 14px;
-      background: linear-gradient(90deg, rgba(240,240,192,0.10), rgba(0,0,0,0.12), rgba(208,176,96,0.10));
-      border: 1px solid rgba(240,240,192,0.18);
-      z-index: 2;
-      position: relative;
-    }
+ .sold-header-row{
+  display:grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items:center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-top: 2px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(240,240,192,0.10), rgba(0,0,0,0.12), rgba(208,176,96,0.10));
+  border: 1px solid rgba(240,240,192,0.18);
+  z-index: 2;
+  position: relative;
+  min-height: 36px;
+}
 
-    .sold-header-controls{
-      display:flex;
-      align-items:center;
-      gap: 16px;
-      flex-wrap: wrap;
-      justify-content:center;
-    }
+.sold-header-controls{
+  grid-column: 2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  white-space: nowrap;
+}
+
+.sold-sse{
+  grid-column: 3;
+  justify-self: end;
+}
 
     .sold-panel-title{
       font-size: 14px;
@@ -603,28 +633,48 @@
       color: rgba(240,240,192,0.96);
     }
 
-    .sse-status{
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      border: 2px solid rgba(240,240,192,0.18);
-      background: rgba(0,0,0,0.25);
-      font-weight: 900;
-      font-size: 12px;
-      letter-spacing: 0.7px;
-      text-transform: uppercase;
-      white-space: nowrap;
-      color: rgba(240,240,192,0.92);
-    }
 
-    .sse-status .dot{
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      background: #666;
-      box-shadow: 0 0 8px rgba(255,255,255,0.15);
-    }
+.sse-status-mini{
+  gap: 4px;
+  padding: 4px 8px;
+  border-width: 1px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  background: rgba(0,0,0,0.38);
+  min-height: 28px;
+}
+
+.sse-status-mini .dot{
+  width: 7px;
+  height: 7px;
+  box-shadow: 0 0 6px rgba(255,255,255,0.12);
+}
+
+
+.sse-status{
+  display:inline-flex;
+  align-items:center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(240,240,192,0.18);
+  background: rgba(0,0,0,0.25);
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(240,240,192,0.92);
+  line-height: 1;
+}
+
+.sse-status .dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+  box-shadow: 0 0 8px rgba(255,255,255,0.15);
+}
     .sse-status.connected .dot{
       background: #3cff8a;
       box-shadow: 0 0 10px rgba(60,255,138,0.7);
@@ -732,10 +782,7 @@
       display:none !important;
     }
 
-    .overlay-container.titles-off .conference-title,
-    .overlay-container.titles-off .division-name{
-      display:none !important;
-    }
+ 
 
     /* ===== NIL modal ===== */
     .nil-modal{
@@ -978,38 +1025,40 @@
        <div id="conferenceRight" class="conference wick"></div>
       </div>
 
-      <div class="ticker wick">
-        <span id="tickerText" class="ticker-text"></span>
-      </div>
+<div class="ticker wick">
+  <div class="ticker-track" id="tickerTrack">
+    <span id="tickerTextA" class="ticker-text"></span>
+    <span id="tickerTextB" class="ticker-text" aria-hidden="true"></span>
+  </div>
+</div>
 
-      <div class="control-panel">
-        <div class="breaktype-buttons" id="breakTypeButtons"></div>
+<div class="control-panel">
+  <div class="breaktype-buttons" id="breakTypeButtons"></div>
 
-        <div class="control-actions">
-          <button class="pill-btn" onclick="openPrompt('ticker')">Set Ticker</button>
-          <button class="pill-btn red" onclick="openPrompt('break')">Set Break #</button>
-          <button class="pill-btn" onclick="openPrompt('title')">Set Title</button>
+  <div class="control-actions">
+    <button class="pill-btn" onclick="openPrompt('ticker')">Set Ticker</button>
+    <button class="pill-btn red" onclick="openPrompt('break')">Set Break #</button>
+    <button class="pill-btn" onclick="openPrompt('title')">Set Title</button>
 
-          <button id="nilItemsBtn" class="pill-btn" style="display:none;" onclick="openNilModal()">Bo Jackson Items</button>
+    <button id="nilItemsBtn" class="pill-btn" style="display:none;" onclick="openNilModal()">Custom Items</button>
+  </div>
 
-          <button class="pill-btn" onclick="toggleTitles()">Titles</button>
-        
-        </div>
 
-        <input id="nilCsvInput" type="file" accept=".csv,text/csv" style="display:none;" />
-      </div>
 
-      <div class="sold-header-row">
-        <div class="sold-header-controls">
-          <div class="sold-panel-title">SOLD TEAMS</div>
+  <input id="nilCsvInput" type="file" accept=".csv,text/csv" style="display:none;" />
+</div>
 
-          <div class="sse-status" id="sseStatus">
-            SSE:
-            <span class="dot" id="sseDot"></span>
-            <span id="sseText">disconnected</span>
-          </div>
-        </div>
-      </div>
+<div class="sold-header-row">
+  <div class="sold-header-controls">
+    <div class="sold-panel-title">SOLD TEAMS</div>
+  </div>
+
+  <div class="sse-status sse-status-mini sold-sse" id="sseStatus">
+    <span class="dot" id="sseDot"></span>
+    <span class="sse-label">SSE</span>
+    <span id="sseText">disconnected</span>
+  </div>
+</div>
     </div>
   </div>
 
@@ -1020,7 +1069,7 @@
   <!-- NIL Modal -->
   <div id="nilModal" class="nil-modal hidden">
     <div class="nil-modal-inner">
-      <h2>NIL Items</h2>
+      <h2>Custom Items</h2>
       <textarea id="nilTextInput" placeholder="Paste or type one item per line"></textarea>
 
       <div class="nil-modal-actions">
@@ -1082,8 +1131,7 @@
       TICKER: 'lnl.tickerLines',
       NIL_ENTRIES: 'lnl.nil.entries',
       SOLD_STATE: 'lnl.soldState',
-      TITLES_OFF: 'lnl.titlesOff',
-      BRIDGE: 'lnl.bridge',
+           BRIDGE: 'lnl.bridge',
       KEY: 'lnl.key',
       TITLE_MAIN: 'lnl.title.main',
       TITLE_SUB: 'lnl.title.sub'
@@ -1126,63 +1174,31 @@
     ];
 
     let SPORTS_LINES = [];
-    let tickerMode = 'custom';
-    let tickerFlipTimer = null;
+ 
 
-    const TICKER_CUSTOM_SECONDS = 12;
-    const TICKER_SPORTS_SECONDS = 8;
+function setTickerRawText(text){
+  const a = document.getElementById('tickerTextA');
+  const b = document.getElementById('tickerTextB');
+  const track = document.getElementById('tickerTrack');
+  if (!a || !b || !track) return;
 
-    function setTickerRawText(text){
-      const el = document.getElementById('tickerText');
-      if (!el) return;
-      el.textContent = text;
+  const safe = String(text || '').trim() || 'LEGENDS AND LYRICS';
+  const repeated = ` ${safe} • ${safe} • ${safe} `;
 
-      el.style.animation = 'none';
-      void el.offsetHeight;
-      el.style.animation = '';
-    }
+  a.textContent = repeated;
+  b.textContent = repeated;
 
-    function currentSportsTickerText(){
-      if (!SPORTS_LINES.length) return 'LIVE SCORES • Waiting for feed…';
-      return ` ${SPORTS_LINES.join('   •   ')} `;
-    }
+  track.style.animation = 'none';
+  void track.offsetHeight;
+  track.style.animation = '';
+}
 
-    function flipTickerTo(mode){
-      tickerMode = mode;
-
-      const el = document.getElementById('tickerText');
-      if (el){
-        el.style.transition = 'transform 220ms ease, opacity 220ms ease';
-        el.style.transform = 'rotateX(90deg)';
-        el.style.opacity = '0';
-
-        setTimeout(() => {
-          const txt = (tickerMode === 'sports')
-            ? currentSportsTickerText()
-            : ` ${TICKER_LINES.join('   •   ')} `;
-          setTickerRawText(txt);
-
-          el.style.transform = 'rotateX(0deg)';
-          el.style.opacity = '1';
-        }, 220);
-      }
-    }
-
-    function startTickerRotation(){
-      if (tickerFlipTimer) clearTimeout(tickerFlipTimer);
-
-      const loop = () => {
-        const next = (tickerMode === 'custom') ? 'sports' : 'custom';
-        flipTickerTo(next);
-
-        const waitMs = (next === 'sports' ? TICKER_SPORTS_SECONDS : TICKER_CUSTOM_SECONDS) * 1000;
-        tickerFlipTimer = setTimeout(loop, waitMs);
-      };
-
-      tickerMode = 'custom';
-      setTickerRawText(` ${TICKER_LINES.join('   •   ')} `);
-      tickerFlipTimer = setTimeout(loop, TICKER_CUSTOM_SECONDS * 1000);
-    }
+function currentTickerText(){
+  if (SPORTS_LINES.length){
+    return SPORTS_LINES.join('   •   ');
+  }
+  return TICKER_LINES.join('   •   ');
+}
 
     function loadTickerLines(){
       try{
@@ -1200,15 +1216,9 @@
 
     let TICKER_LINES = loadTickerLines();
 
-    function refreshTickerText(){
-      const t = ` ${TICKER_LINES.join('   •   ')} `;
-      const el = document.getElementById('tickerText');
-      if (!el) return;
-      el.textContent = t;
-      el.style.animation = 'none';
-      void el.offsetHeight;
-      el.style.animation = '';
-    }
+function refreshTickerText(){
+  setTickerRawText(currentTickerText());
+}
 
     function setTickerLines(lines){
       TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
@@ -1327,7 +1337,7 @@
       });
 
       return {
-        name: 'Bo Jackson',
+        name: 'Custom',
         conferences: ['Left','Right'],
         divisions: {
           Left: { Spots: leftTeams },
@@ -1667,7 +1677,7 @@ function applyTilePreset(sportKey){
     const soldTeams = new Set();
     let soldTeamsList = [];
     let soldPanelVisible = false;
-
+const lastCodeByListingKey = new Map();
     /* =========================
        Sold persistence per breakType + break#
     ========================== */
@@ -1949,33 +1959,16 @@ applyTilePreset(currentBreakType);
     /* =========================
        Reset
     ========================== */
-    function resetAll(){
-      soldTeams.clear();
-      soldTeamsList = [];
-      document.querySelectorAll('.team').forEach(t => t.classList.remove('sold'));
-      updateStats();
-      renderSoldPanel();
-      saveSoldState();
-    }
+ function resetAll(){
+  soldTeams.clear();
+  soldTeamsList = [];
+  lastCodeByListingKey.clear();
+  document.querySelectorAll('.team').forEach(t => t.classList.remove('sold'));
+  updateStats();
+  renderSoldPanel();
+  saveSoldState();
+}
 
-    /* =========================
-       Titles toggle
-    ========================== */
-    function toggleTitles(){
-      const root = document.getElementById('overlayRoot');
-      if (!root) return;
-
-      const nowOff = !root.classList.contains('titles-off');
-      root.classList.toggle('titles-off', nowOff);
-      try{ localStorage.setItem(LS.TITLES_OFF, nowOff ? '1' : '0'); }catch(_){}
-    }
-
-    function restoreTitlesPref(){
-      const raw = localStorage.getItem(LS.TITLES_OFF);
-      const off = raw === '1';
-      const root = document.getElementById('overlayRoot');
-      if (root) root.classList.toggle('titles-off', off);
-    }
 
     /* =========================
        OBS-safe modal prompt
@@ -2131,11 +2124,12 @@ applyTilePreset(currentBreakType);
 
         sse.onmessage = ingest;
 
-        sse.addEventListener('team_sold', ingest);
-        sse.addEventListener('stream_stats', ingest);
-        sse.addEventListener('scores', ingest);
-        sse.addEventListener('reset', ingest);
-        sse.addEventListener('set_break', ingest);
+  sse.addEventListener('team_sold', ingest);
+sse.addEventListener('team_unsold', ingest);
+sse.addEventListener('stream_stats', ingest);
+sse.addEventListener('scores', ingest);
+sse.addEventListener('reset', ingest);
+sse.addEventListener('set_break', ingest);
 
         sse.onerror = () => {
           setSSEStatus('error','reconnecting');
@@ -2213,22 +2207,20 @@ applyTilePreset(currentBreakType);
 
       if (type === 'hello') return;
 
-      if (type === 'scores' && Array.isArray(data?.games)) {
-        SPORTS_LINES = data.games.map(g => {
-          if (typeof g === 'string') return g.trim();
-          const away = g?.away || g?.a || '';
-          const home = g?.home || g?.h || '';
-          const as = g?.awayScore ?? g?.as ?? '';
-          const hs = g?.homeScore ?? g?.hs ?? '';
-          const status = g?.status || g?.state || '';
-          return `${away} ${as} - ${home} ${hs} ${status}`.trim();
-        }).filter(Boolean);
+  if (type === 'scores' && Array.isArray(data?.games)) {
+  SPORTS_LINES = data.games.map(g => {
+    if (typeof g === 'string') return g.trim();
+    const away = g?.away || g?.a || '';
+    const home = g?.home || g?.h || '';
+    const as = g?.awayScore ?? g?.as ?? '';
+    const hs = g?.homeScore ?? g?.hs ?? '';
+    const status = g?.status || g?.state || '';
+    return `${away} ${as} - ${home} ${hs} ${status}`.trim();
+  }).filter(Boolean);
 
-        if (tickerMode === 'sports') {
-          setTickerRawText(currentSportsTickerText());
-        }
-        return;
-      }
+  refreshTickerText();
+  return;
+}
 
       if (type === 'reset'){
         resetAll();
@@ -2240,51 +2232,97 @@ applyTilePreset(currentBreakType);
         if (Number.isFinite(n) && n > 0) setBreakNumber(n);
         return;
       }
+if (type === 'team_unsold'){
+  let code = String(data?.code || '').trim().toUpperCase();
 
-      if (type === 'team_sold'){
-        const sport = String(data?.sport || '').toLowerCase();
-        const buyer = String(data?.buyer || '').trim();
+  if (!code){
+    const unsoldTitleRaw = String(data?.title || '');
+    const unsoldTitle = stripPrefixTitle(unsoldTitleRaw);
+    code = inferCodeFromTitle(unsoldTitle, String(data?.sport || currentBreakType || '').toLowerCase());
+  }
 
-        const incomingTitleRaw = String(data?.title || '');
-        const incomingTitle = stripPrefixTitle(incomingTitleRaw);
+  if (!code) return;
 
-        if (sport && breakTypes[sport] && sport !== currentBreakType){
-          currentBreakType = sport;
-          loadSoldState();
-          renderTeams();
-        }
+  if (soldTeams.has(code)){
+    soldTeams.delete(code);
+    const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+    if (el) el.classList.remove('sold');
+  }
 
-        let code = String(data?.code || '').trim().toUpperCase();
+  const idx = soldTeamsList.findIndex(e => e.code === code);
+  if (idx !== -1) soldTeamsList.splice(idx, 1);
 
-        if ((sport || currentBreakType) === 'nil'){
-          code = inferCodeFromTitle(incomingTitle, 'nil');
-          if (!code){
-            console.warn("[overlay NIL] could not match title:", incomingTitleRaw, "=>", incomingTitle);
-            return;
-          }
-        } else {
-          if (!code) code = inferCodeFromTitle(stripPrefixTitle(incomingTitleRaw), sport || currentBreakType);
-          if (!code){
-            console.warn("[overlay] could not infer code from title:", incomingTitleRaw, "sportHint:", sport || currentBreakType);
-            return;
-          }
-        }
+  const listingKey = data?.saleId || data?.id || data?.listingId || null;
+  if (listingKey){
+    const cur = lastCodeByListingKey.get(listingKey);
+    if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+  }
 
-        if (!soldTeams.has(code)){
-          soldTeams.add(code);
-          const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
-          if (el) el.classList.add('sold');
-          soldTeamsList.push({ code, buyer: buyer || '' });
-        } else if (buyer) {
-          const idx = soldTeamsList.findIndex(e => e.code === code);
-          if (idx !== -1) soldTeamsList[idx].buyer = buyer;
-        }
+  updateStats();
+  renderSoldPanel();
+  saveSoldState();
+  return;
+}
+if (type === 'team_sold'){
+  const sport = String(data?.sport || '').toLowerCase();
+  const buyer = String(data?.buyer || '').trim();
 
-        updateStats();
-        renderSoldPanel();
-        saveSoldState();
-        return;
-      }
+  const incomingTitleRaw = String(data?.title || '');
+  const incomingTitle = stripPrefixTitle(incomingTitleRaw);
+
+  if (sport && breakTypes[sport] && sport !== currentBreakType){
+    currentBreakType = sport;
+    loadSoldState();
+    renderTeams();
+  }
+
+  let code = String(data?.code || '').trim().toUpperCase();
+
+  if ((sport || currentBreakType) === 'nil'){
+    code = inferCodeFromTitle(incomingTitle, 'nil');
+    if (!code){
+      console.warn("[overlay NIL] could not match title:", incomingTitleRaw, "=>", incomingTitle);
+      return;
+    }
+  } else {
+    if (!code) code = inferCodeFromTitle(stripPrefixTitle(incomingTitleRaw), sport || currentBreakType);
+    if (!code){
+      console.warn("[overlay] could not infer code from title:", incomingTitleRaw, "sportHint:", sport || currentBreakType);
+      return;
+    }
+  }
+
+  const listingKey = data?.saleId || data?.id || data?.listingId || null;
+
+  if (listingKey && code){
+    const prevCode = lastCodeByListingKey.get(listingKey);
+    if (prevCode && prevCode !== code){
+      soldTeams.delete(prevCode);
+      const prevEl = document.querySelector(`[data-team-code="${cssEscape(prevCode)}"]`);
+      if (prevEl) prevEl.classList.remove('sold');
+
+      const prevIdx = soldTeamsList.findIndex(e => e.code === prevCode);
+      if (prevIdx !== -1) soldTeamsList.splice(prevIdx, 1);
+    }
+
+    lastCodeByListingKey.set(listingKey, code);
+  }
+
+  if (!soldTeams.has(code)){
+    soldTeams.add(code);
+    const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+    if (el) el.classList.add('sold');
+    soldTeamsList.push({ code, buyer: buyer || '' });
+  } else if (buyer) {
+    const idx = soldTeamsList.findIndex(e => e.code === code);
+    if (idx !== -1) soldTeamsList[idx].buyer = buyer;
+  }
+
+  updateStats();
+  renderSoldPanel();
+  saveSoldState();
+  return;
+}
 
       if (type === 'buyer'){
         const code = String(data?.code || '').trim();
@@ -2340,7 +2378,7 @@ applyTilePreset(currentBreakType);
       return map;
     }
 
-    const SPORT_LOOKUP = { nfl: null, nba: null, mlb: null, nil: null };
+    const SPORT_LOOKUP = { nfl: null, nba: null, mlb: null, wnba: null, nil: null };
 
     function ensureLookup(sportKey){
       if (!SPORT_LOOKUP[sportKey]) SPORT_LOOKUP[sportKey] = buildLookupForSport(sportKey);
@@ -2419,7 +2457,7 @@ applyTilePreset(currentBreakType);
        Init
     ========================== */
     document.addEventListener('DOMContentLoaded', () => {
-      restoreTitlesPref();
+     
 
       const t = loadTitles();
       applyTitles(t.main, t.sub);
@@ -2429,7 +2467,7 @@ applyTilePreset(currentBreakType);
 
       breakTypes.nil = buildNilBreakTypeFromEntries(loadNilEntries());
 
-      startTickerRotation();
+   refreshTickerText();
 
       const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
       if (qSport && breakTypes[qSport]) currentBreakType = qSport;
