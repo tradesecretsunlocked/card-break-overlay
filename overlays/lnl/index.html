@@ -483,9 +483,9 @@
   display:flex;
   align-items:center;
   width:max-content;
-  min-width:100%;
-  animation: marqueeScroll 26s linear infinite;
+  min-width:auto;
   will-change: transform;
+  animation: none !important;
 }
 
 .ticker-text{
@@ -503,9 +503,33 @@
 }
 
 @keyframes marqueeScroll{
-  0%{ transform: translateX(0); }
-  100%{ transform: translateX(-50%); }
+  0%{ transform: translateX(100%); }
+  100%{ transform: translateX(-100%); }
 }
+
+.obs-slider-wrap{
+  margin-top: 12px;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+
+.obs-slider-wrap input[type="range"]{
+  flex: 1 1 auto;
+}
+
+.obs-slider-pill{
+  min-width: 84px;
+  text-align:center;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(240,240,192,0.18);
+  background: rgba(0,0,0,0.35);
+  color: rgba(240,240,192,0.96);
+  font-weight: 900;
+  font-size: 12px;
+}
+
     /* ===== Control panel ===== */
 .control-panel{
   width:100%;
@@ -520,7 +544,9 @@
   align-items:center;
   flex-wrap: nowrap;
 }
-
+.control-panel.hidden{
+  display:none;
+}
 .breaktype-buttons{
   display:flex;
   flex-wrap: nowrap;
@@ -1009,7 +1035,7 @@
 
   <button class="btn" onclick="resetAll()">Reset</button>
 
-  <div class="stat-box sold-stat" onclick="toggleSoldPanel()">
+  <div class="stat-box sold-stat" onclick="toggleSoldControls()">
             <div class="value" id="teamsSold">0</div>
             <div class="label">Sold</div>
           </div>
@@ -1032,14 +1058,14 @@
   </div>
 </div>
 
-<div class="control-panel">
+<div id="soldControlsPanel" class="control-panel">
   <div class="breaktype-buttons" id="breakTypeButtons"></div>
 
   <div class="control-actions">
     <button class="pill-btn" onclick="openPrompt('ticker')">Set Ticker</button>
     <button class="pill-btn red" onclick="openPrompt('break')">Set Break #</button>
     <button class="pill-btn" onclick="openPrompt('title')">Set Title</button>
-
+<button id="nflChaseBtn" class="pill-btn" style="display:none;" onclick="toggleNFLChaseSpots()">Chase Spots</button>
     <button id="nilItemsBtn" class="pill-btn" style="display:none;" onclick="openNilModal()">Custom Items</button>
   </div>
 
@@ -1094,6 +1120,23 @@
     </div>
   </div>
 
+<div id="chaseModal" class="obs-modal hidden">
+  <div class="obs-modal-inner">
+    <div class="obs-modal-title">NFL Chase Spots</div>
+    <div class="obs-modal-desc">Edit up to 3 chase spot labels.</div>
+
+    <input id="chaseInput1" class="obs-modal-input" type="text" placeholder="Chase Spot 1" style="margin-bottom:10px;" />
+    <input id="chaseInput2" class="obs-modal-input" type="text" placeholder="Chase Spot 2" style="margin-bottom:10px;" />
+    <input id="chaseInput3" class="obs-modal-input" type="text" placeholder="Chase Spot 3" />
+
+    <div class="obs-modal-actions">
+      <button class="cancel" onclick="closeChaseModal()">Cancel</button>
+      <button class="ok" onclick="applyChaseModal()">Apply</button>
+    </div>
+  </div>
+</div>
+
+
   <script>
     /* =========================
        Paths (standard BASE)
@@ -1126,16 +1169,22 @@
     /* =========================
        LocalStorage namespace
     ========================== */
-    const LS = {
-      BREAK_NUMBER: 'lnl.breakNumber',
-      TICKER: 'lnl.tickerLines',
-      NIL_ENTRIES: 'lnl.nil.entries',
-      SOLD_STATE: 'lnl.soldState',
-           BRIDGE: 'lnl.bridge',
-      KEY: 'lnl.key',
-      TITLE_MAIN: 'lnl.title.main',
-      TITLE_SUB: 'lnl.title.sub'
-    };
+const LS = {
+  BREAK_NUMBER: 'lnl.breakNumber',
+  TICKER: 'lnl.tickerLines',
+  TICKER_SPEED: 'lnl.tickerSpeed',
+  NIL_ENTRIES: 'lnl.nil.entries',
+  SOLD_STATE: 'lnl.soldState',
+
+  BRIDGE: 'tsu.bridgeUrl',
+  KEY: 'tsu.bridgeKey',
+
+  TITLE_MAIN: 'lnl.title.main',
+  TITLE_SUB: 'lnl.title.sub',
+
+  NFL_CHASE_ENABLED: 'lnl.nfl.chase.enabled',
+  NFL_CHASE_ITEMS: 'lnl.nfl.chase.items'
+};
 
     /* =========================
        Title persistence
@@ -1168,69 +1217,212 @@
     /* =========================
        Ticker
     ========================== */
-    const DEFAULT_TICKER_LINES = [
-      'LEGENDS AND LYRICS',
-      'BUY • SELL • TRADE • SPORTS CARDS'
-    ];
+/* =========================
+   Ticker
+========================= */
+const DEFAULT_TICKER_LINES = [
+  'LEGENDS AND LYRICS',
+  'BUY • SELL • TRADE • SPORTS CARDS'
+];
 
-    let SPORTS_LINES = [];
- 
+const SCORES_BY_SPORT = {
+  nba: '',
+  nfl: '',
+  mlb: '',
+  wnba: ''
+};
+
+const SCORES_UPDATED_AT = {
+  nba: 0,
+  nfl: 0,
+  mlb: 0,
+  wnba: 0
+};
+
+let TICKER_LINES = loadTickerLines();
+let tickerCycleTimer = null;
+let tickerCycleIndex = 0;
+
+function loadTickerLines(){
+  try{
+    const raw = localStorage.getItem(LS.TICKER);
+    if (!raw) return DEFAULT_TICKER_LINES.slice();
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr) && arr.length) return arr.map(s => String(s));
+  }catch(_){}
+  return DEFAULT_TICKER_LINES.slice();
+}
+
+function saveTickerLines(lines){
+  localStorage.setItem(LS.TICKER, JSON.stringify(lines));
+}
+
+function loadTickerSpeed(){
+  const n = parseInt(localStorage.getItem(LS.TICKER_SPEED) || '90', 10);
+  return Number.isFinite(n) ? Math.max(40, Math.min(200, n)) : 90;
+}
+
+function saveTickerSpeed(n){
+  const safe = Number.isFinite(n) ? Math.max(40, Math.min(200, n)) : 90;
+  localStorage.setItem(LS.TICKER_SPEED, String(safe));
+}
+
+function isFreshSportScore(sport){
+  return (Date.now() - (SCORES_UPDATED_AT[sport] || 0)) < 1000 * 60 * 20;
+}
+
+function normalizeScorePayloadToText(data){
+  if (!data) return '';
+
+  if (typeof data.text === 'string' && data.text.trim()) {
+    return data.text.trim();
+  }
+
+  if (Array.isArray(data.lines) && data.lines.length){
+    return data.lines.map(s => String(s).trim()).filter(Boolean).join(' • ');
+  }
+
+  const league = String(data.league || data.sport || '').toUpperCase();
+
+  if (Array.isArray(data.games) && data.games.length){
+    const chunks = data.games.slice(0, 10).map(g => {
+      const away = String(g.away || g.a || g.awayTeam || '').toUpperCase();
+      const home = String(g.home || g.h || g.homeTeam || '').toUpperCase();
+      const as = g.awayScore ?? g.as ?? g.aScore;
+      const hs = g.homeScore ?? g.hs ?? g.hScore;
+      const st = String(g.status || g.state || g.clock || '').trim();
+
+      const scorePart = (Number.isFinite(+as) && Number.isFinite(+hs))
+        ? `${away} ${as}-${hs} ${home}`
+        : `${away} VS ${home}`;
+
+      return st ? `${scorePart} (${st})` : scorePart;
+    });
+
+    const prefix = league ? `${league}: ` : 'SCORES: ';
+    return prefix + chunks.join(' • ');
+  }
+
+  return '';
+}
+
+function getBaseTickerText(){
+  return TICKER_LINES.join('   •   ');
+}
+
+function getFreshScoreSegments(){
+  const order = ['nfl','nba','mlb','wnba'];
+  return order
+    .filter(s => String(SCORES_BY_SPORT[s] || '').trim() && isFreshSportScore(s))
+    .map(s => SCORES_BY_SPORT[s].trim());
+}
+
+function buildTickerSequence(){
+  const base = getBaseTickerText();
+  const scores = getFreshScoreSegments();
+
+  if (!scores.length) return [base];
+
+  const seq = [];
+  scores.forEach(scoreText => {
+    seq.push(base);
+    seq.push(scoreText);
+  });
+
+  return seq;
+}
+
+let tickerAnim = null;
 
 function setTickerRawText(text){
   const a = document.getElementById('tickerTextA');
   const b = document.getElementById('tickerTextB');
   const track = document.getElementById('tickerTrack');
-  if (!a || !b || !track) return;
+  const ticker = document.querySelector('.ticker');
+  if (!a || !b || !track || !ticker) return;
 
   const safe = String(text || '').trim() || 'LEGENDS AND LYRICS';
-  const repeated = ` ${safe} • ${safe} • ${safe} `;
+  const pxPerSec = loadTickerSpeed();
 
-  a.textContent = repeated;
-  b.textContent = repeated;
+  if (tickerAnim) {
+    try { tickerAnim.cancel(); } catch(_){}
+    tickerAnim = null;
+  }
+  if (tickerCycleTimer) {
+    clearTimeout(tickerCycleTimer);
+    tickerCycleTimer = null;
+  }
+
+  a.textContent = safe;
+  b.textContent = '';
+
+  const viewWidth = ticker.getBoundingClientRect().width || 900;
+  const gap = Math.max(80, Math.round(viewWidth * 0.08));
+  a.style.paddingRight = `${gap}px`;
+  b.style.paddingRight = '0px';
 
   track.style.animation = 'none';
-  void track.offsetHeight;
-  track.style.animation = '';
+  track.style.transform = 'translateX(0)';
+  void track.offsetWidth;
+
+  requestAnimationFrame(() => {
+    const textWidth = a.getBoundingClientRect().width || 600;
+    const startX = viewWidth;
+    const endX = -textWidth;
+    const distance = startX - endX;
+    const durMs = Math.max(6000, Math.round((distance / pxPerSec) * 1000));
+
+    tickerAnim = track.animate(
+      [
+        { transform: `translateX(${startX}px)` },
+        { transform: `translateX(${endX}px)` }
+      ],
+      {
+        duration: durMs,
+        easing: 'linear',
+        fill: 'forwards'
+      }
+    );
+
+    tickerCycleTimer = setTimeout(() => {
+      playNextTickerSegment();
+    }, durMs + 120);
+  });
 }
 
-function currentTickerText(){
-  if (SPORTS_LINES.length){
-    return SPORTS_LINES.join('   •   ');
-  }
-  return TICKER_LINES.join('   •   ');
+function playNextTickerSegment(){
+  const seq = buildTickerSequence();
+  if (!seq.length) return;
+
+  if (tickerCycleIndex >= seq.length) tickerCycleIndex = 0;
+  const txt = seq[tickerCycleIndex];
+  tickerCycleIndex = (tickerCycleIndex + 1) % seq.length;
+
+  setTickerRawText(txt);
 }
 
-    function loadTickerLines(){
-      try{
-        const raw = localStorage.getItem(LS.TICKER);
-        if (!raw) return DEFAULT_TICKER_LINES.slice();
-        const arr = JSON.parse(raw);
-        if (Array.isArray(arr) && arr.length) return arr.map(s => String(s));
-      }catch(_){}
-      return DEFAULT_TICKER_LINES.slice();
-    }
-
-    function saveTickerLines(lines){
-      localStorage.setItem(LS.TICKER, JSON.stringify(lines));
-    }
-
-    let TICKER_LINES = loadTickerLines();
+function restartTickerCycle(){
+  tickerCycleIndex = 0;
+  if (tickerCycleTimer) clearTimeout(tickerCycleTimer);
+  tickerCycleTimer = null;
+  playNextTickerSegment();
+}
 
 function refreshTickerText(){
-  setTickerRawText(currentTickerText());
+  restartTickerCycle();
 }
 
-    function setTickerLines(lines){
-      TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
-      saveTickerLines(TICKER_LINES);
-      refreshTickerText();
-    }
+function setTickerLines(lines){
+  TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
+  saveTickerLines(TICKER_LINES);
+  refreshTickerText();
+}
 
-    function applyTickerFromRaw(raw){
-      const txt = String(raw || '').trim();
-      const parts = txt.includes('•') ? txt.split('•').map(s => s.trim()).filter(Boolean) : [txt].filter(Boolean);
-      setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
-    }
+function applyTickerFromRaw(raw){
+  const txt = String(raw || '').trim();
+  const parts = txt.includes('•') ? txt.split('•').map(s => s.trim()).filter(Boolean) : [txt].filter(Boolean);
+  setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+}
 
     /* =========================
        Break number
@@ -1677,6 +1869,7 @@ function applyTilePreset(sportKey){
     const soldTeams = new Set();
     let soldTeamsList = [];
     let soldPanelVisible = false;
+    let soldControlsVisible = true;
 const lastCodeByListingKey = new Map();
     /* =========================
        Sold persistence per breakType + break#
@@ -1708,6 +1901,94 @@ const lastCodeByListingKey = new Map();
       }catch(_){}
     }
 
+function loadNFLChaseEnabled(){
+  return localStorage.getItem(LS.NFL_CHASE_ENABLED) === '1';
+}
+
+function saveNFLChaseEnabled(v){
+  localStorage.setItem(LS.NFL_CHASE_ENABLED, v ? '1' : '0');
+}
+
+function loadNFLChaseItems(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(LS.NFL_CHASE_ITEMS) || '[]');
+    const arr = Array.isArray(raw) ? raw : [];
+    return [
+      String(arr[0] || 'CHASE 1').trim() || 'CHASE 1',
+      String(arr[1] || 'CHASE 2').trim() || 'CHASE 2',
+      String(arr[2] || 'CHASE 3').trim() || 'CHASE 3'
+    ];
+  }catch(_){
+    return ['CHASE 1','CHASE 2','CHASE 3'];
+  }
+}
+
+function saveNFLChaseItems(items){
+  localStorage.setItem(LS.NFL_CHASE_ITEMS, JSON.stringify((items || []).slice(0,3)));
+}
+
+function getNFLChaseTeams(){
+  const items = loadNFLChaseItems();
+  return [
+    { code:'CHASE1', name:items[0], image:'' },
+    { code:'CHASE2', name:items[1], image:'' },
+    { code:'CHASE3', name:items[2], image:'' }
+  ];
+}
+
+function nflConfigWithChase(){
+  const base = JSON.parse(JSON.stringify(breakTypes.nfl));
+  if (!loadNFLChaseEnabled()) return base;
+
+  if (!base.divisions.NFC) base.divisions.NFC = {};
+  base.divisions.NFC.Chase = getNFLChaseTeams();
+
+  return base;
+}
+
+function getCurrentConfig(){
+  if (currentBreakType === 'nfl') return nflConfigWithChase();
+  return breakTypes[currentBreakType];
+}
+
+function toggleNFLChaseSpots(){
+  const next = !loadNFLChaseEnabled();
+  saveNFLChaseEnabled(next);
+
+  if (next) {
+    openChaseModal();
+  }
+
+  renderTeams();
+}
+
+function openChaseModal(){
+  const items = loadNFLChaseItems();
+  document.getElementById('chaseInput1').value = items[0] || '';
+  document.getElementById('chaseInput2').value = items[1] || '';
+  document.getElementById('chaseInput3').value = items[2] || '';
+  document.getElementById('chaseModal')?.classList.remove('hidden');
+}
+
+function closeChaseModal(){
+  document.getElementById('chaseModal')?.classList.add('hidden');
+}
+
+function applyChaseModal(){
+  const items = [
+    document.getElementById('chaseInput1')?.value || 'CHASE 1',
+    document.getElementById('chaseInput2')?.value || 'CHASE 2',
+    document.getElementById('chaseInput3')?.value || 'CHASE 3'
+  ].map((s, i) => String(s || '').trim() || `CHASE ${i + 1}`);
+
+  saveNFLChaseItems(items);
+  closeChaseModal();
+
+  if (currentBreakType === 'nfl' && loadNFLChaseEnabled()){
+    renderTeams();
+  }
+}
+
     /* =========================
        UI controls
     ========================== */
@@ -1723,9 +2004,17 @@ applyTilePreset(currentBreakType);
       const nilBtn = document.getElementById('nilItemsBtn');
       if (nilBtn) nilBtn.style.display = currentBreakType === 'nil' ? 'inline-flex' : 'none';
 
+const chaseBtn = document.getElementById('nflChaseBtn');
+if (chaseBtn){
+  chaseBtn.style.display = currentBreakType === 'nfl' ? 'inline-flex' : 'none';
+  chaseBtn.textContent = loadNFLChaseEnabled() ? 'Hide Chase' : 'Chase Spots';
+}
+
       renderBreakTypeButtons();
       refreshTickerText();
     }
+
+
 
     function renderBreakTypeButtons(){
       const wrap = document.getElementById('breakTypeButtons');
@@ -1767,7 +2056,7 @@ applyTilePreset(currentBreakType);
       left.innerHTML = '';
       right.innerHTML = '';
 
-      const cfg = breakTypes[currentBreakType];
+      const cfg = getCurrentConfig();
       if (!cfg) return;
 
       cfg.conferences.forEach((confName, i) => {
@@ -1862,6 +2151,12 @@ applyTilePreset(currentBreakType);
       teamDiv.appendChild(soldX);
 
       teamDiv.onclick = () => toggleTeam(teamObj.code);
+      if (currentBreakType === 'nfl' && /^CHASE[123]$/.test(teamObj.code || '')){
+  teamDiv.oncontextmenu = (e) => {
+    e.preventDefault();
+    openChaseModal();
+  };
+}
       return teamDiv;
     }
 
@@ -1888,7 +2183,7 @@ applyTilePreset(currentBreakType);
     }
 
     function updateStats(){
-      const cfg = breakTypes[currentBreakType];
+      const cfg = getCurrentConfig();
       let total = 0;
 
       cfg.conferences.forEach(conf => {
@@ -1903,12 +2198,12 @@ applyTilePreset(currentBreakType);
     /* =========================
        Sold panel
     ========================== */
-    function toggleSoldPanel(){
-      soldPanelVisible = !soldPanelVisible;
-      const panel = document.getElementById('soldPanel');
-      if (!panel) return;
-      panel.classList.toggle('hidden', !soldPanelVisible);
-    }
+ function toggleSoldControls(){
+  soldControlsVisible = !soldControlsVisible;
+  const panel = document.getElementById('soldControlsPanel');
+  if (!panel) return;
+  panel.classList.toggle('hidden', !soldControlsVisible);
+}
 
     function renderSoldPanel(){
       const panel = document.getElementById('soldPanel');
@@ -1943,7 +2238,7 @@ applyTilePreset(currentBreakType);
     }
 
     function findTeamByCode(code){
-      const cfg = breakTypes[currentBreakType];
+     const cfg = getCurrentConfig();
       if (!cfg) return null;
 
       for (const conf of cfg.conferences){
@@ -1975,77 +2270,103 @@ applyTilePreset(currentBreakType);
     ========================== */
     let PROMPT_MODE = null;
 
-    function openPrompt(mode){
-      PROMPT_MODE = mode;
+ function openPrompt(mode){
+  PROMPT_MODE = mode;
 
-      const modal = document.getElementById('obsPrompt');
-      const title = document.getElementById('obsPromptTitle');
-      const desc  = document.getElementById('obsPromptDesc');
-      const input = document.getElementById('obsPromptInput');
+  const modal = document.getElementById('obsPrompt');
+  const title = document.getElementById('obsPromptTitle');
+  const desc  = document.getElementById('obsPromptDesc');
+  const input = document.getElementById('obsPromptInput');
+  const inner = document.querySelector('#obsPrompt .obs-modal-inner');
 
-      if (!modal || !title || !desc || !input) return;
+  if (!modal || !title || !desc || !input || !inner) return;
 
-      if (mode === 'break'){
-        title.textContent = 'Set Break Number';
-        desc.textContent  = 'Enter a positive number.';
-        input.value = String(loadBreakNumber());
-        input.type = 'text';
-      } else if (mode === 'ticker'){
-        title.textContent = 'Set Ticker Text';
-        desc.textContent  = 'Use • to split items (example: LINE1 • LINE2 • LINE3).';
-        input.value = (loadTickerLines() || []).join(' • ');
-        input.type = 'text';
-      } else if (mode === 'title'){
-        const t = loadTitles();
-        title.textContent = 'Set Title';
-        desc.textContent  = 'Format: MAIN TITLE || SUBTITLE (example: Legends and Lyrics || Collectibles)';
-        input.value = `${t.main} || ${t.sub}`;
-        input.type = 'text';
-      } else {
-        title.textContent = 'Set Value';
-        desc.textContent  = '';
-        input.value = '';
-        input.type = 'text';
-      }
+  const oldSlider = document.getElementById('tickerSpeedWrap');
+  if (oldSlider) oldSlider.remove();
 
-      modal.classList.remove('hidden');
+  if (mode === 'break'){
+    title.textContent = 'Set Break Number';
+    desc.textContent  = 'Enter a positive number.';
+    input.value = String(loadBreakNumber());
+    input.type = 'text';
+  } else if (mode === 'ticker'){
+    title.textContent = 'Set Ticker Text';
+    desc.textContent  = 'Edit text and adjust scroll speed.';
+    input.value = (loadTickerLines() || []).join(' • ');
+    input.type = 'text';
 
-      setTimeout(() => input.focus(), 0);
-      input.onkeydown = (e) => {
-        if (e.key === 'Enter') commitPrompt();
-        if (e.key === 'Escape') closePrompt();
-      };
+    const wrap = document.createElement('div');
+    wrap.className = 'obs-slider-wrap';
+    wrap.id = 'tickerSpeedWrap';
+    wrap.innerHTML = `
+      <div class="obs-slider-pill">SPEED</div>
+      <input id="tickerSpeedSlider" type="range" min="40" max="200" step="5" value="${loadTickerSpeed()}" />
+      <div id="tickerSpeedValue" class="obs-slider-pill">${loadTickerSpeed()} px/s</div>
+    `;
+    inner.insertBefore(wrap, document.querySelector('#obsPrompt .obs-modal-actions'));
+
+    const slider = document.getElementById('tickerSpeedSlider');
+    const value  = document.getElementById('tickerSpeedValue');
+    if (slider && value){
+      slider.addEventListener('input', () => {
+        value.textContent = `${parseInt(slider.value, 10)} px/s`;
+      });
     }
+  } else if (mode === 'title'){
+    const t = loadTitles();
+    title.textContent = 'Set Title';
+    desc.textContent  = 'Format: MAIN TITLE || SUBTITLE';
+    input.value = `${t.main} || ${t.sub}`;
+    input.type = 'text';
+  } else {
+    title.textContent = 'Set Value';
+    desc.textContent  = '';
+    input.value = '';
+    input.type = 'text';
+  }
+
+  modal.classList.remove('hidden');
+
+  setTimeout(() => input.focus(), 0);
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') commitPrompt();
+    if (e.key === 'Escape') closePrompt();
+  };
+}
 
     function closePrompt(){
       document.getElementById('obsPrompt')?.classList.add('hidden');
       PROMPT_MODE = null;
     }
 
-    function commitPrompt(){
-      const input = document.getElementById('obsPromptInput');
-      if (!input) return;
+function commitPrompt(){
+  const input = document.getElementById('obsPromptInput');
+  if (!input) return;
 
-      const raw = String(input.value || '').trim();
+  const raw = String(input.value || '').trim();
 
-      if (PROMPT_MODE === 'break'){
-        const n = parseInt(raw, 10);
-        if (Number.isFinite(n) && n > 0) setBreakNumber(n);
-      }
+  if (PROMPT_MODE === 'break'){
+    const n = parseInt(raw, 10);
+    if (Number.isFinite(n) && n > 0) setBreakNumber(n);
+  }
 
-      if (PROMPT_MODE === 'ticker'){
-        applyTickerFromRaw(raw);
-      }
+if (PROMPT_MODE === 'ticker'){
+  const slider = document.getElementById('tickerSpeedSlider');
+  if (slider){
+    saveTickerSpeed(parseInt(slider.value, 10));
+  }
+  applyTickerFromRaw(raw);
+}
 
-      if (PROMPT_MODE === 'title'){
-        const parts = raw.split('||').map(s => s.trim());
-        const main = parts[0] || DEFAULT_TITLE_MAIN;
-        const sub  = parts[1] || DEFAULT_TITLE_SUB;
-        applyTitles(main, sub);
-      }
+  if (PROMPT_MODE === 'title'){
+    const parts = raw.split('||').map(s => s.trim());
+    const main = parts[0] || DEFAULT_TITLE_MAIN;
+    const sub  = parts[1] || DEFAULT_TITLE_SUB;
+    applyTitles(main, sub);
+  }
 
-      closePrompt();
-    }
+  closePrompt();
+}
 
     /* =========================
        SSE Bridge (Whatnot Sale Bridge)
@@ -2073,10 +2394,12 @@ applyTilePreset(currentBreakType);
       return localStorage.getItem(LS.KEY) || "";
     }
 
-    function getChannel(){
-      return new URLSearchParams(location.search).get("channel") || "sports";
-    }
-
+  function getChannel(){
+  return new URLSearchParams(location.search).get("channel") || "main";
+}
+function getScoresChannel(){
+  return new URLSearchParams(location.search).get("scoresChannel") || "sports";
+}
     function automationEnabled(){ return !!getBridgeUrl(); }
 
     function normalizeBridge(u){
@@ -2124,12 +2447,23 @@ applyTilePreset(currentBreakType);
 
         sse.onmessage = ingest;
 
-  sse.addEventListener('team_sold', ingest);
-sse.addEventListener('team_unsold', ingest);
-sse.addEventListener('stream_stats', ingest);
-sse.addEventListener('scores', ingest);
-sse.addEventListener('reset', ingest);
-sse.addEventListener('set_break', ingest);
+[
+  'team_sold',
+  'team_unsold',
+  'buyer',
+  'buyer_update',
+  'sale',
+  'purchase',
+  'whatnot_purchase',
+  'stream_stats',
+  'scores',
+  'reset',
+  'set_break',
+  'set_sport',
+  'set_title'
+].forEach(t => {
+  try { sse.addEventListener(t, ingest); } catch(_){}
+});
 
         sse.onerror = () => {
           setSSEStatus('error','reconnecting');
@@ -2142,43 +2476,50 @@ sse.addEventListener('set_break', ingest);
       }
     }
 
-    function connectScoresSSE(base){
-      if (sseScores) { try { sseScores.close(); } catch(_){} }
+function connectScoresSSE(base, scoresChannel = "sports"){
+  if (sseScores) { try { sseScores.close(); } catch(_){} }
+
+  try{
+    const url = `${base}/stream?channel=${encodeURIComponent(scoresChannel)}`;
+    sseScores = new EventSource(url);
+
+    const ingest = (e) => {
       try{
-        const url = `${base}/stream?channel=sports`;
-        sseScores = new EventSource(url);
-
-        const ingest = (e) => {
-          try{
-            const data = JSON.parse(e.data);
-            if (data?.type === "hello") return;
-            if (String(data?.type || "").toLowerCase() === "scores") {
-              handleSSEEvent(data);
-            }
-          }catch(_){}
-        };
-
-        sseScores.onmessage = ingest;
-        try { sseScores.addEventListener("scores", ingest); } catch(_){}
-        sseScores.onerror = () => {
-          try { sseScores.close(); } catch(_) {}
-          sseScores = null;
-          setTimeout(() => connectScoresSSE(base), 2500);
-        };
+        const data = JSON.parse(e.data);
+        if (data?.type === "hello") return;
+        if (String(data?.type || "").toLowerCase() === "scores") {
+          handleSSEEvent(data);
+        }
       }catch(_){}
-    }
+    };
 
-    function startSSE(){
-      if (!automationEnabled()){
-        setSSEStatus('error','missing bridge');
-        return;
-      }
-      const base = normalizeBridge(getBridgeUrl());
-      const channel = getChannel();
+    sseScores.onmessage = ingest;
+    try { sseScores.addEventListener("scores", ingest); } catch(_){}
 
-      connectSSE(`${base}/stream?channel=${encodeURIComponent(channel)}`);
-      connectScoresSSE(base);
-    }
+    sseScores.onerror = () => {
+      try { sseScores.close(); } catch(_) {}
+      sseScores = null;
+      setTimeout(() => connectScoresSSE(base, scoresChannel), 2500);
+    };
+  }catch(_){}
+}
+
+function startSSE(){
+  if (!automationEnabled()){
+    setSSEStatus('error','missing bridge');
+    return;
+  }
+
+  const base = normalizeBridge(getBridgeUrl());
+  const channel = getChannel();
+  const scoresChannel = getScoresChannel();
+
+  connectSSE(`${base}/stream?channel=${encodeURIComponent(channel)}`);
+
+  if (scoresChannel) {
+    connectScoresSSE(base, scoresChannel);
+  }
+}
 
     async function warmupPing(){
       if (!automationEnabled()) return;
@@ -2188,16 +2529,20 @@ sse.addEventListener('set_break', ingest);
       try{
         await fetch(`${base}/events`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(key ? { 'x-bridge-key': key } : {})
-          },
-          body: JSON.stringify({
-            type: 'overlay_warmup',
-            overlay: 'lnl',
-            breakId: computeBreakId(),
-            ts: Date.now()
-          })
+        headers: {
+  'Content-Type': 'application/json',
+  ...(key ? {
+    'x-bridge-key': key,
+    'x-api-key': key
+  } : {})
+},
+         body: JSON.stringify({
+  type: 'overlay_warmup',
+  overlay: 'lnl',
+  channel: getChannel(),
+  breakId: computeBreakId(),
+  ts: Date.now()
+})
         });
       }catch(_){}
     }
@@ -2207,18 +2552,16 @@ sse.addEventListener('set_break', ingest);
 
       if (type === 'hello') return;
 
-  if (type === 'scores' && Array.isArray(data?.games)) {
-  SPORTS_LINES = data.games.map(g => {
-    if (typeof g === 'string') return g.trim();
-    const away = g?.away || g?.a || '';
-    const home = g?.home || g?.h || '';
-    const as = g?.awayScore ?? g?.as ?? '';
-    const hs = g?.homeScore ?? g?.hs ?? '';
-    const status = g?.status || g?.state || '';
-    return `${away} ${as} - ${home} ${hs} ${status}`.trim();
-  }).filter(Boolean);
+if (type === 'scores'){
+  const sport = String(data?.sport || data?.league || '').toLowerCase().trim();
+  const txt = normalizeScorePayloadToText(data);
 
-  refreshTickerText();
+  if (sport && txt){
+    SCORES_BY_SPORT[sport] = txt;
+    SCORES_UPDATED_AT[sport] = Date.now();
+    // do not restart the active segment; let the next cycle pick up fresh scores
+  }
+
   return;
 }
 
@@ -2467,7 +2810,7 @@ if (type === 'team_sold'){
 
       breakTypes.nil = buildNilBreakTypeFromEntries(loadNilEntries());
 
-   refreshTickerText();
+restartTickerCycle();
 
       const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
       if (qSport && breakTypes[qSport]) currentBreakType = qSport;
