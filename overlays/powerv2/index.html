@@ -1,0 +1,2180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, initial-scale=1.0"/>
+  <title>The Power Card Shop – Box Break Overlay</title>
+
+  <style>
+    :root{
+      /* ===== APEX CARD COMPANY (logo-matched) =====
+         Dark slate + steel + blaze orange + gold edge
+         Palette sampled from apex-logo.png:
+         #22272d, #e6e6e4, #5e5f63, #a0a1a3, #341709, #af3d03, #f39205, #fde75a
+      */
+      --bg0:#050607;
+      --bg1:#0f141a;
+      --panel:#0b0f14;
+      --tile:#06090d;
+--apexOrange:#f2a53a;
+      --steel:#a0a1a3;
+      --silver:#e6e6e4;
+      --slate:#22272d;
+  --apexTop:#ffffff;
+  --apexCharcoal:#2a2f36;
+  --apexGraphite:#0d1116;
+      --ember:#af3d03;
+      --orange:#f2a53a;
+      --ember:#c13a36;
+      --gold:#f2a53a;
+      --goldBorder: rgba(243,146,5,0.78);
+--goldBorder: rgba(242,165,58,0.85);
+      --border: rgba(255,255,255,0.14);
+      --text:#ffffff;
+      --muted: rgba(255,255,255,0.78);
+
+      --tileH: 52px;
+      --gap: 3px;
+      --cols: 8; /* changes per sport */
+    }
+
+    *{ box-sizing:border-box; }
+body{
+                  /* kill the dead space */
+  background:transparent;
+  font-family:"Arial Black", Arial, sans-serif;
+  user-select:none;
+  overflow:hidden;
+ 
+}
+/* ===== FULLSCREEN BG VIDEO LAYER ===== */
+/* wrapper becomes the "canvas" that includes your margins */
+.overlay-wrap{
+  position: relative;
+  width: 1320px;       /* 1080 + (120*2) padding */
+  height: 840px;       /* pick your final overlay canvas height */
+  padding: 120px;
+  overflow: visible;    /* IMPORTANT: prevents growth */
+}
+
+
+
+/* your overlay content goes above the video */
+.container,
+.sold-list-container,
+.popup-mask{
+  position: relative;
+  z-index: 2;
+   
+  width: 1080px;       /* lock to overlay width */
+}
+/* keep your original sizing behavior */
+.container{
+  width: 1080px; /* if you want it locked */
+align-self:center;
+}
+
+.container{
+  /* logo-style: bright top -> dark graphite bottom */
+  background:
+   linear-gradient(180deg, rgb(255 255 255) 0%, rgb(155 166 182 / 94%) 34%, rgb(27 28 30 / 98%) 100%);
+
+  border: 4px solid var(--apexOrange);
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: 0 0 22px rgba(0,0,0,0.68);
+  display:flex;
+  height:435px;
+  flex-direction:column;
+}
+
+
+    /* ===== HEADER ===== */
+.header{
+  /* same white->charcoal->graphite vibe, but slightly “glossier” */
+  background:linear-gradient(90deg, rgb(214 214 214) 15%, rgb(243 146 5 / 74%) 50%, rgb(218 218 218) 86%);
+    
+
+  color: #0b0f14; /* dark text reads better on white top */
+  padding: 6px 10px;
+  margin: -6px -6px 6px -6px;
+  border-radius: 6px 6px 0 0;
+  display:flex;
+  align-items:center;
+  justify-content: space-between;
+  gap:10px;
+
+  border-bottom: 2px solid rgba(0,0,0,0.18);
+}
+.header-text{
+  color:#0b0f14;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.55), 0 2px 10px rgba(0,0,0,0.35);
+}
+
+
+    .header-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 0;
+    }
+
+    .header-icon{
+      width:18px;height:18px;border-radius:50%;
+      border:2px solid rgba(255,255,255,0.92);
+      background: radial-gradient(circle at 30% 30%, var(--gold), var(--orange));
+      box-shadow: 0 0 10px rgba(0,0,0,0.75);
+      flex: 0 0 auto;
+    }
+
+    .header-text{
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-right{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex: 0 0 auto;
+    }
+
+    .break-pill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 2px solid var(--goldBorder);
+      background: rgba(0,0,0,0.25);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .break-pill .label{ opacity: 0.95; font-size: 19px; }
+    .break-pill .value{ font-size: 19px; color: #fff; }
+
+    /* ===== MAIN WRAPPER ===== */
+    .main-content{
+      display:flex;
+      flex-direction:column;
+      gap: 0px;
+      flex:1;
+      min-height:0;
+    }
+
+ .teams-wrapper{
+  background:
+  linear-gradient(180deg, rgba(255, 255, 255, 0.20) 0%, rgba(42, 47, 54, 0.55) 40%, rgb(54 54 54 / 82%) 100%);
+
+  border-radius: 8px;
+  padding: 2px;
+  border: 3px solid rgba(243,146,5,0.78);
+  flex:1;
+  min-height:0;
+}
+
+
+    /* ===== GENERIC ROW GRID ===== */
+    .row-grid{
+      display:grid;
+      gap: var(--gap);
+      margin-bottom: 2px;
+      grid-template-columns: repeat(var(--cols), 1fr);
+      align-items: stretch;
+    }
+
+    .team{
+      background: #00000059;
+      border: 2px solid rgba(243,146,5,0.62);
+      border-radius: 6px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      position:relative;
+      height: var(--tileH);
+      overflow:hidden;
+      transition: transform 0.1s, box-shadow 0.1s, border-color 0.2s;
+    }
+
+.team:hover{
+  transform: translateY(-2px) scale(1.04);
+  box-shadow:
+    0 0 10px rgba(242,165,58,0.8),
+    0 0 20px rgba(242,165,58,0.5);
+  border-color: rgba(242,165,58,1);
+}
+
+    .team img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    .team img.nfl-small{ object-fit: cover; }
+
+    .team .fallback-code{
+      color:#fff;
+      font-size: 14px;
+      letter-spacing: 1px;
+      opacity: 0.9;
+    }
+
+    .team.sold img{
+      opacity: 0.92;
+      filter: grayscale(50%) brightness(0.45);
+    }
+
+    .team.flash{
+      animation: soldFlash 260ms ease;
+    }
+    @keyframes soldFlash{
+      0%{ box-shadow: 0 0 0 rgba(243,146,5,0.0); }
+      50%{ box-shadow: 0 0 18px rgba(243,146,5,0.65); }
+      100%{ box-shadow: 0 0 0 rgba(243,146,5,0.0); }
+    }
+
+    .team.sold::after{
+      content:"X";
+      position:absolute;
+      font-size: 20px;
+      color: #ffffff;
+      text-shadow: 0 0 3px #000;
+      z-index: 10;
+      background: rgba(175,61,3,0.95);
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid #ffffff;
+    }
+
+    /* ===== LOGO SLOT (IN GRID) ===== */
+    .logo-slot{
+      border-radius: 10px;
+      height: var(--tileH);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border: 2px solid rgba(255,255,255,0.14);
+      overflow:visible;
+      position:relative;
+    }
+.logo-slot img{
+  height:210px;
+  width:auto;
+  object-fit:contain;
+  position:absolute;
+  top:-123px;
+
+  filter:drop-shadow(0 2px 7px rgba(0,0,0,0.60));
+
+  animation:logoBreath 4s ease-in-out infinite;
+}
+
+@keyframes logoBreath{
+  0%{ transform:scale(1); }
+  50%{ transform:scale(1.06); }
+  100%{ transform:scale(1); }
+}
+
+    /* ===== TICKER ROW ===== */
+    .ticker-slot{
+      border-radius: 10px;
+      height: var(--tileH);
+      display:flex;
+      align-items:center;
+      overflow:hidden;
+      background: linear-gradient(90deg, rgba(243,146,5,0.18), rgba(253,231,90,0.12), rgba(175,61,3,0.10));
+      border: 2px solid var(--goldBorder);
+      padding: 0 10px;
+    }
+
+.ticker-slot{
+  border-radius: 10px;
+  height: var(--tileH);
+  display:flex;
+  align-items:center;
+  overflow:hidden;
+  background: linear-gradient(90deg, rgba(243,146,5,0.18), rgba(253,231,90,0.12), rgba(175,61,3,0.10));
+  border: 2px solid var(--goldBorder);
+  padding: 0 10px;
+}
+
+/* NEW */
+.ticker-track{
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  will-change: transform;
+  animation: tickerMarquee linear infinite;
+  animation-duration: var(--tickerDur, 24s);
+}
+
+.ticker-copy{
+  display:inline-block;
+  padding-right: 48px; /* spacing between repeats */
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  color: #fff;
+  font-size: 22px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.60);
+}
+
+@keyframes tickerMarquee{
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+
+
+    /* ===== CONTROLS ROW ===== */
+    .controls-row{
+      margin-top: 6px;
+      display:flex;
+      gap: 6px;
+      align-items: stretch;
+      flex-direction: row;
+      justify-content: space-evenly;
+      background: linear-gradient(182deg, rgba(0,0,0,0.92), rgba(34,39,45,0.55));
+      border-radius: 10px;
+      padding: 6px;
+      border: 2px solid rgba(243,146,5,0.35);
+    }
+
+    .stat-box{
+      background: linear-gradient(135deg, rgba(34,39,45,1) 0%, rgba(10,12,14,1) 100%);
+      color:#fff;
+      border-radius: 8px;
+      text-align:center;
+      font-weight:900;
+      padding: 4px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      display:flex;
+      flex-direction:column;
+      min-width:100px;
+      justify-content:center;
+      font-size: 18px;
+      border: 2px solid var(--goldBorder);
+    }
+
+.promo-box{
+
+flex:1;
+
+background:linear-gradient(
+135deg,
+rgba(242,165,58,0.95),
+rgba(193,58,54,0.95)
+);
+
+border-radius:10px;
+
+display:flex;
+align-items:center;
+justify-content:center;
+
+font-size:24px;
+font-weight:900;
+
+color:#fff;
+
+border:2px solid var(--goldBorder);
+
+text-shadow:
+0 2px 6px rgba(0,0,0,0.8);
+
+overflow:hidden;
+
+}
+
+.promo-flip{
+animation:promoFlip .6s ease;
+}
+
+@keyframes promoFlip{
+
+0%{ transform:rotateX(90deg); opacity:0 }
+100%{ transform:rotateX(0deg); opacity:1 }
+
+}
+
+
+    .stat-label{
+      font-size: 11px;
+      letter-spacing: 1px;
+      margin-top: 2px;
+      opacity: 0.95;
+    }
+
+    .btn{
+      background: linear-gradient(135deg, rgba(243,146,5,1) 0%, rgba(175,61,3,0.98) 100%);
+      color:#fff;
+      border: 2px solid rgba(253,231,90,0.55);
+      border-radius: 8px;
+      cursor:pointer;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.65);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 6px;
+      padding: 6px 2px;
+    }
+
+    .btn.secondary{
+      background:linear-gradient(181deg, rgba(243, 146, 5, 1) 0%, rgb(104 61 0) 100%);
+      color:#ffffff;
+      border: 2px solid rgba(243,146,5,0.85);
+      text-shadow: none;
+    }
+
+    .btn.ghost{
+      background: linear-gradient(181deg, rgba(243, 146, 5, 1) 0%, rgb(104 61 0) 100%);
+      border: 2px solid rgba(243,146,5,0.70);
+    }
+
+    .btn:active{ transform: translateY(1px); box-shadow:none; }
+
+    /* ===== SOLD LIST ===== */
+    .sold-list-container{
+
+      
+      width: 1080px;
+      background: linear-gradient(180deg, rgba(5,6,7,1) 0%, rgba(15,20,26,1) 100%);
+      border: 3px solid rgba(243,146,5,0.78);
+      border-radius: 8px;
+      padding: 6px 7px 8px;
+      text-align:center;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.45);
+    }
+
+    .sold-top-row{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+
+    .sold-list-title{
+      font-size: 16px;
+      font-weight: 900;
+      color:#ffffff;
+      letter-spacing: 1px;
+      text-align:left;
+      padding-left: 2px;
+    }
+
+    .sold-controls{
+      display:flex;
+      gap: 6px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap: wrap;
+    }
+
+    .break-set,
+    .ticker-edit{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      padding: 4px 6px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.25);
+    }
+
+    .break-set input{
+      width: 90px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.30);
+      color:#fff;
+      font-weight: 900;
+      outline:none;
+      text-align:center;
+    }
+
+    .ticker-edit input{
+      width: 240px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 2px solid rgba(243,146,5,0.78);
+      background: rgba(0,0,0,0.30);
+      color:#fff;
+      font-weight: 900;
+      outline:none;
+    }
+
+    .sold-list-grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px 8px;
+    }
+
+    .sold-row{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      margin-bottom: 2px;
+      background: rgba(0,0,0,0.60);
+      border-radius: 7px;
+      padding: 2px 4px;
+      border: 2px solid rgba(243,146,5,0.55);
+    }
+
+    .sold-team-img{
+      width: 24px;
+      height: 24px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #ffffff;
+      background:#000;
+    }
+
+    .sold-team-name{
+      font-weight: 900;
+      color:#f9fafb;
+      min-width: 60px;
+      text-transform: capitalize;
+      font-size: 13px;
+      opacity: 0.95;
+    }
+
+    .sold-buyer-input{
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      font-weight: 800;
+      padding: 2px 4px;
+      width: 100%;
+      background: rgba(0,0,0,0.35);
+      color:#f9fafb;
+      outline:none;
+    }
+
+    /* ===== SSE STATUS (optional) ===== */
+    .sse{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color:white;
+      text-transform: uppercase;
+      opacity: 0.95;
+      padding: 4px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.18);
+    }
+    .sse .dot{
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #666;
+      box-shadow: 0 0 8px rgba(255,255,255,0.15);
+    }
+    .sse.connected .dot{ background: #3cff8a; box-shadow: 0 0 10px rgba(60,255,138,0.7); }
+    .sse.error .dot{ background: #ff2f2f; box-shadow: 0 0 10px rgba(255,47,47,0.7); }
+    .sse.connecting .dot{ background: #fde75a; box-shadow: 0 0 10px rgba(253,231,90,0.7); }
+
+
+/* ===== POPUPS (OBS-friendly) ===== */
+.popup-mask{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.78);
+  z-index: 99999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.popup-mask.hidden{ display:none; }
+
+.popup-card{
+  width: 720px;
+  max-width: 92%;
+  background: linear-gradient(135deg, rgba(15,20,26,0.98), rgba(5,6,7,0.98));
+  border-radius: 16px;
+  padding: 18px;
+  border: 2px solid rgba(243,146,5,0.85);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.85);
+  display:flex;
+  flex-direction:column;
+  gap: 12px;
+}
+
+.popup-title{
+  margin:0;
+  font-size: 18px;
+  letter-spacing: 1px;
+  text-align:center;
+  font-weight: 900;
+  color: #fff;
+}
+
+.popup-row{
+  display:flex;
+  gap: 10px;
+  align-items:center;
+}
+
+.popup-input{
+  width: 100%;
+  padding: 12px 12px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 2px solid rgba(243,146,5,0.78);
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  outline:none;
+  font-weight: 900;
+}
+
+.popup-textarea{
+  width:100%;
+  height:220px;
+  resize:none;
+  background:#000;
+  color:#00ff9c;
+  border: 2px solid rgba(243,146,5,0.78);
+  border-radius: 10px;
+  padding: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+}
+
+.popup-buttons{
+  display:flex;
+  justify-content:space-between;
+  gap: 12px;
+}
+.popup-buttons button{
+  flex:1;
+  padding: 12px;
+  font-weight: 900;
+  cursor:pointer;
+  border-radius: 10px;
+  border: 2px solid rgba(253,231,90,0.55);
+  background: linear-gradient(135deg, rgba(243,146,5,1) 0%, rgba(175,61,3,0.98) 100%);
+  color:#fff;
+}
+
+.slider-wrap{
+  display:flex;
+  gap: 12px;
+  align-items:center;
+  color:#fff;
+  font-weight: 900;
+}
+.slider-wrap input[type="range"]{ width: 100%; }
+.slider-pill{
+  min-width: 110px;
+  text-align:center;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(243,146,5,0.78);
+  background: rgba(0,0,0,0.35);
+}
+
+
+  </style>
+</head>
+
+<body>
+
+
+  <div class="container">
+    <div class="header" id="header">
+      <div class="header-left">
+        <div class="header-icon"></div>
+        <div class="header-text" id="headerText">POWER CARD SHOP BREAK</div>
+      </div>
+
+      <div class="header-right">
+        <div class="break-pill">
+          <span class="label">Break #</span>
+          <span class="value" id="breakNumberDisplay">1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="teams-wrapper" id="teamsWrapper">
+        <!-- rows injected here -->
+      </div>
+
+      <div class="controls-row">
+        <button class="btn secondary" onclick="newBreak()">🧾 NEW BREAK</button>
+
+
+
+<div class="stat-box" id="highBidBox" onclick="openHighBidPopup()">
+  <div id="highBidValue">$0</div>
+  <div class="stat-label">HIGH BID</div>
+</div>
+<div class="promo-box" id="promoBox">
+  <div id="promoText">POWER CARD SHOP</div>
+</div>
+      <div class="stat-box">
+  <div id="teamsLeft">0</div>
+  <div class="stat-label">REMAINING</div>
+</div>
+<div class="stat-box">
+  <div id="teamsSold">0</div>
+  <div class="stat-label">SOLD</div>
+</div>
+
+       
+      </div>
+    </div>
+  </div>
+
+  <div class="sold-list-container">
+    <div class="sold-top-row">
+      <div class="sold-list-title">SOLD TEAMS</div>
+
+      <div class="sold-controls">
+<button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openBreakPopup()">SET BREAK</button>
+<button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="openTitlePopup()">SET TITLE</button>
+<button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openTickerPopup()">EDIT TICKER</button>
+<button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openPromoPopup()">PROMOS</button>
+<button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="cycleSort()">CHANGE SPORT</button>
+<button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openExportPopup()">EXPORT TSV</button>
+
+
+        <div class="sse" id="sseStatus">
+          SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="soldList" class="sold-list-grid"></div>
+  </div>
+
+<!-- ===== POPUPS ===== -->
+
+<div id="breakPopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Set Break Number</h2>
+    <input id="breakPopupInput" class="popup-input" type="number" min="1" />
+    <div class="popup-buttons">
+      <button onclick="applyBreakPopup()">APPLY</button>
+      <button onclick="closeBreakPopup()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<div id="titlePopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Set Title</h2>
+    <input id="titlePopupInput" class="popup-input" type="text" placeholder="e.g. NBA BOX BREAK" />
+    <div class="popup-buttons">
+      <button onclick="applyTitlePopup()">APPLY</button>
+      <button onclick="closeTitlePopup()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<div id="tickerPopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Edit Ticker + Speed</h2>
+
+    <input id="tickerPopupInput" class="popup-input" type="text" placeholder="Use • to separate" />
+
+    <div class="slider-wrap">
+      <div class="slider-pill">SPEED</div>
+      <input id="tickerSpeedSlider" type="range" min="40" max="200" step="5" />
+      <div id="tickerSpeedValue" class="slider-pill">90 px/s</div>
+    </div>
+
+    <div class="popup-buttons">
+      <button onclick="applyTickerPopup()">APPLY</button>
+      <button onclick="closeTickerPopup()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<div id="exportPopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Export (TSV for Excel/Sheets)</h2>
+    <textarea id="exportBox" class="popup-textarea"></textarea>
+    <div class="popup-buttons">
+      <button id="copyExportBtn" onclick="copyExportTSV()">COPY</button>
+      <button onclick="closeExportPopup()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<div id="highBidPopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Set High Bid (this break)</h2>
+    <input id="highBidPopupInput" class="popup-input" type="number" min="0" step="1" placeholder="e.g. 250" />
+    <div class="popup-buttons">
+      <button onclick="applyHighBidPopup()">APPLY</button>
+      <button onclick="closeHighBidPopup()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<div id="promoPopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Promo Messages</h2>
+
+<textarea id="promoInput" class="popup-textarea"></textarea>
+
+<div class="slider-wrap">
+<div class="slider-pill">FLIP SPEED</div>
+<input id="promoSpeedSlider" type="range" min="2000" max="20000" step="1000">
+</div>
+
+<div class="popup-buttons">
+<button onclick="applyPromoPopup()">APPLY</button>
+<button onclick="closePromoPopup()">CANCEL</button>
+</div>
+</div>
+</div>
+
+<script>
+  /******************************************************************
+   * BASE PATH (standard base../../)
+   ******************************************************************/
+  const BASE = (() => {
+    const isGhPages = location.hostname.endsWith('github.io');
+    if (isGhPages) {
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repo = parts.length ? parts[0] : '';
+      return `/${repo}/`;
+    }
+    return '../..\/';
+  })();
+
+  // File structure:
+  // ../../images/logos/apex-logo.png
+  // ../../images/nfl/*.png
+  // ../../images/nba/*.png
+  // ../../images/mlb/*.png
+
+  const LOGO_PRIMARY = `${BASE}images/logos/powercardshop-logo.png`;
+
+  const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+  const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
+  const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
+
+  /******************************************************************
+   * PARAMS / FEATURE FLAGS (REQUIRED standards compatible)
+   ******************************************************************/
+  function getParam(name) { return new URLSearchParams(location.search).get(name); }
+
+  // Enable scores by default since you asked for live sports updates from SSE
+  // You can disable with ?scores=0 if needed
+  const ENABLE_SCORES = (getParam("scores") === null) ? true : (getParam("scores") === "1");
+
+  /******************************************************************
+   * TICKER (persist)
+   ******************************************************************/
+ const TICKER_KEY = "powercardshop.tickerLines";
+
+const DEFAULT_TICKER_LINES = [
+  "POWER CARD SHOP",
+  "LIVE BREAKS • FAST SHIPPING • GOOD LUCK"
+];
+
+  function loadTickerLines(){
+    try{
+      const raw = localStorage.getItem(TICKER_KEY);
+      if (!raw) return DEFAULT_TICKER_LINES.slice();
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length) return arr.map(s => String(s));
+    }catch(_){}
+    return DEFAULT_TICKER_LINES.slice();
+  }
+
+  function saveTickerLines(lines){
+    localStorage.setItem(TICKER_KEY, JSON.stringify(lines));
+  }
+
+  let TICKER_LINES = loadTickerLines();
+
+  function syncTickerInput(){
+    const inp = document.getElementById("tickerInput");
+    if (!inp) return;
+    inp.value = TICKER_LINES.join(" • ");
+  }
+
+
+
+function isFreshSportScore(sport){
+  return (Date.now() - (SCORES_UPDATED_AT[sport] || 0)) < 1000 * 60 * 20;
+}
+
+function getScoresAllSportsText(){
+  if (!ENABLE_SCORES) return "";
+
+  const order = ["nba","nfl","mlb"]; // keep it predictable
+  const parts = [];
+
+  for (const s of order){
+    const txt = (SCORES_BY_SPORT[s] || "").trim();
+    if (txt && isFreshSportScore(s)) parts.push(txt);
+  }
+
+  return parts.join(" • ");
+}
+
+function buildTickerLine(){
+  const a = getDefaultTickerText();
+  const b = getScoresAllSportsText();
+  return b ? `${a} • ${b}` : a;
+}
+
+function updateTickerMarquee(){
+  const line = ` ${buildTickerLine()} `;
+
+  document.querySelectorAll(".ticker-track").forEach(track => {
+    const copies = track.querySelectorAll(".ticker-copy");
+    if (copies.length < 2) return;
+
+    copies[0].textContent = line;
+    copies[1].textContent = line;
+
+    requestAnimationFrame(() => {
+      const halfWidth = copies[0].getBoundingClientRect().width;
+      const pxPerSec = loadTickerSpeed(); // from slider
+      const dur = Math.max(12, Math.round(halfWidth / pxPerSec));
+      document.documentElement.style.setProperty("--tickerDur", `${dur}s`);
+    });
+  });
+}
+  function setTickerLines(lines){
+    TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
+saveTickerLines(TICKER_LINES);
+updateTickerMarquee();
+syncTickerInput();
+  }
+
+  function applyTicker(){
+    const raw = (document.getElementById("tickerInput")?.value || "").trim();
+    const parts = raw.includes("•")
+      ? raw.split("•").map(s => s.trim()).filter(Boolean)
+      : [raw].filter(Boolean);
+
+    setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+  }
+
+  /******************************************************************
+   * BREAK NUMBER (persist)
+   ******************************************************************/
+ const BREAK_KEY = "powercardshop.breakNumber";
+
+  function loadBreakNumber(){
+    const raw = localStorage.getItem(BREAK_KEY);
+    const n = parseInt(raw || "1", 10);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  }
+
+  function saveBreakNumber(n){
+    localStorage.setItem(BREAK_KEY, String(n));
+  }
+
+  function setBreakNumber(n){
+    const safe = Number.isFinite(n) && n > 0 ? n : 1;
+    document.getElementById("breakNumberDisplay").textContent = String(safe);
+    const setInput = document.getElementById("breakSetInput");
+    if (setInput) setInput.value = String(safe);
+    saveBreakNumber(safe);
+  }
+
+  function incrementBreak(){ setBreakNumber(loadBreakNumber() + 1); }
+
+  function applyBreakNumber(){
+    const val = (document.getElementById("breakSetInput")?.value || "").trim();
+    const n = parseInt(val, 10);
+    setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
+  }
+
+/******************************************************************
+ * TITLE + TICKER SPEED + HIGH BID (persist)
+ ******************************************************************/
+const TITLE_KEY = "powercardshop.customTitle";
+const TICKER_SPEED_KEY = "powercardshop.tickerPxPerSec";
+const HIGH_BID_KEY_PREFIX = "powercardshop.highBid.";
+
+function getHighBidKey(){
+  return `${HIGH_BID_KEY_PREFIX}${currentBreakType}.${loadBreakNumber()}`;
+}
+
+function loadCustomTitle(){
+  return (localStorage.getItem(TITLE_KEY) || "").trim();
+}
+function saveCustomTitle(t){
+  localStorage.setItem(TITLE_KEY, String(t || "").trim());
+}
+
+function loadTickerSpeed(){
+  const n = parseInt(localStorage.getItem(TICKER_SPEED_KEY) || "90", 10);
+  return Number.isFinite(n) ? Math.min(200, Math.max(40, n)) : 90;
+}
+function saveTickerSpeed(n){
+  localStorage.setItem(TICKER_SPEED_KEY, String(n));
+}
+
+function loadHighBid(){
+  const raw = localStorage.getItem(getHighBidKey());
+  const n = parseFloat(raw || "0");
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+function saveHighBid(n){
+  localStorage.setItem(getHighBidKey(), String(n));
+}
+function setHighBid(n){
+  const val = Number.isFinite(n) && n >= 0 ? n : 0;
+  document.getElementById("highBidValue").textContent = `$${Math.floor(val)}`;
+  saveHighBid(val);
+}
+
+// ===== POPUP helpers =====
+function showPopup(id){ document.getElementById(id)?.classList.remove("hidden"); }
+function hidePopup(id){ document.getElementById(id)?.classList.add("hidden"); }
+
+// Break popup
+function openBreakPopup(){
+  const inp = document.getElementById("breakPopupInput");
+  if (inp) inp.value = String(loadBreakNumber());
+  showPopup("breakPopup");
+}
+function closeBreakPopup(){ hidePopup("breakPopup"); }
+function applyBreakPopup(){
+  const val = parseInt(document.getElementById("breakPopupInput")?.value || "1", 10);
+  setBreakNumber(Number.isFinite(val) && val > 0 ? val : 1);
+  // swap high bid scope to this break
+  setHighBid(loadHighBid());
+  closeBreakPopup();
+}
+
+// Title popup
+function openTitlePopup(){
+  const inp = document.getElementById("titlePopupInput");
+  if (inp) inp.value = loadCustomTitle() || document.getElementById("headerText")?.textContent || "";
+  showPopup("titlePopup");
+}
+function closeTitlePopup(){ hidePopup("titlePopup"); }
+function applyTitlePopup(){
+  const val = (document.getElementById("titlePopupInput")?.value || "").trim();
+  saveCustomTitle(val);
+  setHeader();
+  closeTitlePopup();
+}
+
+function openPromoPopup(){
+
+document.getElementById("promoInput").value=PROMO_MESSAGES.join("\n");
+
+document.getElementById("promoSpeedSlider").value=loadPromoSpeed();
+
+showPopup("promoPopup");
+
+}
+
+function closePromoPopup(){ hidePopup("promoPopup"); }
+
+function applyPromoPopup(){
+
+const lines=document.getElementById("promoInput").value
+.split("\n")
+.map(x=>x.trim())
+.filter(Boolean);
+
+PROMO_MESSAGES=lines;
+
+savePromos(lines);
+
+localStorage.setItem(PROMO_SPEED_KEY,document.getElementById("promoSpeedSlider").value);
+
+closePromoPopup();
+
+}
+
+// Ticker popup
+function openTickerPopup(){
+  const inp = document.getElementById("tickerPopupInput");
+  if (inp) inp.value = TICKER_LINES.join(" • ");
+
+  const s = loadTickerSpeed();
+  const slider = document.getElementById("tickerSpeedSlider");
+  const pill = document.getElementById("tickerSpeedValue");
+  if (slider) slider.value = String(s);
+  if (pill) pill.textContent = `${s} px/s`;
+
+  showPopup("tickerPopup");
+}
+function closeTickerPopup(){ hidePopup("tickerPopup"); }
+
+function applyTickerPopup(){
+  const raw = (document.getElementById("tickerPopupInput")?.value || "").trim();
+  const parts = raw.includes("•")
+    ? raw.split("•").map(s => s.trim()).filter(Boolean)
+    : [raw].filter(Boolean);
+
+  setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+
+  const slider = document.getElementById("tickerSpeedSlider");
+  const s = parseInt(slider?.value || "90", 10);
+  saveTickerSpeed(Number.isFinite(s) ? s : 90);
+  updateTickerMarquee();
+
+  closeTickerPopup();
+}
+
+// Export popup
+function openExportPopup(){
+  const box = document.getElementById("exportBox");
+  if (box) box.value = buildExportTSV();
+  const btn = document.getElementById("copyExportBtn");
+  if (btn) btn.textContent = "COPY";
+  showPopup("exportPopup");
+}
+function closeExportPopup(){ hidePopup("exportPopup"); }
+
+async function copyExportTSV(){
+  const box = document.getElementById("exportBox");
+  const btn = document.getElementById("copyExportBtn");
+  if (!box) return;
+
+  const text = box.value || "";
+  try{
+    await navigator.clipboard.writeText(text);
+    if (btn) btn.textContent = "COPIED!";
+    setTimeout(() => { if (btn) btn.textContent = "COPY"; }, 900);
+  }catch(_){
+    box.focus();
+    box.select();
+    try{
+      const ok = document.execCommand("copy");
+      if (btn) btn.textContent = ok ? "COPIED!" : "SELECT + COPY";
+      setTimeout(() => { if (btn) btn.textContent = "COPY"; }, 900);
+    }catch(__){
+      if (btn) btn.textContent = "SELECT + COPY";
+    }
+  }
+}
+
+// High bid popup
+function openHighBidPopup(){
+  const inp = document.getElementById("highBidPopupInput");
+  if (inp) inp.value = String(loadHighBid());
+  showPopup("highBidPopup");
+}
+function closeHighBidPopup(){ hidePopup("highBidPopup"); }
+function applyHighBidPopup(){
+  const val = parseFloat(document.getElementById("highBidPopupInput")?.value || "0");
+  setHighBid(Number.isFinite(val) && val >= 0 ? val : 0);
+  closeHighBidPopup();
+}
+
+
+  /******************************************************************
+   * SPORT CONFIGS (NFL / MLB / NBA only)
+   ******************************************************************/
+  const breakTypes = {
+    nba: {
+      name: "NBA",
+      cols: 8,
+      layout: "NBA_MLB_30",
+      tileH: 54,
+      teams: [
+        { code:'ATL', name:'hawks', image: imgPathNBA('hawks.png') },
+        { code:'BOS', name:'celtics', image: imgPathNBA('celtics.png') },
+        { code:'BKN', name:'nets', image: imgPathNBA('nets.png') },
+        { code:'CHA', name:'hornets', image: imgPathNBA('hornets.png') },
+        { code:'CHI', name:'bulls', image: imgPathNBA('bulls.png') },
+        { code:'CLE', name:'cavaliers', image: imgPathNBA('cavaliers.png') },
+        { code:'DAL', name:'mavericks', image: imgPathNBA('mavericks.png') },
+        { code:'DEN', name:'nuggets', image: imgPathNBA('nuggets.png') },
+        { code:'DET', name:'pistons', image: imgPathNBA('pistons.png') },
+        { code:'GSW', name:'warriors', image: imgPathNBA('warriors.png') },
+        { code:'HOU', name:'rockets', image: imgPathNBA('rockets.png') },
+        { code:'IND', name:'pacers', image: imgPathNBA('pacers.png') },
+        { code:'LAC', name:'clippers', image: imgPathNBA('clippers.png') },
+        { code:'LAL', name:'lakers', image: imgPathNBA('lakers.png') },
+        { code:'MEM', name:'grizzlies', image: imgPathNBA('grizzlies.png') },
+        { code:'MIA', name:'heat', image: imgPathNBA('heat.png') },
+        { code:'MIL', name:'bucks', image: imgPathNBA('bucks.png') },
+        { code:'MIN', name:'timberwolves', image: imgPathNBA('timberwolves.png') },
+        { code:'NOP', name:'pelicans', image: imgPathNBA('pelicans.png') },
+        { code:'NYK', name:'knicks', image: imgPathNBA('knicks.png') },
+        { code:'OKC', name:'thunder', image: imgPathNBA('thunder.png') },
+        { code:'ORL', name:'magic', image: imgPathNBA('magic.png') },
+        { code:'PHI', name:'76ers', image: imgPathNBA('76ers.png') },
+        { code:'PHX', name:'suns', image: imgPathNBA('suns.png') },
+        { code:'POR', name:'blazers', image: imgPathNBA('blazers.png') },
+        { code:'SAC', name:'kings', image: imgPathNBA('kings.png') },
+        { code:'SAS', name:'spurs', image: imgPathNBA('spurs.png') },
+        { code:'TOR', name:'raptors', image: imgPathNBA('raptors.png') },
+        { code:'UTA', name:'jazz', image: imgPathNBA('jazz.png') },
+        { code:'WAS', name:'wizards', image: imgPathNBA('wizards.png') }
+      ]
+    },
+
+    mlb: {
+      name: "MLB",
+      cols: 8,
+      layout: "NBA_MLB_30",
+      tileH: 46,
+      teams: [
+        { code:'ARI', name:'diamondbacks', image: imgPathMLB('diamondbacks.png') },
+        { code:'ATL', name:'braves', image: imgPathMLB('braves.png') },
+        { code:'BAL', name:'orioles', image: imgPathMLB('orioles.png') },
+        { code:'BOS', name:'red sox', image: imgPathMLB('redsox.png') },
+        { code:'CHC', name:'cubs', image: imgPathMLB('cubs.png') },
+        { code:'CHW', name:'white sox', image: imgPathMLB('whitesox.png') },
+        { code:'CIN', name:'reds', image: imgPathMLB('reds.png') },
+        { code:'CLE', name:'guardians', image: imgPathMLB('guardians.png') },
+        { code:'COL', name:'rockies', image: imgPathMLB('rockies.png') },
+        { code:'DET', name:'tigers', image: imgPathMLB('tigers.png') },
+        { code:'HOU', name:'astros', image: imgPathMLB('astros.png') },
+        { code:'KC', name:'royals', image: imgPathMLB('royals.png') },
+        { code:'LAA', name:'angels', image: imgPathMLB('angels.png') },
+        { code:'LAD', name:'dodgers', image: imgPathMLB('dodgers.png') },
+        { code:'MIA', name:'marlins', image: imgPathMLB('marlins.png') },
+        { code:'MIL', name:'brewers', image: imgPathMLB('brewers.png') },
+        { code:'MIN', name:'twins', image: imgPathMLB('twins.png') },
+        { code:'NYM', name:'mets', image: imgPathMLB('mets.png') },
+        { code:'NYY', name:'yankees', image: imgPathMLB('yankees.png') },
+        { code:'OAK', name:'athletics', image: imgPathMLB('athletics.png') },
+        { code:'PHI', name:'phillies', image: imgPathMLB('phillies.png') },
+        { code:'PIT', name:'pirates', image: imgPathMLB('pirates.png') },
+        { code:'SD', name:'padres', image: imgPathMLB('padres.png') },
+        { code:'SF', name:'giants', image: imgPathMLB('giants.png') },
+        { code:'SEA', name:'mariners', image: imgPathMLB('mariners.png') },
+        { code:'STL', name:'cardinals', image: imgPathMLB('cardinals.png') },
+        { code:'TB', name:'rays', image: imgPathMLB('rays.png') },
+        { code:'TEX', name:'rangers', image: imgPathMLB('rangers.png') },
+        { code:'TOR', name:'blue jays', image: imgPathMLB('bluejays.png') },
+        { code:'WSH', name:'nationals', image: imgPathMLB('nationals.png') }
+      ]
+    },
+
+    nfl: {
+      name: "NFL",
+      cols: 10,
+      layout: "NFL_32",
+      tileH: 56,
+      teams: [
+        { code:'ARI', name:'cardinals', image: imgPathNFL('cardinals.png') },
+        { code:'ATL', name:'falcons', image: imgPathNFL('falcons.png') },
+        { code:'BAL', name:'ravens', image: imgPathNFL('ravens.png') },
+        { code:'BUF', name:'bills', image: imgPathNFL('bills.png') },
+        { code:'CAR', name:'panthers', image: imgPathNFL('panthers.png') },
+        { code:'CHI', name:'bears', image: imgPathNFL('bears.png') },
+        { code:'CIN', name:'bengals', image: imgPathNFL('bengals.png') },
+        { code:'CLE', name:'browns', image: imgPathNFL('browns.png') },
+        { code:'DAL', name:'cowboys', image: imgPathNFL('cowboys.png') },
+        { code:'DEN', name:'broncos', image: imgPathNFL('broncos.png') },
+
+        { code:'DET', name:'lions', image: imgPathNFL('lions.png') },
+        { code:'GB', name:'packers', image: imgPathNFL('packers.png') },
+        { code:'HOU', name:'texans', image: imgPathNFL('texans.png') },
+        { code:'IND', name:'colts', image: imgPathNFL('colts.png') },
+        { code:'JAX', name:'jaguars', image: imgPathNFL('jaguars.png') },
+        { code:'KC', name:'chiefs', image: imgPathNFL('chiefs.png') },
+        { code:'LV', name:'raiders', image: imgPathNFL('raiders.png') },
+        { code:'LAC', name:'chargers', image: imgPathNFL('chargers.png') },
+        { code:'LAR', name:'rams', image: imgPathNFL('rams.png') },
+        { code:'MIA', name:'dolphins', image: imgPathNFL('dolphins.png') },
+
+        { code:'MIN', name:'vikings', image: imgPathNFL('vikings.png') },
+        { code:'NE', name:'patriots', image: imgPathNFL('patriots.png') },
+        { code:'NO', name:'saints', image: imgPathNFL('saints.png') },
+        { code:'NYG', name:'giants', image: imgPathNFL('giants.png') },
+        { code:'NYJ', name:'jets', image: imgPathNFL('jets.png') },
+        { code:'PHI', name:'eagles', image: imgPathNFL('eagles.png') },
+        { code:'PIT', name:'steelers', image: imgPathNFL('steelers.png') },
+        { code:'SF', name:'49ers', image: imgPathNFL('49ers.png') },
+        { code:'SEA', name:'seahawks', image: imgPathNFL('seahawks.png') },
+        { code:'TB', name:'buccaneers', image: imgPathNFL('buccaneers.png') },
+
+        { code:'TEN', name:'titans', image: imgPathNFL('titans.png') },
+        { code:'WAS', name:'commanders', image: imgPathNFL('commanders.png') }
+      ]
+    }
+  };
+
+  /******************************************************************
+   * STATE
+   ******************************************************************/
+  let currentBreakType = "nba";
+  let soldTeams = new Set();        // codes
+  let soldTeamsList = [];           // {code,buyer}
+const lastCodeByListingKey = new Map(); // listingId/saleId -> last assigned team code (handles respins)
+// Scores per sport (from SSE)
+const SCORES_BY_SPORT = { nba: "", nfl: "", mlb: "" };
+const SCORES_UPDATED_AT = { nba: 0, nfl: 0, mlb: 0 };
+
+  /******************************************************************
+   * HEADER
+   ******************************************************************/
+function setHeader(){
+  const b = breakTypes[currentBreakType];
+  const custom = loadCustomTitle();
+  document.getElementById("headerText").textContent = custom ? custom : `${b.name} BOX BREAK`;
+}
+
+  /******************************************************************
+   * TILES
+   ******************************************************************/
+  function makeTeamDiv(team){
+    const d = document.createElement("div");
+    d.className = "team";
+    d.dataset.teamCode = String(team.code || "");
+    d.onclick = () => toggleTeam(team.code);
+
+    if (team.image){
+      const img = document.createElement("img");
+      img.src = team.image;
+      img.alt = team.name || team.code || "";
+      if (currentBreakType === "nfl") img.classList.add("nfl-small");
+      img.onerror = () => {
+        d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
+      };
+      d.appendChild(img);
+    } else {
+      d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
+    }
+
+    if (soldTeams.has(team.code)) d.classList.add("sold");
+    return d;
+  }
+
+  function makeLogoSlot(spanCols){
+    const slot = document.createElement("div");
+    slot.className = "logo-slot";
+    slot.style.gridColumn = `span ${spanCols}`;
+
+    const img = document.createElement("img");
+    img.src = LOGO_PRIMARY;
+    img.alt = "Apex Card Company Logo";
+    slot.appendChild(img);
+    return slot;
+  }
+
+function makeTickerSlot(spanCols){
+  const slot = document.createElement("div");
+  slot.className = "ticker-slot";
+  slot.style.gridColumn = `span ${spanCols}`;
+
+  const track = document.createElement("div");
+  track.className = "ticker-track";
+
+  const c1 = document.createElement("span");
+  c1.className = "ticker-copy";
+
+  const c2 = document.createElement("span");
+  c2.className = "ticker-copy";
+
+  track.appendChild(c1);
+  track.appendChild(c2);
+
+  slot.appendChild(track);
+  return slot;
+}
+
+  /******************************************************************
+   * LAYOUT BUILDER
+   ******************************************************************/
+  function buildLayout(){
+    const wrap = document.getElementById("teamsWrapper");
+    wrap.innerHTML = "";
+
+    const config = breakTypes[currentBreakType];
+
+    document.documentElement.style.setProperty("--cols", String(config.cols));
+    document.documentElement.style.setProperty("--tileH", String(config.tileH || 52) + "px");
+
+    const teams = config.teams;
+
+// NOTE: do not auto-clear here; clear only on reset/newBreak/manual actions
+
+    if (config.layout === "NBA_MLB_30"){
+      // 8 cols
+      // Row1: 3 teams, logo(2), 3 teams => 6 teams
+      // Row2-4: 8 teams each => 24 teams
+      // Row5: ticker span 8
+      let idx = 0;
+
+      const r1 = document.createElement("div");
+      r1.className = "row-grid";
+      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      r1.appendChild(makeLogoSlot(2));
+      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r1);
+
+      for (let r=0;r<3;r++){
+        const row = document.createElement("div");
+        row.className = "row-grid";
+        for (let i=0;i<8;i++) row.appendChild(makeTeamDiv(teams[idx++]));
+        wrap.appendChild(row);
+      }
+
+      const r5 = document.createElement("div");
+      r5.className = "row-grid";
+      r5.appendChild(makeTickerSlot(8));
+      wrap.appendChild(r5);
+    }
+
+    if (config.layout === "NFL_32"){
+      // 10 cols
+      // Row1: 4 teams, logo(2), 4 teams => 8
+      // Row2: 10
+      // Row3: 10
+      // Row4: 2, ticker(6), 2 => 4
+      let idx = 0;
+
+      const r1 = document.createElement("div");
+      r1.className = "row-grid";
+      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      r1.appendChild(makeLogoSlot(2));
+      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r1);
+
+      const r2 = document.createElement("div");
+      r2.className = "row-grid";
+      for (let i=0;i<10;i++) r2.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r2);
+
+      const r3 = document.createElement("div");
+      r3.className = "row-grid";
+      for (let i=0;i<10;i++) r3.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r3);
+
+      const r4 = document.createElement("div");
+      r4.className = "row-grid";
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      r4.appendChild(makeTickerSlot(6));
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r4);
+    }
+
+  setHeader();
+updateStats();
+updateSoldList();
+updateTickerMarquee(); // ensure ticker shows correct text immediately
+setHighBid(loadHighBid());
+  }
+
+  /******************************************************************
+   * SOLD TOGGLE + LIST
+   ******************************************************************/
+  function toggleTeam(code, buyerFromAutomation=""){
+    const tile = document.querySelector(`[data-team-code="${code}"]`);
+    if (!tile) return;
+
+    const listIndex = soldTeamsList.findIndex(e => e.code === code);
+
+    if (soldTeams.has(code)){
+      soldTeams.delete(code);
+      tile.classList.remove("sold");
+      if (listIndex !== -1) soldTeamsList.splice(listIndex, 1);
+    } else {
+      soldTeams.add(code);
+      tile.classList.add("sold");
+      tile.classList.add("flash");
+      setTimeout(()=>tile.classList.remove("flash"), 280);
+
+      if (listIndex === -1) soldTeamsList.push({ code, buyer: buyerFromAutomation || "" });
+    }
+
+    updateStats();
+    updateSoldList();
+  }
+
+  function updateStats(){
+    const total = breakTypes[currentBreakType].teams.length;
+    const sold = soldTeams.size;
+    document.getElementById("teamsLeft").textContent = String(total - sold);
+    document.getElementById("teamsSold").textContent = String(sold);
+  }
+
+  function updateSoldList(){
+    const soldListDiv = document.getElementById("soldList");
+    soldListDiv.innerHTML = "";
+    const currentBreak = breakTypes[currentBreakType];
+
+    soldTeamsList.forEach(entry => {
+      const team = currentBreak.teams.find(t => t.code === entry.code);
+      if (!team) return;
+
+      const row = document.createElement("div");
+      row.className = "sold-row";
+
+      if (team.image){
+        const img = document.createElement("img");
+        img.src = team.image;
+        img.className = "sold-team-img";
+        row.appendChild(img);
+      }
+
+      const name = document.createElement("span");
+      name.className = "sold-team-name";
+      name.textContent = team.name || team.code;
+      row.appendChild(name);
+
+      const input = document.createElement("input");
+      input.className = "sold-buyer-input";
+      input.type = "text";
+      input.placeholder = "Buyer";
+      input.value = entry.buyer || "";
+      input.oninput = (e) => {
+        entry.buyer = e.target.value || "";
+        // optional outbound hook if you ever want it:
+        // bridgePost({ type:"buyer", sport: currentBreakType, code: entry.code, buyer: entry.buyer });
+      };
+      row.appendChild(input);
+
+      soldListDiv.appendChild(row);
+    });
+  }
+
+  function resetAll(){
+    soldTeams.clear();
+    soldTeamsList = [];
+    lastCodeByListingKey.clear();
+    document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
+    updateStats();
+    updateSoldList();
+  }
+
+function newBreak(){
+  resetAll();
+  incrementBreak();
+  setHighBid(0);
+}
+
+  function cycleSport(){
+    const types = Object.keys(breakTypes);
+    const idx = types.indexOf(currentBreakType);
+    currentBreakType = types[(idx + 1) % types.length];
+    buildLayout();
+  }
+
+function setSport(type){
+  if (!breakTypes[type]) return;
+  currentBreakType = type;
+  buildLayout();
+  updateTickerMarquee(); // <-- ensure ticker swaps to that sport's stored scores
+}
+
+  /******************************************************************
+   * REQUIRED SSE BRIDGE CLIENT (updated standard)
+   ******************************************************************/
+  const BRIDGE_LS = {
+    URL: "overlay.bridge.url",
+    KEY: "overlay.bridge.key",
+  };
+
+  function getBridgeBase() {
+    const q = getParam("bridge");
+    if (q) {
+      const cleaned = q.replace(/\/$/, "").replace(/\/(events|stream)(\/.*)?$/, "");
+      localStorage.setItem(BRIDGE_LS.URL, cleaned);
+      return cleaned;
+    }
+    return (localStorage.getItem(BRIDGE_LS.URL) || "").replace(/\/$/, "");
+  }
+
+  function getBridgeKey() {
+    const q = getParam("key");
+    if (q) {
+      localStorage.setItem(BRIDGE_LS.KEY, q);
+      return q;
+    }
+    return localStorage.getItem(BRIDGE_LS.KEY) || "";
+  }
+
+  function getChannel() {
+    return (getParam("channel") || "main").toLowerCase();
+  }
+
+function getScoresChannel(){
+  return (getParam("scoresChannel") || "sports").toLowerCase();
+}
+
+
+  function getOverlayId() {
+    return (getParam("overlay") || "powercardshop-overlay").toLowerCase();
+  }
+
+  function bridgeEnabled() {
+    return !!getBridgeBase();
+  }
+
+  let sse = null;       // main channel
+let sseScores = null; // scores channel
+
+
+  function setSSEStatus(state, msg){
+    const wrap = document.getElementById('sseStatus');
+    const txt = document.getElementById('sseText');
+    if (!wrap || !txt) return;
+
+    wrap.classList.remove('connected','error','connecting');
+    if (state === 'connected') wrap.classList.add('connected');
+    if (state === 'error') wrap.classList.add('error');
+    if (state === 'connecting') wrap.classList.add('connecting');
+
+    txt.textContent = (msg || state || "OFF").toUpperCase();
+  }
+
+  function connectBridgeSSE({ onEvent, onStatus }) {
+    if (!bridgeEnabled()) {
+      onStatus?.("error", "missing bridge");
+      return;
+    }
+
+    const base = getBridgeBase();
+    const channel = getChannel();
+    const url = `${base}/stream?channel=${encodeURIComponent(channel)}`;
+
+    if (sse) try { sse.close(); } catch (_) {}
+    onStatus?.("connecting", "connecting");
+
+    sse = new EventSource(url);
+
+    const ingest = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data?.type === "hello") return;
+        onEvent?.(data);
+      } catch (err) {
+        console.warn("[SSE parse error]", err, e.data);
+      }
+    };
+
+    sse.onopen = () => onStatus?.("connected", "connected");
+    sse.onmessage = ingest;
+
+    // keep named events compatibility (REQUIRED)
+  ["team_sold","team_unsold","buyer","reset","set_break","set_sport","scores","stream_stats","whatnot_purchase","purchase"].forEach(t => {
+      try { sse.addEventListener(t, ingest); } catch(_){}
+    });
+
+    sse.onerror = () => {
+      onStatus?.("error", "reconnecting");
+      try { sse.close(); } catch (_) {}
+      sse = null;
+      setTimeout(() => connectBridgeSSE({ onEvent, onStatus }), 2500);
+    };
+  }
+
+
+function connectScoresSSE({ onEvent, onStatus }){
+  if (!bridgeEnabled()) return;
+
+  const base = getBridgeBase();
+  const channel = getScoresChannel();
+  const url = `${base}/stream?channel=${encodeURIComponent(channel)}`;
+
+  if (sseScores) try { sseScores.close(); } catch(_){}
+  sseScores = new EventSource(url);
+
+const ingest = (e) => {
+  try{
+    const data = JSON.parse(e.data);
+    if (data?.type === "hello") return;
+
+    if (String(data?.type || "").toLowerCase() === "scores") {
+      console.log("[SCORES SSE]", data);
+      onEvent?.(data);
+    }
+  }catch(_){}
+};
+
+
+  sseScores.onmessage = ingest;
+  try { sseScores.addEventListener("scores", ingest); } catch(_){}
+
+  sseScores.onerror = () => {
+    try { sseScores.close(); } catch(_){}
+    sseScores = null;
+    setTimeout(() => connectScoresSSE({ onEvent, onStatus }), 2500);
+  };
+}
+
+
+
+  async function bridgePost(payload) {
+    if (!bridgeEnabled()) return;
+    const base = getBridgeBase();
+    const key = getBridgeKey();
+
+    await fetch(`${base}/events`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(key ? { "x-bridge-key": key } : {}),
+      },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  }
+
+  function bridgeWarmup(extra = {}) {
+    return bridgePost({
+      type: "overlay_warmup",
+      overlay: getOverlayId(),
+      channel: getChannel(),
+      ts: Date.now(),
+      ...extra,
+    });
+  }
+
+  /******************************************************************
+   * SPORTS FEED / TICKER ROTATION
+   ******************************************************************/
+  function normalizeScorePayloadToText(data){
+    // Accept multiple formats:
+    // 1) {type:"scores", text:"NBA: LAL 102-99 BOS (Q4) • ..."}
+    // 2) {type:"scores", league:"nba", games:[{away:"LAL",home:"BOS",awayScore:102,homeScore:99, status:"Q4"}]}
+    // 3) {type:"scores", lines:["...", "..."]}
+
+    if (!data) return "";
+
+    if (typeof data.text === "string" && data.text.trim()) return data.text.trim();
+
+    if (Array.isArray(data.lines) && data.lines.length){
+      return data.lines.map(s => String(s).trim()).filter(Boolean).join(" • ");
+    }
+
+    const league = String(data.league || data.sport || "").toUpperCase();
+    if (Array.isArray(data.games) && data.games.length){
+      const chunks = data.games.slice(0, 10).map(g => {
+        const a = String(g.away || g.a || g.awayTeam || "").toUpperCase();
+        const h = String(g.home || g.h || g.homeTeam || "").toUpperCase();
+        const as = (g.awayScore ?? g.as ?? g.aScore);
+        const hs = (g.homeScore ?? g.hs ?? g.hScore);
+        const st = String(g.status || g.state || g.clock || "").trim();
+
+        const scorePart = (Number.isFinite(+as) && Number.isFinite(+hs)) ? `${a} ${as}-${hs} ${h}` : `${a} vs ${h}`;
+        return st ? `${scorePart} (${st})` : scorePart;
+      });
+
+      const prefix = league ? `${league}: ` : "SCORES: ";
+      return prefix + chunks.join(" • ");
+    }
+
+    return "";
+  }
+
+  function getDefaultTickerText(){
+    return TICKER_LINES.join("   •   ");
+  }
+
+
+
+  /******************************************************************
+   * AUTOMATION EVENT HANDLING (team + buyer + whatnot + scores)
+   ******************************************************************/
+  function getCodeFromPayload(p){
+    return String(
+      p?.code || p?.teamCode || p?.team || p?.abbr || p?.team_code || ""
+    ).toUpperCase().trim();
+  }
+
+  function getBuyerFromPayload(p){
+    return String(
+      p?.buyer || p?.buyerName || p?.customer || p?.user || p?.username || ""
+    ).trim();
+  }
+
+  function getSportFromPayload(p){
+    return String(p?.sport || p?.league || p?.breakType || "").toLowerCase().trim();
+  }
+
+function normTeamStr(s){
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function findCodeByTitle(title, sport){
+  const t = normTeamStr(title);
+  const teams = breakTypes[sport]?.teams || [];
+  for (const tm of teams){
+    const name = normTeamStr(tm.name);
+    const code = String(tm.code || "").toUpperCase();
+    if (!code) continue;
+
+    // match if title contains team name OR code
+    if (name && t.includes(name)) return code;
+    if (code && t.includes(code.toLowerCase())) return code;
+  }
+  return "";
+}
+function normalizeTitleForMatch(s){
+  return String(s || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Match sold event to a team code using team.name OR team.code inside title
+function inferTeamCodeFromSaleTitle(title, breakType){
+  const t = normalizeTitleForMatch(title);
+  if (!t) return "";
+
+  const teams = breakTypes[breakType]?.teams || [];
+  for (const team of teams){
+    const code = String(team.code || "").toUpperCase();
+    const name = normalizeTitleForMatch(team.name);
+
+    // code exact token match (LAL, BOS, JAX, etc)
+    if (code && new RegExp(`\\b${code.toLowerCase()}\\b`).test(t)) return code;
+
+    // name contains match ("jacksonville jaguars")
+    if (name && t.includes(name)) return code;
+  }
+  return "";
+}
+
+
+  function handleSSEEvent(data){
+    if (!data || !data.type) return;
+
+
+    
+    // Scores feed (ticker)
+if (data.type === "scores" && ENABLE_SCORES){
+  const sport = String(data.sport || data.league || "").toLowerCase().trim();
+  const txt = normalizeScorePayloadToText(data);
+
+  if (sport && txt){
+    SCORES_BY_SPORT[sport] = txt;
+    SCORES_UPDATED_AT[sport] = Date.now();
+  }
+
+// repaint ticker on ANY scores update (because ticker now includes all sports)
+updateTickerMarquee();
+return;
+}
+
+
+if (data.type === "set_title"){
+  const t = String(data.title || data.value || "").trim();
+  if (t){
+    saveCustomTitle(t);
+    setHeader();
+  }
+  return;
+}
+
+if (data.type === "high_bid"){
+  const n = parseFloat(data.amount ?? data.value ?? data.bid ?? "0");
+  if (Number.isFinite(n) && n >= 0){
+    const cur = loadHighBid();
+    if (n > cur) setHighBid(n);
+  }
+  return;
+}
+    
+    // Break / sport control
+    if (data.type === "set_break"){
+      const n = parseInt(String(data.value || data.break || ""), 10);
+      setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
+      return;
+    }
+
+    if (data.type === "set_sport"){
+      if (data.sport) setSport(String(data.sport).toLowerCase());
+      return;
+    }
+
+    if (data.type === "reset"){
+      resetAll();
+      return;
+    }
+
+    // Buyer updates (named event compatibility)
+    if (data.type === "buyer"){
+      const code = getCodeFromPayload(data);
+      const buyer = getBuyerFromPayload(data);
+      if (code) sseUpdateBuyer(code, buyer);
+      return;
+    }
+
+    // Team sold / unsold
+// ✅ REPLACE/RESPIN handling should be OPT-IN only.
+// Otherwise repeated purchases from the same listingId/productId will "unsell" prior teams.
+    // Team sold
+// Team sold (supports reassignment by same saleId)
+if (data.type === "team_sold") {
+  const sport = getSportFromPayload(data);
+
+  // optional: auto-switch sport if included
+  if (sport && sport !== currentBreakType && breakTypes[sport]) {
+    setSport(sport);
+  }
+
+  let code = getCodeFromPayload(data);
+  const buyer = getBuyerFromPayload(data);
+
+  // infer code from title if missing
+  if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+
+  // ✅ IMPORTANT:
+  // Prefer a UNIQUE purchase key first (saleId/id). listingId can be reused.
+  const listingKey = data.saleId || data.id || data.listingId || null;
+
+  // ✅ Overlay-only reassignment rule:
+  // If we see the SAME purchase key again but with a DIFFERENT team,
+  // unsell the previous team automatically.
+  if (listingKey && code) {
+    const prevCode = lastCodeByListingKey.get(listingKey);
+    if (prevCode && prevCode !== code) {
+      sseMarkUnsold(prevCode);
+    }
+    lastCodeByListingKey.set(listingKey, code);
+  }
+
+  if (code) sseMarkSold(code, buyer);
+  return;
+}
+
+    // Team unsold
+    if (data.type === "team_unsold") {
+      let code = getCodeFromPayload(data);
+      if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+
+      // ✅ IMPORTANT: do NOT use productId here
+      const listingKey = data.listingId || data.saleId || data.id || null;
+
+      if (code) sseMarkUnsold(code);
+
+      if (listingKey) {
+        const cur = lastCodeByListingKey.get(listingKey);
+        if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+      }
+      return;
+    }
+    // Whatnot purchase automation (robust)
+    // Common shapes:
+    // {type:"whatnot_purchase", sport:"nba", code:"LAL", buyer:"Mike"}
+    // {type:"purchase", sport:"nfl", team:"DAL", buyerName:"Mike"}
+    if (data.type === "whatnot_purchase" || data.type === "purchase"){
+      const sport = getSportFromPayload(data);
+      if (sport && sport !== currentBreakType) return;
+
+      const code = getCodeFromPayload(data);
+      const buyer = getBuyerFromPayload(data);
+
+      if (code){
+        // purchases should mark sold + set buyer
+        sseMarkSold(code, buyer);
+      }
+      return;
+    }
+
+    // stream_stats etc can be ignored safely
+  }
+
+  function sseMarkSold(code, buyer=""){
+    if (!code) return;
+
+    if (!soldTeams.has(code)){
+  soldTeams.add(code);
+if (!soldTeamsList.some(x => x.code === code)) {
+  soldTeamsList.push({ code, buyer: buyer || "" });
+}
+
+      const tile = document.querySelector(`[data-team-code="${code}"]`);
+      if (tile){
+        tile.classList.add("sold");
+        tile.classList.add("flash");
+        setTimeout(()=>tile.classList.remove("flash"), 280);
+      }
+    } else if (buyer){
+      // already sold; just update buyer if provided
+      sseUpdateBuyer(code, buyer);
+    }
+
+    updateStats();
+    updateSoldList();
+  }
+
+  function sseMarkUnsold(code){
+    if (!code) return;
+    soldTeams.delete(code);
+    soldTeamsList = soldTeamsList.filter(t => t.code !== code);
+
+    const tile = document.querySelector(`[data-team-code="${code}"]`);
+    if (tile) tile.classList.remove("sold");
+
+    updateStats();
+    updateSoldList();
+  }
+
+  function sseUpdateBuyer(code, buyer){
+    if (!code) return;
+    const entry = soldTeamsList.find(t => t.code === code);
+    if (entry) entry.buyer = buyer || "";
+    updateSoldList();
+  }
+
+function formatNow(){
+  // Simple + consistent for spreadsheets
+  return new Date().toISOString();
+}
+
+function buildExportTSV(){
+  const breakNum = loadBreakNumber();
+  const sport = currentBreakType.toUpperCase();
+  const date = formatNow();
+
+  // Header row
+  let tsv = "Team\tBuyer\tDate\tBreak#\tSport\n";
+
+  const currentBreak = breakTypes[currentBreakType];
+  soldTeamsList.forEach(entry => {
+    const teamObj = currentBreak.teams.find(t => t.code === entry.code);
+    const teamName = (teamObj?.name || entry.code || "").toString();
+    const buyer = (entry.buyer || "").toString().replace(/\t|\n/g, " ").trim();
+    tsv += `${teamName}\t${buyer}\t${date}\t${breakNum}\t${sport}\n`;
+  });
+
+  return tsv;
+}
+
+/******************************************************************
+PROMO ROTATOR
+******************************************************************/
+
+const PROMO_KEY="powercardshop.promos";
+const PROMO_SPEED_KEY="powercardshop.promoSpeed";
+
+let PROMO_MESSAGES=[];
+let promoIndex=0;
+
+function loadPromos(){
+
+  try{
+    const raw=localStorage.getItem(PROMO_KEY);
+    if(!raw) return ["FAST SHIPPING","LIVE BREAKS","GOOD LUCK"];
+    return JSON.parse(raw);
+  }catch{
+    return ["FAST SHIPPING","LIVE BREAKS","GOOD LUCK"];
+  }
+
+}
+
+function savePromos(arr){
+localStorage.setItem(PROMO_KEY,JSON.stringify(arr));
+}
+
+function loadPromoSpeed(){
+return parseInt(localStorage.getItem(PROMO_SPEED_KEY)||"8000");
+}
+
+function rotatePromo(){
+
+  if(!PROMO_MESSAGES.length) return;
+
+  promoIndex=(promoIndex+1)%PROMO_MESSAGES.length;
+
+  const el=document.getElementById("promoText");
+
+  if(!el) return;
+
+  el.classList.remove("promo-flip");
+  void el.offsetWidth;
+  el.classList.add("promo-flip");
+
+  el.textContent=PROMO_MESSAGES[promoIndex];
+
+}
+
+function startPromo(){
+
+PROMO_MESSAGES=loadPromos();
+
+document.getElementById("promoText").textContent=PROMO_MESSAGES[0];
+
+setInterval(rotatePromo,loadPromoSpeed());
+
+}
+  /******************************************************************
+   * INIT
+   ******************************************************************/
+  document.addEventListener("DOMContentLoaded", () => {
+    // REQUIRED: subscribe to sport via ?sport= (and only allow known breakTypes)
+    const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
+    if (qSport && breakTypes[qSport]) currentBreakType = qSport;
+
+    setBreakNumber(loadBreakNumber());
+    buildLayout();
+startPromo();
+    const ti = document.getElementById("tickerInput");
+    if (ti){
+      syncTickerInput();
+      ti.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") applyTicker();
+      });
+    }
+
+ updateTickerMarquee();
+
+// ticker speed live label
+const speedSlider = document.getElementById("tickerSpeedSlider");
+const speedValue = document.getElementById("tickerSpeedValue");
+if (speedSlider && speedValue){
+  speedSlider.addEventListener("input", () => {
+    const v = parseInt(speedSlider.value || "90", 10);
+    speedValue.textContent = `${v} px/s`;
+  });
+}
+
+// initialize speed + high bid display
+document.documentElement.style.setProperty("--tickerDur", "24s");
+setHighBid(loadHighBid());
+
+
+    connectBridgeSSE({
+      onEvent: handleSSEEvent,
+      onStatus: (state, msg) => setSSEStatus(state, msg)
+    });
+if (ENABLE_SCORES) {
+  connectScoresSSE({ onEvent: handleSSEEvent, onStatus: () => {} });
+}
+
+    bridgeWarmup({ breakId: `apex:${currentBreakType}:${loadBreakNumber()}` });
+  });
+</script>
+ </div> <!-- /overlay-wrap -->
+</body>
+ 
+</html>
