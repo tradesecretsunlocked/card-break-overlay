@@ -1948,9 +1948,13 @@ function handleMainEvent(data){
   if (data.type === "team_sold" || data.type === "whatnot_purchase" || data.type === "purchase" || data.type === "sale"){
     const sport = getSportFromPayload(data);
 
-    if (sport && sport !== currentBreakType && breakTypes[sport]) {
-      setSport(sport);
+      if (sport && sport !== currentBreakType && breakTypes[sport]) {
+      currentBreakType = sport;
+      localStorage.setItem(SPORT_KEY, currentBreakType);
+      buildLayout();
+      updateTickerMarquee();
     }
+
 
     let code = getCodeFromPayload(data);
     const buyer = getBuyerFromPayload(data);
@@ -1981,10 +1985,13 @@ function handleMainEvent(data){
 
     if (listingKey) {
       const cur = lastCodeByListingKey.get(listingKey);
-      if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+      if (!code || cur === code) {
+        lastCodeByListingKey.delete(listingKey);
+      }
     }
     return;
   }
+
 }
 
 
@@ -1994,12 +2001,15 @@ function handleMainEvent(data){
       const sport = String(data.sport || data.league || "").toLowerCase().trim();
       const txt = normalizeScorePayloadToText(data);
 
+      console.log("[THH SCORES EVENT]", data);
+
       if (sport && txt){
         SCORES_BY_SPORT[sport] = txt;
         SCORES_UPDATED_AT[sport] = Date.now();
         updateTickerMarquee();
       }
     }
+
 
     function initSSE(){
       const bridgeUrl = getBridgeBase();
@@ -2020,21 +2030,45 @@ function handleMainEvent(data){
         refreshSSEIndicator();
 
         sseMain = new EventSource(buildSSEUrl(bridgeUrl, "main", bridgeKey));
-        sseMain.onopen = () => {
-          mainState = "connected";
-          refreshSSEIndicator();
-        };
-        sseMain.onerror = () => {
-          mainState = "error";
-          refreshSSEIndicator();
-        };
-        sseMain.onmessage = (event) => {
+
+        const ingestMain = (event) => {
           try{
             const data = JSON.parse(event.data);
             if (data?.type === "hello") return;
             handleMainEvent(data);
           }catch(_){}
         };
+
+        sseMain.onopen = () => {
+          mainState = "connected";
+          refreshSSEIndicator();
+        };
+
+        sseMain.onerror = () => {
+          mainState = "error";
+          refreshSSEIndicator();
+        };
+
+        sseMain.onmessage = ingestMain;
+
+        [
+          "team_sold",
+          "team_unsold",
+          "buyer",
+          "buyer_update",
+          "reset",
+          "set_break",
+          "set_sport",
+          "set_title",
+          "whatnot_purchase",
+          "purchase",
+          "sale",
+          "stream_stats",
+          "scores"
+        ].forEach(type => {
+          try { sseMain.addEventListener(type, ingestMain); } catch(_) {}
+        });
+
       }catch(_){
         mainState = "error";
         refreshSSEIndicator();
@@ -2050,22 +2084,30 @@ function handleMainEvent(data){
         sportsState = "connecting";
         refreshSSEIndicator();
 
-        sseSports = new EventSource(buildSSEUrl(bridgeUrl, "sports", bridgeKey));
-        sseSports.onopen = () => {
-          sportsState = "connected";
-          refreshSSEIndicator();
-        };
-        sseSports.onerror = () => {
-          sportsState = "error";
-          refreshSSEIndicator();
-        };
-        sseSports.onmessage = (event) => {
+          sseSports = new EventSource(buildSSEUrl(bridgeUrl, getScoresChannel(), bridgeKey));
+
+        const ingestSports = (event) => {
           try{
             const data = JSON.parse(event.data);
             if (data?.type === "hello") return;
             handleSportsEvent(data);
           }catch(_){}
         };
+
+        sseSports.onopen = () => {
+          sportsState = "connected";
+          refreshSSEIndicator();
+        };
+
+        sseSports.onerror = () => {
+          sportsState = "error";
+          refreshSSEIndicator();
+        };
+
+        sseSports.onmessage = ingestSports;
+
+        try { sseSports.addEventListener("scores", ingestSports); } catch(_) {}
+
       }catch(_){
         sportsState = "error";
         refreshSSEIndicator();
