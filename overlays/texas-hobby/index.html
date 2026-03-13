@@ -41,9 +41,9 @@
 
     .overlay-wrap{
       position: relative;
-      width: 1320px;
+      width: 1080px;
       height: 840px;
-      padding: 120px;
+      
       overflow: visible;
     }
 
@@ -89,7 +89,7 @@
     }
 
     .header{
-      background:linear-gradient(90deg, rgba(238,242,247,0.96) 12%, rgba(13,45,98,0.88) 38%, rgba(196,22,28,0.86) 62%, rgba(238,242,247,0.96) 88%);
+      background:linear-gradient(90deg, rgba(238,242,247,0.96) 12%, rgba(29, 79, 160, 0.88) 38%, rgba(196,22,28,0.86) 62%, rgba(238,242,247,0.96) 88%);
       color: #0b0f14;
       padding: 6px 10px;
       margin: -6px -6px 6px -6px;
@@ -166,12 +166,12 @@
 
     .teams-wrapper{
       background:
-        linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(27,39,66,0.52) 40%, rgba(34,34,34,0.84) 100%);
+        linear-gradient(180deg, rgba(255,255,255,0.18) 0%, rgba(27,39,66,0.52) 40%, rgba(44, 46, 63, 0.84) 100%);
       border-radius: 8px;
       padding: 6px;
       border: 3px solid rgba(246,205,98,0.82);
       flex:1;
-      min-height:0;
+      min-height:280px;
     }
 
     .row-grid{
@@ -195,12 +195,14 @@
       overflow:hidden;
       transition: transform 0.1s, box-shadow 0.1s, border-color 0.2s;
     }
+.team:hover{
+  transform: translateY(-2px) scale(1.04);
+  box-shadow:
+    0 0 10px rgba(246,205,98,0.8),
+    0 0 20px rgba(246,205,98,0.45);
+  border-color: rgba(246,205,98,1);
+}
 
-    .team:hover{
-      transform: translateY(-1px);
-      box-shadow: 0 0 10px rgba(255,255,255,0.16);
-      border-color: rgba(246,205,98,0.82);
-    }
 
     .team img{
       width:100%;
@@ -265,16 +267,23 @@
       overflow:visible;
       position:relative;
     }
+.logo-slot img{
+  height: 155px;
+  width: auto;
+  object-fit: contain;
+  position:absolute;
+  top: -83px;
+  z-index: 999;
+  filter: drop-shadow(0 2px 7px rgba(0,0,0,0.60));
+  animation: logoBreath 4s ease-in-out infinite;
+}
 
-    .logo-slot img{
-      height: 155px;
-      width: auto;
-      object-fit: contain;
-      position:absolute;
-      top: -83px;
-      z-index: 999;
-      filter: drop-shadow(0 2px 7px rgba(0,0,0,0.60));
-    }
+@keyframes logoBreath{
+  0%{ transform:scale(1); }
+  50%{ transform:scale(1.06); }
+  100%{ transform:scale(1); }
+}
+
 
     .ticker-slot{
       border-radius: 10px;
@@ -334,11 +343,83 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.25);
       display:flex;
       flex-direction:column;
-      min-width:150px;
+      min-width:100px;
       justify-content:center;
       font-size: 18px;
       border: 2px solid var(--goldBorder);
     }
+    .promo-box{
+  flex:1;
+  background: linear-gradient(135deg, rgba(13,45,98,0.96), rgba(196,22,28,0.96));
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
+  font-weight:900;
+  color:#fff;
+  border:2px solid var(--goldBorder);
+  text-shadow: 0 2px 6px rgba(0,0,0,0.8);
+  overflow:hidden;
+  position:relative;
+}
+
+.promo-box::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  border-radius:12px;
+  padding:2px;
+  background:
+    linear-gradient(90deg,
+      transparent 0%,
+      rgba(246,205,98,0.0) 10%,
+      rgba(246,205,98,0.95) 25%,
+      rgba(255,255,255,0.95) 35%,
+      rgba(246,205,98,0.95) 45%,
+      rgba(246,205,98,0.0) 60%,
+      transparent 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask-composite:exclude;
+  pointer-events:none;
+  animation: wickTrace 3.2s linear infinite;
+}
+
+.promo-box::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0));
+  pointer-events:none;
+}
+
+#promoText{
+  position:relative;
+  z-index:2;
+  padding:0 14px;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.promo-flip{
+  animation: promoFlip .6s ease;
+}
+
+@keyframes promoFlip{
+  0%{ transform:rotateX(90deg); opacity:0; }
+  100%{ transform:rotateX(0deg); opacity:1; }
+}
+
+@keyframes wickTrace{
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+
 
     .stat-label{
       font-size: 11px;
@@ -610,19 +691,24 @@
         <div class="teams-wrapper" id="teamsWrapper"></div>
 
         <div class="controls-row">
-          <button class="btn secondary" onclick="newBreak()">NEW BREAK</button>
+       <button class="btn secondary" onclick="newBreak()">NEW BREAK</button>
 
-          <div class="stat-box">
-            <div id="teamsLeft">0</div>
-            <div class="stat-label">REMAINING</div>
-          </div>
+<div class="stat-box">
+  <div id="teamsLeft">0</div>
+  <div class="stat-label">REMAINING</div>
+</div>
 
-          <div class="stat-box">
-            <div id="teamsSold">0</div>
-            <div class="stat-label">SOLD</div>
-          </div>
+<div class="promo-box" id="promoBox">
+  <div id="promoText">TEXAS HOBBY HOUSE</div>
+</div>
 
-          <button class="btn ghost" onclick="cycleSport()">CHANGE SPORT</button>
+<div class="stat-box">
+  <div id="teamsSold">0</div>
+  <div class="stat-label">SOLD</div>
+</div>
+
+<button class="btn ghost" onclick="cycleSport()">CHANGE SPORT</button>
+
         </div>
       </div>
     </div>
@@ -634,9 +720,11 @@
         <div class="sold-controls">
           <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openBreakPopup()">SET BREAK</button>
           <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="openTitlePopup()">SET TITLE</button>
-          <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openTickerPopup()">EDIT TICKER</button>
-          <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openExportPopup()">EXPORT TSV</button>
-          <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="resetAll()">RESET</button>
+<button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openTickerPopup()">EDIT TICKER</button>
+<button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openPromoPopup()">PROMOS</button>
+<button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openExportPopup()">EXPORT TSV</button>
+<button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="resetAll()">RESET</button>
+
 
           <div class="sse" id="sseStatus">
             SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
@@ -698,6 +786,26 @@
         </div>
       </div>
     </div>
+
+<div id="promoPopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Promo Messages</h2>
+
+    <textarea id="promoInput" class="popup-textarea"></textarea>
+
+    <div class="slider-wrap">
+      <div class="slider-pill">FLIP SPEED</div>
+      <input id="promoSpeedSlider" type="range" min="2000" max="20000" step="1000" />
+    </div>
+
+    <div class="popup-buttons">
+      <button onclick="applyPromoPopup()">APPLY</button>
+      <button onclick="closePromoPopup()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+
   </div>
 
   <script>
@@ -741,8 +849,11 @@
     const BREAK_KEY = `${CLIENT_ID}.breakNumber`;
     const TITLE_KEY = `${CLIENT_ID}.customTitle`;
     const TICKER_SPEED_KEY = `${CLIENT_ID}.tickerPxPerSec`;
-    const SOLD_STATE_KEY = `${CLIENT_ID}.soldState`;
-    const SPORT_KEY = `${CLIENT_ID}.sport`;
+ const SOLD_STATE_KEY = `${CLIENT_ID}.soldState`;
+const SPORT_KEY = `${CLIENT_ID}.sport`;
+const PROMO_KEY = `${CLIENT_ID}.promos`;
+const PROMO_SPEED_KEY = `${CLIENT_ID}.promoSpeed`;
+
 
     const DEFAULT_TICKER_LINES = [
       "TEXAS HOBBY HOUSE",
@@ -812,6 +923,41 @@
         return null;
       }
     }
+
+/******************************************************************
+ * BREAK ID ROUTING
+ ******************************************************************/
+function yyyymmddChicago(d = new Date()){
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+
+  const y = parts.find(p => p.type === "year")?.value;
+  const m = parts.find(p => p.type === "month")?.value;
+  const day = parts.find(p => p.type === "day")?.value;
+  return `${y}-${m}-${day}`;
+}
+
+function computeBreakId(){
+  const date = yyyymmddChicago();
+  const sport = String(currentBreakType || "").toLowerCase();
+  const n = loadBreakNumber();
+  return `${date}-${sport}-${n}`;
+}
+
+function breakIdMatches(payload){
+  const incoming = String(payload?.breakId || "").trim();
+  if (!incoming) return true;
+  if (incoming === computeBreakId()) return true;
+
+  const sport = String(currentBreakType || "").toLowerCase();
+  const n = String(loadBreakNumber());
+  return incoming.endsWith(`-${sport}-${n}`);
+}
+
 
     /******************************************************************
      * POPUPS
@@ -921,7 +1067,7 @@
         name: "NBA",
         cols: 8,
         layout: "NBA_MLB_30",
-        tileH: 46,
+        tileH: 49,
         teams: [
           { code:'ATL', name:'hawks', image: imgPathNBA('hawks.png') },
           { code:'BOS', name:'celtics', image: imgPathNBA('celtics.png') },
@@ -1053,10 +1199,95 @@
     const SCORES_BY_SPORT = { nba: "", nfl: "", mlb: "" };
     const SCORES_UPDATED_AT = { nba: 0, nfl: 0, mlb: 0 };
 
-    let sseMain = null;
-    let sseSports = null;
-    let mainState = "off";
-    let sportsState = ENABLE_SCORES ? "off" : "disabled";
+ let sseMain = null;
+let sseSports = null;
+let mainState = "off";
+let sportsState = ENABLE_SCORES ? "off" : "disabled";
+
+let PROMO_MESSAGES = [];
+let promoIndex = 0;
+let promoTimer = null;
+
+/******************************************************************
+ * PROMO ROTATOR
+ ******************************************************************/
+function loadPromos(){
+  try{
+    const raw = localStorage.getItem(PROMO_KEY);
+    if (!raw) return ["FAST SHIPPING","LIVE BREAKS","GOOD LUCK"];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) && arr.length ? arr : ["FAST SHIPPING","LIVE BREAKS","GOOD LUCK"];
+  }catch(_){
+    return ["FAST SHIPPING","LIVE BREAKS","GOOD LUCK"];
+  }
+}
+
+function savePromos(arr){
+  localStorage.setItem(PROMO_KEY, JSON.stringify(arr));
+}
+
+function loadPromoSpeed(){
+  const n = parseInt(localStorage.getItem(PROMO_SPEED_KEY) || "8000", 10);
+  return Number.isFinite(n) ? n : 8000;
+}
+
+function rotatePromo(){
+  if (!PROMO_MESSAGES.length) return;
+
+  promoIndex = (promoIndex + 1) % PROMO_MESSAGES.length;
+  const el = document.getElementById("promoText");
+  if (!el) return;
+
+  el.classList.remove("promo-flip");
+  void el.offsetWidth;
+  el.classList.add("promo-flip");
+  el.textContent = PROMO_MESSAGES[promoIndex];
+}
+
+function startPromo(){
+  PROMO_MESSAGES = loadPromos();
+  promoIndex = 0;
+
+  const el = document.getElementById("promoText");
+  if (el) el.textContent = PROMO_MESSAGES[0] || "TEXAS HOBBY HOUSE";
+
+  if (promoTimer) clearInterval(promoTimer);
+  promoTimer = setInterval(rotatePromo, loadPromoSpeed());
+}
+
+function openPromoPopup(){
+  const input = document.getElementById("promoInput");
+  const slider = document.getElementById("promoSpeedSlider");
+  if (input) input.value = PROMO_MESSAGES.join("\n");
+  if (slider) slider.value = String(loadPromoSpeed());
+  showPopup("promoPopup");
+}
+
+function closePromoPopup(){ hidePopup("promoPopup"); }
+
+function applyPromoPopup(){
+  const lines = (document.getElementById("promoInput")?.value || "")
+    .split("\n")
+    .map(x => x.trim())
+    .filter(Boolean);
+
+  PROMO_MESSAGES = lines.length ? lines : ["FAST SHIPPING","LIVE BREAKS","GOOD LUCK"];
+  promoIndex = 0;
+
+  savePromos(PROMO_MESSAGES);
+  localStorage.setItem(PROMO_SPEED_KEY, document.getElementById("promoSpeedSlider")?.value || "8000");
+
+  const el = document.getElementById("promoText");
+  if (el){
+    el.classList.remove("promo-flip");
+    void el.offsetWidth;
+    el.classList.add("promo-flip");
+    el.textContent = PROMO_MESSAGES[0];
+  }
+
+  startPromo();
+  closePromoPopup();
+}
 
     /******************************************************************
      * HEADER
@@ -1395,13 +1626,15 @@
       buildLayout();
     }
 
-    function setSport(type){
-      if (!breakTypes[type]) return;
-      currentBreakType = type;
-      localStorage.setItem(SPORT_KEY, currentBreakType);
-      resetSportStateIfNeeded();
-      buildLayout();
-    }
+function setSport(type){
+  if (!breakTypes[type]) return;
+  currentBreakType = type;
+  localStorage.setItem(SPORT_KEY, currentBreakType);
+  resetSportStateIfNeeded();
+  buildLayout();
+  updateTickerMarquee();
+}
+
 
     function resetSportStateIfNeeded(){
       soldTeams.clear();
@@ -1448,29 +1681,80 @@
     /******************************************************************
      * SSE
      ******************************************************************/
-    const BRIDGE_LS = {
-      URL: "tsu.bridgeUrl",
-      KEY: "tsu.bridgeKey"
-    };
+ const BRIDGE_LS = {
+  URL: "tsu.bridge",
+  KEY: "tsu.key",
+  OVERLAY: "tsu.overlayId",
+  CHANNEL: "tsu.channel",
+  URL_LEGACY: "tsu.bridgeUrl",
+  KEY_LEGACY: "tsu.bridgeKey",
+};
 
-    function getBridgeBase() {
-      const q = getParam("bridge");
-      if (q) {
-        const cleaned = q.replace(/\/$/, "").replace(/\/(events|stream|sse)(\/.*)?$/, "");
-        localStorage.setItem(BRIDGE_LS.URL, cleaned);
-        return cleaned;
-      }
-      return (localStorage.getItem(BRIDGE_LS.URL) || "").replace(/\/$/, "");
-    }
 
-    function getBridgeKey() {
-      const q = getParam("key");
-      if (q) {
-        localStorage.setItem(BRIDGE_LS.KEY, q);
-        return q;
-      }
-      return localStorage.getItem(BRIDGE_LS.KEY) || "";
-    }
+function cleanUrl(u){ return String(u || "").trim().replace(/\/$/, ""); }
+
+function normalizeBridge(u){
+  return cleanUrl(u).replace(/\/(events|stream)(\/.*)?$/, "");
+}
+
+function getBridgeBase() {
+  const q = getParam("bridge");
+  if (q) {
+    const cleaned = normalizeBridge(q);
+    localStorage.setItem(BRIDGE_LS.URL, cleaned);
+    return cleaned;
+  }
+
+  const std = localStorage.getItem(BRIDGE_LS.URL);
+  if (std) return std.trim().replace(/\/$/, "");
+
+  const legacy = localStorage.getItem(BRIDGE_LS.URL_LEGACY);
+  if (legacy) {
+    const cleaned = String(legacy).trim().replace(/\/$/, "");
+    localStorage.setItem(BRIDGE_LS.URL, cleaned);
+    return cleaned;
+  }
+
+  return "";
+}
+
+function getBridgeKey() {
+  const q = getParam("key");
+  if (q) {
+    const k = q.trim();
+    localStorage.setItem(BRIDGE_LS.KEY, k);
+    return k;
+  }
+
+  const std = (localStorage.getItem(BRIDGE_LS.KEY) || "").trim();
+  if (std) return std;
+
+  const legacy = (localStorage.getItem(BRIDGE_LS.KEY_LEGACY) || "").trim();
+  if (legacy) {
+    localStorage.setItem(BRIDGE_LS.KEY, legacy);
+    return legacy;
+  }
+
+  return "";
+}
+
+function getChannel() {
+  const q = (getParam("channel") || localStorage.getItem(BRIDGE_LS.CHANNEL) || "main");
+  const ch = String(q).trim().toLowerCase() || "main";
+  localStorage.setItem(BRIDGE_LS.CHANNEL, ch);
+  return ch;
+}
+
+function getScoresChannel(){
+  return (getParam("scoresChannel") || "sports").toLowerCase();
+}
+
+function getOverlayId() {
+  const q = (getParam("overlay") || localStorage.getItem(BRIDGE_LS.OVERLAY) || "texas-hobby-house-overlay");
+  const id = String(q).trim().toLowerCase() || "texas-hobby-house-overlay";
+  localStorage.setItem(BRIDGE_LS.OVERLAY, id);
+  return id;
+}
 
     function bridgeEnabled() {
       return !!getBridgeBase();
@@ -1595,71 +1879,96 @@
       updateSoldList();
     }
 
-    function handleMainEvent(data){
-      if (!data || !data.type) return;
+function handleMainEvent(data){
+  if (!data || !data.type) return;
+  if (!breakIdMatches(data)) return;
 
-      if (data.type === "reset"){
-        resetAll();
-        return;
-      }
+  if (data.type === "reset"){
+    resetAll();
+    return;
+  }
 
-      if (data.type === "set_break"){
-        const n = parseInt(String(data.value || data.break || ""), 10);
-        setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
-        return;
-      }
+  if (data.type === "set_break"){
+    const n = parseInt(String(data.value || data.break || ""), 10);
+    setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
+    return;
+  }
 
-      if (data.type === "set_sport"){
-        if (data.sport) setSport(String(data.sport).toLowerCase());
-        return;
-      }
+  if (data.type === "set_sport"){
+    if (data.sport) setSport(String(data.sport).toLowerCase());
+    return;
+  }
 
-      if (data.type === "set_title"){
-        const t = String(data.title || data.value || "").trim();
-        if (t){
-          saveCustomTitle(t);
-          setHeader();
-        }
-        return;
-      }
-
-      if (data.type === "buyer"){
-        const code = getCodeFromPayload(data);
-        const buyer = getBuyerFromPayload(data);
-        if (code) sseUpdateBuyer(code, buyer);
-        return;
-      }
-
-      if (data.type === "team_sold" || data.type === "whatnot_purchase" || data.type === "purchase"){
-        const sport = getSportFromPayload(data);
-        if (sport && sport !== currentBreakType && breakTypes[sport]) {
-          setSport(sport);
-        }
-
-        let code = getCodeFromPayload(data);
-        const buyer = getBuyerFromPayload(data);
-        if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
-
-        const listingKey = data.saleId || data.id || data.listingId || null;
-        if (listingKey && code) {
-          const prevCode = lastCodeByListingKey.get(listingKey);
-          if (prevCode && prevCode !== code) sseMarkUnsold(prevCode);
-          lastCodeByListingKey.set(listingKey, code);
-        }
-
-        if (code) sseMarkSold(code, buyer);
-        return;
-      }
-
-      if (data.type === "team_unsold"){
-        let code = getCodeFromPayload(data);
-        if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
-        const listingKey = data.saleId || data.id || data.listingId || null;
-
-        if (code) sseMarkUnsold(code);
-        if (listingKey) lastCodeByListingKey.delete(listingKey);
-      }
+  if (data.type === "set_title"){
+    const t = String(data.title || data.value || "").trim();
+    if (t){
+      saveCustomTitle(t);
+      setHeader();
     }
+    return;
+  }
+
+  if (data.type === "buyer" || data.type === "buyer_update"){
+    const code = getCodeFromPayload(data);
+    const buyer = getBuyerFromPayload(data);
+    if (code) sseUpdateBuyer(code, buyer);
+    return;
+  }
+
+  if (data.type === "scores" && ENABLE_SCORES){
+    const sport = String(data.sport || data.league || "").toLowerCase().trim();
+    const txt = normalizeScorePayloadToText(data);
+
+    if (sport && txt){
+      SCORES_BY_SPORT[sport] = txt;
+      SCORES_UPDATED_AT[sport] = Date.now();
+    }
+    updateTickerMarquee();
+    return;
+  }
+
+  if (data.type === "team_sold" || data.type === "whatnot_purchase" || data.type === "purchase" || data.type === "sale"){
+    const sport = getSportFromPayload(data);
+
+    if (sport && sport !== currentBreakType && breakTypes[sport]) {
+      setSport(sport);
+    }
+
+    let code = getCodeFromPayload(data);
+    const buyer = getBuyerFromPayload(data);
+
+    if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+
+    const listingKey = data.saleId || data.id || data.listingId || null;
+
+    if (listingKey && code) {
+      const prevCode = lastCodeByListingKey.get(listingKey);
+      if (prevCode && prevCode !== code) {
+        sseMarkUnsold(prevCode);
+      }
+      lastCodeByListingKey.set(listingKey, code);
+    }
+
+    if (code) sseMarkSold(code, buyer);
+    return;
+  }
+
+  if (data.type === "team_unsold"){
+    let code = getCodeFromPayload(data);
+    if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+
+    const listingKey = data.saleId || data.id || data.listingId || null;
+
+    if (code) sseMarkUnsold(code);
+
+    if (listingKey) {
+      const cur = lastCodeByListingKey.get(listingKey);
+      if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+    }
+    return;
+  }
+}
+
 
     function handleSportsEvent(data){
       if (!data || String(data.type || "").toLowerCase() !== "scores") return;
@@ -1755,6 +2064,8 @@
       restoreState();
       setBreakNumber(loadBreakNumber());
       buildLayout();
+startPromo();
+
 
       const speedSlider = document.getElementById("tickerSpeedSlider");
       const speedValue = document.getElementById("tickerSpeedValue");
@@ -1769,11 +2080,23 @@
       updateTickerMarquee();
       initSSE();
 
-      window.initializeGrid = buildLayout;
-      window.toggleTeam = toggleTeam;
-      window.updateStats = updateStats;
-      window.updateSoldList = updateSoldList;
-      window.resetOverlay = resetAll;
+bridgePost({
+  type: "overlay_warmup",
+  overlay: getOverlayId(),
+  channel: getChannel(),
+  ts: Date.now(),
+  breakId: computeBreakId(),
+  sport: currentBreakType
+});
+
+
+window.initializeGrid = buildLayout;
+window.toggleTeam = toggleTeam;
+window.updateStats = updateStats;
+window.updateSoldList = updateSoldList;
+window.resetOverlay = resetAll;
+window.startPromo = startPromo;
+
     });
   </script>
 </body>
