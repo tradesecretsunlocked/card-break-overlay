@@ -1756,9 +1756,26 @@ function getOverlayId() {
   return id;
 }
 
-    function bridgeEnabled() {
-      return !!getBridgeBase();
-    }
+async function bridgePost(payload) {
+  if (!bridgeEnabled()) return;
+
+  const base = getBridgeBase();
+  const key = getBridgeKey();
+
+  await fetch(`${base}/events`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(key ? { "x-bridge-key": key } : {}),
+    },
+    body: JSON.stringify(payload),
+  }).catch(() => {});
+}
+
+function bridgeEnabled() {
+  return !!getBridgeBase();
+}
+
 
     function refreshSSEIndicator(){
       const wrap = document.getElementById('sseStatus');
@@ -1788,13 +1805,14 @@ function getOverlayId() {
       txt.textContent = 'OFF';
     }
 
-    function buildSSEUrl(base, channel, key){
-      const clean = base.replace(/\/$/, "");
-      const url = new URL(`${clean}/sse`, window.location.href);
-      url.searchParams.set("channel", channel);
-      if (key) url.searchParams.set("key", key);
-      return url.toString();
-    }
+function buildSSEUrl(base, channel, key){
+  const clean = base.replace(/\/$/, "");
+  const url = new URL(`${clean}/stream`, window.location.href);
+  url.searchParams.set("channel", channel);
+  if (key) url.searchParams.set("key", key);
+  return url.toString();
+}
+
 
     function getCodeFromPayload(p){
       return String(
