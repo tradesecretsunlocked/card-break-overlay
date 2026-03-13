@@ -7,11 +7,7 @@
 
   <style>
     :root{
-      /* ===== APEX CARD COMPANY (logo-matched) =====
-         Dark slate + steel + blaze orange + gold edge
-         Palette sampled from apex-logo.png:
-         #22272d, #e6e6e4, #5e5f63, #a0a1a3, #341709, #af3d03, #f39205, #fde75a
-      */
+      
       --bg0:#050607;
       --bg1:#0f141a;
       --panel:#0b0f14;
@@ -763,7 +759,7 @@ animation:promoFlip .6s ease;
 <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="cycleSport()">CHANGE SPORT</button>
 <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openTickerPopup()">EDIT TICKER</button>
 <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openPromoPopup()">PROMOS</button>
-<button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="cycleSort()">CHANGE SPORT</button>
+
 
 
 
@@ -1006,6 +1002,42 @@ syncTickerInput();
     const n = parseInt(val, 10);
     setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
   }
+
+/******************************************************************
+ * BREAK ID ROUTING
+ ******************************************************************/
+function yyyymmddChicago(d = new Date()){
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+
+  const y = parts.find(p => p.type === "year")?.value;
+  const m = parts.find(p => p.type === "month")?.value;
+  const day = parts.find(p => p.type === "day")?.value;
+  return `${y}-${m}-${day}`;
+}
+
+function computeBreakId(){
+  const date = yyyymmddChicago();
+  const sport = String(currentBreakType || "").toLowerCase();
+  const n = loadBreakNumber();
+  return `${date}-${sport}-${n}`;
+}
+
+function breakIdMatches(payload){
+  const incoming = String(payload?.breakId || "").trim();
+  if (!incoming) return true;
+
+  if (incoming === computeBreakId()) return true;
+
+  const sport = String(currentBreakType || "").toLowerCase();
+  const n = String(loadBreakNumber());
+  const suffix = `-${sport}-${n}`;
+  return incoming.endsWith(suffix);
+}
 
 /******************************************************************
  * TITLE + TICKER SPEED + HIGH BID (persist)
@@ -1541,12 +1573,13 @@ function newBreak(){
   setHighBid(0);
 }
 
-  function cycleSport(){
-    const types = Object.keys(breakTypes);
-    const idx = types.indexOf(currentBreakType);
-    currentBreakType = types[(idx + 1) % types.length];
-    buildLayout();
-  }
+ function cycleSport(){
+  const types = Object.keys(breakTypes);
+  const idx = types.indexOf(currentBreakType);
+  currentBreakType = types[(idx + 1) % types.length];
+  resetAll();
+  buildLayout();
+}
 
 function setSport(type){
   if (!breakTypes[type]) return;
@@ -1558,42 +1591,85 @@ function setSport(type){
   /******************************************************************
    * REQUIRED SSE BRIDGE CLIENT (updated standard)
    ******************************************************************/
-  const BRIDGE_LS = {
-    URL: "overlay.bridge.url",
-    KEY: "overlay.bridge.key",
-  };
+const BRIDGE_LS = {
+  URL: "tsu.bridge",
+  KEY: "tsu.key",
+  OVERLAY: "tsu.overlayId",
+  CHANNEL: "tsu.channel",
+  URL_LEGACY: "tsu.bridgeUrl",
+  KEY_LEGACY: "tsu.bridgeKey",
+};
 
-  function getBridgeBase() {
-    const q = getParam("bridge");
-    if (q) {
-      const cleaned = q.replace(/\/$/, "").replace(/\/(events|stream)(\/.*)?$/, "");
-      localStorage.setItem(BRIDGE_LS.URL, cleaned);
-      return cleaned;
-    }
-    return (localStorage.getItem(BRIDGE_LS.URL) || "").replace(/\/$/, "");
+function cleanUrl(u){ return String(u || "").trim().replace(/\/$/, ""); }
+
+function normalizeBridge(u){
+  return cleanUrl(u).replace(/\/(events|stream)(\/.*)?$/,"");
+}
+
+function cleanUrl(u){ return String(u || "").trim().replace(/\/$/, ""); }
+
+function normalizeBridge(u){
+  return cleanUrl(u).replace(/\/(events|stream)(\/.*)?$/,"");
+}
+
+function getBridgeBase() {
+  const q = getParam("bridge");
+  if (q) {
+    const cleaned = normalizeBridge(q);
+    localStorage.setItem(BRIDGE_LS.URL, cleaned);
+    return cleaned;
   }
 
-  function getBridgeKey() {
-    const q = getParam("key");
-    if (q) {
-      localStorage.setItem(BRIDGE_LS.KEY, q);
-      return q;
-    }
-    return localStorage.getItem(BRIDGE_LS.KEY) || "";
+  const std = localStorage.getItem(BRIDGE_LS.URL);
+  if (std) return std.trim().replace(/\/$/, "");
+
+  const legacy = localStorage.getItem(BRIDGE_LS.URL_LEGACY);
+  if (legacy) {
+    const cleaned = String(legacy).trim().replace(/\/$/, "");
+    localStorage.setItem(BRIDGE_LS.URL, cleaned);
+    return cleaned;
   }
 
-  function getChannel() {
-    return (getParam("channel") || "main").toLowerCase();
+  return "";
+}
+
+function getBridgeKey() {
+  const q = getParam("key");
+  if (q) {
+    const k = q.trim();
+    localStorage.setItem(BRIDGE_LS.KEY, k);
+    return k;
   }
+
+  const std = (localStorage.getItem(BRIDGE_LS.KEY) || "").trim();
+  if (std) return std;
+
+  const legacy = (localStorage.getItem(BRIDGE_LS.KEY_LEGACY) || "").trim();
+  if (legacy) {
+    localStorage.setItem(BRIDGE_LS.KEY, legacy);
+    return legacy;
+  }
+
+  return "";
+}
+function getChannel() {
+  const q = (getParam("channel") || localStorage.getItem(BRIDGE_LS.CHANNEL) || "main");
+  const ch = String(q).trim().toLowerCase() || "main";
+  localStorage.setItem(BRIDGE_LS.CHANNEL, ch);
+  return ch;
+}
 
 function getScoresChannel(){
   return (getParam("scoresChannel") || "sports").toLowerCase();
 }
 
 
-  function getOverlayId() {
-    return (getParam("overlay") || "powercardshop-overlay").toLowerCase();
-  }
+function getOverlayId() {
+  const q = (getParam("overlay") || localStorage.getItem(BRIDGE_LS.OVERLAY) || "powercardshop-overlay");
+  const id = String(q).trim().toLowerCase() || "powercardshop-overlay";
+  localStorage.setItem(BRIDGE_LS.OVERLAY, id);
+  return id;
+}
 
   function bridgeEnabled() {
     return !!getBridgeBase();
@@ -1829,8 +1905,10 @@ function inferTeamCodeFromSaleTitle(title, breakType){
 }
 
 
-  function handleSSEEvent(data){
-    if (!data || !data.type) return;
+function handleSSEEvent(data){
+  if (!data || !data.type) return;
+
+  if (!breakIdMatches(data)) return;
 
 
     
@@ -1932,21 +2010,21 @@ if (data.type === "team_sold") {
 }
 
     // Team unsold
-    if (data.type === "team_unsold") {
-      let code = getCodeFromPayload(data);
-      if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+if (data.type === "team_unsold") {
+  let code = getCodeFromPayload(data);
+  if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
 
-      // ✅ IMPORTANT: do NOT use productId here
-      const listingKey = data.listingId || data.saleId || data.id || null;
+  // Match sold-event key priority exactly
+  const listingKey = data.saleId || data.id || data.listingId || null;
 
-      if (code) sseMarkUnsold(code);
+  if (code) sseMarkUnsold(code);
 
-      if (listingKey) {
-        const cur = lastCodeByListingKey.get(listingKey);
-        if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
-      }
-      return;
-    }
+  if (listingKey) {
+    const cur = lastCodeByListingKey.get(listingKey);
+    if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+  }
+  return;
+}
     // Whatnot purchase automation (robust)
     // Common shapes:
     // {type:"whatnot_purchase", sport:"nba", code:"LAL", buyer:"Mike"}
@@ -2116,7 +2194,10 @@ if (ENABLE_SCORES) {
   connectScoresSSE({ onEvent: handleSSEEvent, onStatus: () => {} });
 }
 
-    bridgeWarmup({ breakId: `apex:${currentBreakType}:${loadBreakNumber()}` });
+    bridgeWarmup({
+  breakId: computeBreakId(),
+  sport: currentBreakType
+});
   });
 </script>
  
