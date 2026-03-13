@@ -40,7 +40,7 @@
     *{ box-sizing:border-box; }
 
     body{
-      margin:15px;
+      margin-top:265px;
       background:transparent;
       font-family: "Arial Black", Arial, sans-serif;
       width:1080px;
@@ -515,7 +515,7 @@
       display:flex;
       flex-direction:column;
       justify-content:center;
-      font-size: 18px;
+      font-size: 25px;
       border: 2px solid var(--goldBorder);
       min-height: 58px;
     }
@@ -541,6 +541,7 @@
       color: rgba(255,255,255,0.85);
       min-height: 58px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      width: 800px;
     }
 
     .btn{
@@ -750,43 +751,41 @@
     }
     .promo-actions .mini:active{ transform: translateY(1px); }
 
-    .promo-body{
-      height: calc(100% - 36px);
-      display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      padding: 10px;
-      align-items:center;
-    }
+  .promo-body.single{
+  height: calc(100% - 36px);
+  position: relative;
+  overflow:hidden;
+}
 
-    .promo-slot{
-      height: 100%;
-      border-radius: 10px;
-      border: 2px dashed rgba(255,255,255,0.55);
-      background: rgba(0,0,0,0.22);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      position: relative;
-      overflow:hidden;
-    }
-    .promo-slot img{
-      width:100%;
-      height:100%;
-      object-fit: cover;
-      display:none;
-    }
-    .promo-slot.has-img img{ display:block; }
-    .promo-slot .ph{
-      font-weight: 900;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      font-size: 12px;
-      opacity: 0.85;
-      color:#fff;
-      text-align:center;
-      padding: 0 6px;
-    }
+.promo-body.single img{
+  width:100%;
+  height:100%;
+  object-fit: cover;
+  display:block;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.promo-body.single img.show{
+  opacity: 1;
+}
+
+.promo-empty{
+  position:absolute;
+  inset: 0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: rgba(255,255,255,0.88);
+  background: rgba(0,0,0,0.18);
+  border: 2px dashed rgba(255,255,255,0.55);
+  border-radius: 10px;
+  margin: 10px;
+}
 
     .promo-resizer{
       position:absolute;
@@ -849,13 +848,14 @@
 
       <div class="sold-controls">
         <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="newBreak()">🧾 NEW BREAK</button>
-        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="openBreakEditor()">🔢 BREAK #</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="togglePromoBanner()">📣 PROMO</button>
+<button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="openPromoManager()">🖼 PROMO IMAGES</button>
         <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="cycleSport()">⚙ SPORT</button>
 
         <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="openTitleEditor()">🏷 TITLE</button>
         <button class="btn ghost" id="openTickerEditorBtn" style="padding:8px 10px; font-size:12px;" onclick="openTickerEditor()">📰 TICKER</button>
 
-        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="togglePromoBanner()">📣 PROMO</button>
+       
 
         <div class="sse" id="sseStatus">
           SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
@@ -867,37 +867,21 @@
 
     <div id="soldList" class="sold-list-grid"></div>
   </div>
+<!-- ===== PROMO BANNER (Detached) ===== -->
+<div class="promo-banner wick" id="promoBanner">
+  <div class="promo-head" id="promoDragHandle">
+    <div class="promo-title">📣 PROMO BANNER (DRAG + RESIZE)</div>
+  </div>
 
-  <!-- ===== PROMO BANNER (Detached) ===== -->
-  <div class="promo-banner wick" id="promoBanner">
-    <div class="promo-head" id="promoDragHandle">
-      <div class="promo-title">📣 PROMO BANNER (DRAG + RESIZE)</div>
-      <div class="promo-actions">
-        <label class="mini" for="promoUpload1">UPLOAD 1</label>
-        <input id="promoUpload1" type="file" accept="image/*" style="display:none" />
-        <label class="mini" for="promoUpload2">UPLOAD 2</label>
-        <input id="promoUpload2" type="file" accept="image/*" style="display:none" />
-        <label class="mini" for="promoUpload3">UPLOAD 3</label>
-        <input id="promoUpload3" type="file" accept="image/*" style="display:none" />
-        <button class="mini" onclick="clearPromoImages()">CLEAR</button>
-        <button class="mini" onclick="togglePromoBanner(false)">CLOSE</button>
-      </div>
-    </div>
+  <div class="promo-body single" id="promoBodySingle">
+    <img id="promoRotatorImg" alt="Promo Rotator" />
+    <div class="promo-empty" id="promoEmptyLabel">NO PROMO IMAGES LOADED</div>
+  </div>
 
-    <div class="promo-body">
-      <div class="promo-slot" id="promoSlot1">
-        <img id="promoImg1" alt="Promo 1"/>
-        <div class="ph">IMAGE SLOT 1</div>
-      </div>
-      <div class="promo-slot" id="promoSlot2">
-        <img id="promoImg2" alt="Promo 2"/>
-        <div class="ph">IMAGE SLOT 2</div>
-      </div>
-      <div class="promo-slot" id="promoSlot3">
-        <img id="promoImg3" alt="Promo 3"/>
-        <div class="ph">IMAGE SLOT 3</div>
-      </div>
-    </div>
+  <div class="promo-resizer" id="promoResizer"></div>
+</div>
+
+
 
     <div class="promo-resizer" id="promoResizer"></div>
   </div>
@@ -2085,181 +2069,294 @@
     updateSoldList();
   }
 
-  // ===== PROMO: show/hide, drag, resize, upload, persist =====
-  function loadPromoOpen(){
-    const raw = localStorage.getItem(LS.PROMO_OPEN);
-    return raw === "true";
-  }
-  function savePromoOpen(v){ localStorage.setItem(LS.PROMO_OPEN, v ? "true" : "false"); }
+// ===== PROMO: show/hide, drag, resize, rotation, uploads via modal =====
+LS.PROMO_ROTATE = "cstc.promo.rotateSec";
 
-  function togglePromoBanner(force){
-    const el = document.getElementById("promoBanner");
-    if (!el) return;
-    const next = (typeof force === "boolean") ? force : !el.classList.contains("open");
-    if (next) el.classList.add("open");
-    else el.classList.remove("open");
-    savePromoOpen(next);
+let promoRotateTimer = null;
+let promoIndex = 0;
+
+function loadPromoOpen(){
+  const raw = localStorage.getItem(LS.PROMO_OPEN);
+  return raw === "true";
+}
+function savePromoOpen(v){ localStorage.setItem(LS.PROMO_OPEN, v ? "true" : "false"); }
+
+function loadPromoRotateSec(){
+  const raw = parseInt(localStorage.getItem(LS.PROMO_ROTATE) || "8", 10);
+  return Number.isFinite(raw) ? Math.max(3, Math.min(30, raw)) : 8;
+}
+function savePromoRotateSec(sec){
+  const s = Math.max(3, Math.min(30, parseInt(sec||"8",10) || 8));
+  localStorage.setItem(LS.PROMO_ROTATE, String(s));
+  const a = document.getElementById("promoRotateRange");
+  const b = document.getElementById("promoRotateNum");
+  if (a) a.value = String(s);
+  if (b) b.value = String(s);
+  restartPromoRotation();
+}
+
+function togglePromoBanner(force){
+  const el = document.getElementById("promoBanner");
+  if (!el) return;
+  const next = (typeof force === "boolean") ? force : !el.classList.contains("open");
+  if (next) el.classList.add("open");
+  else el.classList.remove("open");
+  savePromoOpen(next);
+  if (next) restartPromoRotation();
+  else stopPromoRotation();
+}
+
+function loadPromoPos(){
+  const o = safeJson(localStorage.getItem(LS.PROMO_POS) || "", null);
+  return (o && typeof o === "object") ? o : { left: 0, top: 820 };
+}
+function savePromoPos(left, top){
+  localStorage.setItem(LS.PROMO_POS, JSON.stringify({ left, top }));
+}
+
+function loadPromoSize(){
+  const o = safeJson(localStorage.getItem(LS.PROMO_SIZE) || "", null);
+  return (o && typeof o === "object") ? o : { w: 1080, h: 170 };
+}
+function savePromoSize(w, h){
+  localStorage.setItem(LS.PROMO_SIZE, JSON.stringify({ w, h }));
+}
+
+function applyPromoGeometry(){
+  const el = document.getElementById("promoBanner");
+  if (!el) return;
+  const p = loadPromoPos();
+  const s = loadPromoSize();
+  el.style.left = `${Math.max(0, p.left|0)}px`;
+  el.style.top = `${Math.max(0, p.top|0)}px`;
+  el.style.width = `${Math.max(520, s.w|0)}px`;
+  el.style.height = `${Math.max(120, s.h|0)}px`;
+}
+
+function getPromoImages(){
+  return [
+    localStorage.getItem(LS.PROMO_IMG1) || "",
+    localStorage.getItem(LS.PROMO_IMG2) || "",
+    localStorage.getItem(LS.PROMO_IMG3) || ""
+  ].filter(Boolean);
+}
+
+function renderPromoFrame(){
+  const img = document.getElementById("promoRotatorImg");
+  const empty = document.getElementById("promoEmptyLabel");
+  if (!img || !empty) return;
+
+  const imgs = getPromoImages();
+
+  if (!imgs.length){
+    img.classList.remove("show");
+    img.removeAttribute("src");
+    empty.style.display = "flex";
+    return;
   }
 
-  function loadPromoPos(){
-    const o = safeJson(localStorage.getItem(LS.PROMO_POS) || "", null);
-    return (o && typeof o === "object") ? o : { left: 0, top: 820 };
-  }
-  function savePromoPos(left, top){
-    localStorage.setItem(LS.PROMO_POS, JSON.stringify({ left, top }));
-  }
+  empty.style.display = "none";
+  promoIndex = promoIndex % imgs.length;
+  const src = imgs[promoIndex];
 
-  function loadPromoSize(){
-    const o = safeJson(localStorage.getItem(LS.PROMO_SIZE) || "", null);
-    return (o && typeof o === "object") ? o : { w: 1080, h: 170 };
-  }
-  function savePromoSize(w, h){
-    localStorage.setItem(LS.PROMO_SIZE, JSON.stringify({ w, h }));
-  }
+  img.classList.remove("show");
+  img.src = src;
+  // force reflow for fade
+  void img.offsetHeight;
+  img.classList.add("show");
+}
 
-  function applyPromoGeometry(){
-    const el = document.getElementById("promoBanner");
-    if (!el) return;
-    const p = loadPromoPos();
-    const s = loadPromoSize();
-    el.style.left = `${Math.max(0, p.left|0)}px`;
-    el.style.top = `${Math.max(0, p.top|0)}px`;
-    el.style.width = `${Math.max(520, s.w|0)}px`;
-    el.style.height = `${Math.max(120, s.h|0)}px`;
-  }
+function stopPromoRotation(){
+  if (promoRotateTimer) clearInterval(promoRotateTimer);
+  promoRotateTimer = null;
+}
 
-  function setPromoImage(slot, dataUrl){
-    const img = document.getElementById(`promoImg${slot}`);
-    const wrap = document.getElementById(`promoSlot${slot}`);
-    if (!img || !wrap) return;
-    if (dataUrl){
-      img.src = dataUrl;
-      wrap.classList.add("has-img");
-    } else {
-      img.removeAttribute("src");
-      wrap.classList.remove("has-img");
+function restartPromoRotation(){
+  stopPromoRotation();
+  const banner = document.getElementById("promoBanner");
+  if (!banner || !banner.classList.contains("open")) return;
+
+  const imgs = getPromoImages();
+  promoIndex = 0;
+  renderPromoFrame();
+
+  if (imgs.length <= 1) return;
+
+  const sec = loadPromoRotateSec();
+  promoRotateTimer = setInterval(() => {
+    const nowImgs = getPromoImages();
+    if (!nowImgs.length) { renderPromoFrame(); return; }
+    promoIndex = (promoIndex + 1) % nowImgs.length;
+    renderPromoFrame();
+  }, sec * 1000);
+}
+
+function setPromoPreview(slot, dataUrl){
+  const el = document.getElementById(`promoPrev${slot}`);
+  if (!el) return;
+  if (dataUrl) el.src = dataUrl;
+  else el.removeAttribute("src");
+}
+
+function refreshPromoPreviews(){
+  setPromoPreview(1, localStorage.getItem(LS.PROMO_IMG1) || "");
+  setPromoPreview(2, localStorage.getItem(LS.PROMO_IMG2) || "");
+  setPromoPreview(3, localStorage.getItem(LS.PROMO_IMG3) || "");
+}
+
+function clearPromoImages(){
+  localStorage.removeItem(LS.PROMO_IMG1);
+  localStorage.removeItem(LS.PROMO_IMG2);
+  localStorage.removeItem(LS.PROMO_IMG3);
+  refreshPromoPreviews();
+  restartPromoRotation();
+}
+
+function openPromoManager(){
+  const modal = document.getElementById("promoModal");
+  if (!modal) return;
+
+  refreshPromoPreviews();
+  savePromoRotateSec(loadPromoRotateSec()); // sync inputs
+  modal.classList.add("open");
+}
+
+function closePromoManager(){
+  const modal = document.getElementById("promoModal");
+  if (!modal) return;
+  modal.classList.remove("open");
+
+  // clear file inputs so re-uploading same file triggers change
+  ["promoFile1","promoFile2","promoFile3"].forEach(id => {
+    const i = document.getElementById(id);
+    if (i) i.value = "";
+  });
+}
+
+function readFileToDataURL(file){
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function applyPromoSettings(){
+  const f1 = document.getElementById("promoFile1")?.files?.[0] || null;
+  const f2 = document.getElementById("promoFile2")?.files?.[0] || null;
+  const f3 = document.getElementById("promoFile3")?.files?.[0] || null;
+
+  try{
+    if (f1){
+      const u1 = await readFileToDataURL(f1);
+      localStorage.setItem(LS.PROMO_IMG1, u1);
     }
-  }
+    if (f2){
+      const u2 = await readFileToDataURL(f2);
+      localStorage.setItem(LS.PROMO_IMG2, u2);
+    }
+    if (f3){
+      const u3 = await readFileToDataURL(f3);
+      localStorage.setItem(LS.PROMO_IMG3, u3);
+    }
+  }catch(_){}
 
-  function loadPromoImages(){
-    setPromoImage(1, localStorage.getItem(LS.PROMO_IMG1) || "");
-    setPromoImage(2, localStorage.getItem(LS.PROMO_IMG2) || "");
-    setPromoImage(3, localStorage.getItem(LS.PROMO_IMG3) || "");
-  }
+  const speed = parseInt(
+    document.getElementById("promoRotateNum")?.value ||
+    document.getElementById("promoRotateRange")?.value ||
+    "8", 10
+  );
+  savePromoRotateSec(speed);
 
-  function clearPromoImages(){
-    localStorage.removeItem(LS.PROMO_IMG1);
-    localStorage.removeItem(LS.PROMO_IMG2);
-    localStorage.removeItem(LS.PROMO_IMG3);
-    loadPromoImages();
-  }
+  refreshPromoPreviews();
+  restartPromoRotation();
+  closePromoManager();
+}
 
-  function wirePromoUploads(){
-    const hook = (id, key, slot) => {
-      const inp = document.getElementById(id);
-      if (!inp) return;
-      inp.addEventListener("change", () => {
-        const f = inp.files && inp.files[0];
-        if (!f) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          const url = String(reader.result || "");
-          try { localStorage.setItem(key, url); } catch(_){}
-          setPromoImage(slot, url);
-          inp.value = "";
-        };
-        reader.readAsDataURL(f);
-      });
-    };
-    hook("promoUpload1", LS.PROMO_IMG1, 1);
-    hook("promoUpload2", LS.PROMO_IMG2, 2);
-    hook("promoUpload3", LS.PROMO_IMG3, 3);
-  }
+function wirePromoDrag(){
+  const banner = document.getElementById("promoBanner");
+  const handle = document.getElementById("promoDragHandle");
+  if (!banner || !handle) return;
 
-  function wirePromoDrag(){
-    const banner = document.getElementById("promoBanner");
-    const handle = document.getElementById("promoDragHandle");
-    if (!banner || !handle) return;
+  let dragging = false;
+  let startX = 0, startY = 0;
+  let startLeft = 0, startTop = 0;
 
-    let dragging = false;
-    let startX = 0, startY = 0;
-    let startLeft = 0, startTop = 0;
+  handle.addEventListener("mousedown", (e) => {
+    dragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
 
-    handle.addEventListener("mousedown", (e) => {
-      dragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
+    const rect = banner.getBoundingClientRect();
+    startLeft = rect.left;
+    startTop = rect.top;
 
-      const rect = banner.getBoundingClientRect();
-      startLeft = rect.left;
-      startTop = rect.top;
+    e.preventDefault();
+  });
 
-      e.preventDefault();
-    });
+  window.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
 
-    window.addEventListener("mousemove", (e) => {
-      if (!dragging) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
+    const left = Math.max(0, Math.round(startLeft + dx));
+    const top = Math.max(0, Math.round(startTop + dy));
 
-      const left = Math.max(0, Math.round(startLeft + dx));
-      const top = Math.max(0, Math.round(startTop + dy));
+    banner.style.left = `${left}px`;
+    banner.style.top = `${top}px`;
+  });
 
-      banner.style.left = `${left}px`;
-      banner.style.top = `${top}px`;
-    });
+  window.addEventListener("mouseup", () => {
+    if (!dragging) return;
+    dragging = false;
 
-    window.addEventListener("mouseup", () => {
-      if (!dragging) return;
-      dragging = false;
+    const rect = banner.getBoundingClientRect();
+    savePromoPos(Math.round(rect.left), Math.round(rect.top));
+  });
+}
 
-      const rect = banner.getBoundingClientRect();
-      savePromoPos(Math.round(rect.left), Math.round(rect.top));
-    });
-  }
+function wirePromoResize(){
+  const banner = document.getElementById("promoBanner");
+  const resizer = document.getElementById("promoResizer");
+  if (!banner || !resizer) return;
 
-  function wirePromoResize(){
-    const banner = document.getElementById("promoBanner");
-    const resizer = document.getElementById("promoResizer");
-    if (!banner || !resizer) return;
+  let resizing = false;
+  let startX = 0, startY = 0;
+  let startW = 0, startH = 0;
 
-    let resizing = false;
-    let startX = 0, startY = 0;
-    let startW = 0, startH = 0;
+  resizer.addEventListener("mousedown", (e) => {
+    resizing = true;
+    startX = e.clientX;
+    startY = e.clientY;
 
-    resizer.addEventListener("mousedown", (e) => {
-      resizing = true;
-      startX = e.clientX;
-      startY = e.clientY;
+    const rect = banner.getBoundingClientRect();
+    startW = rect.width;
+    startH = rect.height;
 
-      const rect = banner.getBoundingClientRect();
-      startW = rect.width;
-      startH = rect.height;
+    e.preventDefault();
+    e.stopPropagation();
+  });
 
-      e.preventDefault();
-      e.stopPropagation();
-    });
+  window.addEventListener("mousemove", (e) => {
+    if (!resizing) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
 
-    window.addEventListener("mousemove", (e) => {
-      if (!resizing) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
+    const w = Math.max(520, Math.round(startW + dx));
+    const h = Math.max(120, Math.round(startH + dy));
 
-      const w = Math.max(520, Math.round(startW + dx));
-      const h = Math.max(120, Math.round(startH + dy));
+    banner.style.width = `${w}px`;
+    banner.style.height = `${h}px`;
+  });
 
-      banner.style.width = `${w}px`;
-      banner.style.height = `${h}px`;
-    });
+  window.addEventListener("mouseup", () => {
+    if (!resizing) return;
+    resizing = false;
 
-    window.addEventListener("mouseup", () => {
-      if (!resizing) return;
-      resizing = false;
-
-      const rect = banner.getBoundingClientRect();
-      savePromoSize(Math.round(rect.width), Math.round(rect.height));
-    });
-  }
+    const rect = banner.getBoundingClientRect();
+    savePromoSize(Math.round(rect.width), Math.round(rect.height));
+  });
+}
 
   // ===== Init =====
   document.addEventListener("DOMContentLoaded", () => {
@@ -2273,13 +2370,13 @@
 
     buildLayout();
 
-    // promo init
-    applyPromoGeometry();
-    loadPromoImages();
-    wirePromoUploads();
-    wirePromoDrag();
-    wirePromoResize();
-    if (loadPromoOpen()) togglePromoBanner(true);
+// promo init
+applyPromoGeometry();
+refreshPromoPreviews();
+savePromoRotateSec(loadPromoRotateSec());
+wirePromoDrag();
+wirePromoResize();
+if (loadPromoOpen()) togglePromoBanner(true);
 
     // SSE init
     if (automationEnabled()) startSSE();
@@ -2291,17 +2388,19 @@
       closeTickerEditor();
       closeTitleEditor();
       closeBreakEditor();
+      closePromoManager();
     });
 
     // click outside to close
-    ["tickerModal","titleModal","breakModal"].forEach(id => {
+    ["tickerModal","titleModal","breakModal","promoModal"].forEach(id => {
       const m = document.getElementById(id);
       if (!m) return;
       m.addEventListener("click", (e) => {
         if (e.target === m){
-          if (id === "tickerModal") closeTickerEditor();
-          if (id === "titleModal") closeTitleEditor();
-          if (id === "breakModal") closeBreakEditor();
+if (id === "tickerModal") closeTickerEditor();
+if (id === "titleModal") closeTitleEditor();
+if (id === "breakModal") closeBreakEditor();
+if (id === "promoModal") closePromoManager();
         }
       });
     });
@@ -2432,6 +2531,79 @@
     </div>
   </div>
 </div>
+
+
+<!-- ===== PROMO MANAGER MODAL ===== -->
+<div class="modal-backdrop" id="promoModal">
+  <div class="modal-panel wick" role="dialog" aria-modal="true" aria-label="Promo Manager">
+    <div class="modal-head">
+      <div class="modal-title">Promo Images (3) + Rotation</div>
+      <div class="modal-actions">
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyPromoSettings()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closePromoManager()">CLOSE</button>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; align-items:start;">
+      <div style="background:rgba(0,0,0,0.25); border:2px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px;">
+        <div class="modal-title" style="margin-bottom:8px;">Uploads</div>
+
+        <div style="display:grid; grid-template-columns: 90px 1fr; gap:8px; align-items:center; margin-bottom:8px;">
+          <div style="font-weight:900; text-transform:uppercase; font-size:12px; opacity:0.9;">Image 1</div>
+          <input id="promoFile1" type="file" accept="image/*" />
+        </div>
+
+        <div style="display:grid; grid-template-columns: 90px 1fr; gap:8px; align-items:center; margin-bottom:8px;">
+          <div style="font-weight:900; text-transform:uppercase; font-size:12px; opacity:0.9;">Image 2</div>
+          <input id="promoFile2" type="file" accept="image/*" />
+        </div>
+
+        <div style="display:grid; grid-template-columns: 90px 1fr; gap:8px; align-items:center;">
+          <div style="font-weight:900; text-transform:uppercase; font-size:12px; opacity:0.9;">Image 3</div>
+          <input id="promoFile3" type="file" accept="image/*" />
+        </div>
+
+        <div style="height:10px;"></div>
+
+        <div class="modal-title" style="margin-bottom:6px;">Rotation (seconds)</div>
+        <div style="display:grid; grid-template-columns: 1fr 110px; gap:10px; align-items:center;">
+          <input id="promoRotateRange" type="range" min="3" max="30" step="1"
+            oninput="document.getElementById('promoRotateNum').value=this.value" />
+          <input id="promoRotateNum" class="sold-buyer-input" type="number" min="3" max="30" step="1"
+            oninput="document.getElementById('promoRotateRange').value=this.value" />
+        </div>
+
+        <div style="height:10px;"></div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="clearPromoImages()">CLEAR IMAGES</button>
+          <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="togglePromoBanner(true)">SHOW PROMO</button>
+          <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="togglePromoBanner(false)">HIDE PROMO</button>
+        </div>
+
+        <div class="ticker-hint" style="margin-top:8px;">
+          Images display full-size inside the promo box. Upload any dimensions; it will fill the box.
+        </div>
+      </div>
+
+      <div style="background:rgba(0,0,0,0.25); border:2px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px;">
+        <div class="modal-title" style="margin-bottom:8px;">Preview (current saved)</div>
+        <div style="display:grid; grid-template-columns: 1fr; gap:8px;">
+          <div style="height:110px; border-radius:10px; overflow:hidden; border:2px solid rgba(255,255,255,0.18); background:rgba(0,0,0,0.25);">
+            <img id="promoPrev1" style="width:100%; height:100%; object-fit:cover; display:block;" alt="Promo Preview 1">
+          </div>
+          <div style="height:110px; border-radius:10px; overflow:hidden; border:2px solid rgba(255,255,255,0.18); background:rgba(0,0,0,0.25);">
+            <img id="promoPrev2" style="width:100%; height:100%; object-fit:cover; display:block;" alt="Promo Preview 2">
+          </div>
+          <div style="height:110px; border-radius:10px; overflow:hidden; border:2px solid rgba(255,255,255,0.18); background:rgba(0,0,0,0.25);">
+            <img id="promoPrev3" style="width:100%; height:100%; object-fit:cover; display:block;" alt="Promo Preview 3">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 </body>
 </html>
