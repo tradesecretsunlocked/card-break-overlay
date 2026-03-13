@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=1080, initial-scale=1.0"/>
-  <title>The Power Card Shop – Box Break Overlay</title>
+  <meta name="viewport" content="width=920, initial-scale=1.0"/>
+  <title>Apex Card Company – Box Break Overlay</title>
 
   <style>
     :root{
@@ -16,7 +16,7 @@
       --bg1:#0f141a;
       --panel:#0b0f14;
       --tile:#06090d;
---apexOrange:#f2a53a;
+--apexOrange:#f39205;
       --steel:#a0a1a3;
       --silver:#e6e6e4;
       --slate:#22272d;
@@ -24,11 +24,10 @@
   --apexCharcoal:#2a2f36;
   --apexGraphite:#0d1116;
       --ember:#af3d03;
-      --orange:#f2a53a;
-      --ember:#c13a36;
-      --gold:#f2a53a;
+      --orange:#f39205;
+      --gold:#fde75a;
       --goldBorder: rgba(243,146,5,0.78);
---goldBorder: rgba(242,165,58,0.85);
+--goldBorder: rgba(243,146,5,0.90);
       --border: rgba(255,255,255,0.14);
       --text:#ffffff;
       --muted: rgba(255,255,255,0.78);
@@ -40,12 +39,11 @@
 
     *{ box-sizing:border-box; }
 body{
-                  /* kill the dead space */
+  margin:0;                 /* kill the dead space */
   background:transparent;
   font-family:"Arial Black", Arial, sans-serif;
   user-select:none;
   overflow:hidden;
- 
 }
 /* ===== FULLSCREEN BG VIDEO LAYER ===== */
 /* wrapper becomes the "canvas" that includes your margins */
@@ -57,7 +55,26 @@ body{
   overflow: visible;    /* IMPORTANT: prevents growth */
 }
 
+/* video sits BEHIND everything, but only within the wrapper (not the whole screen) */
+.bg-video{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit: contain;        /* SHOW full video (no crop) */
+  object-position: center;    /* center it */
+  z-index:0;
+  pointer-events:none;
+  top:-99px;
+}
 
+.bg-dim{
+  position:absolute;
+  inset:0;
+  background: rgba(0,0,0,0.25);
+  z-index:1;
+  pointer-events:none;
+}
 
 /* your overlay content goes above the video */
 .container,
@@ -65,13 +82,12 @@ body{
 .popup-mask{
   position: relative;
   z-index: 2;
-   
+   margin: 8px 0 0 0;   /* was auto centering */
   width: 1080px;       /* lock to overlay width */
 }
 /* keep your original sizing behavior */
 .container{
   width: 1080px; /* if you want it locked */
-align-self:center;
 }
 
 .container{
@@ -81,7 +97,7 @@ align-self:center;
 
   border: 4px solid var(--apexOrange);
   border-radius: 12px;
-  padding: 4px;
+  padding: 6px;
   box-shadow: 0 0 22px rgba(0,0,0,0.68);
   display:flex;
   height:435px;
@@ -165,7 +181,7 @@ align-self:center;
     .main-content{
       display:flex;
       flex-direction:column;
-      gap: 0px;
+      gap: 6px;
       flex:1;
       min-height:0;
     }
@@ -175,7 +191,7 @@ align-self:center;
   linear-gradient(180deg, rgba(255, 255, 255, 0.20) 0%, rgba(42, 47, 54, 0.55) 40%, rgb(54 54 54 / 82%) 100%);
 
   border-radius: 8px;
-  padding: 2px;
+  padding: 6px;
   border: 3px solid rgba(243,146,5,0.78);
   flex:1;
   min-height:0;
@@ -186,7 +202,7 @@ align-self:center;
     .row-grid{
       display:grid;
       gap: var(--gap);
-      margin-bottom: 2px;
+      margin-bottom: 6px;
       grid-template-columns: repeat(var(--cols), 1fr);
       align-items: stretch;
     }
@@ -205,13 +221,11 @@ align-self:center;
       transition: transform 0.1s, box-shadow 0.1s, border-color 0.2s;
     }
 
-.team:hover{
-  transform: translateY(-2px) scale(1.04);
-  box-shadow:
-    0 0 10px rgba(242,165,58,0.8),
-    0 0 20px rgba(242,165,58,0.5);
-  border-color: rgba(242,165,58,1);
-}
+    .team:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 0 10px rgba(255,255,255,0.16);
+      border-color: rgba(253,231,90,0.70);
+    }
 
     .team img{
       width:100%;
@@ -276,23 +290,14 @@ align-self:center;
       overflow:visible;
       position:relative;
     }
-.logo-slot img{
-  height:210px;
-  width:auto;
-  object-fit:contain;
-  position:absolute;
-  top:-123px;
-
-  filter:drop-shadow(0 2px 7px rgba(0,0,0,0.60));
-
-  animation:logoBreath 4s ease-in-out infinite;
-}
-
-@keyframes logoBreath{
-  0%{ transform:scale(1); }
-  50%{ transform:scale(1.06); }
-  100%{ transform:scale(1); }
-}
+    .logo-slot img{
+      height: 175px;
+      width: auto;
+      object-fit: contain;
+      position:absolute;
+      top: -93px;
+      filter: drop-shadow(0 2px 7px rgba(0,0,0,0.60));
+    }
 
     /* ===== TICKER ROW ===== */
     .ticker-slot{
@@ -368,53 +373,11 @@ align-self:center;
       box-shadow: 0 2px 4px rgba(0,0,0,0.25);
       display:flex;
       flex-direction:column;
-      min-width:100px;
+      min-width:150px;
       justify-content:center;
       font-size: 18px;
       border: 2px solid var(--goldBorder);
     }
-
-.promo-box{
-
-flex:1;
-
-background:linear-gradient(
-135deg,
-rgba(242,165,58,0.95),
-rgba(193,58,54,0.95)
-);
-
-border-radius:10px;
-
-display:flex;
-align-items:center;
-justify-content:center;
-
-font-size:24px;
-font-weight:900;
-
-color:#fff;
-
-border:2px solid var(--goldBorder);
-
-text-shadow:
-0 2px 6px rgba(0,0,0,0.8);
-
-overflow:hidden;
-
-}
-
-.promo-flip{
-animation:promoFlip .6s ease;
-}
-
-@keyframes promoFlip{
-
-0%{ transform:rotateX(90deg); opacity:0 }
-100%{ transform:rotateX(0deg); opacity:1 }
-
-}
-
 
     .stat-label{
       font-size: 11px;
@@ -438,7 +401,7 @@ animation:promoFlip .6s ease;
       align-items:center;
       justify-content:center;
       gap: 6px;
-      padding: 6px 2px;
+      padding: 10px 10px;
     }
 
     .btn.secondary{
@@ -457,7 +420,7 @@ animation:promoFlip .6s ease;
 
     /* ===== SOLD LIST ===== */
     .sold-list-container{
-
+      margin: 8px auto 0 auto;
       
       width: 1080px;
       background: linear-gradient(180deg, rgba(5,6,7,1) 0%, rgba(15,20,26,1) 100%);
@@ -531,8 +494,8 @@ animation:promoFlip .6s ease;
 
     .sold-list-grid{
       display:grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 4px 8px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px 12px;
     }
 
     .sold-row{
@@ -581,13 +544,12 @@ animation:promoFlip .6s ease;
       display:flex;
       align-items:center;
       gap: 6px;
-      font-size: 9px;
+      font-size: 11px;
       font-weight: 900;
       letter-spacing: 1px;
-      color:white;
       text-transform: uppercase;
       opacity: 0.95;
-      padding: 4px 6px;
+      padding: 6px 8px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.12);
       background: rgba(0,0,0,0.18);
@@ -706,13 +668,25 @@ animation:promoFlip .6s ease;
 </head>
 
 <body>
+ <!-- FOREGROUND WRAPPER (keeps your margins) -->
+  <div class="overlay-wrap">
+  <!-- FULLSCREEN BACKGROUND VIDEO -->
+  <video class="bg-video" autoplay muted loop playsinline>
+    <source src="overlay-bg.mp4" type="video/mp4" />
+  </video>
+
+  <!-- Optional dark overlay so the UI pops more -->
+  <div class="bg-dim"></div>
+
+ 
+
 
 
   <div class="container">
     <div class="header" id="header">
       <div class="header-left">
         <div class="header-icon"></div>
-        <div class="header-text" id="headerText">POWER CARD SHOP BREAK</div>
+        <div class="header-text" id="headerText">NBA BOX BREAK</div>
       </div>
 
       <div class="header-right">
@@ -731,25 +705,22 @@ animation:promoFlip .6s ease;
       <div class="controls-row">
         <button class="btn secondary" onclick="newBreak()">🧾 NEW BREAK</button>
 
-
+      <div class="stat-box">
+  <div id="teamsLeft">0</div>
+  <div class="stat-label">REMAINING</div>
+</div>
 
 <div class="stat-box" id="highBidBox" onclick="openHighBidPopup()">
   <div id="highBidValue">$0</div>
   <div class="stat-label">HIGH BID</div>
 </div>
-<div class="promo-box" id="promoBox">
-  <div id="promoText">POWER CARD SHOP</div>
-</div>
-      <div class="stat-box">
-  <div id="teamsLeft">0</div>
-  <div class="stat-label">REMAINING</div>
-</div>
+
 <div class="stat-box">
   <div id="teamsSold">0</div>
   <div class="stat-label">SOLD</div>
 </div>
 
-       
+        <button class="btn ghost" onclick="cycleSport()">⚙ CHANGE SPORT</button>
       </div>
     </div>
   </div>
@@ -760,12 +731,9 @@ animation:promoFlip .6s ease;
 
       <div class="sold-controls">
 <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openBreakPopup()">SET BREAK</button>
-<button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="cycleSport()">CHANGE SPORT</button>
+<button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="openTitlePopup()">SET TITLE</button>
 <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openTickerPopup()">EDIT TICKER</button>
-<button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openPromoPopup()">PROMOS</button>
-<button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="cycleSort()">CHANGE SPORT</button>
-
-
+<button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openExportPopup()">EXPORT TSV</button>
 
         <div class="sse" id="sseStatus">
           SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
@@ -819,6 +787,16 @@ animation:promoFlip .6s ease;
   </div>
 </div>
 
+<div id="exportPopup" class="popup-mask hidden">
+  <div class="popup-card">
+    <h2 class="popup-title">Export (TSV for Excel/Sheets)</h2>
+    <textarea id="exportBox" class="popup-textarea"></textarea>
+    <div class="popup-buttons">
+      <button id="copyExportBtn" onclick="copyExportTSV()">COPY</button>
+      <button onclick="closeExportPopup()">CLOSE</button>
+    </div>
+  </div>
+</div>
 
 <div id="highBidPopup" class="popup-mask hidden">
   <div class="popup-card">
@@ -831,23 +809,6 @@ animation:promoFlip .6s ease;
   </div>
 </div>
 
-<div id="promoPopup" class="popup-mask hidden">
-  <div class="popup-card">
-    <h2 class="popup-title">Promo Messages</h2>
-
-<textarea id="promoInput" class="popup-textarea"></textarea>
-
-<div class="slider-wrap">
-<div class="slider-pill">FLIP SPEED</div>
-<input id="promoSpeedSlider" type="range" min="2000" max="20000" step="1000">
-</div>
-
-<div class="popup-buttons">
-<button onclick="applyPromoPopup()">APPLY</button>
-<button onclick="closePromoPopup()">CANCEL</button>
-</div>
-</div>
-</div>
 
 <script>
   /******************************************************************
@@ -869,7 +830,7 @@ animation:promoFlip .6s ease;
   // ../../images/nba/*.png
   // ../../images/mlb/*.png
 
-  const LOGO_PRIMARY = `${BASE}images/logos/powercardshop-logo.png`;
+  const LOGO_PRIMARY = `${BASE}images/logos/apex-logo.png`;
 
   const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
   const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
@@ -887,12 +848,11 @@ animation:promoFlip .6s ease;
   /******************************************************************
    * TICKER (persist)
    ******************************************************************/
- const TICKER_KEY = "powercardshop.tickerLines";
-
-const DEFAULT_TICKER_LINES = [
-  "POWER CARD SHOP",
-  "LIVE BREAKS • FAST SHIPPING • GOOD LUCK"
-];
+  const TICKER_KEY = "apex.tickerLines";
+  const DEFAULT_TICKER_LINES = [
+    "APEX CARD COMPANY",
+    "LIVE BREAKS • FAST SHIPPING • GOOD LUCK"
+  ];
 
   function loadTickerLines(){
     try{
@@ -979,7 +939,7 @@ syncTickerInput();
   /******************************************************************
    * BREAK NUMBER (persist)
    ******************************************************************/
- const BREAK_KEY = "powercardshop.breakNumber";
+  const BREAK_KEY = "apex.breakNumber";
 
   function loadBreakNumber(){
     const raw = localStorage.getItem(BREAK_KEY);
@@ -1010,9 +970,9 @@ syncTickerInput();
 /******************************************************************
  * TITLE + TICKER SPEED + HIGH BID (persist)
  ******************************************************************/
-const TITLE_KEY = "powercardshop.customTitle";
-const TICKER_SPEED_KEY = "powercardshop.tickerPxPerSec";
-const HIGH_BID_KEY_PREFIX = "powercardshop.highBid.";
+const TITLE_KEY = "apex.customTitle";
+const TICKER_SPEED_KEY = "apex.tickerPxPerSec";
+const HIGH_BID_KEY_PREFIX = "apex.highBid."; // scoped per sport+break
 
 function getHighBidKey(){
   return `${HIGH_BID_KEY_PREFIX}${currentBreakType}.${loadBreakNumber()}`;
@@ -1080,41 +1040,6 @@ function applyTitlePopup(){
   closeTitlePopup();
 }
 
-function openPromoPopup(){
-
-document.getElementById("promoInput").value=PROMO_MESSAGES.join("\n");
-
-document.getElementById("promoSpeedSlider").value=loadPromoSpeed();
-
-showPopup("promoPopup");
-
-}
-
-function closePromoPopup(){ hidePopup("promoPopup"); }
-
-function applyPromoPopup(){
-  const lines = document.getElementById("promoInput").value
-    .split("\n")
-    .map(x => x.trim())
-    .filter(Boolean);
-
-  PROMO_MESSAGES = lines.length ? lines : ["FAST SHIPPING","LIVE BREAKS","GOOD LUCK"];
-  promoIndex = 0;
-
-  savePromos(PROMO_MESSAGES);
-  localStorage.setItem(PROMO_SPEED_KEY, document.getElementById("promoSpeedSlider").value);
-
-  const el = document.getElementById("promoText");
-  if (el) {
-    el.classList.remove("promo-flip");
-    void el.offsetWidth;
-    el.classList.add("promo-flip");
-    el.textContent = PROMO_MESSAGES[0];
-  }
-startPromo();
-  closePromoPopup();
-}
-
 // Ticker popup
 function openTickerPopup(){
   const inp = document.getElementById("tickerPopupInput");
@@ -1146,7 +1071,38 @@ function applyTickerPopup(){
   closeTickerPopup();
 }
 
+// Export popup
+function openExportPopup(){
+  const box = document.getElementById("exportBox");
+  if (box) box.value = buildExportTSV();
+  const btn = document.getElementById("copyExportBtn");
+  if (btn) btn.textContent = "COPY";
+  showPopup("exportPopup");
+}
+function closeExportPopup(){ hidePopup("exportPopup"); }
 
+async function copyExportTSV(){
+  const box = document.getElementById("exportBox");
+  const btn = document.getElementById("copyExportBtn");
+  if (!box) return;
+
+  const text = box.value || "";
+  try{
+    await navigator.clipboard.writeText(text);
+    if (btn) btn.textContent = "COPIED!";
+    setTimeout(() => { if (btn) btn.textContent = "COPY"; }, 900);
+  }catch(_){
+    box.focus();
+    box.select();
+    try{
+      const ok = document.execCommand("copy");
+      if (btn) btn.textContent = ok ? "COPIED!" : "SELECT + COPY";
+      setTimeout(() => { if (btn) btn.textContent = "COPY"; }, 900);
+    }catch(__){
+      if (btn) btn.textContent = "SELECT + COPY";
+    }
+  }
+}
 
 // High bid popup
 function openHighBidPopup(){
@@ -1170,7 +1126,7 @@ function applyHighBidPopup(){
       name: "NBA",
       cols: 8,
       layout: "NBA_MLB_30",
-      tileH: 54,
+      tileH: 46,
       teams: [
         { code:'ATL', name:'hawks', image: imgPathNBA('hawks.png') },
         { code:'BOS', name:'celtics', image: imgPathNBA('celtics.png') },
@@ -1592,7 +1548,7 @@ function getScoresChannel(){
 
 
   function getOverlayId() {
-    return (getParam("overlay") || "powercardshop-overlay").toLowerCase();
+    return (getParam("overlay") || "apex-overlay").toLowerCase();
   }
 
   function bridgeEnabled() {
@@ -2011,67 +1967,31 @@ if (!soldTeamsList.some(x => x.code === code)) {
     updateSoldList();
   }
 
-
-
-/******************************************************************
-PROMO ROTATOR
-******************************************************************/
-
-const PROMO_KEY="powercardshop.promos";
-const PROMO_SPEED_KEY="powercardshop.promoSpeed";
-
-let PROMO_MESSAGES=[];
-let promoIndex=0;
-let promoTimer=null;
-
-function loadPromos(){
-
-  try{
-    const raw=localStorage.getItem(PROMO_KEY);
-    if(!raw) return ["FAST SHIPPING","LIVE BREAKS","GOOD LUCK"];
-    return JSON.parse(raw);
-  }catch{
-    return ["FAST SHIPPING","LIVE BREAKS","GOOD LUCK"];
-  }
-
+function formatNow(){
+  // Simple + consistent for spreadsheets
+  return new Date().toISOString();
 }
 
-function savePromos(arr){
-localStorage.setItem(PROMO_KEY,JSON.stringify(arr));
+function buildExportTSV(){
+  const breakNum = loadBreakNumber();
+  const sport = currentBreakType.toUpperCase();
+  const date = formatNow();
+
+  // Header row
+  let tsv = "Team\tBuyer\tDate\tBreak#\tSport\n";
+
+  const currentBreak = breakTypes[currentBreakType];
+  soldTeamsList.forEach(entry => {
+    const teamObj = currentBreak.teams.find(t => t.code === entry.code);
+    const teamName = (teamObj?.name || entry.code || "").toString();
+    const buyer = (entry.buyer || "").toString().replace(/\t|\n/g, " ").trim();
+    tsv += `${teamName}\t${buyer}\t${date}\t${breakNum}\t${sport}\n`;
+  });
+
+  return tsv;
 }
 
-function loadPromoSpeed(){
-return parseInt(localStorage.getItem(PROMO_SPEED_KEY)||"8000");
-}
 
-function rotatePromo(){
-
-  if(!PROMO_MESSAGES.length) return;
-
-  promoIndex=(promoIndex+1)%PROMO_MESSAGES.length;
-
-  const el=document.getElementById("promoText");
-
-  if(!el) return;
-
-  el.classList.remove("promo-flip");
-  void el.offsetWidth;
-  el.classList.add("promo-flip");
-
-  el.textContent=PROMO_MESSAGES[promoIndex];
-
-}
-
-function startPromo(){
-  PROMO_MESSAGES = loadPromos();
-  promoIndex = 0;
-
-  const el = document.getElementById("promoText");
-  if (el) el.textContent = PROMO_MESSAGES[0] || "POWER CARD SHOP";
-
-  if (promoTimer) clearInterval(promoTimer);
-  promoTimer = setInterval(rotatePromo, loadPromoSpeed());
-}
   /******************************************************************
    * INIT
    ******************************************************************/
@@ -2082,7 +2002,7 @@ function startPromo(){
 
     setBreakNumber(loadBreakNumber());
     buildLayout();
-startPromo();
+
     const ti = document.getElementById("tickerInput");
     if (ti){
       syncTickerInput();
@@ -2119,7 +2039,7 @@ if (ENABLE_SCORES) {
     bridgeWarmup({ breakId: `apex:${currentBreakType}:${loadBreakNumber()}` });
   });
 </script>
- 
+ </div> <!-- /overlay-wrap -->
 </body>
  
 </html>
