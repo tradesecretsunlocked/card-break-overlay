@@ -864,7 +864,7 @@ animation:promoFlip .6s ease;
   // ../../images/nba/*.png
   // ../../images/mlb/*.png
 
-  const LOGO_PRIMARY = `${BASE}images/logos/powercardshop-logo1.png`;
+  const LOGO_PRIMARY = `${BASE}images/logos/powercardshop-logo.png`;
 
   const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
   const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
@@ -874,28 +874,6 @@ animation:promoFlip .6s ease;
    * PARAMS / FEATURE FLAGS (REQUIRED standards compatible)
    ******************************************************************/
   function getParam(name) { return new URLSearchParams(location.search).get(name); }
-  function normId(v){
-  return String(v || "").trim();
-}
-
-function getOverlayLiveId(){
-  return normId(getParam("liveId") || localStorage.getItem("powercardshop.liveId") || "");
-}
-
-function liveIdMatches(payload){
-  const overlayLiveId = getOverlayLiveId();
-  if (!overlayLiveId) return true; // no filter set, allow all
-
-  const incomingLiveId = normId(
-    payload?.liveId ||
-    payload?.live_id ||
-    payload?.streamId ||
-    payload?.stream_id
-  );
-
-  if (!incomingLiveId) return false; // overlay expects a liveId, event doesn't have one
-  return incomingLiveId === overlayLiveId;
-}
 
   // Enable scores by default since you asked for live sports updates from SSE
   // You can disable with ?scores=0 if needed
@@ -1757,10 +1735,9 @@ const url = `${base}/stream?channel=${encodeURIComponent(channel)}${key ? `&key=
 function connectScoresSSE({ onEvent, onStatus }){
   if (!bridgeEnabled()) return;
 
-const base = getBridgeBase();
-const channel = getScoresChannel();
-const key = getBridgeKey();
-const url = `${base}/stream?channel=${encodeURIComponent(channel)}${key ? `&key=${encodeURIComponent(key)}` : ""}`;
+  const base = getBridgeBase();
+  const channel = getScoresChannel();
+  const url = `${base}/stream?channel=${encodeURIComponent(channel)}`;
 
   if (sseScores) try { sseScores.close(); } catch(_){}
   sseScores = new EventSource(url);
@@ -1933,8 +1910,9 @@ function handleSSEEvent(data){
   const type = String(payload.type || data.type || "").toLowerCase();
 
   if (!type) return;
+  if (!breakIdMatches(payload)) return;
 
-  // scores from bridge do not carry liveId/breakId
+  // Scores feed
   if (type === "scores" && ENABLE_SCORES){
     const sport = String(payload.sport || payload.league || "").toLowerCase().trim();
     const txt = normalizeScorePayloadToText(payload);
@@ -1947,9 +1925,6 @@ function handleSSEEvent(data){
     updateTickerMarquee();
     return;
   }
-
-  if (!liveIdMatches(payload)) return;
-  if (!breakIdMatches(payload)) return;
 
   if (type === "set_title"){
     const t = String(payload.title || payload.value || "").trim();
@@ -1994,6 +1969,8 @@ function handleSSEEvent(data){
 
   if (type === "team_sold" || type === "whatnot_purchase" || type === "purchase" || type === "sale" || type === "sold"){
     const sport = getSportFromPayload(payload);
+
+    // do not let another sport hijack this overlay
     if (sport && sport !== currentBreakType) return;
 
     let code = getCodeFromPayload(payload);
@@ -2146,13 +2123,10 @@ function startPromo(){
   /******************************************************************
    * INIT
    ******************************************************************/
-document.addEventListener("DOMContentLoaded", () => {
-  // REQUIRED: subscribe to sport via ?sport= (and only allow known breakTypes)
-  const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
-  if (qSport && breakTypes[qSport]) currentBreakType = qSport;
-
-  const qLiveId = normId(getParam("liveId"));
-  if (qLiveId) localStorage.setItem("powercardshop.liveId", qLiveId);
+  document.addEventListener("DOMContentLoaded", () => {
+    // REQUIRED: subscribe to sport via ?sport= (and only allow known breakTypes)
+    const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
+    if (qSport && breakTypes[qSport]) currentBreakType = qSport;
 
     setBreakNumber(loadBreakNumber());
     buildLayout();
