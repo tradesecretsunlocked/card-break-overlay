@@ -1349,6 +1349,7 @@ function applyHighBidPopup(){
   let soldTeams = new Set();        // codes
   let soldTeamsList = [];           // {code,buyer}
 const lastCodeByListingKey = new Map(); // listingId/saleId -> last assigned team code (handles respins)
+const lastBuyerByListingKey = new Map();
 // Scores per sport (from SSE)
 const SCORES_BY_SPORT = { nba: "", nfl: "", mlb: "" };
 const SCORES_UPDATED_AT = { nba: 0, nfl: 0, mlb: 0 };
@@ -1579,14 +1580,15 @@ setHighBid(loadHighBid());
     });
   }
 
-  function resetAll(){
-    soldTeams.clear();
-    soldTeamsList = [];
-    lastCodeByListingKey.clear();
-    document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
-    updateStats();
-    updateSoldList();
-  }
+function resetAll(){
+  soldTeams.clear();
+  soldTeamsList = [];
+  lastCodeByListingKey.clear();
+  lastBuyerByListingKey.clear();
+  document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
+  updateStats();
+  updateSoldList();
+}
 
 function newBreak(){
   resetAll();
@@ -1992,28 +1994,42 @@ function handleSSEEvent(data){
     return;
   }
 
-  if (type === "team_sold" || type === "whatnot_purchase" || type === "purchase" || type === "sale" || type === "sold"){
-    const sport = getSportFromPayload(payload);
-    if (sport && sport !== currentBreakType) return;
+if (type === "team_sold" || type === "whatnot_purchase" || type === "purchase" || type === "sale" || type === "sold"){
+  const sport = getSportFromPayload(payload);
+  if (sport && sport !== currentBreakType) return;
 
-    let code = getCodeFromPayload(payload);
-    const buyer = getBuyerFromPayload(payload);
+  let code = getCodeFromPayload(payload);
+  const incomingBuyer = getBuyerFromPayload(payload);
+  const listingKey = payload.saleId || payload.id || payload.listingId || null;
 
-    if (!code) code = inferTeamCodeFromSaleTitle(payload.title, currentBreakType);
+  if (!code) code = inferTeamCodeFromSaleTitle(payload.title, currentBreakType);
 
-    const listingKey = payload.saleId || payload.id || payload.listingId || null;
-
-    if (listingKey && code){
-      const prevCode = lastCodeByListingKey.get(listingKey);
-      if (prevCode && prevCode !== code){
-        sseMarkUnsold(prevCode);
-      }
-      lastCodeByListingKey.set(listingKey, code);
-    }
-
-    if (code) sseMarkSold(code, buyer);
-    return;
+  if (listingKey && incomingBuyer){
+    lastBuyerByListingKey.set(listingKey, incomingBuyer);
   }
+
+  const buyer = incomingBuyer || (listingKey ? (lastBuyerByListingKey.get(listingKey) || "") : "");
+
+  if (listingKey && code){
+    const prevCode = lastCodeByListingKey.get(listingKey);
+    if (prevCode && prevCode !== code){
+      sseMarkUnsold(prevCode);
+    }
+    lastCodeByListingKey.set(listingKey, code);
+  }
+
+  if (code) {
+    sseMarkSold(code, buyer);
+    if (buyer) sseUpdateBuyer(code, buyer);
+
+    const saleAmount = parseFloat(payload.amount ?? payload.value ?? payload.bid ?? "0");
+    if (Number.isFinite(saleAmount) && saleAmount >= 0) {
+      const cur = loadHighBid();
+      if (saleAmount > cur) setHighBid(saleAmount);
+    }
+  }
+  return;
+}
 
   if (type === "team_unsold"){
     const sport = getSportFromPayload(payload);
