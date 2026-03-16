@@ -466,20 +466,30 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
     }
 
     /* ===== Ticker ===== */
+    /* ===== Ticker ===== */
     .ticker{
       width:100%;
       overflow:hidden;
       height: 40px;
       border-radius: 12px;
-      background: linear-gradient(90deg, rgba(255,214,92,0.16), rgba(0, 0, 0, 0.849), rgba(208,176,96,0.18));
+      background: linear-gradient(90deg, rgba(255,214,92,0.16), rgba(0,0,0,0.849), rgba(208,176,96,0.18));
       border: 2px solid rgba(255,214,92,0.16);
+      --ticker-duration: 18s;
+    }
+
+    .ticker-track{
+      display: inline-flex;
+      align-items: center;
+      width: max-content;
+      white-space: nowrap;
+      will-change: transform;
+      animation: tickerMarquee var(--ticker-duration) linear infinite;
     }
 
     .ticker-text{
       display:inline-block;
       white-space:nowrap;
-      padding-left:100%;
-      animation: tickerScroll 20s linear infinite;
+      padding-right: 48px;
       font-weight: 900;
       letter-spacing: 0.8px;
       font-size: 18px;
@@ -487,11 +497,12 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
       text-transform: uppercase;
       text-shadow: 0 2px 10px rgba(0,0,0,0.65);
       color: rgba(240,240,192,0.96);
+      flex: 0 0 auto;
     }
 
-    @keyframes tickerScroll{
+    @keyframes tickerMarquee{
       0%{ transform: translateX(0); }
-      100%{ transform: translateX(-100%); }
+      100%{ transform: translateX(-50%); }
     }
 
     /* ===== Control panel ===== */
@@ -976,9 +987,12 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
        <div id="conferenceRight" class="conference wick"></div>
       </div>
 
-      <div class="ticker wick">
-        <span id="tickerText" class="ticker-text"></span>
-      </div>
+    <div class="ticker wick">
+  <div id="tickerTrack" class="ticker-track">
+    <span id="tickerTextA" class="ticker-text"></span>
+    <span id="tickerTextB" class="ticker-text"></span>
+  </div>
+</div>
 
       <div class="control-panel">
         <div class="breaktype-buttons" id="breakTypeButtons"></div>
@@ -1123,58 +1137,7 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
 
     const TICKER_CUSTOM_SECONDS = 12;
     const TICKER_SPORTS_SECONDS = 8;
-
-    function setTickerRawText(text){
-      const el = document.getElementById('tickerText');
-      if (!el) return;
-      el.textContent = text;
-
-      el.style.animation = 'none';
-      void el.offsetHeight;
-      el.style.animation = '';
-    }
-
-    function currentSportsTickerText(){
-      if (!SPORTS_LINES.length) return 'LIVE SCORES • Waiting for feed…';
-      return ` ${SPORTS_LINES.join('   •   ')} `;
-    }
-
-    function flipTickerTo(mode){
-      tickerMode = mode;
-
-      const el = document.getElementById('tickerText');
-      if (el){
-        el.style.transition = 'transform 220ms ease, opacity 220ms ease';
-        el.style.transform = 'rotateX(90deg)';
-        el.style.opacity = '0';
-
-        setTimeout(() => {
-          const txt = (tickerMode === 'sports')
-            ? currentSportsTickerText()
-            : ` ${TICKER_LINES.join('   •   ')} `;
-          setTickerRawText(txt);
-
-          el.style.transform = 'rotateX(0deg)';
-          el.style.opacity = '1';
-        }, 220);
-      }
-    }
-
-    function startTickerRotation(){
-      if (tickerFlipTimer) clearTimeout(tickerFlipTimer);
-
-      const loop = () => {
-        const next = (tickerMode === 'custom') ? 'sports' : 'custom';
-        flipTickerTo(next);
-
-        const waitMs = (next === 'sports' ? TICKER_SPORTS_SECONDS : TICKER_CUSTOM_SECONDS) * 1000;
-        tickerFlipTimer = setTimeout(loop, waitMs);
-      };
-
-      tickerMode = 'custom';
-      setTickerRawText(` ${TICKER_LINES.join('   •   ')} `);
-      tickerFlipTimer = setTimeout(loop, TICKER_CUSTOM_SECONDS * 1000);
-    }
+    const TICKER_PX_PER_SEC = 90;
 
     function loadTickerLines(){
       try{
@@ -1192,25 +1155,77 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
 
     let TICKER_LINES = loadTickerLines();
 
-    function refreshTickerText(){
-      const t = ` ${TICKER_LINES.join('   •   ')} `;
-      const el = document.getElementById('tickerText');
-      if (!el) return;
-      el.textContent = t;
-      el.style.animation = 'none';
-      void el.offsetHeight;
-      el.style.animation = '';
+    function currentSportsTickerText(){
+      if (!SPORTS_LINES.length) return 'LIVE SCORES • WAITING FOR FEED…';
+      return SPORTS_LINES.join('   •   ');
+    }
+
+    function buildTickerText(){
+      return (tickerMode === 'sports')
+        ? currentSportsTickerText()
+        : TICKER_LINES.join('   •   ');
+    }
+
+    function setTickerTrackText(text){
+      const a = document.getElementById('tickerTextA');
+      const b = document.getElementById('tickerTextB');
+      const track = document.getElementById('tickerTrack');
+      const wrap = document.querySelector('.ticker');
+
+      if (!a || !b || !track || !wrap) return;
+
+      const safe = ` ${String(text || '').trim() || ' '} `;
+      a.textContent = safe;
+      b.textContent = safe;
+
+      track.style.animation = 'none';
+      void track.offsetWidth;
+
+      requestAnimationFrame(() => {
+        const copyWidth = a.getBoundingClientRect().width;
+        const duration = Math.max(10, copyWidth / TICKER_PX_PER_SEC);
+        wrap.style.setProperty('--ticker-duration', `${duration}s`);
+        track.style.animation = '';
+      });
+    }
+
+    function refreshTicker(){
+      setTickerTrackText(buildTickerText());
+    }
+
+    function flipTickerTo(mode){
+      tickerMode = mode;
+      refreshTicker();
+    }
+
+    function startTickerRotation(){
+      if (tickerFlipTimer) clearTimeout(tickerFlipTimer);
+
+      const loop = () => {
+        const next = (tickerMode === 'custom') ? 'sports' : 'custom';
+        flipTickerTo(next);
+
+        const waitMs = (next === 'sports' ? TICKER_SPORTS_SECONDS : TICKER_CUSTOM_SECONDS) * 1000;
+        tickerFlipTimer = setTimeout(loop, waitMs);
+      };
+
+      tickerMode = 'custom';
+      refreshTicker();
+      tickerFlipTimer = setTimeout(loop, TICKER_CUSTOM_SECONDS * 1000);
     }
 
     function setTickerLines(lines){
       TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
       saveTickerLines(TICKER_LINES);
-      refreshTickerText();
+      refreshTicker();
     }
 
     function applyTickerFromRaw(raw){
       const txt = String(raw || '').trim();
-      const parts = txt.includes('•') ? txt.split('•').map(s => s.trim()).filter(Boolean) : [txt].filter(Boolean);
+      const parts = txt.includes('•')
+        ? txt.split('•').map(s => s.trim()).filter(Boolean)
+        : [txt].filter(Boolean);
+
       setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
     }
 
@@ -1495,7 +1510,7 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
               { code:'DEN', name:'Nuggets', image:imgPathNBA('nuggets.png') },
               { code:'MIN', name:'Timberwolves', image:imgPathNBA('timberwolves.png') },
               { code:'OKC', name:'Thunder', image:imgPathNBA('thunder.png') },
-              { code:'POR', name:'Trail Blazers', image:imgPathNBA('trailblazers.png') },
+              { code:'POR', name:'Trail Blazers', image:imgPathNBA('blazers.png') },
               { code:'UTA', name:'Jazz', image:imgPathNBA('jazz.png') }
             ],
             Pacific: [
@@ -2385,7 +2400,7 @@ applyTilePreset(currentBreakType);
       }).filter(Boolean);
 
       if (tickerMode === 'sports'){
-        setTickerRawText(currentSportsTickerText());
+        refreshTicker();
       }
     }
 
