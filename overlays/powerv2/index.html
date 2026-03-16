@@ -702,9 +702,8 @@ animation:promoFlip .6s ease;
 </head>
 
 <body>
-
-
-  <div class="container">
+  <div class="overlay-wrap">
+    <div class="container">
     <div class="header" id="header">
       <div class="header-left">
         <div class="header-icon"></div>
@@ -856,7 +855,7 @@ animation:promoFlip .6s ease;
       const repo = parts.length ? parts[0] : '';
       return `/${repo}/`;
     }
-    return '../..\/';
+    return '../../';
   })();
 
   // File structure:
@@ -1374,7 +1373,7 @@ function setHeader(){
 
     const img = document.createElement("img");
     img.src = LOGO_PRIMARY;
-    img.alt = "Apex Card Company Logo";
+  img.alt = "Power Card Shop Logo";
     slot.appendChild(img);
     return slot;
   }
@@ -1602,11 +1601,7 @@ const BRIDGE_LS = {
   KEY_LEGACY: "tsu.bridgeKey",
 };
 
-function cleanUrl(u){ return String(u || "").trim().replace(/\/$/, ""); }
 
-function normalizeBridge(u){
-  return cleanUrl(u).replace(/\/(events|stream)(\/.*)?$/,"");
-}
 
 function cleanUrl(u){ return String(u || "").trim().replace(/\/$/, ""); }
 
@@ -1916,158 +1911,152 @@ function handleSSEEvent(data){
   if (!type) return;
   if (!breakIdMatches(payload)) return;
 
+  // Scores feed
+  if (type === "scores" && ENABLE_SCORES){
+    const sport = String(payload.sport || payload.league || "").toLowerCase().trim();
+    const txt = normalizeScorePayloadToText(payload);
 
-    
-    // Scores feed (ticker)
-if (data.type === "scores" && ENABLE_SCORES){
-  const sport = String(data.sport || data.league || "").toLowerCase().trim();
-  const txt = normalizeScorePayloadToText(data);
+    if (sport && txt){
+      SCORES_BY_SPORT[sport] = txt;
+      SCORES_UPDATED_AT[sport] = Date.now();
+    }
 
-  if (sport && txt){
-    SCORES_BY_SPORT[sport] = txt;
-    SCORES_UPDATED_AT[sport] = Date.now();
+    updateTickerMarquee();
+    return;
   }
 
-// repaint ticker on ANY scores update (because ticker now includes all sports)
-updateTickerMarquee();
-return;
-}
-
-
-if (data.type === "set_title"){
-  const t = String(data.title || data.value || "").trim();
-  if (t){
-    saveCustomTitle(t);
-    setHeader();
+  if (type === "set_title"){
+    const t = String(payload.title || payload.value || "").trim();
+    if (t){
+      saveCustomTitle(t);
+      setHeader();
+    }
+    return;
   }
-  return;
-}
 
-if (data.type === "high_bid"){
-  const n = parseFloat(data.amount ?? data.value ?? data.bid ?? "0");
-  if (Number.isFinite(n) && n >= 0){
-    const cur = loadHighBid();
-    if (n > cur) setHighBid(n);
+  if (type === "high_bid"){
+    const n = parseFloat(payload.amount ?? payload.value ?? payload.bid ?? "0");
+    if (Number.isFinite(n) && n >= 0){
+      const cur = loadHighBid();
+      if (n > cur) setHighBid(n);
+    }
+    return;
   }
-  return;
-}
-    
-    // Break / sport control
-    if (data.type === "set_break"){
-      const n = parseInt(String(data.value || data.break || ""), 10);
-      setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
-      return;
-    }
 
-    if (data.type === "set_sport"){
-      if (data.sport) setSport(String(data.sport).toLowerCase());
-      return;
-    }
+  if (type === "set_break"){
+    const n = parseInt(String(payload.value || payload.break || ""), 10);
+    setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
+    return;
+  }
 
-    if (data.type === "reset"){
-      resetAll();
-      return;
-    }
+  if (type === "set_sport"){
+    if (payload.sport) setSport(String(payload.sport).toLowerCase());
+    return;
+  }
 
-    // Buyer updates
-    if (type === "buyer" || type === "buyer_update"){
-      const code = getCodeFromPayload(payload);
-      const buyer = getBuyerFromPayload(payload);
-      if (code) sseUpdateBuyer(code, buyer);
-      return;
-    }
+  if (type === "reset"){
+    resetAll();
+    return;
+  }
 
-    // Team sold / purchase compatibility
-    if (type === "team_sold" || type === "whatnot_purchase" || type === "purchase" || type === "sale" || type === "sold") {
-      const sport = getSportFromPayload(payload);
+  if (type === "buyer" || type === "buyer_update"){
+    const code = getCodeFromPayload(payload);
+    const buyer = getBuyerFromPayload(payload);
+    if (code) sseUpdateBuyer(code, buyer);
+    return;
+  }
 
-      // IMPORTANT: do NOT auto-switch sports on incoming sale events.
-      // Ignore foreign-sport events so parallel overlays cannot hijack each other.
-      if (sport && sport !== currentBreakType) return;
+  if (type === "team_sold" || type === "whatnot_purchase" || type === "purchase" || type === "sale" || type === "sold"){
+    const sport = getSportFromPayload(payload);
 
-      let code = getCodeFromPayload(payload);
-      const buyer = getBuyerFromPayload(payload);
+    // do not let another sport hijack this overlay
+    if (sport && sport !== currentBreakType) return;
 
-      if (!code) code = inferTeamCodeFromSaleTitle(payload.title, currentBreakType);
+    let code = getCodeFromPayload(payload);
+    const buyer = getBuyerFromPayload(payload);
 
-      // saleId/id preferred; listingId fallback only
-      const listingKey = payload.saleId || payload.id || payload.listingId || null;
+    if (!code) code = inferTeamCodeFromSaleTitle(payload.title, currentBreakType);
 
-      if (listingKey && code) {
-        const prevCode = lastCodeByListingKey.get(listingKey);
-        if (prevCode && prevCode !== code) {
-          sseMarkUnsold(prevCode);
-        }
-        lastCodeByListingKey.set(listingKey, code);
+    const listingKey = payload.saleId || payload.id || payload.listingId || null;
+
+    if (listingKey && code){
+      const prevCode = lastCodeByListingKey.get(listingKey);
+      if (prevCode && prevCode !== code){
+        sseMarkUnsold(prevCode);
       }
-
-      if (code) sseMarkSold(code, buyer);
-      return;
+      lastCodeByListingKey.set(listingKey, code);
     }
 
-    // Team unsold
-    if (type === "team_unsold") {
-      const sport = getSportFromPayload(payload);
-      if (sport && sport !== currentBreakType) return;
-
-      let code = getCodeFromPayload(payload);
-      if (!code) code = inferTeamCodeFromSaleTitle(payload.title, currentBreakType);
-
-      const listingKey = payload.saleId || payload.id || payload.listingId || null;
-
-      if (code) sseMarkUnsold(code);
-
-      if (listingKey) {
-        const cur = lastCodeByListingKey.get(listingKey);
-        if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
-      }
-      return;
-    }
-
-    // stream_stats etc can be ignored safely
-
-  function sseMarkSold(code, buyer=""){
-    if (!code) return;
-
-    if (!soldTeams.has(code)){
-  soldTeams.add(code);
-if (!soldTeamsList.some(x => x.code === code)) {
-  soldTeamsList.push({ code, buyer: buyer || "" });
-}
-
-      const tile = document.querySelector(`[data-team-code="${code}"]`);
-      if (tile){
-        tile.classList.add("sold");
-        tile.classList.add("flash");
-        setTimeout(()=>tile.classList.remove("flash"), 280);
-      }
-    } else if (buyer){
-      // already sold; just update buyer if provided
-      sseUpdateBuyer(code, buyer);
-    }
-
-    updateStats();
-    updateSoldList();
+    if (code) sseMarkSold(code, buyer);
+    return;
   }
 
-  function sseMarkUnsold(code){
-    if (!code) return;
-    soldTeams.delete(code);
-    soldTeamsList = soldTeamsList.filter(t => t.code !== code);
+  if (type === "team_unsold"){
+    const sport = getSportFromPayload(payload);
+    if (sport && sport !== currentBreakType) return;
+
+    let code = getCodeFromPayload(payload);
+    if (!code) code = inferTeamCodeFromSaleTitle(payload.title, currentBreakType);
+
+    const listingKey = payload.saleId || payload.id || payload.listingId || null;
+
+    if (code) sseMarkUnsold(code);
+
+    if (listingKey){
+      const cur = lastCodeByListingKey.get(listingKey);
+      if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+    }
+    return;
+  }
+}
+
+function sseMarkSold(code, buyer=""){
+  if (!code) return;
+
+  if (!soldTeams.has(code)){
+    soldTeams.add(code);
+    if (!soldTeamsList.some(x => x.code === code)) {
+      soldTeamsList.push({ code, buyer: buyer || "" });
+    }
 
     const tile = document.querySelector(`[data-team-code="${code}"]`);
-    if (tile) tile.classList.remove("sold");
-
-    updateStats();
-    updateSoldList();
+    if (tile){
+      tile.classList.add("sold");
+      tile.classList.add("flash");
+      setTimeout(() => tile.classList.remove("flash"), 280);
+    }
+  } else if (buyer){
+    sseUpdateBuyer(code, buyer);
   }
 
-  function sseUpdateBuyer(code, buyer){
-    if (!code) return;
-    const entry = soldTeamsList.find(t => t.code === code);
-    if (entry) entry.buyer = buyer || "";
-    updateSoldList();
-  }
+  updateStats();
+  updateSoldList();
+}
+
+function sseMarkUnsold(code){
+  if (!code) return;
+
+  soldTeams.delete(code);
+  soldTeamsList = soldTeamsList.filter(t => t.code !== code);
+
+  const tile = document.querySelector(`[data-team-code="${code}"]`);
+  if (tile) tile.classList.remove("sold");
+
+  updateStats();
+  updateSoldList();
+}
+
+function sseUpdateBuyer(code, buyer){
+  if (!code) return;
+  const entry = soldTeamsList.find(t => t.code === code);
+  if (entry) entry.buyer = buyer || "";
+  updateSoldList();
+}
+
+
+
+
+
 
 
 
@@ -2141,13 +2130,7 @@ function startPromo(){
     setBreakNumber(loadBreakNumber());
     buildLayout();
 startPromo();
-    const ti = document.getElementById("tickerInput");
-    if (ti){
-      syncTickerInput();
-      ti.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") applyTicker();
-      });
-    }
+
 
  updateTickerMarquee();
 
@@ -2180,7 +2163,7 @@ if (ENABLE_SCORES) {
 });
   });
 </script>
- 
+ </div>
 </body>
  
 </html>
