@@ -366,7 +366,7 @@ align-self:center;
       flex-direction:column;
       min-width:100px;
       justify-content:center;
-      font-size: 18px;
+      font-size: 20px;
       border: 2px solid var(--goldBorder);
     }
 
@@ -1280,7 +1280,7 @@ function applyHighBidPopup(){
       name: "NFL",
       cols: 10,
       layout: "NFL_32",
-      tileH: 56,
+      tileH: 67,
       teams: [
         { code:'ARI', name:'cardinals', image: imgPathNFL('cardinals.png') },
         { code:'ATL', name:'falcons', image: imgPathNFL('falcons.png') },
@@ -1573,19 +1573,21 @@ function newBreak(){
   setHighBid(0);
 }
 
- function cycleSport(){
+function cycleSport(){
   const types = Object.keys(breakTypes);
   const idx = types.indexOf(currentBreakType);
   currentBreakType = types[(idx + 1) % types.length];
   resetAll();
   buildLayout();
+  updateTickerMarquee();
 }
 
 function setSport(type){
   if (!breakTypes[type]) return;
   currentBreakType = type;
+  resetAll();
   buildLayout();
-  updateTickerMarquee(); // <-- ensure ticker swaps to that sport's stored scores
+  updateTickerMarquee();
 }
 
   /******************************************************************
@@ -1721,9 +1723,9 @@ let sseScores = null; // scores channel
     sse.onmessage = ingest;
 
     // keep named events compatibility (REQUIRED)
-  ["team_sold","team_unsold","buyer","reset","set_break","set_sport","scores","stream_stats","whatnot_purchase","purchase"].forEach(t => {
-      try { sse.addEventListener(t, ingest); } catch(_){}
-    });
+["team_sold","team_unsold","buyer","buyer_update","reset","set_break","set_sport","set_title","scores","stream_stats","whatnot_purchase","purchase","sale","sold"].forEach(t => {
+  try { sse.addEventListener(t, ingest); } catch(_){}
+});
 
     sse.onerror = () => {
       onStatus?.("error", "reconnecting");
@@ -1906,9 +1908,13 @@ function inferTeamCodeFromSaleTitle(title, breakType){
 
 
 function handleSSEEvent(data){
-  if (!data || !data.type) return;
+  if (!data || typeof data !== "object") return;
 
-  if (!breakIdMatches(data)) return;
+  const payload = (data.data && typeof data.data === "object") ? data.data : data;
+  const type = String(payload.type || data.type || "").toLowerCase();
+
+  if (!type) return;
+  if (!breakIdMatches(payload)) return;
 
 
     
@@ -1963,88 +1969,62 @@ if (data.type === "high_bid"){
       return;
     }
 
-    // Buyer updates (named event compatibility)
-    if (data.type === "buyer"){
-      const code = getCodeFromPayload(data);
-      const buyer = getBuyerFromPayload(data);
+    // Buyer updates
+    if (type === "buyer" || type === "buyer_update"){
+      const code = getCodeFromPayload(payload);
+      const buyer = getBuyerFromPayload(payload);
       if (code) sseUpdateBuyer(code, buyer);
       return;
     }
 
-    // Team sold / unsold
-// ✅ REPLACE/RESPIN handling should be OPT-IN only.
-// Otherwise repeated purchases from the same listingId/productId will "unsell" prior teams.
-    // Team sold
-// Team sold (supports reassignment by same saleId)
-if (data.type === "team_sold") {
-  const sport = getSportFromPayload(data);
+    // Team sold / purchase compatibility
+    if (type === "team_sold" || type === "whatnot_purchase" || type === "purchase" || type === "sale" || type === "sold") {
+      const sport = getSportFromPayload(payload);
 
-  // optional: auto-switch sport if included
-  if (sport && sport !== currentBreakType && breakTypes[sport]) {
-    setSport(sport);
-  }
-
-  let code = getCodeFromPayload(data);
-  const buyer = getBuyerFromPayload(data);
-
-  // infer code from title if missing
-  if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
-
-  // ✅ IMPORTANT:
-  // Prefer a UNIQUE purchase key first (saleId/id). listingId can be reused.
-  const listingKey = data.saleId || data.id || data.listingId || null;
-
-  // ✅ Overlay-only reassignment rule:
-  // If we see the SAME purchase key again but with a DIFFERENT team,
-  // unsell the previous team automatically.
-  if (listingKey && code) {
-    const prevCode = lastCodeByListingKey.get(listingKey);
-    if (prevCode && prevCode !== code) {
-      sseMarkUnsold(prevCode);
-    }
-    lastCodeByListingKey.set(listingKey, code);
-  }
-
-  if (code) sseMarkSold(code, buyer);
-  return;
-}
-
-    // Team unsold
-if (data.type === "team_unsold") {
-  let code = getCodeFromPayload(data);
-  if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
-
-  // Match sold-event key priority exactly
-  const listingKey = data.saleId || data.id || data.listingId || null;
-
-  if (code) sseMarkUnsold(code);
-
-  if (listingKey) {
-    const cur = lastCodeByListingKey.get(listingKey);
-    if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
-  }
-  return;
-}
-    // Whatnot purchase automation (robust)
-    // Common shapes:
-    // {type:"whatnot_purchase", sport:"nba", code:"LAL", buyer:"Mike"}
-    // {type:"purchase", sport:"nfl", team:"DAL", buyerName:"Mike"}
-    if (data.type === "whatnot_purchase" || data.type === "purchase"){
-      const sport = getSportFromPayload(data);
+      // IMPORTANT: do NOT auto-switch sports on incoming sale events.
+      // Ignore foreign-sport events so parallel overlays cannot hijack each other.
       if (sport && sport !== currentBreakType) return;
 
-      const code = getCodeFromPayload(data);
-      const buyer = getBuyerFromPayload(data);
+      let code = getCodeFromPayload(payload);
+      const buyer = getBuyerFromPayload(payload);
 
-      if (code){
-        // purchases should mark sold + set buyer
-        sseMarkSold(code, buyer);
+      if (!code) code = inferTeamCodeFromSaleTitle(payload.title, currentBreakType);
+
+      // saleId/id preferred; listingId fallback only
+      const listingKey = payload.saleId || payload.id || payload.listingId || null;
+
+      if (listingKey && code) {
+        const prevCode = lastCodeByListingKey.get(listingKey);
+        if (prevCode && prevCode !== code) {
+          sseMarkUnsold(prevCode);
+        }
+        lastCodeByListingKey.set(listingKey, code);
+      }
+
+      if (code) sseMarkSold(code, buyer);
+      return;
+    }
+
+    // Team unsold
+    if (type === "team_unsold") {
+      const sport = getSportFromPayload(payload);
+      if (sport && sport !== currentBreakType) return;
+
+      let code = getCodeFromPayload(payload);
+      if (!code) code = inferTeamCodeFromSaleTitle(payload.title, currentBreakType);
+
+      const listingKey = payload.saleId || payload.id || payload.listingId || null;
+
+      if (code) sseMarkUnsold(code);
+
+      if (listingKey) {
+        const cur = lastCodeByListingKey.get(listingKey);
+        if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
       }
       return;
     }
 
     // stream_stats etc can be ignored safely
-  }
 
   function sseMarkSold(code, buyer=""){
     if (!code) return;
