@@ -115,13 +115,17 @@ align-self:center;
       min-width: 0;
     }
 
-    .header-icon{
-      width:18px;height:18px;border-radius:50%;
-      border:2px solid rgba(255,255,255,0.92);
-      background: radial-gradient(circle at 30% 30%, var(--gold), var(--orange));
-      box-shadow: 0 0 10px rgba(0,0,0,0.75);
-      flex: 0 0 auto;
-    }
+ .header-logo{
+  height: 130px;
+  width: auto;
+  object-fit: contain;
+  flex: 0 0 auto;
+  left:430px;
+  position:absolute;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));
+}
+
+
 
     .header-text{
       font-size: 18px;
@@ -289,7 +293,61 @@ align-self:center;
   50%{ transform:scale(1.06); }
   100%{ transform:scale(1); }
 }
+.highbid-slot{
+  height: var(--tileH);
+  display:flex;
+  align-items:stretch;
+  gap: 4px;
+}
 
+.highbid-mini{
+  min-width: 92px;
+  width: 92px;
+  padding: 2px 0;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+.highbid-mini .stat-label{
+  font-size: 17px;
+  letter-spacing: 0.8px;
+}
+
+.highbid-team-wrap{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  gap:2px;
+  background: linear-gradient(135deg, rgba(34,39,45,1) 0%, rgba(10,12,14,1) 100%);
+  border: 2px solid var(--goldBorder);
+  border-radius: 8px;
+  padding: 4px 2px;
+}
+
+.highbid-team-label{
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color:#fff;
+  opacity: 0.9;
+  line-height: 1;
+}
+
+.highbid-team-input{
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color:#fff;
+  font-weight: 900;
+  font-size: 14px;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+.highbid-team-input::placeholder{
+  color: rgba(255,255,255,0.55);
+}
     /* ===== TICKER ROW ===== */
     .ticker-slot{
       border-radius: 10px;
@@ -360,13 +418,13 @@ align-self:center;
       border-radius: 8px;
       text-align:center;
       font-weight:900;
-      padding: 4px 0;
+      padding: 2px 0;
       box-shadow: 0 2px 4px rgba(0,0,0,0.25);
       display:flex;
       flex-direction:column;
       min-width:100px;
       justify-content:center;
-      font-size: 20px;
+      font-size: 24px;
       border: 2px solid var(--goldBorder);
     }
 
@@ -705,10 +763,10 @@ animation:promoFlip .6s ease;
   
     <div class="container">
     <div class="header" id="header">
-      <div class="header-left">
-        <div class="header-icon"></div>
-        <div class="header-text" id="headerText">POWER CARD SHOP BREAK</div>
-      </div>
+ <div class="header-left">
+  <div class="header-text" id="headerText">POWER CARD SHOP BREAK</div>
+  <img class="header-logo" id="headerLogo" src="" alt="Power Card Shop Logo" />
+</div>
 
       <div class="header-right">
         <div class="break-pill">
@@ -723,29 +781,21 @@ animation:promoFlip .6s ease;
         <!-- rows injected here -->
       </div>
 
-      <div class="controls-row">
-        <button class="btn secondary" onclick="newBreak()">🧾 NEW BREAK</button>
+<div class="controls-row">
+  <div class="stat-box">
+    <div id="teamsSold">0</div>
+    <div class="stat-label">SOLD</div>
+  </div>
 
+  <div class="promo-box" id="promoBox">
+    <div id="promoText">POWER CARD SHOP</div>
+  </div>
 
-
-<div class="stat-box" id="highBidBox" onclick="openHighBidPopup()">
-  <div id="highBidValue">$0</div>
-  <div class="stat-label">HIGH BID</div>
+  <div class="stat-box">
+    <div id="teamsLeft">0</div>
+    <div class="stat-label">REMAINING</div>
+  </div>
 </div>
-<div class="promo-box" id="promoBox">
-  <div id="promoText">POWER CARD SHOP</div>
-</div>
-      <div class="stat-box">
-  <div id="teamsLeft">0</div>
-  <div class="stat-label">REMAINING</div>
-</div>
-<div class="stat-box">
-  <div id="teamsSold">0</div>
-  <div class="stat-label">SOLD</div>
-</div>
-
-       
-      </div>
     </div>
   </div>
 
@@ -754,6 +804,7 @@ animation:promoFlip .6s ease;
       <div class="sold-list-title">SOLD TEAMS</div>
 
       <div class="sold-controls">
+        <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="newBreak()">🧾 NEW BREAK</button>
 <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openBreakPopup()">SET BREAK</button>
 <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="cycleSport()">CHANGE SPORT</button>
 <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openTickerPopup()">EDIT TICKER</button>
@@ -879,7 +930,7 @@ animation:promoFlip .6s ease;
 }
 
 function getOverlayLiveId(){
-  return normId(getParam("liveId") || localStorage.getItem("powercardshop.liveId") || "");
+  return normId(getParam("liveId") || "");
 }
 
 function liveIdMatches(payload){
@@ -899,7 +950,8 @@ function liveIdMatches(payload){
 
   // Enable scores by default since you asked for live sports updates from SSE
   // You can disable with ?scores=0 if needed
-  const ENABLE_SCORES = (getParam("scores") === null) ? true : (getParam("scores") === "1");
+    // TSU standard: scores always come from the dedicated sports channel
+  const ENABLE_SCORES = true;
 
   /******************************************************************
    * TICKER (persist)
@@ -1066,9 +1118,22 @@ function breakIdMatches(payload){
 const TITLE_KEY = "powercardshop.customTitle";
 const TICKER_SPEED_KEY = "powercardshop.tickerPxPerSec";
 const HIGH_BID_KEY_PREFIX = "powercardshop.highBid.";
+const HIGH_BID_TEAM_KEY_PREFIX = "powercardshop.highBidTeam.";
 
 function getHighBidKey(){
   return `${HIGH_BID_KEY_PREFIX}${currentBreakType}.${loadBreakNumber()}`;
+}
+
+function getHighBidTeamKey(){
+  return `${HIGH_BID_TEAM_KEY_PREFIX}${currentBreakType}.${loadBreakNumber()}`;
+}
+
+function loadHighBidTeam(){
+  return (localStorage.getItem(getHighBidTeamKey()) || "").trim();
+}
+
+function saveHighBidTeam(v){
+  localStorage.setItem(getHighBidTeamKey(), String(v || "").trim().toUpperCase());
 }
 
 function loadCustomTitle(){
@@ -1114,8 +1179,7 @@ function closeBreakPopup(){ hidePopup("breakPopup"); }
 function applyBreakPopup(){
   const val = parseInt(document.getElementById("breakPopupInput")?.value || "1", 10);
   setBreakNumber(Number.isFinite(val) && val > 0 ? val : 1);
-  // swap high bid scope to this break
-  setHighBid(loadHighBid());
+  buildLayout();
   closeBreakPopup();
 }
 
@@ -1151,7 +1215,7 @@ function applyPromoPopup(){
     .map(x => x.trim())
     .filter(Boolean);
 
-  PROMO_MESSAGES = lines.length ? lines : ["FAST SHIPPING","LIVE BREAKS","GOOD LUCK"];
+  PROMO_MESSAGES = lines.length ? lines : ["High Bid This Break Gets (TEAM)","Football Breaks 👉@powercardshopbreaks","Stash or Pass active @ $x.xx"];
   promoIndex = 0;
 
   savePromos(PROMO_MESSAGES);
@@ -1361,6 +1425,9 @@ function setHeader(){
   const b = breakTypes[currentBreakType];
   const custom = loadCustomTitle();
   document.getElementById("headerText").textContent = custom ? custom : `${b.name} BOX BREAK`;
+
+  const logo = document.getElementById("headerLogo");
+  if (logo) logo.src = LOGO_PRIMARY;
 }
 
   /******************************************************************
@@ -1400,6 +1467,31 @@ function setHeader(){
     slot.appendChild(img);
     return slot;
   }
+
+function makeHighBidRowSlot(spanCols){
+  const slot = document.createElement("div");
+  slot.className = "highbid-slot";
+  slot.style.gridColumn = `span ${spanCols}`;
+
+  slot.innerHTML = `
+    <div class="highbid-mini stat-box" id="highBidBox" onclick="openHighBidPopup()">
+      <div id="highBidValue">$0</div>
+      <div class="stat-label">HIGH BID</div>
+    </div>
+    <div class="highbid-team-wrap">
+      <div class="highbid-team-label">WINS</div>
+      <input
+        id="highBidTeamInput"
+        class="highbid-team-input"
+        type="text"
+        placeholder="TEAM"
+        oninput="saveHighBidTeam(this.value)"
+      />
+    </div>
+  `;
+
+  return slot;
+}
 
 function makeTickerSlot(spanCols){
   const slot = document.createElement("div");
@@ -1447,9 +1539,9 @@ function makeTickerSlot(spanCols){
 
       const r1 = document.createElement("div");
       r1.className = "row-grid";
-      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
-      r1.appendChild(makeLogoSlot(2));
-      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+r1.appendChild(makeHighBidRowSlot(2));
+for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r1);
 
       for (let r=0;r<3;r++){
@@ -1475,9 +1567,9 @@ function makeTickerSlot(spanCols){
 
       const r1 = document.createElement("div");
       r1.className = "row-grid";
-      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
-      r1.appendChild(makeLogoSlot(2));
-      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+ for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+r1.appendChild(makeHighBidRowSlot(2));
+for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r1);
 
       const r2 = document.createElement("div");
@@ -1500,11 +1592,14 @@ function makeTickerSlot(spanCols){
       wrap.appendChild(r4);
     }
 
-  setHeader();
+setHeader();
 updateStats();
 updateSoldList();
-updateTickerMarquee(); // ensure ticker shows correct text immediately
+updateTickerMarquee();
 setHighBid(loadHighBid());
+
+const highBidTeamInput = document.getElementById("highBidTeamInput");
+if (highBidTeamInput) highBidTeamInput.value = loadHighBidTeam();
   }
 
   /******************************************************************
@@ -1594,6 +1689,8 @@ function newBreak(){
   resetAll();
   incrementBreak();
   setHighBid(0);
+  saveHighBidTeam("");
+  buildLayout();
 }
 
 function cycleSport(){
@@ -1617,12 +1714,12 @@ function setSport(type){
    * REQUIRED SSE BRIDGE CLIENT (updated standard)
    ******************************************************************/
 const BRIDGE_LS = {
-  URL: "tsu.bridge",
-  KEY: "tsu.key",
+  URL: "tsu.bridgeUrl",
+  KEY: "tsu.bridgeKey",
   OVERLAY: "tsu.overlayId",
   CHANNEL: "tsu.channel",
-  URL_LEGACY: "tsu.bridgeUrl",
-  KEY_LEGACY: "tsu.bridgeKey",
+  URL_LEGACY: "tsu.bridge",
+  KEY_LEGACY: "tsu.key",
 };
 
 
@@ -1681,9 +1778,8 @@ function getChannel() {
 }
 
 function getScoresChannel(){
-  return (getParam("scoresChannel") || "sports").toLowerCase();
+  return "sports";
 }
-
 
 function getOverlayId() {
   const q = (getParam("overlay") || localStorage.getItem(BRIDGE_LS.OVERLAY) || "powercardshop-overlay");
@@ -1743,7 +1839,7 @@ const url = `${base}/stream?channel=${encodeURIComponent(channel)}${key ? `&key=
     sse.onmessage = ingest;
 
     // keep named events compatibility (REQUIRED)
-["team_sold","team_unsold","buyer","buyer_update","reset","set_break","set_sport","set_title","scores","stream_stats","whatnot_purchase","purchase","sale","sold"].forEach(t => {
+["team_sold","team_unsold","buyer","buyer_update","reset","set_break","set_sport","set_title","scores","stream_stats","whatnot_purchase","purchase","sale","sold","giveaway_entry","giveaway_winner"].forEach(t => {
   try { sse.addEventListener(t, ingest); } catch(_){}
 });
 
@@ -1927,6 +2023,17 @@ function inferTeamCodeFromSaleTitle(title, breakType){
   return "";
 }
 
+function isGiveawayPayload(payload){
+  const rawTitle = String(payload?.title || "").trim();
+  const title = rawTitle.toLowerCase();
+  const amount = parseFloat(payload?.amount ?? payload?.value ?? payload?.bid ?? "0");
+
+  return (
+    title.startsWith("giveaway") ||
+    title.includes(" giveaway") ||
+    (title.includes("giveaway") && Number.isFinite(amount) && amount <= 0)
+  );
+}
 
 function handleSSEEvent(data){
   if (!data || typeof data !== "object") return;
@@ -1994,9 +2101,15 @@ function handleSSEEvent(data){
     return;
   }
 
+  if (type === "giveaway_entry" || type === "giveaway_winner"){
+    // reserved for future giveaway UI/hooks
+    return;
+  }
+
 if (type === "team_sold" || type === "whatnot_purchase" || type === "purchase" || type === "sale" || type === "sold"){
   const sport = getSportFromPayload(payload);
   if (sport && sport !== currentBreakType) return;
+    if (isGiveawayPayload(payload)) return;
 
   let code = getCodeFromPayload(payload);
   const incomingBuyer = getBuyerFromPayload(payload);
@@ -2115,10 +2228,10 @@ function loadPromos(){
 
   try{
     const raw=localStorage.getItem(PROMO_KEY);
-    if(!raw) return ["FAST SHIPPING","LIVE BREAKS","GOOD LUCK"];
+    if(!raw) return ["High Bid This Break Gets (TEAM)","Football Breaks 👉@powercardshopbreaks","Stash or Pass active @ $x.xx"];
     return JSON.parse(raw);
   }catch{
-    return ["FAST SHIPPING","LIVE BREAKS","GOOD LUCK"];
+    return ["High Bid This Break Gets (TEAM)","Football Breaks 👉@powercardshopbreaks","Stash or Pass active @ $x.xx"];
   }
 
 }
@@ -2167,8 +2280,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
   if (qSport && breakTypes[qSport]) currentBreakType = qSport;
 
-  const qLiveId = normId(getParam("liveId"));
-  if (qLiveId) localStorage.setItem("powercardshop.liveId", qLiveId);
+
 
     setBreakNumber(loadBreakNumber());
     buildLayout();
