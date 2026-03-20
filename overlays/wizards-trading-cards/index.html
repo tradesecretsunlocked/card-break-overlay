@@ -1644,6 +1644,16 @@ const entries = lines
       }catch(_){}
     }
 
+let soldStateSaveTimer = null;
+
+function queueSoldStateSave(){
+  if (soldStateSaveTimer) clearTimeout(soldStateSaveTimer);
+  soldStateSaveTimer = setTimeout(() => {
+    soldStateSaveTimer = null;
+    saveSoldState();
+  }, 120);
+}
+
     /* =========================
        UI controls
     ========================== */
@@ -1830,7 +1840,7 @@ teamDiv.appendChild(label);
 
       updateStats();
       renderSoldPanel();
-      saveSoldState();
+     queueSoldStateSave();
     }
 
     function updateStats(){
@@ -1849,44 +1859,54 @@ teamDiv.appendChild(label);
     /* =========================
        Sold panel (ONLY toggled by SOLD stat click)
     ========================== */
-    function toggleSoldPanel(){
-      soldPanelVisible = !soldPanelVisible;
-      const panel = document.getElementById('soldPanel');
-      if (!panel) return;
-      panel.classList.toggle('hidden', !soldPanelVisible);
-    }
+function toggleSoldPanel(){
+  soldPanelVisible = !soldPanelVisible;
+  const panel = document.getElementById('soldPanel');
+  if (!panel) return;
 
-    function renderSoldPanel(){
-      const panel = document.getElementById('soldPanel');
-      if (!panel) return;
+  panel.classList.toggle('hidden', !soldPanelVisible);
 
-      panel.innerHTML = '';
+  // only build the DOM when opening
+  if (soldPanelVisible) renderSoldPanel();
+}
 
-      soldTeamsList.forEach(entry => {
-        const teamObj = findTeamByCode(entry.code);
+function renderSoldPanel(){
+  const panel = document.getElementById('soldPanel');
+  if (!panel) return;
 
-        const row = document.createElement('div');
-        row.className = 'sold-item';
+  // keep panel hidden state in sync
+  panel.classList.toggle('hidden', !soldPanelVisible);
 
-        const img = document.createElement('img');
-        img.alt = entry.code;
-        img.src = teamObj?.image || '';
-        img.onerror = () => { img.style.display = 'none'; };
-        row.appendChild(img);
+  // do NOT rebuild hundreds of rows while hidden
+  if (!soldPanelVisible) return;
 
-        const input = document.createElement('input');
-        input.className = 'buyer-input';
-        input.placeholder = entry.code;
-        input.value = entry.buyer || '';
-        input.oninput = (e) => {
-          entry.buyer = e.target.value;
-          saveSoldState();
-        };
-        row.appendChild(input);
+  panel.innerHTML = '';
 
-        panel.appendChild(row);
-      });
-    }
+  soldTeamsList.forEach(entry => {
+    const teamObj = findTeamByCode(entry.code);
+
+    const row = document.createElement('div');
+    row.className = 'sold-item';
+
+    const img = document.createElement('img');
+    img.alt = entry.code;
+   img.src = (currentBreakType === 'nil') ? NIL_TILE_BG : (teamObj?.image || '');
+    img.onerror = () => { img.style.display = 'none'; };
+    row.appendChild(img);
+
+    const input = document.createElement('input');
+    input.className = 'buyer-input';
+    input.placeholder = entry.code;
+    input.value = entry.buyer || '';
+    input.oninput = (e) => {
+      entry.buyer = e.target.value;
+      queueSoldStateSave();
+    };
+    row.appendChild(input);
+
+    panel.appendChild(row);
+  });
+}
 
     function findTeamByCode(code){
       const cfg = breakTypes[currentBreakType];
@@ -1911,7 +1931,7 @@ teamDiv.appendChild(label);
       document.querySelectorAll('.team').forEach(t => t.classList.remove('sold'));
       updateStats();
       renderSoldPanel();
-      saveSoldState();
+      queueSoldStateSave();
     }
 
     /* =========================
@@ -2278,7 +2298,7 @@ code = checked;
 
   updateStats();
   renderSoldPanel();
-  saveSoldState();
+  queueSoldStateSave();
   return;
 }
 
@@ -2315,7 +2335,7 @@ if (type === 'team_unsold'){
 
     updateStats();
     renderSoldPanel();
-    saveSoldState();
+   queueSoldStateSave();
   }
 
   return;
