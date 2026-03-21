@@ -483,7 +483,7 @@
   display:flex;
   align-items:center;
   width:max-content;
-  min-width:auto;
+  min-width:100%;
   will-change: transform;
   animation: none !important;
 }
@@ -1241,7 +1241,9 @@ const SCORES_UPDATED_AT = {
 
 let TICKER_LINES = loadTickerLines();
 let tickerCycleTimer = null;
-let tickerCycleIndex = 0;
+let tickerAnim = null;
+let tickerRefreshPending = false;
+
 
 function loadTickerLines(){
   try{
@@ -1332,17 +1334,23 @@ function buildTickerSequence(){
   return seq;
 }
 
-let tickerAnim = null;
 
-function setTickerRawText(text){
+
+function buildFullTickerText(){
+  const seq = buildTickerSequence().filter(Boolean);
+  if (!seq.length) return ' LEGENDS AND LYRICS ';
+  return seq.join('   ✦   ');
+}
+
+function applyTickerMarquee(){
   const a = document.getElementById('tickerTextA');
   const b = document.getElementById('tickerTextB');
   const track = document.getElementById('tickerTrack');
   const ticker = document.querySelector('.ticker');
   if (!a || !b || !track || !ticker) return;
 
-  const safe = String(text || '').trim() || 'LEGENDS AND LYRICS';
   const pxPerSec = loadTickerSpeed();
+  const fullText = buildFullTickerText();
 
   if (tickerAnim) {
     try { tickerAnim.cancel(); } catch(_){}
@@ -1353,63 +1361,60 @@ function setTickerRawText(text){
     tickerCycleTimer = null;
   }
 
-  a.textContent = safe;
-  b.textContent = '';
-
-  const viewWidth = ticker.getBoundingClientRect().width || 900;
-  const gap = Math.max(80, Math.round(viewWidth * 0.08));
-  a.style.paddingRight = `${gap}px`;
-  b.style.paddingRight = '0px';
+  a.textContent = fullText;
+  b.textContent = fullText;
 
   track.style.animation = 'none';
   track.style.transform = 'translateX(0)';
   void track.offsetWidth;
 
   requestAnimationFrame(() => {
-    const textWidth = a.getBoundingClientRect().width || 600;
-    const startX = viewWidth;
-    const endX = -textWidth;
-    const distance = startX - endX;
-    const durMs = Math.max(6000, Math.round((distance / pxPerSec) * 1000));
+    const viewWidth = ticker.getBoundingClientRect().width || 900;
+    const gap = Math.max(120, Math.round(viewWidth * 0.10));
 
-    tickerAnim = track.animate(
-      [
-        { transform: `translateX(${startX}px)` },
-        { transform: `translateX(${endX}px)` }
-      ],
-      {
-        duration: durMs,
-        easing: 'linear',
-        fill: 'forwards'
-      }
-    );
+    a.style.paddingRight = `${gap}px`;
+    b.style.paddingRight = `${gap}px`;
 
-    tickerCycleTimer = setTimeout(() => {
-      playNextTickerSegment();
-    }, durMs + 120);
+    requestAnimationFrame(() => {
+      const travel = a.getBoundingClientRect().width || 1400;
+      const durMs = Math.max(12000, Math.round((travel / pxPerSec) * 1000));
+
+      tickerAnim = track.animate(
+        [
+          { transform: 'translateX(0)' },
+          { transform: `translateX(-${travel}px)` }
+        ],
+        {
+          duration: durMs,
+          easing: 'linear',
+          iterations: 1,
+          fill: 'forwards'
+        }
+      );
+
+      tickerCycleTimer = setTimeout(() => {
+        tickerCycleTimer = null;
+
+        if (tickerRefreshPending) {
+          tickerRefreshPending = false;
+        }
+
+        applyTickerMarquee();
+      }, durMs);
+    });
   });
 }
 
-function playNextTickerSegment(){
-  const seq = buildTickerSequence();
-  if (!seq.length) return;
-
-  if (tickerCycleIndex >= seq.length) tickerCycleIndex = 0;
-  const txt = seq[tickerCycleIndex];
-  tickerCycleIndex = (tickerCycleIndex + 1) % seq.length;
-
-  setTickerRawText(txt);
+function requestTickerRefresh(){
+  tickerRefreshPending = true;
 }
 
 function restartTickerCycle(){
-  tickerCycleIndex = 0;
-  if (tickerCycleTimer) clearTimeout(tickerCycleTimer);
-  tickerCycleTimer = null;
-  playNextTickerSegment();
+  applyTickerMarquee();
 }
 
 function refreshTickerText(){
-  restartTickerCycle();
+  applyTickerMarquee();
 }
 
 function setTickerLines(lines){
@@ -2559,7 +2564,7 @@ if (type === 'scores'){
   if (sport && txt){
     SCORES_BY_SPORT[sport] = txt;
     SCORES_UPDATED_AT[sport] = Date.now();
-    // do not restart the active segment; let the next cycle pick up fresh scores
+    requestTickerRefresh();
   }
 
   return;
@@ -2810,7 +2815,7 @@ if (type === 'team_sold'){
 
       breakTypes.nil = buildNilBreakTypeFromEntries(loadNilEntries());
 
-restartTickerCycle();
+applyTickerMarquee();
 
       const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
       if (qSport && breakTypes[qSport]) currentBreakType = qSport;
