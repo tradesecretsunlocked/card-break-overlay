@@ -40,7 +40,7 @@
     *{ box-sizing:border-box; }
 
     body{
-      margin-top:265px;
+            margin-top:465px;
       background:transparent;
       font-family: "Arial Black", Arial, sans-serif;
       width:1080px;
@@ -217,6 +217,35 @@
     .teams-wrapper.wick{ border-radius: 8px; }
 
     .teams-wrapper > *{ position: relative; z-index: 2; }
+
+        .logo-float{
+      position: absolute;
+      left: 43%;
+      top: -60px;
+      transform: translateX(-50%);
+      z-index: 9999;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+    }
+
+    .logo-float img{
+      height: 142px;
+      width: auto;
+      object-fit: contain;
+      display:block;
+      transform-origin: 50% 60%;
+      will-change: transform, filter;
+      animation: logoBreathe 3.8s ease-in-out infinite;
+      filter:
+        drop-shadow(0 2px 10px rgba(0,0,0,0.70))
+        drop-shadow(0 0 18px rgba(0,104,71,0.28))
+        drop-shadow(0 0 12px rgba(201,162,39,0.22));
+    }
+
+    .logo-slot img{
+      display: none;
+    }
 
     .row-grid{
       display:grid;
@@ -486,6 +515,7 @@
       letter-spacing: 0.8px;
       color: #fff;
       text-shadow: 0 2px 10px rgba(0,0,0,0.65);
+      font-size:20px;
     }
     @keyframes tickerScroll{
       0%{ transform: translateX(0); }
@@ -496,9 +526,10 @@
     .controls-row{
       margin-top: 2px;
       display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 20px;
+      grid-template-columns: 1fr 835px 1fr;
+      gap: 10px;
       align-items: stretch;
+      padding: 0px 2px;
     }
 
     .stat-box{
@@ -528,21 +559,119 @@
     }
 
     .promo-placeholder{
+      position: relative;
+      min-height: 58px;
       border-radius: 8px;
-      border: 2px dashed rgba(255,255,255,0.55);
-      background: rgba(0,0,0,0.20);
+      overflow: hidden;
       display:flex;
       align-items:center;
       justify-content:center;
       text-align:center;
+      border: 2px solid var(--goldBorder);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(201,162,39,0.10), transparent 60%),
+        linear-gradient(135deg, rgba(1,36,76,0.96) 0%, rgba(0,104,71,0.96) 46%, rgba(7,19,37,0.98) 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.10),
+        inset 0 0 24px rgba(255,255,255,0.04),
+        0 2px 4px rgba(0,0,0,0.25),
+        0 0 18px rgba(0,104,71,0.14);
+      width: 100%;
+      isolation: isolate;
+    }
+
+    .promo-placeholder::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:0;
+      background:
+        repeating-linear-gradient(
+          180deg,
+          rgba(255,255,255,0.045) 0px,
+          rgba(255,255,255,0.045) 1px,
+          transparent 1px,
+          transparent 4px
+        );
+      opacity: 0.35;
+      mix-blend-mode: screen;
+    }
+
+    .promo-placeholder::after{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      border-radius: inherit;
+      pointer-events:none;
+      z-index:1;
+      background:
+        linear-gradient(90deg,
+          transparent 0%,
+          rgba(201,162,39,0.0) 12%,
+          rgba(255,255,255,0.95) 26%,
+          rgba(201,162,39,0.95) 36%,
+          rgba(0,104,71,0.0) 52%,
+          transparent 100%);
+      animation: promoSweep 3.6s linear infinite;
+      opacity: 0.70;
+      mix-blend-mode: screen;
+    }
+
+    @keyframes promoSweep{
+      0%   { transform: translateX(-120%); }
+      100% { transform: translateX(120%); }
+    }
+
+    .promo-shell{
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 0 16px;
+    }
+
+
+
+    .promo-rotator{
+      width: 100%;
+      padding: 0 2px 0 2px;
+      text-align:center;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      perspective: 800px;
+    }
+
+    .promo-rotator-text{
+      width: 100%;
+      color:#fff;
       font-weight: 900;
+      font-size: 20px;
+      line-height: 1;
       letter-spacing: 1px;
       text-transform: uppercase;
-      color: rgba(255,255,255,0.85);
-      min-height: 58px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
-      width: 800px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-shadow:
+        0 0 6px rgba(255,255,255,0.14),
+        0 0 14px rgba(201,162,39,0.18),
+        0 2px 10px rgba(0,0,0,0.68);
     }
+
+    .promo-rotator-text.flip{
+      animation: promoTextFlip 560ms ease;
+    }
+
+    @keyframes promoTextFlip{
+      0%   { opacity: 0; transform: rotateX(85deg) scale(0.96); }
+      100% { opacity: 1; transform: rotateX(0deg) scale(1); }
+    }
+
 
     .btn{
       background: linear-gradient(135deg, rgba(201,162,39,1) 0%, rgba(0,104,71,1) 100%);
@@ -666,12 +795,12 @@
       display:flex;
       align-items:center;
       gap: 6px;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 900;
       letter-spacing: 1px;
       text-transform: uppercase;
       opacity: 0.95;
-      padding: 6px 8px;
+      padding: 4px 6px;
       border-radius: 999px;
       border: 1px solid rgba(255,255,255,0.12);
       background: rgba(0,0,0,0.18);
@@ -693,7 +822,7 @@
       left: 0px;
       top: 820px; /* default: below main overlay area */
       width: 1080px;
-      height: 170px; /* not too tall */
+      height: 120px; /* not too tall */
       background: linear-gradient(90deg,
         rgba(7,19,37,0.92),
         rgba(0,104,71,0.35),
@@ -713,27 +842,28 @@
     .promo-banner.open{ display:block; }
 
     .promo-head{
-      height: 36px;
+      height: 20px;
       display:flex;
       align-items:center;
       justify-content: space-between;
-      padding: 6px 10px;
-      background: rgba(0,0,0,0.35);
+      padding: 0 10px;
+      background: rgba(0,0,0,0.28);
       border-bottom: 1px solid rgba(255,255,255,0.10);
       cursor: move;
-      user-select:none;
+      user-select: none;
+      position: relative;
+      z-index: 3;
     }
-    .promo-title{
+
+    .promo-head::before{
+      content:"";
+      font-size: 10px;
       font-weight: 900;
       letter-spacing: 1px;
+      color: rgba(255,255,255,0.88);
       text-transform: uppercase;
-      font-size: 12px;
-      color: rgba(255,255,255,0.95);
-      display:flex;
-      align-items:center;
-      gap:8px;
-      white-space:nowrap;
     }
+
     .promo-actions{
       display:flex;
       align-items:center;
@@ -750,17 +880,16 @@
       cursor:pointer;
     }
     .promo-actions .mini:active{ transform: translateY(1px); }
-
   .promo-body.single{
-  height: calc(100% - 36px);
-  position: relative;
-  overflow:hidden;
-}
+    height: calc(100% - 34px);
+    position: relative;
+    overflow:hidden;
+  }
 
 .promo-body.single img{
   width:100%;
   height:100%;
-  object-fit: cover;
+ 
   display:block;
   opacity: 0;
   transition: opacity 220ms ease;
@@ -830,8 +959,14 @@
           <div class="stat-label">REMAINING</div>
         </div>
 
-        <div class="promo-placeholder" id="promoFlipSlot">
-          PROMO BANNER READY (TOGGLE IN CONTROLS)
+            <div class="promo-placeholder" id="promoFlipSlot">
+          <div class="promo-shell">
+           
+            <div class="promo-rotator">
+              <div class="promo-rotator-text" id="promoFlipText">CHARLIE SIERRA TRADING CARDS</div>
+            </div>
+          
+          </div>
         </div>
 
         <div class="stat-box">
@@ -845,7 +980,9 @@
   <div class="sold-list-container">
     <div class="sold-top-row">
       <div class="sold-list-title">SOLD TEAMS</div>
-
+      <div class="sse" id="sseStatus">
+          SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
+        </div>
       <div class="sold-controls">
         <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="newBreak()">🧾 NEW BREAK</button>
         <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="togglePromoBanner()">📣 PROMO</button>
@@ -854,12 +991,11 @@
 
         <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="openTitleEditor()">🏷 TITLE</button>
         <button class="btn ghost" id="openTickerEditorBtn" style="padding:8px 10px; font-size:12px;" onclick="openTickerEditor()">📰 TICKER</button>
+                <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="openPromoTextEditor()">💬 PROMO TEXT</button>
 
        
 
-        <div class="sse" id="sseStatus">
-          SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
-        </div>
+  
 
         <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="copySoldListTSV()">📋 COPY SOLD LIST</button>
       </div>
@@ -870,7 +1006,7 @@
 <!-- ===== PROMO BANNER (Detached) ===== -->
 <div class="promo-banner wick" id="promoBanner">
   <div class="promo-head" id="promoDragHandle">
-    <div class="promo-title">📣 PROMO BANNER (DRAG + RESIZE)</div>
+
   </div>
 
   <div class="promo-body single" id="promoBodySingle">
@@ -883,8 +1019,7 @@
 
 
 
-    <div class="promo-resizer" id="promoResizer"></div>
-  </div>
+
 
 <script>
   // ===== Base path (GitHub Pages + local folders) =====
@@ -930,7 +1065,9 @@
     PROMO_SIZE: "cstc.promo.size",
     PROMO_IMG1: "cstc.promo.img1",
     PROMO_IMG2: "cstc.promo.img2",
-    PROMO_IMG3: "cstc.promo.img3"
+    PROMO_IMG3: "cstc.promo.img3",
+    PROMO_TEXT_LINES: "cstc.promo.textLines",
+    PROMO_TEXT_ROTATE: "cstc.promo.textRotate"
   };
 
   // ===== Defaults =====
@@ -945,6 +1082,12 @@
     nba: "NBA CUSTOM LINE • UPDATES • PROMOS",
     nfl: "NFL CUSTOM LINE • UPDATES • PROMOS"
   };
+
+    const DEFAULT_PROMO_TEXT_LINES = [
+    "Follow us on Instagram 👉 @charliesierratradingcards",
+    "Find more for sale on ebay @charliesierrascardbreaks",
+    "THANK YOU FOR SUPPORTING THE STREAM"
+  ];
 
   // ===== Helpers =====
   function safeJson(raw, fallback){
@@ -1445,7 +1588,134 @@
     }
   };
 
-  let currentBreakType = "nhl";
+  // ===== Embedded promo text rotator =====
+  let promoTextRotateTimer = null;
+  let promoTextIndex = 0;
+
+  function loadPromoTextLines(){
+    try{
+      const raw = localStorage.getItem(LS.PROMO_TEXT_LINES);
+      if (!raw) return DEFAULT_PROMO_TEXT_LINES.slice();
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length){
+        const clean = arr.map(s => String(s || "").trim()).filter(Boolean);
+        return clean.length ? clean : DEFAULT_PROMO_TEXT_LINES.slice();
+      }
+    }catch(_){}
+    return DEFAULT_PROMO_TEXT_LINES.slice();
+  }
+
+  function savePromoTextLines(lines){
+    const clean = (Array.isArray(lines) ? lines : [])
+      .map(s => String(s || "").trim())
+      .filter(Boolean);
+    localStorage.setItem(
+      LS.PROMO_TEXT_LINES,
+      JSON.stringify(clean.length ? clean : DEFAULT_PROMO_TEXT_LINES.slice())
+    );
+  }
+
+  function loadPromoTextRotateSec(){
+    const raw = parseInt(localStorage.getItem(LS.PROMO_TEXT_ROTATE) || "5", 10);
+    return Number.isFinite(raw) ? Math.max(2, Math.min(30, raw)) : 5;
+  }
+
+  function savePromoTextRotateSec(sec){
+    const s = Math.max(2, Math.min(30, parseInt(sec || "5", 10) || 5));
+    localStorage.setItem(LS.PROMO_TEXT_ROTATE, String(s));
+
+    const a = document.getElementById("promoTextRotateRange");
+    const b = document.getElementById("promoTextRotateNum");
+    const c = document.getElementById("promoFlipMeta");
+    if (a) a.value = String(s);
+    if (b) b.value = String(s);
+    if (c) c.textContent = `${s}S`;
+
+    restartPromoTextRotation();
+  }
+
+  function getPromoTextLines(){
+    return loadPromoTextLines();
+  }
+
+  function renderPromoText(forceFlip = false){
+    const el = document.getElementById("promoFlipText");
+    const meta = document.getElementById("promoFlipMeta");
+    if (!el) return;
+
+    const lines = getPromoTextLines();
+    promoTextIndex = promoTextIndex % lines.length;
+    el.textContent = lines[promoTextIndex] || DEFAULT_PROMO_TEXT_LINES[0];
+
+    if (meta) meta.textContent = `${loadPromoTextRotateSec()}S`;
+
+    el.classList.remove("flip");
+    if (forceFlip){
+      void el.offsetHeight;
+      el.classList.add("flip");
+    }
+  }
+
+  function stopPromoTextRotation(){
+    if (promoTextRotateTimer) clearInterval(promoTextRotateTimer);
+    promoTextRotateTimer = null;
+  }
+
+  function restartPromoTextRotation(){
+    stopPromoTextRotation();
+
+    const lines = getPromoTextLines();
+    promoTextIndex = 0;
+    renderPromoText(false);
+
+    if (lines.length <= 1) return;
+
+    const sec = loadPromoTextRotateSec();
+    promoTextRotateTimer = setInterval(() => {
+      const liveLines = getPromoTextLines();
+      if (!liveLines.length) return;
+      promoTextIndex = (promoTextIndex + 1) % liveLines.length;
+      renderPromoText(true);
+    }, sec * 1000);
+  }
+
+  function openPromoTextEditor(){
+    const modal = document.getElementById("promoTextModal");
+    const ta = document.getElementById("promoTextModalTextarea");
+    if (!modal || !ta) return;
+
+    ta.value = getPromoTextLines().join("\n");
+    savePromoTextRotateSec(loadPromoTextRotateSec());
+    modal.classList.add("open");
+    setTimeout(() => ta.focus(), 0);
+  }
+
+  function closePromoTextEditor(){
+    const modal = document.getElementById("promoTextModal");
+    if (!modal) return;
+    modal.classList.remove("open");
+  }
+
+  function applyPromoTextFromModal(){
+    const raw = String(document.getElementById("promoTextModalTextarea")?.value || "");
+    const lines = raw.split(/\n+/).map(s => s.trim()).filter(Boolean);
+
+    savePromoTextLines(lines.length ? lines : DEFAULT_PROMO_TEXT_LINES.slice());
+
+    const speed = parseInt(
+      document.getElementById("promoTextRotateNum")?.value ||
+      document.getElementById("promoTextRotateRange")?.value ||
+      "5", 10
+    );
+    savePromoTextRotateSec(speed);
+
+    promoTextIndex = 0;
+    renderPromoText(true);
+    restartPromoTextRotation();
+    closePromoTextEditor();
+  }
+
+  let currentBreakType = "nfl";
   let soldTeams = new Set();             // Set<code>
   let soldTeamsList = [];                // [{code,buyer,saleId}]
 
@@ -1519,6 +1789,23 @@
     return slot;
   }
 
+    function makeFloatingLogo(){
+    const wrap = document.createElement("div");
+    wrap.className = "logo-float";
+
+    const img = document.createElement("img");
+    img.src = LOGO_PRIMARY;
+    img.alt = "CSTC Logo";
+
+    let i = 0;
+    img.onerror = () => {
+      if (i < LOGO_FALLBACKS.length) img.src = LOGO_FALLBACKS[i++];
+    };
+
+    wrap.appendChild(img);
+    return wrap;
+  }
+
   function makeTickerSlot(spanCols){
     const slot = document.createElement("div");
     slot.className = "ticker-slot";
@@ -1571,7 +1858,7 @@
     }
 
     // 32-team layout (10 cols): 4 + logo(2) + 4, then 2 rows of 10, then row with 2 + ticker(6) + 2
-    if (config.layout === "LEAGUE_32"){
+     if (config.layout === "LEAGUE_32"){
       let idx = 0;
 
       const r1 = document.createElement("div");
@@ -1600,6 +1887,8 @@
       r4.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r4);
     }
+
+    wrap.appendChild(makeFloatingLogo());
 
     setHeader();
     updateStats();
@@ -2108,7 +2397,7 @@ function togglePromoBanner(force){
 
 function loadPromoPos(){
   const o = safeJson(localStorage.getItem(LS.PROMO_POS) || "", null);
-  return (o && typeof o === "object") ? o : { left: 0, top: 820 };
+  return (o && typeof o === "object") ? o : { left: 0, top: 220 };
 }
 function savePromoPos(left, top){
   localStorage.setItem(LS.PROMO_POS, JSON.stringify({ left, top }));
@@ -2287,15 +2576,19 @@ function wirePromoDrag(){
     startX = e.clientX;
     startY = e.clientY;
 
-    const rect = banner.getBoundingClientRect();
-    startLeft = rect.left;
-    startTop = rect.top;
+    const left = parseInt(banner.style.left || "0", 10) || 0;
+    const top = parseInt(banner.style.top || "0", 10) || 0;
+    startLeft = left;
+    startTop = top;
 
+    document.body.style.cursor = "move";
     e.preventDefault();
+    e.stopPropagation();
   });
 
   window.addEventListener("mousemove", (e) => {
     if (!dragging) return;
+
     const dx = e.clientX - startX;
     const dy = e.clientY - startY;
 
@@ -2309,9 +2602,11 @@ function wirePromoDrag(){
   window.addEventListener("mouseup", () => {
     if (!dragging) return;
     dragging = false;
+    document.body.style.cursor = "";
 
-    const rect = banner.getBoundingClientRect();
-    savePromoPos(Math.round(rect.left), Math.round(rect.top));
+    const left = parseInt(banner.style.left || "0", 10) || 0;
+    const top = parseInt(banner.style.top || "0", 10) || 0;
+    savePromoPos(left, top);
   });
 }
 
@@ -2369,6 +2664,8 @@ function wirePromoResize(){
     saveTickerSpeedSec(loadTickerSpeedSec());
 
     buildLayout();
+        savePromoTextRotateSec(loadPromoTextRotateSec());
+    restartPromoTextRotation();
 
 // promo init
 applyPromoGeometry();
@@ -2389,10 +2686,11 @@ if (loadPromoOpen()) togglePromoBanner(true);
       closeTitleEditor();
       closeBreakEditor();
       closePromoManager();
+            closePromoTextEditor();
     });
 
     // click outside to close
-    ["tickerModal","titleModal","breakModal","promoModal"].forEach(id => {
+        ["tickerModal","titleModal","breakModal","promoModal","promoTextModal"].forEach(id => {
       const m = document.getElementById(id);
       if (!m) return;
       m.addEventListener("click", (e) => {
@@ -2401,6 +2699,7 @@ if (id === "tickerModal") closeTickerEditor();
 if (id === "titleModal") closeTitleEditor();
 if (id === "breakModal") closeBreakEditor();
 if (id === "promoModal") closePromoManager();
+if (id === "promoTextModal") closePromoTextEditor();
         }
       });
     });
@@ -2424,14 +2723,11 @@ if (id === "promoModal") closePromoManager();
     </div>
 
     <div class="ticker-hint">
-      Tip: Leave blanstyle="padding:8px 10px; font-size:12px;" onclick="closeBreakEditor()">CLOSE</button>
-      </div>
+      Tip: Leave blank to revert to the default like <b>NHL BOX BREAK</b>.
     </div>
-
-    k to revert to the default like <b>NHL BOX BREAK</b>.
-    </div>
-  </div>
-</div>
+   
+   </div>
+ </div>
 
 <!-- ===== Break # Editor Modal ===== -->
 <div class="modal-backdrop" id="breakModal">
@@ -2532,6 +2828,44 @@ if (id === "promoModal") closePromoManager();
   </div>
 </div>
 
+<!-- ===== Embedded Promo Text Modal ===== -->
+<div class="modal-backdrop" id="promoTextModal">
+  <div class="modal-panel wick" role="dialog" aria-modal="true" aria-label="Promo Text Editor">
+    <div class="modal-head">
+      <div class="modal-title">Embedded Promo Display</div>
+      <div class="modal-actions">
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyPromoTextFromModal()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closePromoTextEditor()">CLOSE</button>
+      </div>
+    </div>
+
+    <div class="ticker-editor">
+      <textarea id="promoTextModalTextarea"
+        placeholder="One message per line. Each line rotates in the embedded promo display."></textarea>
+    </div>
+
+    <div class="ticker-hint">
+      Use one line per message. The center promo strip flips through these messages on a timer.
+    </div>
+
+    <div style="height:10px;"></div>
+
+    <div style="background:rgba(0,0,0,0.25); border:2px solid rgba(255,255,255,0.12); border-radius:10px; padding:10px;">
+      <div class="modal-title" style="margin-bottom:8px;">Flip Timer (seconds)</div>
+
+      <div style="display:grid; grid-template-columns: 1fr 110px; gap:10px; align-items:center;">
+        <input id="promoTextRotateRange" type="range" min="2" max="30" step="1"
+          oninput="document.getElementById('promoTextRotateNum').value=this.value" />
+        <input id="promoTextRotateNum" class="sold-buyer-input" type="number" min="2" max="30" step="1"
+          oninput="document.getElementById('promoTextRotateRange').value=this.value" />
+      </div>
+
+      <div class="ticker-hint" style="margin-top:8px;">
+        Recommended: 4–7 seconds for short brand/promo messages.
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ===== PROMO MANAGER MODAL ===== -->
 <div class="modal-backdrop" id="promoModal">
