@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1080, initial-scale=1.0" />
+<title>Jim &amp; Tabby's Breaks — Split Board Cleanup v2</title>
+<style>
+:root{
+  --W:1080px; --H:800px; --radius:16px;
+  --gold:#f4c04c; --gold2:#ffe39a; --deep:#0b1629; --deep2:#132744;
+  --line:rgba(255,234,160,.24); --line2:rgba(255,255,255,.10);
+  --text:#fff; --muted:#efe6c5; --danger:#d93636;
+  --pack:#ffb347; --team:#4fc3ff; --chaser:#d389ff; --prizepack:#6dff8f;
+  --team-cols:4; --team-height:64px; --teams-h:392px;
+}
+*{box-sizing:border-box} html,body{margin:0;background:transparent;color:var(--text);font-family:Arial,sans-serif;overflow:hidden;user-select:none}
+body{width:var(--W);height:var(--H)}
+.overlay-container{
+  width:100%;height:100%;padding:8px;border-radius:var(--radius);overflow:hidden;position:relative;
+  background:
+    radial-gradient(900px 420px at 30% 0%, rgba(244,192,76,.16), transparent 62%),
+    radial-gradient(900px 520px at 72% 30%, rgba(48,94,180,.18), transparent 62%),
+    linear-gradient(180deg, #091322, #0d2039 60%, #07111d);
+  border:4px solid rgba(255,240,195,.18); box-shadow:0 12px 32px rgba(0,0,0,.70);
+  display:flex; flex-direction:column; gap:8px;
+}
+.overlay-container::before{
+  content:""; position:absolute; inset:-30px; pointer-events:none; filter:blur(16px);
+  background:
+    radial-gradient(circle at 22% 20%, rgba(255,214,92,.14), transparent 56%),
+    radial-gradient(circle at 72% 18%, rgba(240,188,45,.14), transparent 58%),
+    radial-gradient(circle at 60% 86%, rgba(255,214,92,.10), transparent 58%);
+}
+.header{
+  display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-radius:14px; z-index:2;
+  background:linear-gradient(90deg, rgb(18 18 18) 12%, rgb(255 187 0) 50%, rgb(18 18 18) 88%);
+  border:1px solid rgb(234 215 158);
+}
+.brand{display:flex; flex-direction:column; min-width:0}
+.brand-title{font-size:24px; font-weight:900; letter-spacing:2px; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#fff6d8; text-shadow:0 3px 12px rgba(0,0,0,.85)}
+.brand-slogan{font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:#fff4cd}
+.break-id-box{display:flex; align-items:center; gap:10px; padding:6px 10px; border-radius:12px; background:rgba(0,0,0,.55); border:2px solid rgba(240,240,192,.22)}
+.break-id-label{font-size:18px; font-weight:900; color:#fff2cb; text-transform:uppercase}
+.break-id-value{font-size:22px; font-weight:900; color:#fff7db; min-width:28px; text-align:right}
+.main{display:flex; flex-direction:column; align-items:center; gap:8px; width:100%; z-index:2}
+.teams-section{
+  display:grid; grid-template-columns:1fr auto 1fr; gap:8px; height:var(--teams-h); width:100%; padding:2px; border-radius:14px;
+  background:linear-gradient(90deg, rgba(255,214,92,.10), rgba(76,59,16,.87), rgba(208,176,96,.10)); border:2px solid rgba(255,255,255,.10)
+}
+.conference{
+  display:flex; flex-direction:column; min-height:0; height:100%; width:440px; overflow-y:auto; overflow-x:hidden; padding:3px;
+  border:2px solid rgba(255,214,92,.22); border-radius:14px; background:rgba(0,0,0,.72)
+}
+.conference::-webkit-scrollbar{display:none}
+.conference-title{font-size:16px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:1px; color:#fff2cb; border-bottom:1px solid rgb(234 215 158); padding-bottom:4px}
+.subconference{margin-top:4px; padding:4px; border-radius:12px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.06)}
+.subconference-title{font-size:12px; font-weight:900; text-transform:uppercase; color:#fff2cb; margin-bottom:4px}
+.division{margin-top:4px; position:relative}
+.division-name{font-size:13px; font-weight:900; text-transform:uppercase; letter-spacing:1px; color:rgba(240,240,192,.90)}
+.division-head{display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:4px}
+.division-teams{display:grid; grid-template-columns:repeat(var(--team-cols),1fr); gap:4px}
+.division-teams.combo-right{grid-template-columns:repeat(5,1fr)}
+.team{
+  position:relative; height:var(--team-height); border-radius:10px; overflow:hidden; cursor:pointer;
+  background:rgba(0,0,0,.78); border:2px solid rgba(240,240,192,.98); transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease
+}
+.team:hover{transform:translateY(-2px) scale(1.015); box-shadow:0 10px 22px rgba(0,0,0,.55); border-color:rgba(208,176,96,.55)}
+.team img{width:100%; height:100%; object-fit:cover}
+.team::before{
+  content:''; position:absolute; inset:-12px; border-radius:14px; z-index:0; pointer-events:none;
+  background:radial-gradient(circle, rgba(240,240,192,.28) 0%, rgba(208,176,96,.20) 40%, transparent 72%);
+  filter:blur(18px); opacity:.34; animation:tilePulse 3.2s ease-in-out infinite;
+}
+@keyframes tilePulse{0%{opacity:.14;transform:scale(.98)}50%{opacity:.34;transform:scale(1.02)}100%{opacity:.14;transform:scale(.98)}}
+.team-label{
+  position:absolute; inset:0; z-index:3; display:flex; align-items:center; justify-content:center; padding:8px;
+  font-weight:900; letter-spacing:.8px; text-transform:uppercase; text-align:center; font-size:18px; line-height:1.05; text-shadow:0 3px 12px rgba(0,0,0,.8)
+}
+.team-code-chip{position:absolute; left:5px; top:5px; z-index:4; padding:2px 6px; border-radius:999px; background:rgba(0,0,0,.56); border:1px solid rgba(255,255,255,.14); font-size:9px; font-weight:900}
+.sold-x{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:54px; font-weight:900; color:rgba(217,54,54,.96); text-shadow:0 0 10px rgba(217,54,54,.7), 0 10px 22px rgba(0,0,0,.85); z-index:4; opacity:0; transition:opacity .14s ease}
+.team.sold img{opacity:.22; filter:grayscale(1) brightness(.35)} .team.sold .sold-x{opacity:1}
+.team.custom .team-label{flex-direction:column; gap:2px; padding:8px}
+.custom-title{width:100%; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.custom-sub{width:100%; font-size:10px; opacity:.85; max-height:2.2em; overflow:hidden}
+.control-bar{
+  width:150px; display:flex; flex-direction:column; justify-content:flex-end; gap:8px; padding:114px 6px 8px; border-radius:14px; position:relative;
+  background:linear-gradient(180deg, rgba(255,240,195,.12), rgba(0,0,0,.55), rgba(246,194,77,.14));
+  border:1px solid rgba(255,240,195,.18)
+}
+.brand-logo{position:absolute; left:50%; top:0; transform:translate(-50%,-26%); width:100%; display:flex; align-items:center; justify-content:center; pointer-events:none}
+.brand-logo img{width:165%; height:auto; object-fit:contain; filter:drop-shadow(0 10px 18px rgba(0,0,0,.65)) drop-shadow(0 0 14px rgba(246,194,77,.22))}
+.center-btn{
+  width:100%; padding:10px 8px; border:none; border-radius:12px; cursor:pointer; font-size:16px; font-weight:900; text-transform:uppercase;
+  background:linear-gradient(180deg, rgba(246,194,77,.92), rgba(182,122,23,.96)); color:#09111d
+}
+.center-btn.red{background:linear-gradient(180deg, rgba(220,48,48,.92), rgba(138,20,20,.95)); color:#fff}
+.stat-box{display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px 4px; background:rgba(0,0,0,.55); border:2px solid rgba(255,240,195,.20); border-radius:12px}
+.stat-box .value{font-size:22px; font-weight:900; color:#fff5d8}.stat-box .label{font-size:13px; font-weight:900; color:#fff0c4; text-transform:uppercase}
+.ticker{width:100%; overflow:hidden; height:40px; border-radius:12px; background:linear-gradient(90deg, rgba(255,240,195,.16), rgba(0,0,0,.70), rgba(246,194,77,.18)); border:2px solid rgba(255,240,195,.16)}
+.ticker-track{display:flex; width:max-content; animation:tickerMarquee 24s linear infinite}
+.ticker-text{display:inline-block; white-space:nowrap; font-weight:900; letter-spacing:.8px; font-size:18px; line-height:40px; text-transform:uppercase; padding-right:48px}
+@keyframes tickerMarquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.control-panel{width:100%; border:1px solid rgba(255,240,195,.18); border-radius:14px; padding:8px; background:rgba(0,0,0,.18); display:flex; gap:6px; align-items:center; overflow:hidden}
+.breaktype-buttons,.control-actions{display:flex; gap:6px; align-items:center; overflow:auto}.control-actions{margin-left:auto}
+.breaktype-buttons::-webkit-scrollbar,.control-actions::-webkit-scrollbar{display:none}
+.breaktype-btn,.pill-btn{
+  background:rgba(0,0,0,.55); color:rgba(255,245,220,.95); border:2px solid rgba(255,245,220,.18); border-radius:12px; padding:8px 10px; font-weight:900; letter-spacing:1px; text-transform:uppercase; cursor:pointer; white-space:nowrap
+}
+.breaktype-btn.active{border-color:rgba(246,194,77,.60)}
+.pill-btn.red{background:linear-gradient(180deg, rgba(220,48,48,.90), rgba(138,20,20,.95)); color:#fff}
+.pill-btn.gold{background:linear-gradient(180deg, rgba(246,194,77,.92), rgba(182,122,23,.96)); color:#09111d}
+.sse-status{display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px; border:2px solid rgba(255,240,195,.18); background:rgba(0,0,0,.25); font-weight:900; font-size:12px; text-transform:uppercase; color:rgba(255,245,220,.92)}
+.sse-status .dot{width:10px; height:10px; border-radius:50%; background:#666}
+.sse-status.connected .dot{background:#3cff8a}.sse-status.error .dot{background:#ff2f2f}
+.sold-header-row{
+  width:100%;
+  padding:6px 10px;
+  border-radius:14px;
+  background:linear-gradient(90deg, rgba(255,240,195,.10), rgba(0,0,0,.12), rgba(246,194,77,.10));
+  border:1px solid rgba(255,240,195,.18);
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.sold-header-controls{
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+.sold-panel-title{
+  font-size:14px;
+  font-weight:900;
+  letter-spacing:2px;
+  white-space:nowrap;
+  opacity:.94;
+  color:rgba(255,245,220,.96);
+}
+.sold-panel-slot{width:95%; height:160px; position:relative; margin:0 auto}
+.sold-panel{
+  position:relative;
+  inset:0;
+  padding:8px;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+  border-radius:14px;
+  border:2px solid rgba(255,240,195,.18);
+  background:linear-gradient(90deg, rgba(80,58,21,.92), rgba(23,18,10,.92), rgba(80,58,21,.92));
+  transition:opacity .2s ease;
+}
+.sold-panel.hidden{
+  opacity:0;
+  pointer-events:none;
+  background:transparent;
+  border-color:transparent;
+}
+.sold-item{display:flex; align-items:center; gap:6px; padding:4px 6px; border-radius:999px; background:rgba(255,214,92,.10)}
+.sold-item img{max-height:36px; background:rgba(0,0,0,.25); border-radius:8px; padding:2px}
+.sold-meta{display:flex; flex-direction:column; gap:2px; min-width:0; width:100%}
+.sold-name{font-size:10px; font-weight:900; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.buyer-input{width:100%; border:none; outline:none; background:rgba(0,0,0,.55); color:#fff; border-radius:999px; padding:5px 8px; font-size:12px; font-weight:900; border:1px solid rgba(255,214,92,.14)}
+.tagline{padding:2px 7px; border-radius:999px; font-size:9px; font-weight:900; border:1px solid rgba(255,255,255,.16); align-self:flex-start}
+.tag-pack{background:rgba(255,179,71,.18)} .tag-team{background:rgba(79,195,255,.18)} .tag-chaser{background:rgba(211,137,255,.18)} .tag-prizepack{background:rgba(109,255,143,.18)}
+.division.sold-division .division-teams{filter:brightness(.42) grayscale(.2)}
+.division-buyer-overlay{position:absolute; inset:24px 0 0 0; display:none; align-items:center; justify-content:center; z-index:8; pointer-events:none}
+.division.sold-division .division-buyer-overlay{display:flex}
+.division-buyer-overlay span{max-width:92%; padding:10px 16px; border-radius:999px; border:1px solid rgba(255,240,195,.38); background:linear-gradient(180deg, rgba(246,194,77,.98), rgba(182,122,23,.98)); color:#09111d; font-size:20px; font-weight:1000; text-transform:uppercase}
+.modal-wrap{position:fixed; inset:0; z-index:6000; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.62)}
+.modal-wrap.show{display:flex}
+.modal{width:min(860px,92vw); max-height:calc(100vh - 30px); overflow:auto; border-radius:18px; border:2px solid rgba(255,240,195,.20); background:linear-gradient(180deg, rgba(8,15,27,.98), rgba(12,23,40,.98)); padding:12px}
+.modal-headline{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px}
+.modal-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}.form-card{padding:10px; border-radius:14px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08)}
+.section-title{font-size:11px; font-weight:900; letter-spacing:1.4px; color:#d9e3f1; text-transform:uppercase; margin-bottom:6px}
+.text{width:100%; border:none; outline:none; border-radius:10px; padding:10px; font-weight:900; border:1px solid rgba(255,255,255,.12); background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.03)); color:#fff}
+textarea.text{min-height:220px; resize:vertical}
+.hint{font-size:11px; color:#c9d5e7; line-height:1.35}
+</style>
+</head>
+<body>
+<div class="overlay-container" id="overlayRoot">
+  <div class="header">
+    <div class="brand">
+      <div class="brand-title" id="brandTitle">JIM &amp; TABBY'S BREAKS</div>
+      <div class="brand-slogan" id="brandSlogan">LIVE SCORES • ANIMATED • MULTI-LAYOUT CUSTOM BUILD</div>
+    </div>
+    <div class="break-id-box"><span class="break-id-label">Break #</span><span id="breakIdDisplay" class="break-id-value">1</span></div>
+  </div>
+  <div class="main">
+    <div class="teams-section">
+      <div id="conferenceLeft" class="conference"></div>
+      <div class="control-bar">
+        <div class="brand-logo"><img id="brandLogo" alt="Jim and Tabby's Breaks" /></div>
+        <button class="center-btn red" onclick="resetAll()">Reset</button>
+        <div class="stat-box" onclick="toggleSoldPanel()" style="cursor:pointer"><div class="value" id="teamsSold">0</div><div class="label">Sold</div></div>
+        <div class="stat-box"><div class="value" id="teamsLeft">0</div><div class="label">Remaining</div></div>
+        <div class="stat-box"><div class="value" id="chasersRemaining">0</div><div class="label">Chasers</div></div>
+        <button class="center-btn" onclick="startNewBreakCycle()">Next</button>
+      </div>
+      <div id="conferenceRight" class="conference"></div>
+    </div>
+    <div class="ticker"><div id="tickerTrack" class="ticker-track"><span id="tickerA" class="ticker-text"></span><span id="tickerB" class="ticker-text"></span></div></div>
+    <div class="control-panel">
+      <div class="breaktype-buttons" id="breakTypeButtons"></div>
+<div class="control-actions">
+  <button class="pill-btn" onclick="openPrompt('ticker')">Set Ticker</button>
+  <button class="pill-btn" onclick="openPrompt('tickerSpeed')">Ticker Speed</button>
+  <button class="pill-btn" onclick="openPromoTextModal()">Promo Text</button>
+  <button class="pill-btn" onclick="openPromoImageModal()">Promo Images</button>
+  <button class="pill-btn red" onclick="openPrompt('break')">Break #</button>
+  <button class="pill-btn" onclick="openPrompt('title')">Set Title</button>
+  <button class="pill-btn" onclick="openPrompt('subtitle')">Set Sub</button>
+  <button class="pill-btn" onclick="openCustomModal()">Custom Items</button>
+  <button class="pill-btn" onclick="openChaseModal()">Chasers</button>
+  <button class="pill-btn gold" onclick="exportTSV()">Export TSV</button>
+  <div class="sse-status" id="sseStatus">
+    SSE:
+    <span class="dot"></span>
+    <span id="sseText">disconnected</span>
+  </div>
+</div>
+      <input id="customCsvInput" type="file" accept=".csv,text/csv" style="display:none;" />
+    </div>
+    <div class="sold-header-row">
+  <div class="sold-header-controls">
+    <div class="sold-panel-title">SOLD ITEMS</div>
+  </div>
+
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px;min-width:0;">
+    <div id="promoTextSlot"
+         style="padding:6px 12px;border-radius:999px;background:rgba(255,240,195,.10);border:1px solid rgba(255,240,195,.16);font-size:12px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px;">
+      PROMO READY
+    </div>
+
+    <div id="promoImageSlot"
+         style="width:72px;height:34px;border-radius:10px;overflow:hidden;background:rgba(0,0,0,.28);border:1px solid rgba(255,240,195,.16);display:flex;align-items:center;justify-content:center;">
+      <img id="promoImageEl" style="max-width:100%;max-height:100%;object-fit:contain;display:none;" alt="Promo" />
+    </div>
+  </div>
+</div>
+  </div>
+  <div class="sold-panel-slot"><div id="soldPanel" class="sold-panel hidden"></div></div>
+</div>
+
+<div class="modal-wrap" id="customModal"><div class="modal"><div class="modal-headline"><strong>Custom Entries</strong><button class="pill-btn" onclick="closeCustomModal()">Close</button></div><div class="modal-grid"><div class="form-card"><div class="section-title">Entries</div><textarea class="text" id="customTextInput"></textarea><div class="hint" style="margin-top:8px">One line per entry. Optional subtitle after a tab, pipe, or comma.</div></div><div class="form-card"><div class="section-title">Settings</div><input class="text" id="customEnvelopeImage" placeholder="../../images/custom/jim-tabbys-envelope.png" /><div class="hint" style="margin:8px 0">Envelope art path. Uses the TSU ../../ convention.</div><button class="pill-btn" onclick="seed150()">Seed 150</button> <button class="pill-btn gold" onclick="applyCustomEntries()">Apply</button> <button class="pill-btn red" onclick="clearCustomEntries()">Clear</button></div></div></div></div>
+<div class="modal-wrap" id="chaseModal"><div class="modal"><div class="modal-headline"><strong>Chase Spot Manager</strong><button class="pill-btn" onclick="closeChaseModal()">Close</button></div><div class="modal-grid"><div class="form-card"><div class="section-title">Chase definitions</div><textarea class="text" id="chaseTextInput" placeholder="KC\tCase Hit Team\tTeam&#10;Envelope 12\tGolden Pack\tPack"></textarea><div class="hint" style="margin-top:8px">Format: targetCode or targetTitle TAB display label TAB category. Categories: Pack, Team, Chaser, Prize Pack.</div></div><div class="form-card"><div class="section-title">Actions</div><button class="pill-btn gold" onclick="applyChasers()">Apply Chasers</button> <button class="pill-btn red" onclick="clearChasers()">Clear Chasers</button></div></div></div></div>
+
+<div class="modal-wrap" id="promoTextModal">
+  <div class="modal">
+    <div class="modal-headline">
+      <strong>Promo Text Rotation</strong>
+      <button class="pill-btn" onclick="closePromoTextModal()">Close</button>
+    </div>
+    <div class="form-card">
+      <div class="section-title">Promo Lines</div>
+      <textarea class="text" id="promoTextInput" placeholder="Free shipping over $50&#10;Break tonight at 8 PM&#10;Follow for chase updates"></textarea>
+      <div class="hint" style="margin-top:8px">One line per promo item.</div>
+      <div style="margin-top:10px">
+        <button class="pill-btn gold" onclick="applyPromoTexts()">Apply</button>
+        <button class="pill-btn red" onclick="clearPromoTexts()">Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="promoImageModal">
+  <div class="modal">
+    <div class="modal-headline">
+      <strong>Promo Image Rotation</strong>
+      <button class="pill-btn" onclick="closePromoImageModal()">Close</button>
+    </div>
+    <div class="form-card">
+      <div class="section-title">Promo Image Paths</div>
+      <textarea class="text" id="promoImageInput" placeholder="../../images/promos/promo-1.png&#10;../../images/promos/promo-2.png"></textarea>
+      <div class="hint" style="margin-top:8px">One relative image path per line. Keep TSU ../../ traversal.</div>
+      <div style="margin-top:10px">
+        <button class="pill-btn gold" onclick="applyPromoImages()">Apply</button>
+        <button class="pill-btn red" onclick="clearPromoImages()">Clear</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="obsPrompt"><div class="modal" style="max-width:520px"><div class="modal-headline"><strong id="obsPromptTitle">Set Value</strong><button class="pill-btn" onclick="closePrompt()">Close</button></div><div class="hint" id="obsPromptDesc" style="margin-bottom:8px"></div><input id="obsPromptInput" class="text" type="text" /><div style="margin-top:10px; text-align:right"><button class="pill-btn" onclick="closePrompt()">Cancel</button> <button class="pill-btn gold" onclick="commitPrompt()">Apply</button></div></div></div>
+
+<script>
+
+const BASE = (() => location.hostname.endsWith('github.io')
+  ? `/${location.pathname.split('/').filter(Boolean)[0] || ''}/`
+  : '../../')();
+
+const ASSETS = {
+  logo:`${BASE}images/logos/jim-and-tabbys-breaks-logo.png`,
+  envelope:`${BASE}images/custom/jim-tabbys-envelope.png`,
+  nfl:f=>`${BASE}images/nfl/${f}`,
+  mlb:f=>`${BASE}images/mlb/${f}`
+};
+
+const LS = {
+  BREAK_NUMBER:'jtb.breakNumber',
+  BREAK_TYPE:'jtb.breakType',
+  SOLD_STATE:'jtb.soldState',
+  CUSTOM_ENTRIES:'jtb.custom.entries',
+  CUSTOM_IMAGE:'jtb.custom.image',
+  CHASERS:'jtb.chasers',
+  TITLE_MAIN:'jtb.title.main',
+  TITLE_SUB:'jtb.title.sub',
+  TICKER:'jtb.ticker',
+  TICKER_SPEED:'jtb.ticker.speed',
+  PROMO_TEXTS:'jtb.promo.texts',
+  PROMO_IMAGES:'jtb.promo.images',
+  SPORT_LAYOUTS:'jtb.layout.presets'
+};
+
+const BRIDGE_KEYS = {
+  URL:'tsu.bridgeUrl',
+  KEY:'tsu.bridgeKey'
+};
+
+const RECONNECT_MS = 2500;
+const DEFAULT_CHANNELS = ['main'];
+
+const DEFAULT_TITLE_MAIN = "JIM & TABBY'S BREAKS";
+const DEFAULT_TITLE_SUB  = "LIVE SCORES • ANIMATED • MULTI-LAYOUT CUSTOM BUILD";
+const DEFAULT_TICKER     = "JIM & TABBY'S BREAKS • LIVE BREAKS • NFL • MLB • CUSTOM ENVELOPES • CHASER TRACKING";
+
+let currentBreakType = 'nfl';
+let soldPanelVisible = false;
+let customEntries = [];
+let PROMPT_MODE = null;
+
+let SPORTS_LINES = [];
+let TICKER_LINES = loadTickerLines();
+let TICKER_SPEED = loadTickerSpeed();
+
+let promoTexts = loadPromoTexts();
+let promoImages = loadPromoImages();
+let promoTextIndex = 0;
+let promoImageIndex = 0;
+let promoTimer = null;
+
+let chaseMap = new Map();
+
+const soldTeams = new Set();
+let soldTeamsList = [];
+const lastCodeByListingKey = new Map();
+
+let _esMain = null;
+let _esSports = null;
+
+const CHASE_CATEGORIES = {
+  'pack':'pack',
+  'team':'team',
+  'chaser':'chaser',
+  'prize pack':'prizepack',
+  'prizepack':'prizepack'
+};
+
+const NFL={divisions:{AFC:{East:[['BUF','Bills','bills.png'],['MIA','Dolphins','dolphins.png'],['NE','Patriots','patriots.png'],['NYJ','Jets','jets.png']],North:[['BAL','Ravens','ravens.png'],['CIN','Bengals','bengals.png'],['CLE','Browns','browns.png'],['PIT','Steelers','steelers.png']],South:[['HOU','Texans','texans.png'],['IND','Colts','colts.png'],['JAX','Jaguars','jaguars.png'],['TEN','Titans','titans.png']],West:[['DEN','Broncos','broncos.png'],['KC','Chiefs','chiefs.png'],['LAC','Chargers','chargers.png'],['LV','Raiders','raiders.png']]},NFC:{East:[['DAL','Cowboys','cowboys.png'],['NYG','Giants','giants.png'],['PHI','Eagles','eagles.png'],['WAS','Commanders','commanders.png']],North:[['CHI','Bears','bears.png'],['DET','Lions','lions.png'],['GB','Packers','packers.png'],['MIN','Vikings','vikings.png']],South:[['ATL','Falcons','falcons.png'],['CAR','Panthers','panthers.png'],['NO','Saints','saints.png'],['TB','Buccaneers','buccaneers.png']],West:[['ARI','Cardinals','cardinals.png'],['LAR','Rams','rams.png'],['SF','49ers','49ers.png'],['SEA','Seahawks','seahawks.png']]}}};
+const MLB={divisions:{AL:{East:[['BAL','Orioles','orioles.png'],['BOS','Red Sox','redsox.png'],['NYY','Yankees','yankees.png'],['TB','Rays','rays.png'],['TOR','Blue Jays','bluejays.png']],Central:[['CWS','White Sox','whitesox.png'],['CLE','Guardians','guardians.png'],['DET','Tigers','tigers.png'],['KC','Royals','royals.png'],['MIN','Twins','twins.png']],West:[['HOU','Astros','astros.png'],['LAA','Angels','angels.png'],['OAK','Athletics','athletics.png'],['SEA','Mariners','mariners.png'],['TEX','Rangers','rangers.png']]},NL:{East:[['ATL','Braves','braves.png'],['MIA','Marlins','marlins.png'],['NYM','Mets','mets.png'],['PHI','Phillies','phillies.png'],['WSH','Nationals','nationals.png']],Central:[['CHC','Cubs','cubs.png'],['CIN','Reds','reds.png'],['MIL','Brewers','brewers.png'],['PIT','Pirates','pirates.png'],['STL','Cardinals','cardinals.png']],West:[['ARI','Diamondbacks','diamondbacks.png'],['COL','Rockies','rockies.png'],['LAD','Dodgers','dodgers.png'],['SD','Padres','padres.png'],['SF','Giants','giants.png']]}}};
+
+function normalizeText(v){ return String(v||'').toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'').trim(); }
+function itemDisplayName(e){ return e?.title || e?.name || e?.code || ''; }
+
+
+function loadTickerLines(){
+  try{
+    const raw = localStorage.getItem(LS.TICKER);
+    if (!raw) return DEFAULT_TICKER.split('•').map(s => s.trim()).filter(Boolean);
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.map(s => String(s).trim()).filter(Boolean) : DEFAULT_TICKER.split('•').map(s => s.trim()).filter(Boolean);
+  }catch(_){
+    return DEFAULT_TICKER.split('•').map(s => s.trim()).filter(Boolean);
+  }
+}
+
+function loadTickerSpeed(){
+  const n = parseFloat(localStorage.getItem(LS.TICKER_SPEED) || '90');
+  return Number.isFinite(n) && n >= 40 && n <= 160 ? n : 90;
+}
+
+function saveTickerSpeed(v){
+  localStorage.setItem(LS.TICKER_SPEED, String(v));
+}
+
+function loadPromoTexts(){
+  try{
+    const raw = localStorage.getItem(LS.PROMO_TEXTS);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.map(s => String(s).trim()).filter(Boolean) : [];
+  }catch(_){
+    return [];
+  }
+}
+
+function savePromoTexts(lines){
+  localStorage.setItem(LS.PROMO_TEXTS, JSON.stringify(lines || []));
+}
+
+function loadPromoImages(){
+  try{
+    const raw = localStorage.getItem(LS.PROMO_IMAGES);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr.map(s => String(s).trim()).filter(Boolean) : [];
+  }catch(_){
+    return [];
+  }
+}
+
+function savePromoImages(lines){
+  localStorage.setItem(LS.PROMO_IMAGES, JSON.stringify(lines || []));
+}
+
+function renderPromoSlots(){
+  const textSlot = document.getElementById('promoTextSlot');
+  const img = document.getElementById('promoImageEl');
+
+  if (textSlot){
+    textSlot.textContent = promoTexts.length
+      ? promoTexts[promoTextIndex % promoTexts.length]
+      : 'PROMO READY';
+  }
+
+  if (img){
+    if (promoImages.length){
+      img.src = promoImages[promoImageIndex % promoImages.length];
+      img.style.display = 'block';
+    } else {
+      img.removeAttribute('src');
+      img.style.display = 'none';
+    }
+  }
+}
+
+function startPromoRotation(){
+  if (promoTimer) clearInterval(promoTimer);
+  renderPromoSlots();
+
+  promoTimer = setInterval(() => {
+    if (promoTexts.length) promoTextIndex = (promoTextIndex + 1) % promoTexts.length;
+    if (promoImages.length) promoImageIndex = (promoImageIndex + 1) % promoImages.length;
+    renderPromoSlots();
+  }, 5000);
+}
+
+function updateStats(){
+  let total = 0;
+
+  if (currentBreakType === 'combo'){
+    total = [
+      ...flattenSportDivisions(NFLM).flatMap(d => d.teams),
+      ...flattenSportDivisions(MLBM).flatMap(d => d.teams)
+    ].length;
+  } else if (currentBreakType === 'custom'){
+    total = customEntries.length;
+  } else if (currentBreakType === 'nfl_divisions'){
+    total = flattenSportDivisions(NFLM).length;
+  } else {
+    const cfg = breakTypes[currentBreakType];
+    cfg.conferences.forEach(conf => {
+      Object.values(cfg.divisions[conf] || {}).forEach(div => total += div.length);
+    });
+  }
+
+  const sold = soldTeams.size;
+  document.getElementById('teamsLeft').textContent = String(Math.max(0, total - sold));
+  document.getElementById('teamsSold').textContent = String(sold);
+
+  const chaseRemaining = getAllEntries().reduce((acc, entry) => {
+    const chase = chaseForEntry(entry);
+    return acc + (chase && !soldTeams.has(entry.code) ? 1 : 0);
+  }, 0);
+
+  document.getElementById('chasersRemaining').textContent = String(chaseRemaining);
+}
+
+function openPromoTextModal(){
+  document.getElementById('promoTextInput').value = promoTexts.join('\n');
+  document.getElementById('promoTextModal').classList.add('show');
+}
+function closePromoTextModal(){
+  document.getElementById('promoTextModal').classList.remove('show');
+}
+function applyPromoTexts(){
+  promoTexts = String(document.getElementById('promoTextInput').value || '')
+    .split('\n').map(s => s.trim()).filter(Boolean);
+  savePromoTexts(promoTexts);
+  promoTextIndex = 0;
+  renderPromoSlots();
+  closePromoTextModal();
+}
+function clearPromoTexts(){
+  promoTexts = [];
+  savePromoTexts(promoTexts);
+  renderPromoSlots();
+  closePromoTextModal();
+}
+
+function openPromoImageModal(){
+  document.getElementById('promoImageInput').value = promoImages.join('\n');
+  document.getElementById('promoImageModal').classList.add('show');
+}
+function closePromoImageModal(){
+  document.getElementById('promoImageModal').classList.remove('show');
+}
+function applyPromoImages(){
+  promoImages = String(document.getElementById('promoImageInput').value || '')
+    .split('\n').map(s => s.trim()).filter(Boolean);
+  savePromoImages(promoImages);
+  promoImageIndex = 0;
+  renderPromoSlots();
+  closePromoImageModal();
+}
+function clearPromoImages(){
+  promoImages = [];
+  savePromoImages(promoImages);
+  renderPromoSlots();
+  closePromoImageModal();
+}
+
+function categoryColor(c){ return c==='pack'?'rgba(255,179,71,.9)':c==='team'?'rgba(79,195,255,.9)':c==='chaser'?'rgba(211,137,255,.9)':c==='prizepack'?'rgba(109,255,143,.9)':''; }
+function loadBreakNumber(){ const n=parseInt(localStorage.getItem(LS.BREAK_NUMBER)||'1',10); return Number.isFinite(n)&&n>0?n:1; }
+function setBreakNumber(n){
+  const safe = Number.isFinite(Number(n)) && Number(n) > 0 ? Number(n) : 1;
+  localStorage.setItem(LS.BREAK_NUMBER, String(safe));
+  document.getElementById('breakIdDisplay').textContent = String(safe);
+}
+function computeBreakId(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}-${currentBreakType}-${loadBreakNumber()}`; }
+function getBridgeBase(){ const qs=new URLSearchParams(location.search); return String(qs.get('bridge')||localStorage.getItem(BRIDGE_KEYS.URL)||'').trim().replace(/\/(stream|events)(\/.*)?$/i,'').replace(/\/+$/,''); }
+function getBridgeKey(){ const qs=new URLSearchParams(location.search); return String(qs.get('key')||localStorage.getItem(BRIDGE_KEYS.KEY)||'').trim(); }
+function automationEnabled(){ return !!getBridgeBase(); }
+function getChannels(){ const qs=new URLSearchParams(location.search); const list=qs.getAll('channel').map(v=>String(v||'').trim().toLowerCase()).filter(Boolean); return list.length?list:DEFAULT_CHANNELS.slice(); }
+function breakIdMatches(payload){ const incoming=String(payload?.breakId||payload?.break||payload?.breakNumber||'').trim(); return !incoming || incoming===String(loadBreakNumber()) || incoming===computeBreakId(); }
+function saveTitles(main,sub){ localStorage.setItem(LS.TITLE_MAIN,main); localStorage.setItem(LS.TITLE_SUB,sub); }
+function applyTitles(main, sub){
+  const safeMain = String(main || DEFAULT_TITLE_MAIN).trim() || DEFAULT_TITLE_MAIN;
+  const safeSub = String(sub || DEFAULT_TITLE_SUB).trim() || DEFAULT_TITLE_SUB;
+
+  document.getElementById('brandTitle').textContent = safeMain;
+  document.getElementById('brandSlogan').textContent = safeSub;
+  saveTitles(safeMain, safeSub);
+}
+function setTickerTrackText(text){
+  const a = document.getElementById('tickerA');
+  const b = document.getElementById('tickerB');
+  const track = document.getElementById('tickerTrack');
+
+  const safe = String(text || '').trim() || ' ';
+  a.textContent = safe;
+  b.textContent = safe;
+
+  track.style.animation = 'none';
+  void track.offsetWidth;
+
+  const halfWidth = a.scrollWidth + 48;
+  const duration = Math.max(8, halfWidth / TICKER_SPEED);
+  track.style.animation = `tickerMarquee ${duration}s linear infinite`;
+}
+
+function refreshTicker(){
+  const txt = (SPORTS_LINES.length ? SPORTS_LINES.join(' • ') : TICKER_LINES.join(' • ')) || DEFAULT_TICKER;
+  setTickerTrackText(txt);
+}
+function soldStateKey(){ return `${LS.SOLD_STATE}:${currentBreakType}:${loadBreakNumber()}`; }
+function saveSoldState(){ localStorage.setItem(soldStateKey(),JSON.stringify({sold:Array.from(soldTeams),list:soldTeamsList})); }
+function loadSoldState(){
+  soldTeams.clear();
+  soldTeamsList = [];
+  try{
+    const raw = localStorage.getItem(soldStateKey());
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    (Array.isArray(data?.sold) ? data.sold : []).forEach(v => soldTeams.add(String(v)));
+    soldTeamsList = Array.isArray(data?.list) ? data.list : [];
+  }catch(_){}
+}
+function loadChasers(){ try{ chaseMap=new Map(JSON.parse(localStorage.getItem(LS.CHASERS)||'[]')); }catch(_){ chaseMap=new Map(); } }
+function chaseForEntry(entry){ for(const k of [normalizeText(entry.code),normalizeText(entry.name),normalizeText(entry.title)]){ if(chaseMap.has(k)) return chaseMap.get(k); } return null; }
+function openCustomModal(){ document.getElementById('customTextInput').value=customEntries.map(e=>e.sub?`${e.title}\t${e.sub}`:e.title).join('\n'); document.getElementById('customEnvelopeImage').value=localStorage.getItem(LS.CUSTOM_IMAGE)||ASSETS.envelope; document.getElementById('customModal').classList.add('show'); }
+function closeCustomModal(){ document.getElementById('customModal').classList.remove('show'); }
+function seed150(){ document.getElementById('customTextInput').value=Array.from({length:150},(_,i)=>`Envelope ${i+1}\tSpot ${String(i+1).padStart(3,'0')}`).join('\n'); }
+function applyCustomEntries(){ localStorage.setItem(LS.CUSTOM_IMAGE,document.getElementById('customEnvelopeImage').value||ASSETS.envelope); const image=localStorage.getItem(LS.CUSTOM_IMAGE)||ASSETS.envelope; customEntries=String(document.getElementById('customTextInput').value||'').split('\n').map((line,idx)=>{ const clean=line.trim(); if(!clean) return null; let parts=clean.split('\t'); if(parts.length<2) parts=clean.split('|'); if(parts.length<2) parts=clean.split(','); const title=String(parts[0]||'').trim(); const sub=String(parts.slice(1).join(' ').trim()||''); return title?{code:`CUS${String(idx+1).padStart(3,'0')}`,title,sub,name:title,image}:null; }).filter(Boolean); localStorage.setItem(LS.CUSTOM_ENTRIES,JSON.stringify(customEntries)); closeCustomModal(); if(currentBreakType==='custom') buildLayout(); }
+function clearCustomEntries(){ customEntries=[]; localStorage.setItem(LS.CUSTOM_ENTRIES,'[]'); closeCustomModal(); if(currentBreakType==='custom') buildLayout(); }
+function openChaseModal(){ document.getElementById('chaseTextInput').value=Array.from(chaseMap.entries()).map(([k,v])=>`${k}\t${v.label}\t${v.category}`).join('\n'); document.getElementById('chaseModal').classList.add('show'); }
+function closeChaseModal(){ document.getElementById('chaseModal').classList.remove('show'); }
+function applyChasers(){ chaseMap=new Map(); String(document.getElementById('chaseTextInput').value||'').split('\n').forEach(line=>{ const clean=line.trim(); if(!clean) return; const parts=clean.split('\t').map(s=>s.trim()).filter(Boolean); const target=parts[0]||''; const label=parts[1]||target; const category=CHASE_CATEGORIES[normalizeText(parts[2]||'chaser').replace(/\s+/g,' ')]||'chaser'; if(target) chaseMap.set(normalizeText(target),{label,category}); }); localStorage.setItem(LS.CHASERS,JSON.stringify(Array.from(chaseMap.entries()))); closeChaseModal(); buildLayout(); }
+function clearChasers(){ chaseMap=new Map(); localStorage.removeItem(LS.CHASERS); closeChaseModal(); buildLayout(); }
+
+
+
+
+function openPrompt(mode){
+  PROMPT_MODE = mode;
+  const title = document.getElementById('obsPromptTitle');
+  const desc = document.getElementById('obsPromptDesc');
+  const input = document.getElementById('obsPromptInput');
+
+  if (mode === 'break'){
+    title.textContent = 'Set Break Number';
+    desc.textContent = 'Enter a positive number.';
+    input.value = String(loadBreakNumber());
+  } else if (mode === 'ticker'){
+    title.textContent = 'Set Ticker Text';
+    desc.textContent = 'Use • to split items.';
+    input.value = TICKER_LINES.join(' • ');
+  } else if (mode === 'tickerSpeed'){
+    title.textContent = 'Set Ticker Speed';
+    desc.textContent = 'Pixels per second. Safe range: 40 to 160.';
+    input.value = String(TICKER_SPEED);
+  } else if (mode === 'title'){
+    title.textContent = 'Set Title';
+    desc.textContent = 'Main header title.';
+    input.value = localStorage.getItem(LS.TITLE_MAIN) || DEFAULT_TITLE_MAIN;
+  } else if (mode === 'subtitle'){
+    title.textContent = 'Set Subtitle';
+    desc.textContent = 'Header subtitle text.';
+    input.value = localStorage.getItem(LS.TITLE_SUB) || DEFAULT_TITLE_SUB;
+  }
+
+  document.getElementById('obsPrompt').classList.add('show');
+  setTimeout(() => input.focus(), 0);
+}
+
+function closePrompt(){
+  document.getElementById('obsPrompt').classList.remove('show');
+  PROMPT_MODE = null;
+}
+
+function commitPrompt(){
+  const raw = String(document.getElementById('obsPromptInput').value || '').trim();
+
+  if (PROMPT_MODE === 'break'){
+    const n = parseInt(raw, 10);
+    if (Number.isFinite(n) && n > 0){
+      setBreakNumber(n);
+      loadSoldState();
+      buildLayout();
+    }
+  } else if (PROMPT_MODE === 'ticker'){
+    const parts = raw.includes('•')
+      ? raw.split('•')
+      : raw.includes('|')
+        ? raw.split('|')
+        : [raw];
+
+    TICKER_LINES = parts.map(s => s.trim()).filter(Boolean);
+    localStorage.setItem(LS.TICKER, JSON.stringify(TICKER_LINES));
+    refreshTicker();
+  } else if (PROMPT_MODE === 'tickerSpeed'){
+    const n = parseFloat(raw);
+    if (Number.isFinite(n) && n >= 40 && n <= 160){
+      TICKER_SPEED = n;
+      saveTickerSpeed(TICKER_SPEED);
+      refreshTicker();
+    }
+  } else if (PROMPT_MODE === 'title'){
+    applyTitles(raw || DEFAULT_TITLE_MAIN, localStorage.getItem(LS.TITLE_SUB) || DEFAULT_TITLE_SUB);
+  } else if (PROMPT_MODE === 'subtitle'){
+    applyTitles(localStorage.getItem(LS.TITLE_MAIN) || DEFAULT_TITLE_MAIN, raw || DEFAULT_TITLE_SUB);
+  }
+
+  closePrompt();
+}
+function applyTilePreset(sportKey){
+  const root = document.getElementById('overlayRoot');
+  if (!root) return;
+
+  const TILE_PRESETS = {
+    nfl:  { cols: 4, height: 64, teamsH: 390 },
+    nfl_divisions: { cols: 4, height: 64, teamsH: 390 },
+    mlb:  { cols: 5, height: 79, teamsH: 390 },
+    combo:{ cols: 4, height: 56, teamsH: 390 },
+    custom:{ cols: 4, height: 65, teamsH: 390 }
+  };
+
+  const p = TILE_PRESETS[sportKey] || TILE_PRESETS.nfl;
+  root.style.setProperty('--team-cols', String(p.cols));
+  root.style.setProperty('--team-height', `${p.height}px`);
+  root.style.setProperty('--teams-h', `${p.teamsH}px`);
+}
+
+const breakTypes = {
+  nfl: {
+    name: 'NFL Teams',
+    conferences: ['AFC','NFC'],
+    divisions: NFLM
+  },
+  nfl_divisions: {
+    name: 'NFL Divisions',
+    conferences: ['AFC','NFC'],
+    divisions: NFLM
+  },
+  mlb: {
+    name: 'MLB',
+    conferences: ['AL','NL'],
+    divisions: MLBM
+  },
+  combo: {
+    name: 'NFL + MLB',
+    conferences: ['NFL','MLB'],
+    divisions: {}
+  },
+  custom: {
+    name: 'Custom Entries',
+    conferences: ['Left','Right'],
+    divisions: { Left:{ Spots:[] }, Right:{ Spots:[] } }
+  }
+};
+
+function updateHeader(){
+  const root = document.getElementById('overlayRoot');
+  if (!root) return;
+
+  root.classList.remove('sport-nfl','sport-mlb','sport-custom','sport-combo','sport-nfl_divisions');
+  root.classList.add(`sport-${currentBreakType}`);
+
+  applyTilePreset(currentBreakType);
+  renderBreakTypeButtons();
+  refreshTicker();
+}
+
+function renderBreakTypeButtons(){
+  const wrap = document.getElementById('breakTypeButtons');
+  if (!wrap) return;
+
+  const types = Object.keys(breakTypes);
+  wrap.innerHTML = '';
+
+  types.forEach((t) => {
+    const btn = document.createElement('button');
+    btn.className = 'breaktype-btn' + (t === currentBreakType ? ' active' : '');
+    btn.textContent = breakTypes[t].name;
+    btn.onclick = () => setBreakType(t);
+    wrap.appendChild(btn);
+  });
+}
+
+function setBreakType(t){
+  if (!breakTypes[t]) return;
+  currentBreakType = t;
+  localStorage.setItem(LS.BREAK_TYPE, currentBreakType);
+  loadSoldState();
+  renderTeams();
+}
+
+function initializeGrid(){
+  renderTeams();
+}
+
+function renderTeams(){
+  updateHeader();
+
+  const left = document.getElementById('conferenceLeft');
+  const right = document.getElementById('conferenceRight');
+  if (!left || !right) return;
+
+  left.innerHTML = '';
+  right.innerHTML = '';
+
+  if (currentBreakType === 'combo'){
+    renderComboTeams();
+    updateStats();
+    renderSoldPanel();
+    return;
+  }
+
+  if (currentBreakType === 'custom'){
+    renderCustomTeams();
+    updateStats();
+    renderSoldPanel();
+    return;
+  }
+
+  const cfg = breakTypes[currentBreakType];
+  if (!cfg) return;
+
+  cfg.conferences.forEach((confName, i) => {
+    const container = (i === 0) ? left : right;
+
+    const confTitle = document.createElement('div');
+    confTitle.className = 'conference-title';
+    confTitle.textContent = confName;
+    container.appendChild(confTitle);
+
+    const divisions = cfg.divisions[confName] || {};
+    Object.keys(divisions).forEach((divName) => {
+      const divisionWrap = document.createElement('div');
+      divisionWrap.className = 'division';
+
+      if (currentBreakType === 'nfl_divisions'){
+        divisionWrap.dataset.divisionCode = `DIV_${confName}_${divName}`;
+      }
+
+      const head = document.createElement('div');
+      head.className = currentBreakType === 'nfl_divisions' ? 'division-head' : '';
+
+      const divTitle = document.createElement('div');
+      divTitle.className = 'division-name';
+      divTitle.textContent = divName;
+      head.appendChild(divTitle);
+
+      if (currentBreakType === 'nfl_divisions'){
+        const actions = document.createElement('div');
+        actions.className = 'division-actions';
+
+        const btn = document.createElement('button');
+        btn.className = 'pill-btn';
+        btn.style.fontSize = '10px';
+        btn.style.padding = '4px 7px';
+        const divCode = `DIV_${confName}_${divName}`;
+        btn.textContent = soldTeams.has(divCode) ? 'UNSELL DIVISION' : 'SELL DIVISION';
+        btn.onclick = (e) => {
+          e.stopPropagation();
+          toggleDivisionSale(confName, divName);
+        };
+
+        actions.appendChild(btn);
+        head.appendChild(actions);
+      }
+
+      divisionWrap.appendChild(head);
+
+      const teamGrid = document.createElement('div');
+      teamGrid.className = 'division-teams';
+
+      divisions[divName].forEach((teamObj) => {
+        const teamDiv = makeTeamDiv(teamObj, { staticOnly: currentBreakType === 'nfl_divisions' });
+        teamGrid.appendChild(teamDiv);
+      });
+
+      divisionWrap.appendChild(teamGrid);
+
+      if (currentBreakType === 'nfl_divisions'){
+        const overlay = document.createElement('div');
+        overlay.className = 'division-buyer-overlay';
+        overlay.innerHTML = '<span></span>';
+        divisionWrap.appendChild(overlay);
+      }
+
+      container.appendChild(divisionWrap);
+    });
+  });
+
+  soldTeams.forEach(code => {
+    const el = document.querySelector(`[data-team-code="${code.replace(/"/g,'\\"')}"]`);
+    if (el) el.classList.add('sold');
+  });
+
+  updateDivisionVisuals();
+  updateStats();
+  renderSoldPanel();
+}
+
+function makeTeamDiv(teamObj, opts = {}){
+  const teamDiv = document.createElement('div');
+  teamDiv.className = 'team' + (opts.custom ? ' custom' : '');
+  teamDiv.dataset.teamCode = teamObj.code || '';
+
+  const bgSrc = teamObj.image || '';
+  if (bgSrc){
+    const img = document.createElement('img');
+    img.src = bgSrc;
+    img.alt = teamObj.title || teamObj.name || teamObj.code || '';
+    img.onerror = () => { img.style.display = 'none'; };
+    teamDiv.appendChild(img);
+  }
+
+  const chip = document.createElement('div');
+  chip.className = 'team-code-chip';
+  chip.textContent = teamObj.rawCode || teamObj.code || '';
+  teamDiv.appendChild(chip);
+
+  const label = document.createElement('div');
+  label.className = 'team-label';
+
+  if (opts.custom){
+    label.innerHTML = `
+      <div class="custom-title">${teamObj.title || teamObj.name || teamObj.code || ''}</div>
+      <div class="custom-sub">${teamObj.sub || ''}</div>
+    `;
+  } else {
+    label.textContent = teamObj.code || teamObj.name || '';
+  }
+
+  teamDiv.appendChild(label);
+
+  const soldX = document.createElement('div');
+  soldX.className = 'sold-x';
+  soldX.textContent = '✕';
+  teamDiv.appendChild(soldX);
+
+  if (!opts.staticOnly){
+    teamDiv.onclick = () => toggleTeam(teamObj.code);
+  }
+
+  return teamDiv;
+}
+
+function renderComboTeams(){
+  const left = document.getElementById('conferenceLeft');
+  const right = document.getElementById('conferenceRight');
+
+  left.innerHTML = '<div class="conference-title">NFL</div>';
+  right.innerHTML = '<div class="conference-title">MLB</div>';
+
+  ['AFC','NFC'].forEach(conf => {
+    const sub = document.createElement('div');
+    sub.className = 'subconference';
+    sub.innerHTML = `<div class="subconference-title">${conf}</div>`;
+
+    Object.keys(NFLM[conf]).forEach(divName => {
+      const wrap = document.createElement('div');
+      wrap.className = 'division';
+      wrap.innerHTML = `<div class="division-name">${divName}</div>`;
+
+      const grid = document.createElement('div');
+      grid.className = 'division-teams';
+      NFLM[conf][divName].forEach(teamObj => grid.appendChild(makeTeamDiv(teamObj)));
+      wrap.appendChild(grid);
+      sub.appendChild(wrap);
+    });
+
+    left.appendChild(sub);
+  });
+
+  ['AL','NL'].forEach(league => {
+    const sub = document.createElement('div');
+    sub.className = 'subconference';
+    sub.innerHTML = `<div class="subconference-title">${league}</div>`;
+
+    Object.keys(MLBM[league]).forEach(divName => {
+      const wrap = document.createElement('div');
+      wrap.className = 'division';
+      wrap.innerHTML = `<div class="division-name">${divName}</div>`;
+
+      const grid = document.createElement('div');
+      grid.className = 'division-teams combo-right';
+      MLBM[league][divName].forEach(teamObj => {
+        grid.appendChild(makeTeamDiv({ ...teamObj, code:`MLB_${teamObj.code}`, rawCode:teamObj.code }));
+      });
+
+      wrap.appendChild(grid);
+      sub.appendChild(wrap);
+    });
+
+    right.appendChild(sub);
+  });
+}
+
+function renderCustomTeams(){
+  const left = document.getElementById('conferenceLeft');
+  const right = document.getElementById('conferenceRight');
+
+  const mid = Math.ceil(customEntries.length / 2);
+  const leftEntries = customEntries.slice(0, mid);
+  const rightEntries = customEntries.slice(mid);
+
+  [
+    [left, leftEntries],
+    [right, rightEntries]
+  ].forEach(([container, entries]) => {
+    container.innerHTML = '<div class="conference-title">CUSTOM ENTRIES</div>';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'division';
+    wrap.innerHTML = `<div class="division-name">${entries.length} SPOTS</div>`;
+
+    const grid = document.createElement('div');
+    grid.className = 'division-teams';
+    grid.style.gridTemplateColumns = `repeat(${entries.length <= 16 ? 4 : entries.length <= 30 ? 5 : 6}, 1fr)`;
+
+    entries.forEach(entry => grid.appendChild(makeTeamDiv(entry, { custom:true })));
+
+    wrap.appendChild(grid);
+    container.appendChild(wrap);
+  });
+}function buildExportTSV(){ const rows=[['break','layout','code','name','buyer','category']]; soldTeamsList.forEach(e=>rows.push([String(loadBreakNumber()),currentBreakType,e.code,e.name||'',e.buyer||'',e.category||''])); return rows.map(r=>r.map(v=>String(v??'').replace(/\t/g,' ')).join('\t')).join('\n'); }
+function exportTSV(){ const blob=new Blob([buildExportTSV()],{type:'text/tab-separated-values;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`jim-tabbys-break-${loadBreakNumber()}-${currentBreakType}.tsv`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),500); }
+function resetSoldState(){ soldTeams.clear(); soldTeamsList=[]; lastCodeByListingKey.clear(); document.querySelectorAll('.team').forEach(t=>{ t.classList.remove('sold'); t.style.borderColor=''; }); updateDivisionVisuals(); updateStats(); renderSoldPanel(); saveSoldState(); }
+function resetAll(){
+  resetSoldState();
+  buildLayout();
+}
+function startNewBreakCycle(){ resetAll(); setBreakNumber(loadBreakNumber()+1); loadSoldState(); buildLayout(); }
+function setSSEStatus(state,msg){ const root=document.getElementById('sseStatus'); root.classList.remove('connected','error'); if(state==='connected') root.classList.add('connected'); if(state==='error') root.classList.add('error'); document.getElementById('sseText').textContent=String(msg||state||'disconnected'); }
+function resolveListingKey(payload){ return String(payload?.saleId||payload?.listingId||payload?.id||'').trim(); }
+function resolveCodeFromPayload(payload){ const rawCode=String(payload?.teamCode||payload?.code||payload?.spotCode||'').trim(); const rawName=String(payload?.teamName||payload?.title||payload?.spotName||payload?.productName||'').trim(); const rawDivision=String(payload?.division||'').trim(); if(currentBreakType==='nfl_divisions'){ if(rawCode&&rawCode.startsWith('DIV_')) return rawCode; if(rawDivision){ const side=String(payload?.conference||payload?.side||'').trim().toUpperCase(); const div=rawDivision.charAt(0).toUpperCase()+rawDivision.slice(1).toLowerCase(); if(side) return `DIV_${side}_${div}`; } } if(rawCode){ if(currentBreakType==='combo'){ const sport=String(payload?.sport||payload?.league||'').trim().toLowerCase(); if(sport==='mlb') return rawCode.startsWith('MLB_')?rawCode:`MLB_${rawCode}`; if(sport==='nfl') return rawCode.replace(/^MLB_/,''); } return rawCode; } const normalized=normalizeText(rawName); const match=getAllEntries().find(e=>[normalizeText(e.code),normalizeText(e.name),normalizeText(e.title)].includes(normalized)); return match?match.code:''; }
+function payloadApplies(payload){ if(!breakIdMatches(payload)) return false; const sport=String(payload?.sport||payload?.league||'').trim().toLowerCase(); if(!sport) return true; if(currentBreakType==='combo') return sport==='nfl'||sport==='mlb'; if(currentBreakType==='custom') return sport==='custom'||sport==='customentries'||sport==='nil'; if(currentBreakType==='mlb') return sport==='mlb'; return sport==='nfl'; }
+function handleSSEEvent(payload){ if(!payload||typeof payload!=='object') return; if(payload.data&&typeof payload.data==='object') payload=payload.data; const type=String(payload?.type||payload?.event||'').toLowerCase().trim(); if(!type) return; if(type==='scores'||type==='score'||type==='score_update'){ if(Array.isArray(payload?.games)) SPORTS_LINES=payload.games.map(g=>`${g.away||g.awayTeam||''} ${g.awayScore??g.a??''} • ${g.home||g.homeTeam||''} ${g.homeScore??g.h??''}`.trim()).filter(Boolean); else SPORTS_LINES=[payload?.line1||payload?.headline||payload?.summary||'', payload?.line2||payload?.detail||payload?.matchup||''].filter(Boolean); refreshTicker(); return; } if(type==='reset'){ resetAll(); return; } if(type==='set_break'||type==='break_set'){ const n=parseInt(payload?.value||payload?.breakNumber||payload?.break||'0',10); if(Number.isInteger(n)&&n>0){ setBreakNumber(n); loadSoldState(); buildLayout(); } return; } if(type==='next_break'){ startNewBreakCycle(); return; } if(type==='set_title'){ const main=String(payload?.value||payload?.main||'').trim(); const sub=String(payload?.sub||'').trim(); if(main||sub) applyTitles(main||localStorage.getItem(LS.TITLE_MAIN)||DEFAULT_TITLE_MAIN,sub||localStorage.getItem(LS.TITLE_SUB)||DEFAULT_TITLE_SUB); return; } if(type==='set_sport'){ const next=String(payload?.sport||payload?.breakType||'').trim().toLowerCase(); if(next) setBreakType(next); return; } if(!payloadApplies(payload)) return; const code=resolveCodeFromPayload(payload), buyer=String(payload?.buyer||payload?.buyerName||payload?.username||'').trim(), listingKey=resolveListingKey(payload); if(type==='buyer'||type==='buyer_update'||type==='reassign'){ if(code) sseUpdateBuyer(code,buyer); return; } if(type==='team_unsold'||type==='unsold'){ if(code) sseMarkUnsold(code); if(listingKey&&lastCodeByListingKey.get(listingKey)===code) lastCodeByListingKey.delete(listingKey); return; } if(type==='team_sold'||type==='sold'||type==='sale'||type==='purchase'||type==='whatnot_purchase'){ if(!code) return; if(listingKey){ const prev=lastCodeByListingKey.get(listingKey); if(prev&&prev!==code) sseMarkUnsold(prev); lastCodeByListingKey.set(listingKey,code); } sseMarkSold(code,buyer); } }
+function overlay_warmup(){ const base=getBridgeBase(); if(!base) return; const key=getBridgeKey(); fetch(`${base}/events`,{method:'POST',headers:{'Content-Type':'application/json',...(key?{'x-bridge-key':key}:{})},body:JSON.stringify({type:'overlay_warmup',overlay:'jim-tabbys-breaks',channel:'main',breakId:computeBreakId(),sport:currentBreakType,ts:Date.now()})}).catch(()=>{}); }
+function connectSSEOne(url,setter){ try{ const es=new EventSource(url); setter(es); const ingest=e=>{ try{ handleSSEEvent(JSON.parse(e.data)); }catch(_){} }; es.onopen=()=>setSSEStatus('connected','connected'); es.onerror=()=>{ setSSEStatus('error','reconnecting'); try{ es.close(); }catch(_){} setter(null); setTimeout(startSSE,RECONNECT_MS); }; es.onmessage=ingest; ['hello','reset','team_sold','sold','sale','purchase','whatnot_purchase','team_unsold','unsold','buyer','buyer_update','reassign','set_break','break_set','set_title','set_sport','scores'].forEach(n=>es.addEventListener(n,ingest)); }catch(_){ setter(null); } }
+function startSSE(){ const base=getBridgeBase(); if(!base){ setSSEStatus('error','bridge missing'); return; } setSSEStatus('', 'connecting'); const key=getBridgeKey(), keyQs=key?`&key=${encodeURIComponent(key)}`:'', channels=getChannels(); if(_esMain){ try{_esMain.close()}catch(_){} } if(_esSports){ try{_esSports.close()}catch(_){} } connectSSEOne(`${base}/stream?channel=${encodeURIComponent(channels[0]||'main')}${keyQs}`, v=>_esMain=v); connectSSEOne(`${base}/stream?channel=sports${keyQs}`, v=>_esSports=v); overlay_warmup(); }
+
+
+document.addEventListener('DOMContentLoaded', () => {
+  const logo = document.getElementById('brandLogo');
+  logo.src = ASSETS.logo;
+  logo.onerror = () => { logo.style.display = 'none'; };
+
+  applyTitles(
+    localStorage.getItem(LS.TITLE_MAIN) || DEFAULT_TITLE_MAIN,
+    localStorage.getItem(LS.TITLE_SUB) || DEFAULT_TITLE_SUB
+  );
+
+  TICKER_LINES = loadTickerLines();
+  TICKER_SPEED = loadTickerSpeed();
+  promoTexts = loadPromoTexts();
+  promoImages = loadPromoImages();
+
+  refreshTicker();
+  startPromoRotation();
+
+  setBreakNumber(loadBreakNumber());
+
+  try{
+    customEntries = JSON.parse(localStorage.getItem(LS.CUSTOM_ENTRIES) || '[]');
+    if (!Array.isArray(customEntries)) customEntries = [];
+  }catch(_){
+    customEntries = [];
+  }
+
+  loadChasers();
+  currentBreakType = localStorage.getItem(LS.BREAK_TYPE) || 'nfl';
+  loadSoldState();
+  initializeGrid();
+
+  if (automationEnabled()) startSSE();
+  else setSSEStatus('error', 'bridge missing');
+});
+</script>
+</body>
+</html>

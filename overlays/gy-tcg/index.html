@@ -45,36 +45,79 @@
       color:var(--white);
     }
 
-    .stage{
-      position:relative;
-      width:var(--W);
-      height:var(--H);
-      overflow:hidden;
-      background:
-        radial-gradient(circle at 50% -12%, rgba(143,99,255,0.24), transparent 30%),
-        linear-gradient(180deg, #10183b 0%, #091024 42%, #060912 100%);
-    }
+.stage{
+  position:relative;
+  width:var(--W);
+  height:var(--H);
+  overflow:hidden;
+  background:transparent;
+}
 
-    .stage::before{
-      content:"";
-      position:absolute;
-      inset:0;
-      background:
-        radial-gradient(circle at 12% 9%, rgba(255,255,255,0.12) 0 1px, transparent 2px),
-        radial-gradient(circle at 80% 11%, rgba(243,197,95,0.12) 0 1px, transparent 2px),
-        radial-gradient(circle at 66% 23%, rgba(143,99,255,0.15) 0 1px, transparent 2px);
-      opacity:.45;
-      pointer-events:none;
-    }
+.stage::before{
+  display:none;
+}
 
-    .shell{
-      position:absolute;
-      inset:var(--pad);
-      top:40px;
-      display:grid;
-      grid-template-rows: var(--headerH) var(--marqueeH) var(--infoH) var(--boardH) 1fr;
-      gap:var(--gap);
-    }
+.shell{
+  position:absolute;
+  inset:var(--pad);
+  top:40px;
+  display:grid;
+  grid-template-rows: auto 1fr;
+  gap:var(--gap);
+}
+
+.stream-shell{
+  display:grid;
+  grid-template-rows: var(--headerH) var(--marqueeH) var(--infoH) var(--boardH);
+  gap:var(--gap);
+}
+
+.stream-shell{
+  display:grid;
+  grid-template-rows: var(--headerH) var(--marqueeH) var(--infoH) var(--boardH);
+  gap:var(--gap);
+  position:relative;
+  isolation:isolate;
+}
+
+.stream-shell::before{
+  content:"";
+  position:absolute;
+  inset:-8px -8px -8px -8px;
+  z-index:-2;
+  border-radius:28px;
+  background:
+    radial-gradient(circle at 50% -12%, #8f63ffed, transparent 30%),
+    linear-gradient(180deg, #10183b 0%, #091024 42%, #060912 100%);
+}
+
+.stream-shell::after{
+  content:"";
+  position:absolute;
+  inset:-8px -8px -8px -8px;
+  z-index:-1;
+  border-radius:28px;
+  background:
+    radial-gradient(circle at 12% 9%, rgba(255,255,255,0.12) 0 1px, transparent 2px),
+    radial-gradient(circle at 80% 11%, rgba(243,197,95,0.12) 0 1px, transparent 2px),
+    radial-gradient(circle at 66% 23%, rgba(143,99,255,0.15) 0 1px, transparent 2px);
+  opacity:.45;
+  pointer-events:none;
+}
+
+.crop-zone{
+  position:relative;
+  min-height:0;
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  overflow:hidden;
+}
+
+.crop-zone::before,
+.crop-zone::after{
+  display:none !important;
+}
 
     .panel{
       position:relative;
@@ -170,9 +213,9 @@
 
     .logo-wrap img,
     .set-wrap img{
-      max-width:230px;
-      max-height:120px;
-      width:auto;
+      width:255px;
+      position:absolute;
+      top:5px;
       height:auto;
       object-fit:contain;
       filter:drop-shadow(0 10px 20px rgba(0,0,0,0.38));
@@ -460,43 +503,89 @@
       color:#ffd98a;
     }
 
-    .buyer-box{
-      border-radius:14px;
-      padding:10px 12px;
-      background:rgba(6,12,25,0.42);
-      border:1px solid rgba(255,255,255,0.08);
-      display:flex;
-      align-items:center;
-      min-height:52px;
-    }
+.buyer-box{
+  border-radius:14px;
+  padding:8px 10px;
+  background:rgba(6,12,25,0.42);
+  border:1px solid rgba(255,255,255,0.08);
+  display:flex;
+  align-items:center;
+  min-height:52px;
+}
 
-    .buyer-box .buyer-name{
-      font-size:20px;
-      font-weight:900;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
+.buyer-inline-input{
+  width:100%;
+  border:none;
+  outline:none;
+  background:transparent;
+  color:#fff;
+  font-size:20px;
+  font-weight:900;
+  font-family:inherit;
+  white-space:nowrap;
+}
 
-    .bottom-stage{
-      border-radius:22px;
-      border:2px solid rgba(124,210,255,0.70);
-      background:transparent;
-      position:relative;
-      overflow:hidden;
-    }
+.buyer-inline-input::placeholder{
+  color:rgba(255,255,255,0.45);
+  font-weight:800;
+}
 
-    .bottom-stage::before{
-      content:"Transparent play / card area";
-      position:absolute;
-      left:20px;
-      top:20px;
-      font-size:22px;
-      font-weight:900;
-      letter-spacing:1px;
-      text-transform:uppercase;
-      color:rgba(124,210,255,0.92);
-    }
+.bottom-stage{
+  position:relative;
+  width:100%;
+  height:100%;
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  overflow:visible;
+}
+
+.wheel-wrap{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+}
+
+.wheel-wrap.hidden{
+  display:none;
+}
+
+.wheel-stage{
+  position:absolute;
+  left:180px;
+  top:40px;
+  width:720px;
+  height:720px;
+  resize:both;
+  overflow:visible;
+  cursor:move;
+  pointer-events:auto;
+}
+
+.wheel-stage canvas{
+  width:100%;
+  height:100%;
+  display:block;
+  filter:drop-shadow(0 18px 30px rgba(0,0,0,0.45));
+}
+
+.wheel-pointer{
+  position:absolute;
+  left:50%;
+  top:-24px;
+  transform:translateX(-50%);
+  width:0;
+  height:0;
+  border-left:20px solid transparent;
+  border-right:20px solid transparent;
+  border-top:34px solid #f3c55f;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,0.45));
+}
+
+
+.bottom-stage::before{
+  display:none;
+}
 
     .admin-toggle{
       position:absolute;
@@ -514,23 +603,91 @@
       box-shadow:0 14px 30px rgba(0,0,0,0.35);
     }
 
-    .admin{
-      position:absolute;
-      top:78px;
-      right:18px;
-      width:700px;
-      max-height:1760px;
-      overflow:auto;
-      z-index:80;
-      display:none;
-      border-radius:22px;
-      padding:16px;
-      background:rgba(5,9,22,0.96);
-      border:1px solid rgba(255,255,255,0.10);
-      box-shadow:0 22px 48px rgba(0,0,0,0.45);
-    }
+.admin{
+  position:absolute;
+  z-index:80;
+  display:none;
+  border-radius:22px;
+  padding:16px;
+  background:rgba(5,9,22,0.96);
+  border:1px solid rgba(255,255,255,0.10);
+  box-shadow:0 22px 48px rgba(0,0,0,0.45);
+  overflow:auto;
+}
 
-    .admin.open{ display:block; }
+.admin.open{ display:block; }
+
+.admin.primary-admin{
+  top:78px;
+  right:18px;
+  width:520px;
+  max-height:900px;
+}
+
+.admin.secondary-admin{
+  top:760px;
+  left:40px;
+  width:620px;
+  min-width:360px;
+  min-height:240px;
+  max-width:900px;
+  max-height:900px;
+  resize:both;
+  overflow:auto;
+}
+
+.drag-handle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:-6px -6px 14px;
+  padding:10px 12px;
+  border-radius:14px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.08);
+  cursor:move;
+}
+
+.drag-handle .handle-title{
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+}
+
+.list-block{
+  margin-top:14px;
+  padding:12px;
+  border-radius:16px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+}
+
+.list-row{
+  display:grid;
+  grid-template-columns: 1fr 90px 90px;
+  gap:8px;
+  margin-bottom:8px;
+  align-items:center;
+}
+
+.list-row.buyers{
+  grid-template-columns: 1fr 120px;
+}
+
+.small-btn{
+  border:none;
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  cursor:pointer;
+  background:rgba(255,255,255,0.08);
+  color:#fff;
+}
 
     .admin h3{
       margin:0 0 14px;
@@ -637,7 +794,9 @@
       gap:10px;
       margin-top:14px;
     }
-
+.btns-3{
+  grid-template-columns:1fr 1fr 1fr;
+}
     .btn{
       border:none;
       border-radius:14px;
@@ -667,139 +826,223 @@
 <body>
   <div class="stage" id="stage">
     <div class="shell">
-      <section class="panel gold-edge trace header">
-        <div class="logo-wrap">
-          <img id="brandLogo" alt="Greater Yellowstone TCG Logo" />
-        </div>
+      <div class="stream-shell">
+  <section class="panel gold-edge trace header">
+    <div class="logo-wrap">
+      <img id="brandLogo" alt="Greater Yellowstone TCG Logo" />
+    </div>
 
-        <div class="header-center">
-          <div class="break-pill"><span class="label">Break</span><span class="value" id="breakNo">14</span></div>
-          <div class="status-line" id="statusLine">Lorcana Colorbreak</div>
-        </div>
+    <div class="header-center">
+      <div class="break-pill"><span class="label">Break</span><span class="value" id="breakNo">14</span></div>
+      <div class="status-line" id="statusLine">Lorcana Colorbreak</div>
+    </div>
 
-        <div class="set-wrap">
-          <img id="setLogo" alt="Lorcana Set Logo" />
-        </div>
-      </section>
+    <div class="set-wrap">
+      <img id="setLogo" alt="Lorcana Set Logo" />
+    </div>
+  </section>
 
-      <section class="panel gold-edge trace marquee">
-        <div class="marquee-track" id="tickerText">Rip Till You Hit • Lorcana Colorbreak • Manual sold tracking • Trivia bonus live</div>
-      </section>
+  <section class="panel gold-edge trace marquee">
+    <div class="marquee-track" id="tickerText">Rip Till You Hit • Lorcana Colorbreak • Manual sold tracking • Trivia bonus live</div>
+  </section>
 
-      <section class="top-info">
-        <div class="panel gold-edge trace buyers-panel">
-          <div class="mini-title">Leaderboard 1–3</div>
-          <div class="buyers-list" id="buyersLeft"></div>
-        </div>
+  <section class="top-info">
+    <div class="panel gold-edge trace buyers-panel">
+      <div class="mini-title">Leaderboard 1–3</div>
+      <div class="buyers-list" id="buyersLeft"></div>
+    </div>
 
-        <div class="panel gold-edge trace facecam">
-          <div class="fc-box">Face Cam Box</div>
-        </div>
+    <div class="panel gold-edge trace facecam">
+      <div class="fc-box">Face Cam Box</div>
+    </div>
 
-        <div class="panel gold-edge trace buyers-panel">
-          <div class="mini-title">Leaderboard 4–6</div>
-          <div class="buyers-list" id="buyersRight"></div>
-        </div>
-      </section>
+    <div class="panel gold-edge trace buyers-panel">
+      <div class="mini-title">Leaderboard 4–6</div>
+      <div class="buyers-list" id="buyersRight"></div>
+    </div>
+  </section>
 
-      <section class="panel gold-edge trace colorbreak">
-        <div class="section-title">
-          <div class="title">Colorbreak Board</div>
-        </div>
-        <div class="tile-grid" id="tileGrid"></div>
-      </section>
+  <section class="panel gold-edge trace colorbreak">
+    <div class="section-title">
+      <div class="title">Colorbreak Board</div>
+    </div>
+    <div class="tile-grid" id="tileGrid"></div>
+  </section>
+</div>
 
-      <section class="bottom-stage trace"></section>
+<section class="crop-zone">
+  <section class="bottom-stage">
+    <div class="wheel-wrap hidden" id="wheelWrap">
+      <div class="wheel-stage" id="wheelStage">
+        <canvas id="spinWheel" width="720" height="720"></canvas>
+        <div class="wheel-pointer"></div>
+      </div>
+    </div>
+  </section>
+</section>
     </div>
 
     <button class="admin-toggle" id="adminToggle" type="button">⚙</button>
 
-    <aside class="admin" id="admin">
-      <h3>Mockup Controls</h3>
+<aside class="admin primary-admin" id="adminPrimary">
+  <h3>Stream Controls</h3>
 
-      <div class="row">
-        <label>Break #</label>
-        <input id="breakInput" type="number" min="1" step="1" />
-      </div>
+  <div class="row">
+    <label>Break #</label>
+    <input id="breakInput" type="number" min="1" step="1" />
+  </div>
 
-      <div class="row">
-        <label>Status</label>
-        <input id="statusInput" type="text" />
-      </div>
+  <div class="row">
+    <label>Status</label>
+    <input id="statusInput" type="text" />
+  </div>
 
-      <div class="row">
-        <label>Ticker Text</label>
-        <textarea id="tickerInput"></textarea>
-      </div>
+  <div class="row">
+    <label>Ticker Text</label>
+    <textarea id="tickerInput"></textarea>
+  </div>
 
-      <div class="row">
-        <label>Marquee Speed</label>
-        <input id="marqueeSpeedInput" type="number" min="5" max="120" step="1" />
-      </div>
+  <div class="row">
+    <label>Marquee Speed</label>
+    <input id="marqueeSpeedInput" type="number" min="5" max="120" step="1" />
+  </div>
 
-      <h4>Brand Logo</h4>
-      <div class="row">
-        <label>Browse</label>
-        <input id="brandLogoFile" type="file" accept="image/*" />
-      </div>
+  <h4>Brand Logo</h4>
+  <div class="row">
+    <label>Browse</label>
+    <input id="brandLogoFile" type="file" accept="image/*" />
+  </div>
 
-      <h4>Set Logo</h4>
-      <div class="row">
-        <label>Browse</label>
-        <input id="setLogoFile" type="file" accept="image/*" />
-      </div>
+  <h4>Set Logo</h4>
+  <div class="row">
+    <label>Browse</label>
+    <input id="setLogoFile" type="file" accept="image/*" />
+  </div>
 
-      <h4>Colorbreak Spots / Trivia Points</h4>
-      <div id="tileAdminList"></div>
 
-      <div class="btns">
-        <button class="btn primary" id="applyBtn" type="button">Apply</button>
-        <button class="btn ghost" id="resetBtn" type="button">Reset</button>
-      </div>
 
-      <div class="admin-note">
-        Unified setup: sold spots and trivia points use the same buyer records. Uploads are stored in browser local storage.
-      </div>
-    </aside>
+<div class="btns btns-3">
+  <button class="btn primary" id="applyPrimaryBtn" type="button">Apply</button>
+  <button class="btn ghost" id="resetPrimaryBtn" type="button">Reset</button>
+  <button class="btn ghost" id="closePrimaryBtn" type="button">Close</button>
+</div>
+</aside>
+
+<aside class="admin secondary-admin" id="adminSecondary">
+  <div class="drag-handle" id="secondaryDragHandle">
+<div class="handle-title">Colorbreak / Trivia / Buyer Tracker</div>
+<button class="small-btn" type="button" id="addTriviaBtn">Add Viewer</button>
+  </div>
+
+
+
+<div class="list-block">
+  <h4 style="margin-top:0;">Trivia Players</h4>
+  <div id="triviaAdminList"></div>
+</div>
+
+<div class="list-block">
+  <h4 style="margin-top:0;">Buyer Master List</h4>
+  <div id="buyerMasterList"></div>
+</div>
+
+<div class="list-block">
+  <h4 style="margin-top:0;">Wheel Controls</h4>
+  <div class="row">
+    <label>Show Wheel</label>
+    <input id="wheelEnabledInput" type="checkbox" />
+  </div>
+  <div class="row">
+    <label>Extra Spots</label>
+    <textarea id="wheelExtrasInput" placeholder="Bonus Spot 1&#10;Bonus Spot 2"></textarea>
+  </div>
+  <div class="btns btns-3">
+    <button class="small-btn" type="button" id="randomizeWheelBtn">Randomize</button>
+    <button class="small-btn" type="button" id="spinWheelBtn">Spin</button>
+    <button class="small-btn" type="button" id="resetWheelBtn">Reset Wheel</button>
+  </div>
+</div>
+<div class="btns btns-3">
+  <button class="btn primary" id="applySecondaryBtn" type="button">Apply</button>
+  <button class="btn ghost" id="resetSecondaryBtn" type="button">Reset</button>
+  <button class="btn ghost" id="closeSecondaryBtn" type="button">Close</button>
+</div>
+</aside>
   </div>
 
   <script>
     const KEY = 'gytcg.lorcana.mockup.v3';
     const $ = (id) => document.getElementById(id);
 
-    const defaults = {
-      breakNo: 14,
-      status: 'Lorcana Colorbreak',
-      brandLogo: '/mnt/data/gy-tcg-logo.png',
-      setLogo: '',
-      ticker: 'Rip Till You Hit • Lorcana Colorbreak • Manual sold tracking • Trivia bonus live',
-      marqueeSpeed: 22,
-      tiles: [
-        { color:'Amber', buyer:'', sold:false, points:0, slot:1 },
-        { color:'Amethyst', buyer:'', sold:false, points:0, slot:2 },
-        { color:'Emerald', buyer:'EmeraldFan', sold:true, points:3, slot:3 },
-        { color:'Ruby', buyer:'', sold:false, points:0, slot:4 },
-        { color:'Steel', buyer:'SteelStack', sold:true, points:1, slot:5 },
-        { color:'Sapphire', buyer:'BlueMage', sold:true, points:2, slot:6 }
-      ]
-    };
+const defaults = {
+  breakNo: 14,
+  status: 'Lorcana Colorbreak',
+  brandLogo: '/mnt/data/gy-tcg-logo.png',
+  setLogo: '',
+  ticker: 'Rip Till You Hit • Lorcana Colorbreak • Manual sold tracking • Trivia bonus live',
+  marqueeSpeed: 22,
+  triviaPlayers: [],
+  buyerMaster: [],
+  secondaryPanel: {
+    top: 760,
+    left: 40,
+    width: 620,
+    height: 420
+  },
+
+wheel: {
+  enabled: false,
+  extras: [],
+  entries: [],
+  rotation: 0,
+  x: 180,
+  y: 40,
+  size: 720
+},
+  
+  tiles: [
+    { color:'Amber', buyer:'', sold:false, points:0, slot:1 },
+    { color:'Amethyst', buyer:'', sold:false, points:0, slot:2 },
+    { color:'Emerald', buyer:'EmeraldFan', sold:true, points:3, slot:3 },
+    { color:'Ruby', buyer:'', sold:false, points:0, slot:4 },
+    { color:'Steel', buyer:'SteelStack', sold:true, points:1, slot:5 },
+    { color:'Sapphire', buyer:'BlueMage', sold:true, points:2, slot:6 }
+  ]
+};
 
     function loadState(){
       try{
         const raw = localStorage.getItem(KEY);
         if (!raw) return structuredClone(defaults);
         const parsed = JSON.parse(raw);
-        return {
-          ...structuredClone(defaults),
-          ...parsed,
-          tiles: Array.isArray(parsed.tiles) ? parsed.tiles.map((t, i) => ({
-            color: t.color || defaults.tiles[i]?.color || '',
-            buyer: t.buyer || '',
-            sold: !!t.sold,
-            points: Number(t.points || 0),
-            slot: t.slot || i + 1
-          })) : structuredClone(defaults.tiles)
-        };
+return {
+  ...structuredClone(defaults),
+  ...parsed,
+  triviaPlayers: Array.isArray(parsed.triviaPlayers)
+    ? parsed.triviaPlayers.map(p => ({
+        name: String(p.name || '').trim(),
+        points: Number(p.points || 0)
+      }))
+    : [],
+  buyerMaster: Array.isArray(parsed.buyerMaster)
+    ? parsed.buyerMaster.map(name => String(name || '').trim()).filter(Boolean)
+    : [],
+secondaryPanel: {
+  ...structuredClone(defaults.secondaryPanel),
+  ...(parsed.secondaryPanel || {})
+},
+wheel: {
+  ...structuredClone(defaults.wheel),
+  ...(parsed.wheel || {})
+},
+tiles: Array.isArray(parsed.tiles) ? parsed.tiles.map((t, i) => ({
+    color: t.color || defaults.tiles[i]?.color || '',
+    buyer: t.buyer || '',
+    sold: !!t.sold,
+    points: Number(t.points || 0),
+    slot: t.slot || i + 1
+  })) : structuredClone(defaults.tiles)
+};
       }catch(_){
         return structuredClone(defaults);
       }
@@ -811,7 +1054,69 @@
       localStorage.setItem(KEY, JSON.stringify(state));
     }
 
-    function setImg(el, src){
+
+function syncBuyerMasterFromTiles(){
+  const namesFromTiles = state.tiles
+    .map(item => String(item.buyer || '').trim())
+    .filter(Boolean);
+
+  const merged = [...state.buyerMaster];
+
+  namesFromTiles.forEach(name => {
+    if (!merged.some(existing => existing.toLowerCase() === name.toLowerCase())){
+      merged.push(name);
+    }
+  });
+
+  const unique = [];
+  merged.forEach(name => {
+    const safe = String(name || '').trim();
+    if (!safe) return;
+    if (!unique.some(existing => existing.toLowerCase() === safe.toLowerCase())){
+      unique.push(safe);
+    }
+  });
+
+  state.buyerMaster = unique;
+}
+
+    function buildWheelEntries(){
+  const base = state.buyerMaster
+    .map(name => String(name || '').trim())
+    .filter(Boolean);
+
+  const extras = (state.wheel.extras || [])
+    .map(name => String(name || '').trim())
+    .filter(Boolean);
+
+  const merged = [...base, ...extras];
+  state.wheel.entries = merged;
+}
+
+function shuffleArray(arr){
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function randomizeWheelEntries(){
+  buildWheelEntries();
+  state.wheel.entries = shuffleArray(state.wheel.entries);
+  saveState();
+  renderWheel();
+}
+
+function resetWheelState(){
+  state.wheel.rotation = 0;
+  buildWheelEntries();
+  saveState();
+  renderWheel();
+}
+
+function setImg(el, src){
       const v = String(src || '').trim();
       if (!v) {
         el.removeAttribute('src');
@@ -824,17 +1129,16 @@
       document.documentElement.style.setProperty('--tickerDuration', `${Math.max(5, Number(state.marqueeSpeed) || 22)}s`);
     }
 
-    function getLeaderboard(){
-      return state.tiles
-        .filter(item => item.sold && String(item.buyer || '').trim())
-        .map((item, idx) => ({
-          rankSeed: idx,
-          name: String(item.buyer || '').trim(),
-          points: Number(item.points || 0),
-          color: item.color
-        }))
-        .sort((a, b) => b.points - a.points || a.rankSeed - b.rankSeed);
-    }
+function getLeaderboard(){
+  return state.triviaPlayers
+    .map((player, idx) => ({
+      rankSeed: idx,
+      name: String(player.name || '').trim(),
+      points: Number(player.points || 0)
+    }))
+    .filter(player => player.name)
+    .sort((a, b) => b.points - a.points || a.rankSeed - b.rankSeed);
+}
 
     function buildBuyerColumns(){
       const left = $('buyersLeft');
@@ -858,27 +1162,147 @@
       });
     }
 
+function renderWheel(){
+  const wrap = $('wheelWrap');
+  const stage = $('wheelStage');
+  const canvas = $('spinWheel');
+  if (!wrap || !stage || !canvas) return;
+
+  wrap.classList.toggle('hidden', !state.wheel.enabled);
+
+  stage.style.left = `${Number(state.wheel.x || 180)}px`;
+  stage.style.top = `${Number(state.wheel.y || 40)}px`;
+  stage.style.width = `${Number(state.wheel.size || 720)}px`;
+  stage.style.height = `${Number(state.wheel.size || 720)}px`;
+  stage.style.transform = `rotate(${Number(state.wheel.rotation || 0)}deg)`;
+
+  buildWheelEntries();
+
+  const entries = state.wheel.entries.length
+    ? state.wheel.entries
+    : ['NO ENTRIES'];
+
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const cx = w / 2;
+  const cy = h / 2;
+  const radius = Math.min(w, h) / 2 - 18;
+
+  ctx.clearRect(0, 0, w, h);
+
+  const colors = ['#f3c55f', '#8f63ff', '#22b270', '#db405a', '#2f79ff', '#9ca8bf'];
+  const slice = (Math.PI * 2) / entries.length;
+
+  entries.forEach((label, i) => {
+    const start = i * slice - Math.PI / 2;
+    const end = start + slice;
+
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, start, end);
+    ctx.closePath();
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(start + slice / 2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 22px Arial';
+    ctx.shadowColor = 'rgba(0,0,0,0.45)';
+    ctx.shadowBlur = 8;
+    ctx.fillText(String(label).slice(0, 24), radius - 28, 8);
+    ctx.restore();
+  });
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.lineWidth = 10;
+  ctx.strokeStyle = '#ffffff';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, 42, 0, Math.PI * 2);
+  ctx.fillStyle = '#10183b';
+  ctx.fill();
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = '#f3c55f';
+  ctx.stroke();
+}
+
+function spinWheelNow(){
+  buildWheelEntries();
+  if (!state.wheel.entries.length) return;
+
+  const extraTurns = 360 * (4 + Math.floor(Math.random() * 4));
+  const slice = 360 / state.wheel.entries.length;
+  const targetIndex = Math.floor(Math.random() * state.wheel.entries.length);
+  const targetAngle = targetIndex * slice + slice / 2;
+
+  state.wheel.rotation = Number(state.wheel.rotation || 0) + extraTurns - targetAngle;
+  saveState();
+
+  const stage = $('wheelStage');
+  stage.style.transition = 'transform 5.8s cubic-bezier(.12,.82,.08,1)';
+  stage.style.transform = `rotate(${state.wheel.rotation}deg)`;
+
+  setTimeout(() => {
+    stage.style.transition = '';
+  }, 6000);
+}
+
     function buildTiles(){
-      const grid = $('tileGrid');
-      grid.innerHTML = '';
+  const grid = $('tileGrid');
+  grid.innerHTML = '';
 
-      state.tiles.forEach(item => {
-        const sold = !!item.sold;
-        const buyerName = String(item.buyer || '').trim();
+  state.tiles.forEach(item => {
+    const sold = !!item.sold;
+    const buyerName = String(item.buyer || '').trim();
 
-        const tile = document.createElement('div');
-        tile.className = 'tile trace' + (sold ? ' sold' : '');
-        tile.dataset.color = item.color;
-        tile.innerHTML = `
-          <div class="ink-name">${item.color}</div>
-          <div class="buyer-box">
-            <div class="buyer-name">${sold ? (buyerName || 'Sold') : 'Available'}</div>
-          </div>
-          <div class="status-chip ${sold ? 'sold' : 'available'}">${sold ? `Sold • ${Number(item.points || 0)} pts` : 'Available'}</div>
-        `;
-        grid.appendChild(tile);
-      });
+    const tile = document.createElement('div');
+    tile.className = 'tile trace' + (sold ? ' sold' : '');
+    tile.dataset.color = item.color;
+
+    tile.innerHTML = `
+      <div class="ink-name">${item.color}</div>
+      <div class="buyer-box">
+        <input
+          class="buyer-inline-input"
+          type="text"
+          value="${escapeHtml(buyerName)}"
+          placeholder="Enter buyer name"
+          data-inline-buyer="${item.slot}"
+        />
+      </div>
+      <div class="status-chip ${sold ? 'sold' : 'available'}">
+        ${sold ? `Sold • ${Number(item.points || 0)} pts` : 'Available'}
+      </div>
+    `;
+
+    grid.appendChild(tile);
+
+const inlineInput = tile.querySelector('[data-inline-buyer]');
+if (inlineInput){
+  const commitBuyerName = () => {
+    item.buyer = String(inlineInput.value || '').trim();
+    syncBuyerMasterFromTiles();
+    saveState();
+    buildBuyerColumns();
+    buildBuyerMasterList();
+  };
+
+  inlineInput.addEventListener('change', commitBuyerName);
+  inlineInput.addEventListener('blur', commitBuyerName);
+  inlineInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter'){
+      inlineInput.blur();
     }
+  });
+}
+  });
+}
 
     function escapeHtml(str){
       return String(str)
@@ -888,92 +1312,268 @@
         .replaceAll('"', '&quot;');
     }
 
-    function adjustPoints(index, delta){
-      const item = state.tiles[index];
-      if (!item) return;
-      item.points = Math.max(0, Number(item.points || 0) + delta);
+function adjustPoints(index, delta){
+  const item = state.tiles[index];
+  if (!item) return;
+  item.points = Math.max(0, Number(item.points || 0) + delta);
+  saveState();
+  render();
+  $('adminPrimary').classList.add('open');
+  $('adminSecondary').classList.add('open');
+}
+
+function buildAdminLists(){
+  // Colorbreak spot admin list removed.
+  // Buyer names are now edited directly on the visible board.
+}
+
+
+function buildTriviaAdminList(){
+  const wrap = $('triviaAdminList');
+  wrap.innerHTML = '';
+
+  state.triviaPlayers.forEach((player, idx) => {
+    const row = document.createElement('div');
+    row.className = 'list-row';
+    row.innerHTML = `
+      <input type="text" id="triviaName${idx}" value="${escapeHtml(player.name || '')}" placeholder="Viewer name">
+      <input type="number" id="triviaPoints${idx}" min="0" step="1" value="${Number(player.points || 0)}">
+      <button class="small-btn" type="button" data-remove-trivia="${idx}">Remove</button>
+    `;
+    wrap.appendChild(row);
+  });
+
+  wrap.querySelectorAll('[data-remove-trivia]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.triviaPlayers.splice(Number(btn.dataset.removeTrivia), 1);
       saveState();
       render();
-      $('admin').classList.add('open');
-    }
+      $('adminSecondary').classList.add('open');
+    });
+  });
+}
 
-    function buildAdminLists(){
-      const tileWrap = $('tileAdminList');
-      tileWrap.innerHTML = '';
+function buildBuyerMasterList(){
+  const wrap = $('buyerMasterList');
+  wrap.innerHTML = '';
 
-      state.tiles.forEach((item, idx) => {
-        const row = document.createElement('div');
-        row.className = 'tile-admin-row';
-        row.innerHTML = `
-          <div class="mini-label">${item.color}</div>
-          <input type="text" id="tileBuyer${idx}" placeholder="Buyer name" value="${escapeHtml(item.buyer || '')}">
-          <label style="display:flex;align-items:center;gap:8px;justify-self:start;">
-            <input type="checkbox" id="tileSold${idx}" ${item.sold ? 'checked' : ''}>
-            <span class="mini-label">Sold</span>
-          </label>
-          <input type="number" id="tilePoints${idx}" min="0" step="1" value="${Number(item.points || 0)}">
-          <div class="point-buttons">
-            <button class="point-btn" type="button" data-points-btn data-index="${idx}" data-delta="1">+1</button>
-            <button class="point-btn" type="button" data-points-btn data-index="${idx}" data-delta="3">+3</button>
-            <button class="point-btn" type="button" data-index="${idx}" data-delta="-1">-1</button>
-          </div>
-        `;
-        tileWrap.appendChild(row);
-      });
+  state.buyerMaster.forEach((name, idx) => {
+    const row = document.createElement('div');
+    row.className = 'list-row buyers';
+    row.innerHTML = `
+      <input type="text" id="buyerMaster${idx}" value="${escapeHtml(name)}" placeholder="Buyer name">
+      <button class="small-btn" type="button" data-remove-buyer="${idx}">Remove</button>
+    `;
+    wrap.appendChild(row);
+  });
 
-      tileWrap.querySelectorAll('button[data-delta]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          adjustPoints(Number(btn.dataset.index), Number(btn.dataset.delta));
-        });
-      });
-    }
-
-    function render(){
-      $('breakNo').textContent = state.breakNo;
-      $('statusLine').textContent = state.status;
-      $('tickerText').textContent = state.ticker;
-
-      setImg($('brandLogo'), state.brandLogo);
-      setImg($('setLogo'), state.setLogo);
-      applyTickerSpeed();
-      buildBuyerColumns();
-      buildTiles();
-      syncAdmin();
-    }
-
-    function syncAdmin(){
-      $('breakInput').value = state.breakNo;
-      $('statusInput').value = state.status;
-      $('tickerInput').value = state.ticker;
-      $('marqueeSpeedInput').value = state.marqueeSpeed;
-      buildAdminLists();
-    }
-
-    function collectAdminState(){
-      state.breakNo = Math.max(1, parseInt($('breakInput').value || '1', 10) || 1);
-      state.status = $('statusInput').value.trim();
-      state.ticker = $('tickerInput').value.trim();
-      state.marqueeSpeed = Math.max(5, parseInt($('marqueeSpeedInput').value || '22', 10) || 22);
-
-      state.tiles = state.tiles.map((item, idx) => ({
-        ...item,
-        buyer: $(`tileBuyer${idx}`).value.trim(),
-        sold: $(`tileSold${idx}`).checked,
-        points: Math.max(0, parseInt($(`tilePoints${idx}`).value || '0', 10) || 0)
-      }));
-    }
-
-    function applyFromAdmin(){
-      collectAdminState();
+  wrap.querySelectorAll('[data-remove-buyer]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.buyerMaster.splice(Number(btn.dataset.removeBuyer), 1);
       saveState();
       render();
-    }
+      $('adminSecondary').classList.add('open');
+    });
+  });
+}
 
-    function resetState(){
-      state = structuredClone(defaults);
-      saveState();
-      render();
+function syncSecondaryPanelBox(){
+  const panel = $('adminSecondary');
+  panel.style.top = `${Number(state.secondaryPanel.top || 760)}px`;
+  panel.style.left = `${Number(state.secondaryPanel.left || 40)}px`;
+ panel.style.width = `${Number(state.secondaryPanel.width || 620)}px`;
+  panel.style.height = `${Number(state.secondaryPanel.height || 420)}px`;
+}
+
+(function enableSecondaryDrag(){
+  const panel = $('adminSecondary');
+  const handle = $('secondaryDragHandle');
+
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let startLeft = 0;
+  let startTop = 0;
+
+  handle.addEventListener('mousedown', (e) => {
+    dragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startLeft = panel.offsetLeft;
+    startTop = panel.offsetTop;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const nextLeft = startLeft + (e.clientX - startX);
+    const nextTop = startTop + (e.clientY - startY);
+
+    panel.style.left = `${nextLeft}px`;
+    panel.style.top = `${nextTop}px`;
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+
+    state.secondaryPanel.top = panel.offsetTop;
+    state.secondaryPanel.left = panel.offsetLeft;
+    state.secondaryPanel.width = panel.offsetWidth;
+    state.secondaryPanel.height = panel.offsetHeight;
+    saveState();
+  });
+})();
+
+(function enableWheelDrag(){
+  const wheel = $('wheelStage');
+  if (!wheel) return;
+
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let startLeft = 0;
+  let startTop = 0;
+
+  wheel.addEventListener('mousedown', (e) => {
+    if (e.target.tagName.toLowerCase() === 'canvas'){
+      dragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      startLeft = wheel.offsetLeft;
+      startTop = wheel.offsetTop;
+      e.preventDefault();
     }
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    wheel.style.left = `${startLeft + (e.clientX - startX)}px`;
+    wheel.style.top = `${startTop + (e.clientY - startY)}px`;
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    state.wheel.x = wheel.offsetLeft;
+    state.wheel.y = wheel.offsetTop;
+    state.wheel.size = wheel.offsetWidth;
+    saveState();
+  });
+})();
+
+const resizeObserver = new ResizeObserver(() => {
+  const panel = $('adminSecondary');
+  if (!panel) return;
+  state.secondaryPanel.width = panel.offsetWidth;
+  state.secondaryPanel.height = panel.offsetHeight;
+  saveState();
+});
+
+const wheelResizeObserver = new ResizeObserver(() => {
+  const wheel = $('wheelStage');
+  if (!wheel) return;
+  state.wheel.size = wheel.offsetWidth;
+  saveState();
+});
+
+if ($('wheelStage')){
+  wheelResizeObserver.observe($('wheelStage'));
+}
+
+if ($('adminSecondary')){
+  resizeObserver.observe($('adminSecondary'));
+}
+
+function render(){
+  $('breakNo').textContent = state.breakNo;
+  $('statusLine').textContent = state.status;
+  $('tickerText').textContent = state.ticker;
+
+  setImg($('brandLogo'), state.brandLogo);
+  setImg($('setLogo'), state.setLogo);
+  applyTickerSpeed();
+  buildBuyerColumns();
+  buildTiles();
+  buildTriviaAdminList();
+  buildBuyerMasterList();
+  syncAdmin();
+  syncSecondaryPanelBox();
+  renderWheel();
+}
+
+function syncAdmin(){
+  $('breakInput').value = state.breakNo;
+  $('statusInput').value = state.status;
+  $('tickerInput').value = state.ticker;
+  $('marqueeSpeedInput').value = state.marqueeSpeed;
+  $('wheelEnabledInput').checked = !!state.wheel.enabled;
+  $('wheelExtrasInput').value = (state.wheel.extras || []).join('\n');
+}
+
+function collectPrimaryAdminState(){
+  state.breakNo = Math.max(1, parseInt($('breakInput').value || '1', 10) || 1);
+  state.status = $('statusInput').value.trim();
+  state.ticker = $('tickerInput').value.trim();
+  state.marqueeSpeed = Math.max(5, parseInt($('marqueeSpeedInput').value || '22', 10) || 22);
+}
+
+function collectSecondaryAdminState(){
+  state.triviaPlayers = state.triviaPlayers.map((player, idx) => ({
+    name: $(`triviaName${idx}`)?.value.trim() || '',
+    points: Math.max(0, parseInt($(`triviaPoints${idx}`)?.value || '0', 10) || 0)
+  })).filter(player => player.name);
+
+  state.buyerMaster = state.buyerMaster.map((name, idx) =>
+    $(`buyerMaster${idx}`)?.value.trim() || ''
+  ).filter(Boolean);
+
+  state.wheel.enabled = !!$('wheelEnabledInput').checked;
+  state.wheel.extras = String($('wheelExtrasInput').value || '')
+    .split('\n').map(s => s.trim()).filter(Boolean);
+
+  syncBuyerMasterFromTiles();
+  buildWheelEntries();
+}
+
+ function applyPrimaryAdmin(){
+  collectPrimaryAdminState();
+  saveState();
+  render();
+  $('adminPrimary').classList.add('open');
+}
+
+function resetPrimaryAdmin(){
+  syncAdmin();
+}
+
+function resetSecondaryAdmin(){
+  buildTriviaAdminList();
+  buildBuyerMasterList();
+}
+
+function closePrimaryAdmin(){
+  $('adminPrimary').classList.remove('open');
+}
+
+function closeSecondaryAdmin(){
+  $('adminSecondary').classList.remove('open');
+}
+
+function applySecondaryAdmin(){
+  collectSecondaryAdminState();
+  saveState();
+  render();
+  $('adminSecondary').classList.add('open');
+}
+
+function resetState(){
+  state = structuredClone(defaults);
+  saveState();
+  render();
+  $('adminPrimary').classList.add('open');
+  $('adminSecondary').classList.add('open');
+}
 
     function readFileAsDataURL(file, onLoad){
       if (!file) return;
@@ -991,6 +1591,13 @@
       });
     });
 
+$('addTriviaBtn').addEventListener('click', () => {
+  state.triviaPlayers.push({ name:'', points:0 });
+  saveState();
+  render();
+  $('adminSecondary').classList.add('open');
+});
+
     $('setLogoFile').addEventListener('change', (e) => {
       const file = e.target.files && e.target.files[0];
       readFileAsDataURL(file, (dataUrl) => {
@@ -1000,12 +1607,44 @@
       });
     });
 
-    $('adminToggle').addEventListener('click', () => $('admin').classList.toggle('open'));
-    document.addEventListener('keydown', (e) => {
-      if (e.key === '`') $('admin').classList.toggle('open');
-    });
-    $('applyBtn').addEventListener('click', applyFromAdmin);
-    $('resetBtn').addEventListener('click', resetState);
+ function toggleAdmins(){
+  $('adminPrimary').classList.toggle('open');
+  $('adminSecondary').classList.toggle('open');
+}
+
+$('adminToggle').addEventListener('click', toggleAdmins);
+document.addEventListener('keydown', (e) => {
+  if (e.key === '`') toggleAdmins();
+});
+
+
+$('randomizeWheelBtn').addEventListener('click', () => {
+  collectSecondaryAdminState();
+  randomizeWheelEntries();
+  $('adminSecondary').classList.add('open');
+});
+
+$('spinWheelBtn').addEventListener('click', () => {
+  collectSecondaryAdminState();
+  saveState();
+  renderWheel();
+  spinWheelNow();
+  $('adminSecondary').classList.add('open');
+});
+
+$('resetWheelBtn').addEventListener('click', () => {
+  collectSecondaryAdminState();
+  resetWheelState();
+  $('adminSecondary').classList.add('open');
+});
+
+$('applyPrimaryBtn').addEventListener('click', applyPrimaryAdmin);
+$('resetPrimaryBtn').addEventListener('click', resetPrimaryAdmin);
+$('closePrimaryBtn').addEventListener('click', closePrimaryAdmin);
+
+$('applySecondaryBtn').addEventListener('click', applySecondaryAdmin);
+$('resetSecondaryBtn').addEventListener('click', resetSecondaryAdmin);
+$('closeSecondaryBtn').addEventListener('click', closeSecondaryAdmin);
 
     render();
   </script>
