@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, initial-scale=1.0" />
+  <title>Greater Yellowstone TCG – Lorcana Colorbreak Mockup</title>
+  <style>
+    :root{
+      --W:1080px;
+      --H:1960px;
+      --pad:20px;
+      --gap:8px;
+      --radius:22px;
+
+      --stroke:rgba(255,255,255,0.10);
+      --gold:#f3c55f;
+      --gold2:#ffd98a;
+      --violet:#8f63ff;
+      --blue:#142756;
+      --white:#ffffff;
+      --muted:rgba(255,255,255,0.74);
+      --shadow:0 14px 34px rgba(0,0,0,0.42);
+
+      --amber:#d5a438;
+      --amethyst:#9b5cff;
+      --emerald:#22b270;
+      --ruby:#db405a;
+      --sapphire:#2f79ff;
+      --steel:#9ca8bf;
+
+      --headerH:132px;
+      --marqueeH:72px;
+      --infoH:170px;
+      --boardH:300px;
+
+      --tickerDuration:22s;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; width:var(--W); height:var(--H); overflow:hidden; }
+    body{
+      background:transparent;
+      font-family:Arial, Helvetica, sans-serif;
+      user-select:none;
+      color:var(--white);
+    }
+
+.stage{
+  position:relative;
+  width:var(--W);
+  height:var(--H);
+  overflow:hidden;
+  background:transparent;
+}
+
+.stage::before{
+  display:none;
+}
+
+.shell{
+  position:absolute;
+  inset:var(--pad);
+  top:40px;
+  display:grid;
+  grid-template-rows: auto 1fr;
+  gap:var(--gap);
+}
+
+.stream-shell{
+  display:grid;
+  grid-template-rows: var(--headerH) 210px 320px 92px;
+  gap:var(--gap);
+  position:relative;
+  isolation:isolate;
+}
+
+.stream-shell::before{
+  content:"";
+  position:absolute;
+  inset:-8px -8px -8px -8px;
+  z-index:-2;
+  border-radius:28px;
+  background:
+    radial-gradient(circle at 50% -12%, #8f63ffed, transparent 30%),
+    linear-gradient(180deg, #10183b 0%, #091024 42%, #060912 100%);
+}
+
+.stream-shell::after{
+  content:"";
+  position:absolute;
+  inset:-8px -8px -8px -8px;
+  z-index:-1;
+  border-radius:28px;
+  background:
+    radial-gradient(circle at 12% 9%, rgba(255,255,255,0.12) 0 1px, transparent 2px),
+    radial-gradient(circle at 80% 11%, rgba(243,197,95,0.12) 0 1px, transparent 2px),
+    radial-gradient(circle at 66% 23%, rgba(143,99,255,0.15) 0 1px, transparent 2px);
+  opacity:.45;
+  pointer-events:none;
+}
+
+.crop-zone{
+  position:relative;
+  min-height:0;
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  overflow:hidden;
+}
+
+.crop-zone::before,
+.crop-zone::after{
+  display:none !important;
+}
+
+.panel{
+  position:relative;
+  border-radius:var(--radius);
+  background:linear-gradient(180deg, rgba(19,28,62,0.94), rgba(8,12,27,0.90));
+  border:1px solid var(--stroke);
+  box-shadow:var(--shadow), inset 0 0 0 1px rgba(255,255,255,0.04);
+  overflow:hidden;
+}
+
+.panel::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  box-shadow:inset 0 0 0 1px rgba(255,217,138,0.08);
+}
+
+.gold-edge::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  padding:1px;
+  border-radius:inherit;
+  background:linear-gradient(135deg, rgba(255,217,138,0.58), rgba(143,99,255,0.34), rgba(255,217,138,0.48));
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  pointer-events:none;
+  opacity:.9;
+}
+
+.trace{
+  position:relative;
+  isolation:isolate;
+}
+
+.trace::after{
+  content:"";
+  position:absolute;
+  inset:-1px;
+  border-radius:inherit;
+  padding:2px;
+  background:
+    linear-gradient(115deg,
+      transparent 0%,
+      transparent 35%,
+      rgba(255,217,138,0.0) 40%,
+      rgba(255,217,138,0.95) 50%,
+      rgba(143,99,255,0.9) 58%,
+      rgba(255,217,138,0.0) 66%,
+      transparent 72%,
+      transparent 100%);
+  background-size:240% 240%;
+  animation:borderTrace 4.5s linear infinite;
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  pointer-events:none;
+  z-index:3;
+  opacity:.9;
+}
+
+@keyframes borderTrace{
+  0%{ background-position:200% 0; }
+  100%{ background-position:-40% 0; }
+}
+
+.header{
+  display:grid;
+  grid-template-columns: 190px 1fr 190px;
+  align-items:center;
+  gap:16px;
+  padding:14px 40px;
+  overflow:visible;
+  background:linear-gradient(90deg, rgba(18,33,77,0.96), rgba(38,19,77,0.88) 48%, rgba(18,33,77,0.96));
+}
+
+.logo-wrap,
+.set-wrap{
+  height:100%;
+  border-radius:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:visible;
+  padding:10px;
+  position:relative;
+}
+
+.logo-wrap img,
+.set-wrap img{
+  width:255px;
+  position:absolute;
+  top:5px;
+  height:auto;
+  object-fit:contain;
+  filter:drop-shadow(0 10px 20px rgba(0,0,0,0.38));
+  animation:logoBreathe 4.6s ease-in-out infinite;
+  transform-origin:center center;
+}
+
+.set-wrap img{ animation-delay:.8s; }
+
+@keyframes logoBreathe{
+  0%,100%{
+    transform:scale(1);
+    filter:drop-shadow(0 10px 20px rgba(0,0,0,0.38)) drop-shadow(0 0 0 rgba(143,99,255,0));
+  }
+  50%{
+    transform:scale(1.035);
+    filter:drop-shadow(0 10px 20px rgba(0,0,0,0.38)) drop-shadow(0 0 18px rgba(143,99,255,0.38));
+  }
+}
+
+.header-center{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+
+.break-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 20px;
+  border-radius:999px;
+  background:rgba(6,10,24,0.72);
+  border:1px solid rgba(255,217,138,0.26);
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  font-size:34px;
+  position:relative;
+  overflow:hidden;
+}
+
+.break-pill::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(110deg, transparent 0 42%, rgba(255,255,255,.18) 50%, transparent 58% 100%);
+  transform:translateX(-120%);
+  animation:pillSweep 4s linear infinite;
+  pointer-events:none;
+}
+
+@keyframes pillSweep{
+  to{ transform:translateX(120%); }
+}
+
+.break-pill .label{ color:var(--muted); font-size:20px; }
+.break-pill .value{ color:var(--white); }
+
+.status-line{
+  font-size:22px;
+  font-weight:900;
+  letter-spacing:1.6px;
+  color:rgba(255,255,255,0.9);
+  text-transform:uppercase;
+}
+
+.leaderboard-panel{
+  padding:12px;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  gap:10px;
+}
+
+.leaderboard-title{
+  justify-content:flex-start;
+  padding-left:8px;
+}
+
+.leaderboard-grid{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  grid-template-rows:repeat(2, 1fr);
+  gap:10px;
+  min-height:0;
+}
+
+.middle-layout{
+  display:grid;
+  grid-template-columns: 250px 1fr 250px;
+  gap:var(--gap);
+  min-height:0;
+}
+
+.color-column-panel{
+  padding:10px;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  gap:8px;
+}
+
+.compact-title{
+  justify-content:flex-start;
+  padding-left:4px;
+}
+
+.tile-column{
+  display:grid;
+  grid-template-rows:repeat(3, 1fr);
+  gap:8px;
+  min-height:0;
+}
+
+.facecam-panel{
+  padding:10px;
+  display:grid;
+}
+
+.facecam-panel .fc-box{
+  min-height:100%;
+}
+
+.ticker-panel{
+  display:flex;
+  align-items:center;
+  padding:0 18px;
+  background:linear-gradient(90deg, rgba(111,60,255,0.18), rgba(143,99,255,0.12), rgba(111,60,255,0.18));
+}
+
+.ticker-track-wrap{
+  width:100%;
+  overflow:hidden;
+}
+
+.marquee-track{
+  white-space:nowrap;
+  font-size:28px;
+  font-weight:900;
+  letter-spacing:1px;
+  color:#fff;
+  text-shadow:0 3px 14px rgba(0,0,0,0.45);
+  animation:ticker var(--tickerDuration) linear infinite;
+  padding-left:100%;
+}
+
+@keyframes ticker{
+  from{ transform:translateX(0); }
+  to{ transform:translateX(-100%); }
+}
+
+.mini-title{
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.9);
+  padding:0 8px;
+}
+
+.buyer-slot{
+  border-radius:16px;
+  display:grid;
+  grid-template-columns: 42px 1fr 86px;
+  align-items:center;
+  gap:8px;
+  padding:0 10px;
+  min-height:74px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.18));
+  border:1px solid rgba(255,255,255,0.10);
+  position:relative;
+  overflow:hidden;
+}
+
+.buyer-slot.rank-1{
+  box-shadow:0 0 0 1px rgba(255,217,138,.35), 0 0 24px rgba(255,217,138,.12);
+}
+
+.buyer-slot .num{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,0.28);
+  border:1px solid rgba(255,255,255,0.10);
+  font-size:16px;
+  font-weight:900;
+}
+
+.buyer-slot .name{
+  font-size:18px;
+  font-weight:900;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+}
+
+.buyer-slot .pts{
+  justify-self:end;
+  font-size:18px;
+  font-weight:900;
+  color:var(--gold2);
+  text-transform:uppercase;
+}
+
+.fc-box{
+  border-radius:18px;
+  border:1px dashed rgba(255,255,255,0.18);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(243,197,95,0.18), transparent 30%),
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.18));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:18px;
+  font-size:30px;
+  line-height:1.3;
+  color:rgba(255,255,255,0.78);
+  min-height:100%;
+}
+
+.section-title{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:0 4px;
+}
+
+.section-title .title{
+  font-size:28px;
+  font-weight:900;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+
+.tile{
+  position:relative;
+  border-radius:18px;
+  overflow:hidden;
+  padding:5px 5px;
+  border:1px solid rgba(255,255,255,0.10);
+  display:grid;
+  grid-template-rows:auto 1fr auto;
+  gap:5px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+.tile[data-color="Amber"]{ background:linear-gradient(180deg, rgba(213,164,56,0.24), rgba(34,21,4,0.76)); }
+.tile[data-color="Amethyst"]{ background:linear-gradient(180deg, rgba(155,92,255,0.24), rgba(28,9,55,0.76)); }
+.tile[data-color="Emerald"]{ background:linear-gradient(180deg, rgba(34,178,112,0.24), rgba(8,42,27,0.76)); }
+.tile[data-color="Ruby"]{ background:linear-gradient(180deg, rgba(219,64,90,0.24), rgba(55,10,18,0.76)); }
+.tile[data-color="Sapphire"]{ background:linear-gradient(180deg, rgba(47,121,255,0.24), rgba(8,23,55,0.76)); }
+.tile[data-color="Steel"]{ background:linear-gradient(180deg, rgba(156,168,191,0.24), rgba(24,28,37,0.78)); }
+
+.tile.sold{
+  box-shadow:0 0 0 2px rgba(255,217,138,0.26), inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+.ink-name{
+  font-size:20px;
+  font-weight:900;
+  letter-spacing:0.8px;
+  text-transform:uppercase;
+  line-height:1;
+}
+
+.status-chip{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:max-content;
+  min-width:108px;
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  border:1px solid rgba(255,255,255,0.10);
+  background:rgba(0,0,0,0.26);
+  cursor:pointer;
+}
+
+.status-chip.available{
+  background:rgba(37,196,102,0.16);
+  border-color:rgba(60,226,125,0.34);
+  color:#6dff9f;
+  box-shadow:0 0 18px rgba(39,209,109,0.16);
+}
+
+.status-chip.sold{
+  background:rgba(243,197,95,0.14);
+  border-color:rgba(255,217,138,0.24);
+  color:#ffd98a;
+}
+
+.buyer-box{
+  border-radius:14px;
+  padding:6px 6px;
+  background:rgba(6,12,25,0.42);
+  border:1px solid rgba(255,255,255,0.08);
+  display:flex;
+  align-items:center;
+  min-height:42px;
+}
+
+.buyer-inline-input{
+  width:100%;
+  border:none;
+  outline:none;
+  background:transparent;
+  color:#fff;
+  font-size:20px;
+  font-weight:900;
+  font-family:inherit;
+  white-space:nowrap;
+}
+
+.buyer-inline-input::placeholder{
+  color:rgba(255,255,255,0.45);
+  font-weight:800;
+}
+
+.bottom-stage{
+  position:relative;
+  width:100%;
+  height:100%;
+  background:transparent !important;
+  border:none !important;
+  box-shadow:none !important;
+  overflow:visible;
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:12px;
+  padding-top:8px;
+}
+
+.cover-card{
+  min-height:280px;
+  border-radius:22px;
+  border:1px solid rgba(255,255,255,0.10);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(243,197,95,0.18), transparent 35%),
+    linear-gradient(180deg, rgba(143,99,255,0.18), rgba(20,39,86,0.30) 45%, rgba(6,9,18,0.90) 100%);
+  box-shadow:0 16px 34px rgba(0,0,0,0.38), inset 0 0 0 1px rgba(255,255,255,0.05);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  text-align:center;
+  padding:18px;
+}
+
+.cover-card .cover-kicker{
+  font-size:16px;
+  text-transform:uppercase;
+  letter-spacing:1.5px;
+  color:var(--gold2);
+  font-weight:900;
+}
+
+.cover-card .cover-title{
+  font-size:34px;
+  line-height:1.05;
+  font-weight:900;
+}
+
+.cover-card .cover-sub{
+  font-size:18px;
+  color:var(--muted);
+  font-weight:800;
+}
+
+.wheel-wrap{
+  position:fixed;
+  left:0;
+  top:0;
+  width:100%;
+  height:100%;
+  z-index:9999;
+  pointer-events:none;
+}
+
+.wheel-wrap.hidden{
+  display:none;
+}
+
+.wheel-stage{
+  position:absolute;
+  left:180px;
+  top:980px;
+  width:720px;
+  height:720px;
+  background:transparent;
+  border:none;
+  pointer-events:auto;
+  cursor:grab;
+}
+
+.wheel-stage.dragging{
+  cursor:grabbing;
+}
+
+.wheel-rotor{
+  position:absolute;
+  inset:0;
+  transform:rotate(0deg);
+}
+
+.wheel-stage canvas{
+  width:100%;
+  height:100%;
+  display:block;
+  border:6px solid var(--gold);
+  border-radius:50%;
+  background:transparent;
+  box-shadow:
+    0 0 0 3px rgba(255,255,255,0.10),
+    0 20px 34px rgba(0,0,0,0.40),
+    0 0 34px rgba(143,99,255,0.18);
+  filter:drop-shadow(0 18px 30px rgba(0,0,0,0.45));
+}
+
+.wheel-pointer{
+  position:absolute;
+  top:-32px;
+  left:50%;
+  transform:translateX(-50%);
+  width:0;
+  height:0;
+  border-left:18px solid transparent;
+  border-right:18px solid transparent;
+  border-top:30px solid var(--gold);
+  z-index:10001;
+  filter:drop-shadow(0 4px 10px rgba(0,0,0,0.45));
+}
+
+.wheel-result{
+  display:none;
+  margin-top:12px;
+  width:100%;
+  text-align:center;
+  font-size:22px;
+  font-weight:900;
+  letter-spacing:.5px;
+  color:var(--gold2);
+  background:rgba(20,39,86,0.94);
+  border:2px solid var(--gold);
+  border-radius:12px;
+  padding:10px 12px;
+  box-shadow:0 0 12px rgba(0,0,0,0.35);
+}
+
+.wheel-resizer{
+  width:18px;
+  height:18px;
+  background:var(--gold);
+  border-radius:4px;
+  border:2px solid #091024;
+  position:absolute;
+  bottom:-10px;
+  right:-10px;
+  cursor:se-resize;
+  box-shadow:0 0 6px rgba(0,0,0,0.4);
+}
+
+.bottom-stage::before{
+  display:none;
+}
+
+.admin-toggle{
+  position:absolute;
+  top:18px;
+  right:18px;
+  z-index:80;
+  width:54px;
+  height:54px;
+  border-radius:14px;
+  border:1px solid rgba(255,217,138,0.22);
+  background:rgba(3,7,20,0.78);
+  color:#fff;
+  font-size:24px;
+  cursor:pointer;
+  box-shadow:0 14px 30px rgba(0,0,0,0.35);
+}
+
+.admin{
+  position:absolute;
+  z-index:80;
+  display:none;
+  border-radius:22px;
+  padding:6px;
+  background:rgba(5,9,22,0.96);
+  border:1px solid rgba(255,255,255,0.10);
+  box-shadow:0 22px 48px rgba(0,0,0,0.45);
+  overflow:auto;
+}
+
+.admin.open{ display:block; }
+
+.admin.primary-admin{
+  top: 1400px;
+  right:70px;
+  width:950px;
+  max-height:500px;
+}
+
+.admin.secondary-admin{
+  top:760px;
+  left:40px;
+  width:850px;
+  min-width:850px;
+  min-height:500px;
+  max-width:1000px;
+  max-height:600px;
+  resize:both;
+  overflow:auto;
+}
+
+.drag-handle{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:-6px -6px -5px;
+  padding:4px 6px;
+  border-radius:14px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.08);
+  cursor:move;
+}
+
+.drag-handle .handle-title{
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  width:1050px;
+}
+
+.list-block{
+  margin-top:2px;
+  padding:4px;
+  border-radius:16px;
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+}
+
+.list-row{
+  display:grid;
+  grid-template-columns: 1fr 100px 200px;
+  gap:10px;
+  margin-bottom:4px;
+  align-items:center;
+}
+
+.list-row.buyers{
+  grid-template-columns: 1fr 120px;
+}
+
+.small-btn{
+  border:none;
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  cursor:pointer;
+  background:rgba(255,255,255,0.08);
+  color:#fff;
+}
+
+.admin h3{
+  margin:0 0 2px;
+  font-size:22px;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  text-align:center;
+}
+
+.admin h4{
+  margin:2px 0 6px;
+  text-align:center;
+  font-size:20px;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  color:var(--gold2);
+}
+
+.row{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  gap:4px;
+  align-items:center;
+  margin-bottom:2px;
+}
+
+.row label{
+  font-size:20px;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:rgb(255, 255, 255);
+  font-weight:900;
+}
+
+.admin input,
+.admin textarea,
+.admin select,
+.admin button{
+  width:80%;
+  padding:2px 6px;
+  border-radius:12px;
+  border:1px solid rgba(223, 201, 8, 0.404);
+  background:rgba(255,255,255,0.06);
+  color:#fff;
+  outline:none;
+  font-size:21px;
+  font-weight:700;
+}
+
+.admin input[type="checkbox"]{
+  width:22px;
+  height:22px;
+  padding:0;
+  accent-color:#6dff9f;
+  justify-self:start;
+}
+
+.admin input[type="file"]{
+  padding:6px;
+}
+
+.admin textarea{ min-height:100px; resize:vertical; }
+
+.btns{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-top:6px;
+}
+.btns-3{
+  grid-template-columns:1fr 1fr 1fr;
+}
+.btn{
+  border:none;
+  border-radius:14px;
+  padding:12px 14px;
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  cursor:pointer;
+}
+
+.btn.primary{ background:linear-gradient(135deg, var(--gold), var(--gold2)); color:#1a1305; }
+.btn.ghost{ background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(255,255,255,0.10); }
+
+button.small-btn{
+  width: 100%;
+}
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-thumb{ background:rgba(255,255,255,0.16); border-radius:999px; }
+::-webkit-scrollbar-track{ background:rgba(255,255,255,0.04); }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div class="shell">
+      <div class="stream-shell">
+        <section class="panel gold-edge trace header">
+          <div class="logo-wrap">
+            <img id="brandLogo" alt="Greater Yellowstone TCG Logo" />
+          </div>
+
+          <div class="header-center">
+            <div class="break-pill"><span class="label">Break</span><span class="value" id="breakNo">14</span></div>
+            <div class="status-line" id="statusLine">Lorcana Colorbreak</div>
+          </div>
+
+          <div class="set-wrap">
+            <img id="setLogo" alt="Lorcana Set Logo" />
+          </div>
+        </section>
+
+        <section class="panel gold-edge trace leaderboard-panel">
+          <div class="section-title leaderboard-title">
+            <div class="title">Trivia Leaderboard</div>
+          </div>
+          <div class="leaderboard-grid" id="leaderboardGrid"></div>
+        </section>
+
+        <section class="middle-layout">
+          <section class="panel gold-edge trace color-column-panel">
+            <div class="section-title compact-title">
+              <div class="title">Colors</div>
+            </div>
+            <div class="tile-column" id="tileColumnLeft"></div>
+          </section>
+
+          <section class="panel gold-edge trace facecam facecam-panel">
+            <div class="fc-box" id="centerGraphicBox">
+              <div>
+                <div style="font-size:18px; text-transform:uppercase; letter-spacing:1.4px; color:#ffd98a; font-weight:900;">Feature Slot</div>
+                <div style="font-size:40px; font-weight:900; line-height:1.05; margin-top:8px;">Lorcana Box Break</div>
+                <div style="font-size:20px; margin-top:10px; color:rgba(255,255,255,0.82);">Upload art later or leave as live feature panel</div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel gold-edge trace color-column-panel">
+            <div class="section-title compact-title">
+              <div class="title">Colors</div>
+            </div>
+            <div class="tile-column" id="tileColumnRight"></div>
+          </section>
+        </section>
+
+        <section class="panel gold-edge trace ticker-panel">
+          <div class="ticker-track-wrap">
+            <div class="marquee-track" id="tickerText">Rip Till You Hit • Lorcana Colorbreak • Manual sold tracking • Trivia bonus live</div>
+          </div>
+        </section>
+      </div>
+
+      <section class="crop-zone">
+        <section class="bottom-stage" id="bottomStage"></section>
+      </section>
+
+      <div class="wheel-wrap hidden" id="wheelWrap">
+        <div class="wheel-stage" id="wheelStage">
+          <div class="wheel-pointer"></div>
+          <div class="wheel-rotor" id="wheelRotor">
+            <canvas id="spinWheel" width="720" height="720"></canvas>
+          </div>
+          <div class="wheel-result" id="wheelResult"></div>
+          <div class="wheel-resizer" id="wheelResizer"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="admin-toggle" id="adminToggle" type="button">⚙</button>
+
+    <aside class="admin primary-admin" id="adminPrimary">
+      <h3>Stream Controls</h3>
+
+      <div class="row">
+        <label>Break #</label>
+        <input id="breakInput" type="number" min="1" step="1" />
+      </div>
+
+      <div class="row">
+        <label>Status</label>
+        <input id="statusInput" type="text" />
+      </div>
+
+      <div class="row">
+        <label>Ticker Text</label>
+        <textarea id="tickerInput"></textarea>
+      </div>
+
+      <div class="row">
+        <label>Marquee Speed</label>
+        <input id="marqueeSpeedInput" type="number" min="5" max="120" step="1" />
+      </div>
+
+      <h4>Brand Logo</h4>
+      <div class="row">
+        <label>Browse</label>
+        <input id="brandLogoFile" type="file" accept="image/*" />
+      </div>
+
+      <h4>Set Logo</h4>
+      <div class="row">
+        <label>Browse</label>
+        <input id="setLogoFile" type="file" accept="image/*" />
+      </div>
+
+      <div class="btns btns-3">
+        <button class="btn primary" id="applyPrimaryBtn" type="button">Apply</button>
+        <button class="btn ghost" id="resetPrimaryBtn" type="button">Reset</button>
+        <button class="btn ghost" id="closePrimaryBtn" type="button">Close</button>
+      </div>
+    </aside>
+
+    <aside class="admin secondary-admin" id="adminSecondary">
+      <div class="drag-handle" id="secondaryDragHandle">
+        <div class="handle-title">Colorbreak / Trivia / Buyer Tracker</div>
+        <button class="small-btn" type="button" id="addTriviaBtn">Add Viewer</button>
+      </div>
+
+      <div class="list-block">
+        <h4 style="margin-top:0;">Trivia Players</h4>
+        <div id="triviaAdminList"></div>
+      </div>
+
+      <div class="list-block">
+        <h4 style="margin-top:0;">Buyer Master List</h4>
+        <div id="buyerMasterList"></div>
+      </div>
+
+      <div class="list-block">
+        <h4 style="margin-top:0;">Leaderboard / Promo Banner</h4>
+        <div class="row">
+          <label>Show Leaderboard</label>
+          <input id="leaderboardEnabledInput" type="checkbox" />
+        </div>
+        <div class="row">
+          <label>Rotate Seconds</label>
+          <input id="promoRotateSecondsInput" type="number" min="3" max="60" step="1" />
+        </div>
+        <div class="row">
+          <label>Promo Entries</label>
+          <textarea id="promoItemsInput" placeholder="Free Shipping Friday&#10;Join the next break live&#10;Follow for wheel spins"></textarea>
+        </div>
+      </div>
+
+      <div class="list-block">
+        <h4 style="margin-top:0;">Wheel Controls</h4>
+        <div class="row">
+          <label>Show Wheel</label>
+          <input id="wheelEnabledInput" type="checkbox" />
+        </div>
+        <div class="row">
+          <label>Extra Spots</label>
+          <textarea id="wheelExtrasInput" placeholder="Bonus Spot 1&#10;Bonus Spot 2"></textarea>
+        </div>
+        <div class="btns btns-3">
+          <button class="small-btn" type="button" id="toggleWheelBtn">Show / Hide</button>
+          <button class="small-btn" type="button" id="spinWheelBtn">Spin</button>
+          <button class="small-btn" type="button" id="randomizeWheelBtn">Randomize</button>
+        </div>
+        <div class="btns btns-3" style="margin-top:8px;">
+          <button class="small-btn" type="button" id="resetWheelBtn">Reset Wheel</button>
+          <button class="small-btn" type="button" id="addWheelSpotBtn">Add Spot</button>
+          <button class="small-btn" type="button" id="removeWheelWinnerBtn">Remove Winner</button>
+        </div>
+      </div>
+      <div class="btns btns-3">
+        <button class="btn primary" id="applySecondaryBtn" type="button">Apply</button>
+        <button class="btn ghost" id="resetSecondaryBtn" type="button">Reset</button>
+        <button class="btn ghost" id="closeSecondaryBtn" type="button">Close</button>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const KEY = 'gytcg.lorcana.mockup.v4';
+    const $ = (id) => document.getElementById(id);
+    const clone = (value) => {
+      if (typeof structuredClone === 'function') return structuredClone(value);
+      return JSON.parse(JSON.stringify(value));
+    };
+
+    const defaults = {
+      breakNo: 14,
+      status: 'Lorcana Colorbreak',
+      brandLogo: '',
+      setLogo: '',
+      ticker: 'Rip Till You Hit • Lorcana Colorbreak • Manual sold tracking • Trivia bonus live',
+      marqueeSpeed: 22,
+      triviaPlayers: [],
+      buyerMaster: [],
+      secondaryPanel: {
+        top: 760,
+        left: 40,
+        width: 850,
+        height: 500
+      },
+      wheel: {
+        enabled: false,
+        extras: [],
+        entries: [],
+        rotation: 0,
+        x: 180,
+        y: 980,
+        size: 720,
+        selected: '',
+        spinning: false
+      },
+      promos: {
+        leaderboardEnabled: true,
+        rotateSeconds: 8,
+        items: []
+      },
+      tiles: [
+        { color:'Amber', buyer:'', sold:false, points:0, slot:1 },
+        { color:'Amethyst', buyer:'', sold:false, points:0, slot:2 },
+        { color:'Emerald', buyer:'EmeraldFan', sold:true, points:3, slot:3 },
+        { color:'Ruby', buyer:'', sold:false, points:0, slot:4 },
+        { color:'Steel', buyer:'SteelStack', sold:true, points:1, slot:5 },
+        { color:'Sapphire', buyer:'BlueMage', sold:true, points:2, slot:6 }
+      ]
+    };
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(KEY);
+        if (!raw) return clone(defaults);
+        const parsed = JSON.parse(raw);
+        return {
+          ...clone(defaults),
+          ...parsed,
+          triviaPlayers: Array.isArray(parsed.triviaPlayers)
+            ? parsed.triviaPlayers.map(p => ({
+                name: String(p.name || '').trim(),
+                points: Number(p.points || 0)
+              }))
+            : [],
+          buyerMaster: Array.isArray(parsed.buyerMaster)
+            ? parsed.buyerMaster.map(name => String(name || '').trim()).filter(Boolean)
+            : [],
+          secondaryPanel: {
+            ...clone(defaults.secondaryPanel),
+            ...(parsed.secondaryPanel || {})
+          },
+          wheel: {
+            ...clone(defaults.wheel),
+            ...(parsed.wheel || {})
+          },
+          promos: {
+            ...clone(defaults.promos),
+            ...(parsed.promos || {})
+          },
+          tiles: Array.isArray(parsed.tiles)
+            ? parsed.tiles.map((t, i) => ({
+                color: t.color || defaults.tiles[i]?.color || '',
+                buyer: t.buyer || '',
+                sold: !!t.sold,
+                points: Number(t.points || 0),
+                slot: t.slot || i + 1
+              }))
+            : clone(defaults.tiles)
+        };
+      }catch(_){
+        return clone(defaults);
+      }
+    }
+
+    let state = loadState();
+    let bannerMode = 'leaderboard';
+    let bannerTimer = null;
+
+    function saveState(){
+      localStorage.setItem(KEY, JSON.stringify(state));
+    }
+
+    function escapeHtml(str){
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;');
+    }
+
+    function syncBuyerMasterFromTiles(){
+      const namesFromTiles = state.tiles
+        .map(item => String(item.buyer || '').trim())
+        .filter(Boolean);
+
+      const merged = [...state.buyerMaster];
+
+      namesFromTiles.forEach(name => {
+        if (!merged.some(existing => existing.toLowerCase() === name.toLowerCase())){
+          merged.push(name);
+        }
+      });
+
+      const unique = [];
+      merged.forEach(name => {
+        const safe = String(name || '').trim();
+        if (!safe) return;
+        if (!unique.some(existing => existing.toLowerCase() === safe.toLowerCase())){
+          unique.push(safe);
+        }
+      });
+
+      state.buyerMaster = unique;
+    }
+
+    function buildWheelEntries(){
+      const base = state.tiles.map(item => {
+        const buyer = String(item.buyer || '').trim();
+        return buyer || item.color;
+      });
+
+      const extras = (state.wheel.extras || [])
+        .map(name => String(name || '').trim())
+        .filter(Boolean);
+
+      state.wheel.entries = [...base, ...extras];
+    }
+
+    function shuffleArray(arr){
+      const out = [...arr];
+      for (let i = out.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+      }
+      return out;
+    }
+
+    function randomizeWheelEntries(){
+      buildWheelEntries();
+      state.wheel.entries = shuffleArray(state.wheel.entries);
+      state.wheel.selected = '';
+      saveState();
+      renderWheel();
+    }
+
+    function resetWheelState(){
+      state.wheel.rotation = 0;
+      state.wheel.selected = '';
+      state.wheel.spinning = false;
+      buildWheelEntries();
+      saveState();
+      renderWheel();
+    }
+
+    function setImg(el, src){
+      const v = String(src || '').trim();
+      if (!v) {
+        el.removeAttribute('src');
+        return;
+      }
+      el.src = v;
+    }
+
+    function applyTickerSpeed(){
+      document.documentElement.style.setProperty('--tickerDuration', `${Math.max(5, Number(state.marqueeSpeed) || 22)}s`);
+    }
+
+    function getLeaderboard(){
+      return state.triviaPlayers
+        .map((player, idx) => ({
+          rankSeed: idx,
+          name: String(player.name || '').trim(),
+          points: Number(player.points || 0)
+        }))
+        .filter(player => player.name)
+        .sort((a, b) => b.points - a.points || a.rankSeed - b.rankSeed);
+    }
+
+    function startBannerRotation(){
+      if (bannerTimer) clearInterval(bannerTimer);
+
+      const hasPromos = Array.isArray(state.promos.items) && state.promos.items.length > 0;
+      if (!hasPromos) return;
+
+      bannerTimer = setInterval(() => {
+        if (!state.promos.leaderboardEnabled){
+          bannerMode = 'promo';
+        } else {
+          bannerMode = bannerMode === 'leaderboard' ? 'promo' : 'leaderboard';
+        }
+        buildBuyerColumns();
+      }, Math.max(3, Number(state.promos.rotateSeconds || 8)) * 1000);
+    }
+
+    function buildBuyerColumns(){
+      const grid = $('leaderboardGrid');
+      grid.innerHTML = '';
+
+      const promos = Array.isArray(state.promos.items) ? state.promos.items.filter(Boolean) : [];
+      const showPromo = promos.length && (!state.promos.leaderboardEnabled || bannerMode === 'promo');
+
+      if (showPromo){
+        const promo = document.createElement('div');
+        promo.style.gridColumn = '1 / -1';
+        promo.style.gridRow = '1 / -1';
+        promo.className = 'buyer-slot rank-1';
+        promo.style.minHeight = '100%';
+        promo.innerHTML = `
+          <div class="num">★</div>
+          <div class="name">${escapeHtml(promos[0])}</div>
+          <div class="pts">PROMO</div>
+        `;
+        grid.appendChild(promo);
+        return;
+      }
+
+      const board = getLeaderboard();
+      while (board.length < 6){
+        board.push({ name:'—', points:0 });
+      }
+
+      board.slice(0, 6).forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'buyer-slot' + (idx === 0 && item.name !== '—' ? ' rank-1' : '');
+        row.innerHTML = `
+          <div class="num">${idx + 1}</div>
+          <div class="name">${item.name || '—'}</div>
+          <div class="pts">${item.points} pts</div>
+        `;
+        grid.appendChild(row);
+      });
+    }
+
+    function buildBottomStage(){
+      const bottom = $('bottomStage');
+      bottom.innerHTML = '';
+      const cards = [
+        ['Feature Break', 'Amber / Amethyst', 'Color lane showcase'],
+        ['Spotlight Box', 'Emerald / Ruby', 'Main break cover art slot'],
+        ['Bonus Rip', 'Steel / Sapphire', 'Promo or hit tracker panel']
+      ];
+      cards.forEach(([kicker, title, sub]) => {
+        const card = document.createElement('div');
+        card.className = 'cover-card trace gold-edge';
+        card.innerHTML = `
+          <div class="cover-kicker">${kicker}</div>
+          <div class="cover-title">${title}</div>
+          <div class="cover-sub">${sub}</div>
+        `;
+        bottom.appendChild(card);
+      });
+    }
+
+    function renderWheel(){
+      const wrap = $('wheelWrap');
+      const stage = $('wheelStage');
+      const canvas = $('spinWheel');
+      const result = $('wheelResult');
+      if (!wrap || !stage || !canvas || !result) return;
+
+      wrap.classList.toggle('hidden', !state.wheel.enabled);
+
+      stage.style.left = `${Number(state.wheel.x || 180)}px`;
+      stage.style.top = `${Number(state.wheel.y || 980)}px`;
+      stage.style.width = `${Number(state.wheel.size || 720)}px`;
+      stage.style.height = `${Number(state.wheel.size || 720)}px`;
+      $('wheelRotor').style.transform = `rotate(${Number(state.wheel.rotation || 0)}deg)`;
+
+      buildWheelEntries();
+
+      const entries = state.wheel.entries.length ? state.wheel.entries : ['NO ENTRIES'];
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const radius = Math.min(w, h) / 2 - 14;
+      const slice = (Math.PI * 2) / entries.length;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const colors = ['#f3c55f', '#8f63ff', '#22b270', '#db405a', '#2f79ff', '#9ca8bf'];
+
+      entries.forEach((label, i) => {
+        const start = i * slice - Math.PI / 2;
+        const end = start + slice;
+        const isSelected = state.wheel.selected && state.wheel.selected === label;
+
+        ctx.save();
+
+        if (isSelected){
+          ctx.shadowColor = '#f3c55f';
+          ctx.shadowBlur = 32;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, radius, start, end);
+        ctx.closePath();
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+
+        ctx.lineWidth = isSelected ? 6 : 3;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(start + slice / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 22px Arial';
+        ctx.shadowColor = 'rgba(0,0,0,0.45)';
+        ctx.shadowBlur = 8;
+        ctx.fillText(String(label).slice(0, 22), radius - 28, 8);
+        ctx.restore();
+      });
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = '#f3c55f';
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, 42, 0, Math.PI * 2);
+      ctx.fillStyle = '#10183b';
+      ctx.fill();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#ffd98a';
+      ctx.stroke();
+
+      if (state.wheel.selected){
+        result.textContent = `Selected: ${state.wheel.selected}`;
+        result.style.display = 'block';
+      } else {
+        result.textContent = '';
+        result.style.display = 'none';
+      }
+    }
+
+    function spinWheelNow(){
+      buildWheelEntries();
+      if (!state.wheel.entries.length || state.wheel.spinning) return;
+
+      state.wheel.spinning = true;
+      state.wheel.selected = '';
+      saveState();
+      renderWheel();
+
+      const stage = $('wheelRotor');
+      const fullTurns = 360 * (5 + Math.floor(Math.random() * 3));
+      const extraAngle = Math.random() * 360;
+      state.wheel.rotation = Number(state.wheel.rotation || 0) + fullTurns + extraAngle;
+
+      stage.style.transition = 'transform 6s cubic-bezier(.12,.82,.08,1)';
+      stage.style.transform = `rotate(${state.wheel.rotation}deg)`;
+
+      setTimeout(() => {
+        finalizeWheelSelection();
+        state.wheel.spinning = false;
+        stage.style.transition = '';
+        saveState();
+        renderWheel();
+      }, 6100);
+    }
+
+    function finalizeWheelSelection(){
+      const entries = state.wheel.entries;
+      if (!entries.length) return;
+
+      const slice = 360 / entries.length;
+      const normalized = ((state.wheel.rotation % 360) + 360) % 360;
+
+      const pointerAngle = 270;
+      let adjusted = (pointerAngle - normalized) % 360;
+      if (adjusted < 0) adjusted += 360;
+
+      const index = Math.floor(adjusted / slice) % entries.length;
+      state.wheel.selected = entries[index];
+    }
+
+    function buildTiles(){
+      const leftCol = $('tileColumnLeft');
+      const rightCol = $('tileColumnRight');
+
+      leftCol.innerHTML = '';
+      rightCol.innerHTML = '';
+
+      state.tiles.forEach((item, idx) => {
+        const sold = !!item.sold;
+        const buyerName = String(item.buyer || '').trim();
+
+        const tile = document.createElement('div');
+        tile.className = 'tile trace' + (sold ? ' sold' : '');
+        tile.dataset.color = item.color;
+
+        tile.innerHTML = `
+          <div class="ink-name">${item.color}</div>
+          <div class="buyer-box">
+            <input
+              class="buyer-inline-input"
+              type="text"
+              value="${escapeHtml(buyerName)}"
+              placeholder="Enter buyer name"
+              data-inline-buyer="${item.slot}"
+            />
+          </div>
+          <div class="status-chip ${sold ? 'sold' : 'available'}" data-status-toggle="${item.slot}">
+            ${sold ? `Sold • ${Number(item.points || 0)} pts` : 'Available'}
+          </div>
+        `;
+
+        if (idx < 3) leftCol.appendChild(tile);
+        else rightCol.appendChild(tile);
+
+        const inlineInput = tile.querySelector('[data-inline-buyer]');
+        if (inlineInput){
+          const commitBuyerName = () => {
+            item.buyer = String(inlineInput.value || '').trim();
+            syncBuyerMasterFromTiles();
+            buildWheelEntries();
+            saveState();
+            buildBuyerColumns();
+            buildBuyerMasterList();
+            renderWheel();
+          };
+
+          inlineInput.addEventListener('change', commitBuyerName);
+          inlineInput.addEventListener('blur', commitBuyerName);
+          inlineInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') inlineInput.blur();
+          });
+        }
+
+        const statusChip = tile.querySelector('[data-status-toggle]');
+        if (statusChip){
+          statusChip.addEventListener('click', () => {
+            item.sold = !item.sold;
+            syncBuyerMasterFromTiles();
+            buildWheelEntries();
+            saveState();
+            render();
+          });
+        }
+      });
+    }
+
+    function adjustPoints(index, delta){
+      const item = state.tiles[index];
+      if (!item) return;
+      item.points = Math.max(0, Number(item.points || 0) + delta);
+      saveState();
+      render();
+      $('adminPrimary').classList.add('open');
+      $('adminSecondary').classList.add('open');
+    }
+
+    function buildTriviaAdminList(){
+      const wrap = $('triviaAdminList');
+      wrap.innerHTML = '';
+
+      state.triviaPlayers.forEach((player, idx) => {
+        const row = document.createElement('div');
+        row.className = 'list-row';
+        row.innerHTML = `
+          <input type="text" id="triviaName${idx}" value="${escapeHtml(player.name || '')}" placeholder="Viewer name">
+          <input type="number" id="triviaPoints${idx}" min="0" step="1" value="${Number(player.points || 0)}">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+            <button class="small-btn" type="button" data-trivia-plus1="${idx}">+1</button>
+            <button class="small-btn" type="button" data-trivia-plus3="${idx}">+3</button>
+            <button class="small-btn" type="button" data-remove-trivia="${idx}">Remove</button>
+          </div>
+        `;
+        wrap.appendChild(row);
+      });
+
+      wrap.querySelectorAll('[data-remove-trivia]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.triviaPlayers.splice(Number(btn.dataset.removeTrivia), 1);
+          saveState();
+          render();
+          $('adminSecondary').classList.add('open');
+        });
+      });
+
+      wrap.querySelectorAll('[data-trivia-plus1]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = Number(btn.dataset.triviaPlus1);
+          state.triviaPlayers[idx].points = Number(state.triviaPlayers[idx].points || 0) + 1;
+          saveState();
+          render();
+          $('adminSecondary').classList.add('open');
+        });
+      });
+
+      wrap.querySelectorAll('[data-trivia-plus3]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = Number(btn.dataset.triviaPlus3);
+          state.triviaPlayers[idx].points = Number(state.triviaPlayers[idx].points || 0) + 3;
+          saveState();
+          render();
+          $('adminSecondary').classList.add('open');
+        });
+      });
+    }
+
+    function buildBuyerMasterList(){
+      const wrap = $('buyerMasterList');
+      wrap.innerHTML = '';
+
+      state.buyerMaster.forEach((name, idx) => {
+        const row = document.createElement('div');
+        row.className = 'list-row buyers';
+        row.innerHTML = `
+          <input type="text" id="buyerMaster${idx}" value="${escapeHtml(name)}" placeholder="Buyer name">
+          <button class="small-btn" type="button" data-remove-buyer="${idx}">Remove</button>
+        `;
+        wrap.appendChild(row);
+      });
+
+      wrap.querySelectorAll('[data-remove-buyer]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.buyerMaster.splice(Number(btn.dataset.removeBuyer), 1);
+          saveState();
+          render();
+          $('adminSecondary').classList.add('open');
+        });
+      });
+    }
+
+    function syncSecondaryPanelBox(){
+      const panel = $('adminSecondary');
+      panel.style.top = `${Number(state.secondaryPanel.top || 760)}px`;
+      panel.style.left = `${Number(state.secondaryPanel.left || 40)}px`;
+      panel.style.width = `${Number(state.secondaryPanel.width || 850)}px`;
+      panel.style.height = `${Number(state.secondaryPanel.height || 500)}px`;
+    }
+
+    function syncAdmin(){
+      $('breakInput').value = state.breakNo;
+      $('statusInput').value = state.status;
+      $('tickerInput').value = state.ticker;
+      $('marqueeSpeedInput').value = state.marqueeSpeed;
+      $('wheelEnabledInput').checked = !!state.wheel.enabled;
+      $('wheelExtrasInput').value = (state.wheel.extras || []).join('\n');
+      $('leaderboardEnabledInput').checked = !!state.promos.leaderboardEnabled;
+      $('promoRotateSecondsInput').value = state.promos.rotateSeconds;
+      $('promoItemsInput').value = (state.promos.items || []).join('\n');
+    }
+
+    function collectPrimaryAdminState(){
+      state.breakNo = Math.max(1, parseInt($('breakInput').value || '1', 10) || 1);
+      state.status = $('statusInput').value.trim();
+      state.ticker = $('tickerInput').value.trim();
+      state.marqueeSpeed = Math.max(5, parseInt($('marqueeSpeedInput').value || '22', 10) || 22);
+    }
+
+    function collectSecondaryAdminState(){
+      state.triviaPlayers = state.triviaPlayers.map((player, idx) => ({
+        name: $(`triviaName${idx}`)?.value.trim() || '',
+        points: Math.max(0, parseInt($(`triviaPoints${idx}`)?.value || '0', 10) || 0)
+      })).filter(player => player.name);
+
+      state.buyerMaster = state.buyerMaster.map((name, idx) =>
+        $(`buyerMaster${idx}`)?.value.trim() || ''
+      ).filter(Boolean);
+
+      state.promos.leaderboardEnabled = !!$('leaderboardEnabledInput').checked;
+      state.promos.rotateSeconds = Math.max(3, parseInt($('promoRotateSecondsInput').value || '8', 10) || 8);
+      state.promos.items = String($('promoItemsInput').value || '')
+        .split('\n').map(s => s.trim()).filter(Boolean);
+
+      state.wheel.enabled = !!$('wheelEnabledInput').checked;
+      state.wheel.extras = String($('wheelExtrasInput').value || '')
+        .split('\n').map(s => s.trim()).filter(Boolean);
+
+      syncBuyerMasterFromTiles();
+      buildWheelEntries();
+    }
+
+    function render(){
+      $('breakNo').textContent = state.breakNo;
+      $('statusLine').textContent = state.status;
+      $('tickerText').textContent = state.ticker;
+
+      setImg($('brandLogo'), state.brandLogo);
+      setImg($('setLogo'), state.setLogo);
+      applyTickerSpeed();
+      buildBuyerColumns();
+      buildTiles();
+      buildTriviaAdminList();
+      buildBuyerMasterList();
+      buildBottomStage();
+      syncAdmin();
+      syncSecondaryPanelBox();
+      renderWheel();
+      startBannerRotation();
+    }
+
+    function applyPrimaryAdmin(){
+      collectPrimaryAdminState();
+      saveState();
+      render();
+      $('adminPrimary').classList.add('open');
+    }
+
+    function resetPrimaryAdmin(){
+      syncAdmin();
+    }
+
+    function resetSecondaryAdmin(){
+      buildTriviaAdminList();
+      buildBuyerMasterList();
+    }
+
+    function closePrimaryAdmin(){
+      $('adminPrimary').classList.remove('open');
+    }
+
+    function closeSecondaryAdmin(){
+      $('adminSecondary').classList.remove('open');
+    }
+
+    function applySecondaryAdmin(){
+      collectSecondaryAdminState();
+      saveState();
+      render();
+      $('adminSecondary').classList.add('open');
+    }
+
+    function resetColorBreakSpots(){
+      state.tiles = state.tiles.map((item, idx) => ({
+        ...item,
+        buyer: '',
+        sold: false,
+        points: 0,
+        slot: idx + 1
+      }));
+
+      state.wheel.selected = '';
+      buildWheelEntries();
+      saveState();
+      render();
+
+      $('adminPrimary').classList.add('open');
+      $('adminSecondary').classList.add('open');
+    }
+
+    function readFileAsDataURL(file, onLoad){
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => onLoad(String(reader.result || ''));
+      reader.readAsDataURL(file);
+    }
+
+    (function enableSecondaryDrag(){
+      const panel = $('adminSecondary');
+      const handle = $('secondaryDragHandle');
+
+      let dragging = false;
+      let startX = 0;
+      let startY = 0;
+      let startLeft = 0;
+      let startTop = 0;
+
+      handle.addEventListener('mousedown', (e) => {
+        dragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = panel.offsetLeft;
+        startTop = panel.offsetTop;
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const nextLeft = startLeft + (e.clientX - startX);
+        const nextTop = startTop + (e.clientY - startY);
+
+        panel.style.left = `${nextLeft}px`;
+        panel.style.top = `${nextTop}px`;
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false;
+
+        state.secondaryPanel.top = panel.offsetTop;
+        state.secondaryPanel.left = panel.offsetLeft;
+        state.secondaryPanel.width = panel.offsetWidth;
+        state.secondaryPanel.height = panel.offsetHeight;
+        saveState();
+      });
+    })();
+
+    (function enableWheelDrag(){
+      const wheel = $('wheelStage');
+      if (!wheel) return;
+
+      let dragging = false;
+      let startX = 0;
+      let startY = 0;
+      let startLeft = 0;
+      let startTop = 0;
+
+      wheel.addEventListener('mousedown', (e) => {
+        if (e.target.id === 'wheelResizer') return;
+        if (e.target.tagName.toLowerCase() === 'canvas'){
+          dragging = true;
+          startX = e.clientX;
+          startY = e.clientY;
+          startLeft = wheel.offsetLeft;
+          startTop = wheel.offsetTop;
+          wheel.classList.add('dragging');
+          e.preventDefault();
+        }
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        wheel.style.left = `${startLeft + (e.clientX - startX)}px`;
+        wheel.style.top = `${startTop + (e.clientY - startY)}px`;
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false;
+        wheel.classList.remove('dragging');
+        state.wheel.x = wheel.offsetLeft;
+        state.wheel.y = wheel.offsetTop;
+        state.wheel.size = wheel.offsetWidth;
+        saveState();
+      });
+    })();
+
+    (function enableWheelResize(){
+      const wheel = $('wheelStage');
+      const resizer = $('wheelResizer');
+      if (!wheel || !resizer) return;
+
+      let resizing = false;
+      let startX = 0;
+      let startSize = 0;
+
+      resizer.addEventListener('mousedown', (e) => {
+        resizing = true;
+        startX = e.clientX;
+        startSize = wheel.offsetWidth;
+        e.preventDefault();
+        e.stopPropagation();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!resizing) return;
+        const nextSize = Math.max(280, startSize + (e.clientX - startX));
+        wheel.style.width = `${nextSize}px`;
+        wheel.style.height = `${nextSize}px`;
+        state.wheel.size = nextSize;
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (!resizing) return;
+        resizing = false;
+        saveState();
+        renderWheel();
+      });
+    })();
+
+    const resizeObserver = new ResizeObserver(() => {
+      const panel = $('adminSecondary');
+      if (!panel) return;
+      state.secondaryPanel.width = panel.offsetWidth;
+      state.secondaryPanel.height = panel.offsetHeight;
+      saveState();
+    });
+
+    const wheelResizeObserver = new ResizeObserver(() => {
+      const wheel = $('wheelStage');
+      if (!wheel) return;
+      state.wheel.size = wheel.offsetWidth;
+      saveState();
+    });
+
+    if ($('wheelStage')) wheelResizeObserver.observe($('wheelStage'));
+    if ($('adminSecondary')) resizeObserver.observe($('adminSecondary'));
+
+    [
+      'breakInput',
+      'statusInput',
+      'tickerInput',
+      'marqueeSpeedInput',
+      'leaderboardEnabledInput',
+      'promoRotateSecondsInput',
+      'promoItemsInput',
+      'wheelEnabledInput',
+      'wheelExtrasInput'
+    ].forEach(id => {
+      const el = $(id);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        collectPrimaryAdminState();
+        collectSecondaryAdminState();
+        saveState();
+        render();
+      });
+    });
+
+    $('toggleWheelBtn').addEventListener('click', () => {
+      state.wheel.enabled = !state.wheel.enabled;
+      saveState();
+      renderWheel();
+      $('adminSecondary').classList.add('open');
+    });
+
+    $('addWheelSpotBtn').addEventListener('click', () => {
+      const next = prompt('Enter a wheel spot label:');
+      const safe = String(next || '').trim();
+      if (!safe) return;
+
+      state.wheel.extras.push(safe);
+      buildWheelEntries();
+      saveState();
+      renderWheel();
+      $('adminSecondary').classList.add('open');
+    });
+
+    $('removeWheelWinnerBtn').addEventListener('click', () => {
+      const selected = String(state.wheel.selected || '').trim();
+      if (!selected) return;
+
+      state.buyerMaster = state.buyerMaster.filter(name => name.toLowerCase() !== selected.toLowerCase());
+      state.wheel.extras = state.wheel.extras.filter(name => name.toLowerCase() !== selected.toLowerCase());
+      state.wheel.selected = '';
+      buildWheelEntries();
+      saveState();
+      render();
+      $('adminSecondary').classList.add('open');
+    });
+
+    $('brandLogoFile').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      readFileAsDataURL(file, (dataUrl) => {
+        state.brandLogo = dataUrl;
+        saveState();
+        render();
+      });
+    });
+
+    $('setLogoFile').addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      readFileAsDataURL(file, (dataUrl) => {
+        state.setLogo = dataUrl;
+        saveState();
+        render();
+      });
+    });
+
+    $('addTriviaBtn').addEventListener('click', () => {
+      state.triviaPlayers.push({ name:'', points:0 });
+      saveState();
+      render();
+      $('adminSecondary').classList.add('open');
+    });
+
+    function toggleAdmins(){
+      $('adminPrimary').classList.toggle('open');
+      $('adminSecondary').classList.toggle('open');
+    }
+
+    $('adminToggle').addEventListener('click', toggleAdmins);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '`') toggleAdmins();
+    });
+
+    $('randomizeWheelBtn').addEventListener('click', () => {
+      collectSecondaryAdminState();
+      randomizeWheelEntries();
+      $('adminSecondary').classList.add('open');
+    });
+
+    $('spinWheelBtn').addEventListener('click', () => {
+      collectSecondaryAdminState();
+      saveState();
+      renderWheel();
+      spinWheelNow();
+      $('adminSecondary').classList.add('open');
+    });
+
+    $('resetWheelBtn').addEventListener('click', () => {
+      collectSecondaryAdminState();
+      resetWheelState();
+      $('adminSecondary').classList.add('open');
+    });
+
+    $('applyPrimaryBtn').addEventListener('click', applyPrimaryAdmin);
+    $('resetPrimaryBtn').addEventListener('click', resetPrimaryAdmin);
+    $('closePrimaryBtn').addEventListener('click', closePrimaryAdmin);
+
+    $('applySecondaryBtn').addEventListener('click', applySecondaryAdmin);
+    $('resetSecondaryBtn').addEventListener('click', resetColorBreakSpots);
+    $('closeSecondaryBtn').addEventListener('click', closeSecondaryAdmin);
+
+    render();
+  </script>
+</body>
+</html>
