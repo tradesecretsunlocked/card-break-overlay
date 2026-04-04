@@ -609,29 +609,44 @@ z-index: 1;
       border-radius: 10px;
       background: rgba(0,0,0,0.35);
       border: 2px solid rgb(255, 255, 255);
-      overflow:hidden;
-      position:relative;
-      display:flex;
-      align-items:center;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
     }
 
-.tickerText{
-  display:inline-block;
-  white-space: nowrap;
-  padding-left: 100%;
-  animation: scroll var(--tickerDur, 22s) linear infinite;
-  font-weight: 900;
-  letter-spacing: 6px;
-  text-transform: uppercase;
-  font-size: 26px;
-  opacity: 0.95;
-  text-shadow: 0 4px 14px rgba(0,0,0,0.65);
-}
-
-    @keyframes scroll{
-      0%{ transform: translateX(0); }
-      100%{ transform: translateX(-100%); }
+    .ticker-track{
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      width: max-content;
+      min-width: max-content;
+      flex: 0 0 auto;
+      will-change: transform;
+      animation: ticker-marquee var(--tickerDur, 22s) linear infinite;
     }
+
+    .ticker-text{
+      display: inline-block;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      padding-right: 64px;
+      font-weight: 900;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      font-size: 26px;
+      opacity: 0.95;
+      color:#fff;
+      text-shadow: 0 4px 14px rgba(0,0,0,0.65);
+    }
+
+    @keyframes ticker-marquee{
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(calc(-50% - 32px)); }
+    }
+
+
 
     /* ===== SOLD PANEL (controls live here) ===== */
 .soldPanel{
@@ -745,15 +760,15 @@ z-index: 1;
 
     .soldGrid{
       display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px 12px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px 2px;
     }
 
     .soldRow{
       display:flex;
       align-items:center;
-      gap: 8px;
-      padding: 6px 8px;
+      gap: 4px;
+      padding: 4px 2px;
       border-radius: 12px;
       border: 2px solid rgba(255,255,255,0.12);
       background: rgba(0,0,0,0.35);
@@ -769,10 +784,10 @@ z-index: 1;
     }
 
     .soldTeam{
-      min-width: 64px;
+      min-width: 35px;
       font-weight: 900;
       text-transform: uppercase;
-      font-size: 12px;
+      font-size: 13px;
       opacity: 0.95;
       white-space: nowrap;
       overflow:hidden;
@@ -781,15 +796,15 @@ z-index: 1;
 
     .buyerInput{
       flex:1;
-      height: 34px;
+      height: 32px;
       border-radius: 10px;
-      border: 2px solid rgba(255,255,255,0.12);
+      border: 2px solid rgba(255, 255, 255, 0.884);
       background: rgba(0,0,0,0.35);
       color:#fff;
       font-weight: 900;
-      padding: 0 10px;
+      width:60px;
       outline:none;
-      font-size: 13px;
+      font-size: 18px;
     }
 
 /* ===== POPUP MODAL (OBS FRIENDLY) ===== */
@@ -889,9 +904,12 @@ z-index: 1;
       <div class="grid" id="grid"></div>
       <div class="tickerBar">
         <div class="statPill statPillToggle" id="soldLabel" title="Toggle sold controls">SOLD</div>
-        <div class="tickerTrack">
-          <div class="tickerText" id="tickerText">T I C K E R</div>
-        </div>
+<div class="tickerTrack">
+  <div id="tickerTrack" class="ticker-track">
+    <span id="tickerTextA" class="ticker-text"></span>
+    <span id="tickerTextB" class="ticker-text" aria-hidden="true"></span>
+  </div>
+</div>
         <div class="statPill" id="remainLabel">REMAIN</div>
       </div>
 
@@ -956,7 +974,7 @@ const imgMLB = (f) => ASSETS.mlb(f);
 ========================= */
 const TICKER_LS = "packsmashers.centerGrid.ticker";
 const TICKER_SPEED_LS = "packsmashers.centerGrid.tickerSpeedSec";
-const DEFAULT_TICKER = "T I C K E R";
+const DEFAULT_TICKER = "Stay connected with @PackSmashers on YouTube & ebay... Don't Miss the deals, bookmark upcoming shows";
 
 const TITLE_LS = "packsmashers.centerGrid.title";
 const DEFAULT_TITLE = "PACK SMASHERS";
@@ -973,11 +991,19 @@ function saveTicker(v){
   try{ localStorage.setItem(TICKER_LS, String(v||"")); }catch(_){}
 }
 function setTicker(v){
-  const safe = (String(v||"").trim() || DEFAULT_TICKER);
-  const el = document.getElementById("tickerText");
-  el.textContent = safe;
+  const safe = (String(v || "").trim() || DEFAULT_TICKER);
+  const text = ` ${safe} • ${safe} • ${safe} • ${safe} `;
+  const a = document.getElementById("tickerTextA");
+  const b = document.getElementById("tickerTextB");
+
+  if (a) a.textContent = text;
+  if (b) b.textContent = text;
+
   saveTicker(safe);
-  applyTickerSpeed();
+  requestAnimationFrame(() => {
+    syncTickerCopies();
+    applyTickerSpeed();
+  });
 }
 
 function applyTicker(){
@@ -986,22 +1012,31 @@ function applyTicker(){
 }
 
 function loadTickerSpeedSec(){
-  const raw = parseInt(localStorage.getItem(TICKER_SPEED_LS) || "22", 10);
-  return (Number.isFinite(raw) && raw >= 8 && raw <= 60) ? raw : 22;
+  const raw = parseInt(localStorage.getItem(TICKER_SPEED_LS) || "40", 10);
+  return (Number.isFinite(raw) && raw >= 10 && raw <= 140) ? raw : 22;
 }
 function saveTickerSpeedSec(sec){
-  const s = (Number.isFinite(sec) ? sec : 22);
-  const clamped = Math.max(8, Math.min(60, s));
+  const s = (Number.isFinite(sec) ? sec : 40);
+  const clamped = Math.max(10, Math.min(140, s));
   localStorage.setItem(TICKER_SPEED_LS, String(clamped));
 }
 function applyTickerSpeed(){
   const sec = loadTickerSpeedSec();
-  const el = document.getElementById("tickerText");
-  if (!el) return;
-  el.style.setProperty("--tickerDur", `${sec}s`);
-  el.style.animation = "none";
-  void el.offsetHeight;
-  el.style.animation = `scroll ${sec}s linear infinite`;
+  const track = document.getElementById("tickerTrack");
+  if (!track) return;
+
+  track.style.setProperty("--tickerDur", `${sec}s`);
+  track.style.animation = "none";
+  void track.offsetWidth;
+  track.style.animation = `ticker-marquee ${sec}s linear infinite`;
+}
+
+function syncTickerCopies(){
+  const a = document.getElementById("tickerTextA");
+  const b = document.getElementById("tickerTextB");
+  if (!a || !b) return;
+
+  b.style.minWidth = `${a.offsetWidth}px`;
 }
 
 function loadTitle(){
@@ -1896,7 +1931,7 @@ function saveModal(){
 
   if (modalMode === "ticker"){
     const text = (document.getElementById("modalTickerInput")?.value || "").trim();
-    const sec = parseInt(document.getElementById("modalSpeed")?.value || "22", 10);
+    const sec = parseInt(document.getElementById("modalSpeed")?.value || "40", 10);
     saveTickerSpeedSec(sec);
     setTicker(text || DEFAULT_TICKER);
   }
@@ -1932,7 +1967,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   setTicker(loadTicker());
-  applyTickerSpeed();
 
     const soldLabel = document.getElementById("soldLabel");
   if (soldLabel){
@@ -1951,6 +1985,11 @@ document.addEventListener("DOMContentLoaded", () => {
   initializeGrid();
   connectBridgeSSE();
   bridgeWarmup({ breakId: computeBreakId(), breakType: currentSport });
+});
+
+window.addEventListener("resize", () => {
+  syncTickerCopies();
+  applyTickerSpeed();
 });
 
 </script>
@@ -1976,9 +2015,9 @@ document.addEventListener("DOMContentLoaded", () => {
       <textarea class="modalTextArea" id="modalTickerInput" placeholder="Your ticker..."></textarea>
 
       <div class="modalLabel">Ticker Speed</div>
-      <input id="modalSpeed" type="range" min="8" max="60" step="1" />
+      <input id="modalSpeed" type="range" min="10" max="140" step="1" />
       <div style="font-weight:900; opacity:0.9; font-size:12px; letter-spacing:1px; text-transform:uppercase;">
-        Duration: <span id="modalSpeedVal">22</span>s
+        Duration: <span id="modalSpeedVal">75</span>s
       </div>
     </div>
 
