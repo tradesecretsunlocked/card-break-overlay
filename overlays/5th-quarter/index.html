@@ -1163,8 +1163,11 @@
     renderSoldPanel();
   }
 
-  function resetAll(){
+  function resetAll(emit = true){
     resetSoldState();
+
+    if (!emit) return;
+
     bridgePostSafe({
       type: 'reset',
       breakType: currentBreakType,
@@ -1174,7 +1177,7 @@
   }
 
   function startNewBreakCycle(){
-    resetAll();
+    resetAll(false);
     currentBreakNumber += 1;
     localStorage.setItem(`${BRAND_STORAGE_NS}.breakNumber`, String(currentBreakNumber));
     setBreakNumberUI(currentBreakNumber);
@@ -1401,7 +1404,7 @@
       }
     };
 
-    es.onopen = () => onStatus?.('connected', `${channel} connected`);
+    es.onopen = () => onStatus?.('connected', 'connected');
     es.onmessage = ingest;
 
     [
@@ -1543,8 +1546,8 @@
         break;
       }
 
-      case 'reset':
-        resetAll();
+          case 'reset':
+        resetAll(false);
         return;
 
       case 'set_break':
