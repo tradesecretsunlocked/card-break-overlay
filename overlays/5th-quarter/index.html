@@ -408,18 +408,22 @@
       pointer-events:none;
     }
 
-    .sold-control-bar{
-      display:flex;
-      gap:8px;
-      justify-content:center;
-      padding:6px 8px;
-      margin-bottom:6px;
-      background: rgba(0,0,0,0.925);
-      border-radius:10px;
-      border: 1px solid rgba(0,0,0,0.808);
-      align-items:center;
-      flex-wrap: wrap;
-    }
+.sold-control-bar{
+  display:flex;
+  gap:8px;
+  justify-content:center;
+  padding:6px 8px;
+  margin-bottom:6px;
+  background: rgba(0,0,0,0.925);
+  border-radius:10px;
+  border: 1px solid rgba(0,0,0,0.808);
+  align-items:center;
+  flex-wrap: wrap;
+}
+
+.sold-control-bar.hidden{
+  display:none;
+}
 
     .pill-toggle{
       padding: 6px 14px;
@@ -755,176 +759,175 @@
   const brandLogo = document.getElementById('brandLogo');
   if (brandLogo) brandLogo.src = `${BASE}images/logos/${LOGO_FILE}`;
 
-  const breakTypes = {
-    nba: {
-      name: 'NBA',
-      divCols: 5,
-      conferences: ['EAST', 'WEST'],
-      divisions: {
-        EAST: {
-          Atlantic: [
-            { code:'BOS', image: imgPathNBA('celtics.png') },
-            { code:'BKN', image: imgPathNBA('nets.png') },
-            { code:'NYK', image: imgPathNBA('knicks.png') },
-            { code:'PHI', image: imgPathNBA('76ers.png') },
-            { code:'TOR', image: imgPathNBA('raptors.png') }
-          ],
-          Central: [
-            { code:'CHI', image: imgPathNBA('bulls.png') },
-            { code:'CLE', image: imgPathNBA('cavaliers.png') },
-            { code:'DET', image: imgPathNBA('pistons.png') },
-            { code:'IND', image: imgPathNBA('pacers.png') },
-            { code:'MIL', image: imgPathNBA('bucks.png') }
-          ],
-          Southeast: [
-            { code:'ATL', image: imgPathNBA('hawks.png') },
-            { code:'CHA', image: imgPathNBA('hornets.png') },
-            { code:'MIA', image: imgPathNBA('heat.png') },
-            { code:'ORL', image: imgPathNBA('magic.png') },
-            { code:'WAS', image: imgPathNBA('wizards.png') }
-          ]
-        },
-        WEST: {
-          Northwest: [
-            { code:'DEN', image: imgPathNBA('nuggets.png') },
-            { code:'MIN', image: imgPathNBA('timberwolves.png') },
-            { code:'OKC', image: imgPathNBA('thunder.png') },
-            { code:'POR', image: imgPathNBA('blazers.png') },
-            { code:'UTA', image: imgPathNBA('jazz.png') }
-          ],
-          Pacific: [
-            { code:'GSW', image: imgPathNBA('warriors.png') },
-            { code:'LAC', image: imgPathNBA('clippers.png') },
-            { code:'LAL', image: imgPathNBA('lakers.png') },
-            { code:'PHX', image: imgPathNBA('suns.png') },
-            { code:'SAC', image: imgPathNBA('kings.png') }
-          ],
-          Southwest: [
-            { code:'DAL', image: imgPathNBA('mavericks.png') },
-            { code:'HOU', image: imgPathNBA('rockets.png') },
-            { code:'MEM', image: imgPathNBA('grizzlies.png') },
-            { code:'NOP', image: imgPathNBA('pelicans.png') },
-            { code:'SAS', image: imgPathNBA('spurs.png') }
-          ]
-        }
-      }
-    },
-
-    nfl: {
-      name: 'NFL',
-      divCols: 4,
-      conferences: ['AFC', 'NFC'],
-      divisions: {
-        AFC: {
-          East: [
-            { code: 'BUF', image: imgPathNFL('bills.png') },
-            { code: 'MIA', image: imgPathNFL('dolphins.png') },
-            { code: 'NE',  image: imgPathNFL('patriots.png') },
-            { code: 'NYJ', image: imgPathNFL('jets.png') }
-          ],
-          North: [
-            { code: 'BAL', image: imgPathNFL('ravens.png') },
-            { code: 'CIN', image: imgPathNFL('bengals.png') },
-            { code: 'CLE', image: imgPathNFL('browns.png') },
-            { code: 'PIT', image: imgPathNFL('steelers.png') }
-          ],
-          South: [
-            { code: 'HOU', image: imgPathNFL('texans.png') },
-            { code: 'IND', image: imgPathNFL('colts.png') },
-            { code: 'JAX', image: imgPathNFL('jaguars.png') },
-            { code: 'TEN', image: imgPathNFL('titans.png') }
-          ],
-          West: [
-            { code: 'KC',  image: imgPathNFL('chiefs.png') },
-            { code: 'DEN', image: imgPathNFL('broncos.png') },
-            { code: 'LV',  image: imgPathNFL('raiders.png') },
-            { code: 'LAC', image: imgPathNFL('chargers.png') }
-          ]
-        },
-        NFC: {
-          East: [
-            { code: 'DAL', image: imgPathNFL('cowboys.png') },
-            { code: 'NYG', image: imgPathNFL('giants.png') },
-            { code: 'PHI', image: imgPathNFL('eagles.png') },
-            { code: 'WAS', image: imgPathNFL('commanders.png') }
-          ],
-          North: [
-            { code: 'CHI', image: imgPathNFL('bears.png') },
-            { code: 'DET', image: imgPathNFL('lions.png') },
-            { code: 'GB',  image: imgPathNFL('packers.png') },
-            { code: 'MIN', image: imgPathNFL('vikings.png') }
-          ],
-          South: [
-            { code: 'ATL', image: imgPathNFL('falcons.png') },
-            { code: 'CAR', image: imgPathNFL('panthers.png') },
-            { code: 'NO',  image: imgPathNFL('saints.png') },
-            { code: 'TB',  image: imgPathNFL('buccaneers.png') }
-          ],
-          West: [
-            { code: 'ARI', image: imgPathNFL('cardinals.png') },
-            { code: 'LAR', image: imgPathNFL('rams.png') },
-            { code: 'SF',  image: imgPathNFL('49ers.png') },
-            { code: 'SEA', image: imgPathNFL('seahawks.png') }
-          ]
-        }
-      }
-    },
-
-    mlb: {
-      name: 'MLB',
-      divCols: 5,
-      conferences: ['AL', 'NL'],
-      divisions: {
-        AL: {
-          East: [
-            { code:'BAL', image: imgPathMLB('orioles.png') },
-            { code:'BOS', image: imgPathMLB('redsox.png') },
-            { code:'NYY', image: imgPathMLB('yankees.png') },
-            { code:'TB',  image: imgPathMLB('rays.png') },
-            { code:'TOR', image: imgPathMLB('bluejays.png') }
-          ],
-          Central: [
-            { code:'CWS', image: imgPathMLB('whitesox.png') },
-            { code:'CLE', image: imgPathMLB('guardians.png') },
-            { code:'DET', image: imgPathMLB('tigers.png') },
-            { code:'KC',  image: imgPathMLB('royals.png') },
-            { code:'MIN', image: imgPathMLB('twins.png') }
-          ],
-          West: [
-            { code:'HOU', image: imgPathMLB('astros.png') },
-            { code:'LAA', image: imgPathMLB('angels.png') },
-            { code:'OAK', image: imgPathMLB('athletics.png') },
-            { code:'SEA', image: imgPathMLB('mariners.png') },
-            { code:'TEX', image: imgPathMLB('rangers.png') }
-          ]
-        },
-        NL: {
-          East: [
-            { code:'ATL', image: imgPathMLB('braves.png') },
-            { code:'MIA', image: imgPathMLB('marlins.png') },
-            { code:'NYM', image: imgPathMLB('mets.png') },
-            { code:'PHI', image: imgPathMLB('phillies.png') },
-            { code:'WSH', image: imgPathMLB('nationals.png') }
-          ],
-          Central: [
-            { code:'CHC', image: imgPathMLB('cubs.png') },
-            { code:'CIN', image: imgPathMLB('reds.png') },
-            { code:'MIL', image: imgPathMLB('brewers.png') },
-            { code:'PIT', image: imgPathMLB('pirates.png') },
-            { code:'STL', image: imgPathMLB('cardinals.png') }
-          ],
-          West: [
-            { code:'ARI', image: imgPathMLB('diamondbacks.png') },
-            { code:'COL', image: imgPathMLB('rockies.png') },
-            { code:'LAD', image: imgPathMLB('dodgers.png') },
-            { code:'SD',  image: imgPathMLB('padres.png') },
-            { code:'SF',  image: imgPathMLB('giants.png') }
-          ]
-        }
+const breakTypes = {
+  nba: {
+    name: 'NBA',
+    divCols: 5,
+    conferences: ['EAST', 'WEST'],
+    divisions: {
+      EAST: {
+        Atlantic: [
+          { code:'BOS', name:'Celtics', image: imgPathNBA('celtics.png') },
+          { code:'BKN', name:'Nets', image: imgPathNBA('nets.png') },
+          { code:'NYK', name:'Knicks', image: imgPathNBA('knicks.png') },
+          { code:'PHI', name:'76ers', image: imgPathNBA('76ers.png') },
+          { code:'TOR', name:'Raptors', image: imgPathNBA('raptors.png') }
+        ],
+        Central: [
+          { code:'CHI', name:'Bulls', image: imgPathNBA('bulls.png') },
+          { code:'CLE', name:'Cavaliers', image: imgPathNBA('cavaliers.png') },
+          { code:'DET', name:'Pistons', image: imgPathNBA('pistons.png') },
+          { code:'IND', name:'Pacers', image: imgPathNBA('pacers.png') },
+          { code:'MIL', name:'Bucks', image: imgPathNBA('bucks.png') }
+        ],
+        Southeast: [
+          { code:'ATL', name:'Hawks', image: imgPathNBA('hawks.png') },
+          { code:'CHA', name:'Hornets', image: imgPathNBA('hornets.png') },
+          { code:'MIA', name:'Heat', image: imgPathNBA('heat.png') },
+          { code:'ORL', name:'Magic', image: imgPathNBA('magic.png') },
+          { code:'WAS', name:'Wizards', image: imgPathNBA('wizards.png') }
+        ]
+      },
+      WEST: {
+        Northwest: [
+          { code:'DEN', name:'Nuggets', image: imgPathNBA('nuggets.png') },
+          { code:'MIN', name:'Timberwolves', image: imgPathNBA('timberwolves.png') },
+          { code:'OKC', name:'Thunder', image: imgPathNBA('thunder.png') },
+          { code:'POR', name:'Blazers', image: imgPathNBA('blazers.png') },
+          { code:'UTA', name:'Jazz', image: imgPathNBA('jazz.png') }
+        ],
+        Pacific: [
+          { code:'GSW', name:'Warriors', image: imgPathNBA('warriors.png') },
+          { code:'LAC', name:'Clippers', image: imgPathNBA('clippers.png') },
+          { code:'LAL', name:'Lakers', image: imgPathNBA('lakers.png') },
+          { code:'PHX', name:'Suns', image: imgPathNBA('suns.png') },
+          { code:'SAC', name:'Kings', image: imgPathNBA('kings.png') }
+        ],
+        Southwest: [
+          { code:'DAL', name:'Mavericks', image: imgPathNBA('mavericks.png') },
+          { code:'HOU', name:'Rockets', image: imgPathNBA('rockets.png') },
+          { code:'MEM', name:'Grizzlies', image: imgPathNBA('grizzlies.png') },
+          { code:'NOP', name:'Pelicans', image: imgPathNBA('pelicans.png') },
+          { code:'SAS', name:'Spurs', image: imgPathNBA('spurs.png') }
+        ]
       }
     }
-  };
+  },
 
+  nfl: {
+    name: 'NFL',
+    divCols: 4,
+    conferences: ['AFC', 'NFC'],
+    divisions: {
+      AFC: {
+        East: [
+          { code:'BUF', name:'Bills', image: imgPathNFL('bills.png') },
+          { code:'MIA', name:'Dolphins', image: imgPathNFL('dolphins.png') },
+          { code:'NE',  name:'Patriots', image: imgPathNFL('patriots.png') },
+          { code:'NYJ', name:'Jets', image: imgPathNFL('jets.png') }
+        ],
+        North: [
+          { code:'BAL', name:'Ravens', image: imgPathNFL('ravens.png') },
+          { code:'CIN', name:'Bengals', image: imgPathNFL('bengals.png') },
+          { code:'CLE', name:'Browns', image: imgPathNFL('browns.png') },
+          { code:'PIT', name:'Steelers', image: imgPathNFL('steelers.png') }
+        ],
+        South: [
+          { code:'HOU', name:'Texans', image: imgPathNFL('texans.png') },
+          { code:'IND', name:'Colts', image: imgPathNFL('colts.png') },
+          { code:'JAX', name:'Jaguars', image: imgPathNFL('jaguars.png') },
+          { code:'TEN', name:'Titans', image: imgPathNFL('titans.png') }
+        ],
+        West: [
+          { code:'KC',  name:'Chiefs', image: imgPathNFL('chiefs.png') },
+          { code:'DEN', name:'Broncos', image: imgPathNFL('broncos.png') },
+          { code:'LV',  name:'Raiders', image: imgPathNFL('raiders.png') },
+          { code:'LAC', name:'Chargers', image: imgPathNFL('chargers.png') }
+        ]
+      },
+      NFC: {
+        East: [
+          { code:'DAL', name:'Cowboys', image: imgPathNFL('cowboys.png') },
+          { code:'NYG', name:'Giants', image: imgPathNFL('giants.png') },
+          { code:'PHI', name:'Eagles', image: imgPathNFL('eagles.png') },
+          { code:'WAS', name:'Commanders', image: imgPathNFL('commanders.png') }
+        ],
+        North: [
+          { code:'CHI', name:'Bears', image: imgPathNFL('bears.png') },
+          { code:'DET', name:'Lions', image: imgPathNFL('lions.png') },
+          { code:'GB',  name:'Packers', image: imgPathNFL('packers.png') },
+          { code:'MIN', name:'Vikings', image: imgPathNFL('vikings.png') }
+        ],
+        South: [
+          { code:'ATL', name:'Falcons', image: imgPathNFL('falcons.png') },
+          { code:'CAR', name:'Panthers', image: imgPathNFL('panthers.png') },
+          { code:'NO',  name:'Saints', image: imgPathNFL('saints.png') },
+          { code:'TB',  name:'Buccaneers', image: imgPathNFL('buccaneers.png') }
+        ],
+        West: [
+          { code:'ARI', name:'Cardinals', image: imgPathNFL('cardinals.png') },
+          { code:'LAR', name:'Rams', image: imgPathNFL('rams.png') },
+          { code:'SF',  name:'49ers', image: imgPathNFL('49ers.png') },
+          { code:'SEA', name:'Seahawks', image: imgPathNFL('seahawks.png') }
+        ]
+      }
+    }
+  },
+
+  mlb: {
+    name: 'MLB',
+    divCols: 5,
+    conferences: ['AL', 'NL'],
+    divisions: {
+      AL: {
+        East: [
+          { code:'BAL', name:'Orioles', image: imgPathMLB('orioles.png') },
+          { code:'BOS', name:'Red Sox', image: imgPathMLB('redsox.png') },
+          { code:'NYY', name:'Yankees', image: imgPathMLB('yankees.png') },
+          { code:'TB',  name:'Rays', image: imgPathMLB('rays.png') },
+          { code:'TOR', name:'Blue Jays', image: imgPathMLB('bluejays.png') }
+        ],
+        Central: [
+          { code:'CWS', name:'White Sox', image: imgPathMLB('whitesox.png') },
+          { code:'CLE', name:'Guardians', image: imgPathMLB('guardians.png') },
+          { code:'DET', name:'Tigers', image: imgPathMLB('tigers.png') },
+          { code:'KC',  name:'Royals', image: imgPathMLB('royals.png') },
+          { code:'MIN', name:'Twins', image: imgPathMLB('twins.png') }
+        ],
+        West: [
+          { code:'HOU', name:'Astros', image: imgPathMLB('astros.png') },
+          { code:'LAA', name:'Angels', image: imgPathMLB('angels.png') },
+          { code:'OAK', name:'Athletics', image: imgPathMLB('athletics.png') },
+          { code:'SEA', name:'Mariners', image: imgPathMLB('mariners.png') },
+          { code:'TEX', name:'Rangers', image: imgPathMLB('rangers.png') }
+        ]
+      },
+      NL: {
+        East: [
+          { code:'ATL', name:'Braves', image: imgPathMLB('braves.png') },
+          { code:'MIA', name:'Marlins', image: imgPathMLB('marlins.png') },
+          { code:'NYM', name:'Mets', image: imgPathMLB('mets.png') },
+          { code:'PHI', name:'Phillies', image: imgPathMLB('phillies.png') },
+          { code:'WSH', name:'Nationals', image: imgPathMLB('nationals.png') }
+        ],
+        Central: [
+          { code:'CHC', name:'Cubs', image: imgPathMLB('cubs.png') },
+          { code:'CIN', name:'Reds', image: imgPathMLB('reds.png') },
+          { code:'MIL', name:'Brewers', image: imgPathMLB('brewers.png') },
+          { code:'PIT', name:'Pirates', image: imgPathMLB('pirates.png') },
+          { code:'STL', name:'Cardinals', image: imgPathMLB('cardinals.png') }
+        ],
+        West: [
+          { code:'ARI', name:'Diamondbacks', image: imgPathMLB('diamondbacks.png') },
+          { code:'COL', name:'Rockies', image: imgPathMLB('rockies.png') },
+          { code:'LAD', name:'Dodgers', image: imgPathMLB('dodgers.png') },
+          { code:'SD',  name:'Padres', image: imgPathMLB('padres.png') },
+          { code:'SF',  name:'Giants', image: imgPathMLB('giants.png') }
+        ]
+      }
+    }
+  }
+};
   const SPORT_ORDER = ['nba','nfl','mlb'];
 
 let currentBreakType = 'nba';
@@ -1162,7 +1165,19 @@ function sseMarkUnsold(code, sport = currentBreakType){
 
 function sseUpdateBuyer(code, buyerName = '', sport = currentBreakType){
   if (!code) return;
-  setBuyerForCode(code, buyerName, sport);
+
+  const soldSet = getSoldSetForSport(sport);
+  const soldList = getSoldListForSport(sport);
+  const existing = soldList.find(t => t.code === code);
+
+  if (existing) {
+    existing.buyer = buyerName || '';
+  } else if (soldSet.has(code)) {
+    soldList.push({ code, buyer: buyerName || '' });
+  } else {
+    return;
+  }
+
   if (sport === currentBreakType) renderSoldPanel();
 }
 
@@ -1187,26 +1202,35 @@ function updateStats(){
   document.getElementById('teamsSold').textContent = soldSet.size;
 }
 
-  function toggleSoldPanel(){
-    const wrap = document.getElementById('soldPanelWrap');
-    if (!wrap) return;
-    soldPanelEnabled = !soldPanelEnabled;
-    wrap.classList.toggle('hidden', !soldPanelEnabled);
-  }
+function toggleSoldPanel(){
+  const wrap = document.getElementById('soldPanelWrap');
+  const controls = document.querySelector('.sold-control-bar');
+  if (!wrap || !controls) return;
+
+  soldPanelEnabled = !soldPanelEnabled;
+
+  // keep the sold panel wrap visible
+  wrap.classList.remove('hidden');
+
+  // only hide/show the top controls row
+  controls.classList.toggle('hidden', !soldPanelEnabled);
+}
 
 function renderSoldPanel(){
   const panel = document.getElementById('soldPanel');
   const wrap = document.getElementById('soldPanelWrap');
-  const soldList = getSoldList();
+  const soldSet = getSoldSetForSport(currentBreakType);
+const soldList = getSoldList().filter(entry => soldSet.has(entry.code));
 
   if (!panel || !wrap) return;
 
   panel.innerHTML = '';
 
-  if (soldList.length === 0) {
-    wrap.classList.toggle('hidden', !soldPanelEnabled);
-    return;
-  }
+if (soldList.length === 0) {
+  wrap.classList.remove('hidden');
+  panel.innerHTML = '';
+  return;
+}
 
   soldList.forEach(entry => {
       const teamDiv = document.querySelector(`[data-team-code="${entry.code}"]`);
@@ -1256,7 +1280,8 @@ function renderSoldPanel(){
 
 function buildExportTSV(){
   const breakNum = document.getElementById('breakIdDisplay')?.textContent?.trim() || '';
-  const soldList = getSoldList();
+ const soldSet = getSoldSetForSport(currentBreakType);
+const soldList = getSoldList().filter(entry => soldSet.has(entry.code));
   let tsv = 'Name\tBreak#\tTeam\tSport\tBreakId\n';
 
   soldList.forEach(entry => {
@@ -1385,39 +1410,136 @@ function resetAll(emit = true, allSports = false){
     ).trim();
   }
 
-  function inferCodeFromText(text){
-    const m = String(text || '').toUpperCase().match(/\b([A-Z]{2,4})\b/);
-    return m?.[1] || '';
+function normTeamText(v){
+  return String(v || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function buildLookupForSport(sportKey){
+  const cfg = breakTypes[sportKey];
+  const map = new Map();
+  if (!cfg) return map;
+
+  cfg.conferences.forEach(conf => {
+    const divs = cfg.divisions[conf] || {};
+    for (const divName of Object.keys(divs)){
+      for (const t of (divs[divName] || [])){
+        const code = String(t.code || '').toUpperCase().trim();
+        if (!code) continue;
+
+        map.set(normTeamText(code), code);
+
+        if (t.name) map.set(normTeamText(t.name), code);
+        if (t.title) map.set(normTeamText(t.title), code);
+
+        // optional aliases for common variants
+        if (sportKey === 'nba' && code === 'PHI') map.set('sixers', 'PHI');
+        if (sportKey === 'nba' && code === 'PHI') map.set('76ers', 'PHI');
+        if (sportKey === 'nba' && code === 'POR') map.set('trail blazers', 'POR');
+        if (sportKey === 'mlb' && code === 'CWS') map.set('white sox', 'CWS');
+        if (sportKey === 'mlb' && code === 'BOS') map.set('red sox', 'BOS');
+        if (sportKey === 'mlb' && code === 'TOR') map.set('blue jays', 'TOR');
+      }
+    }
+  });
+
+  return map;
+}
+
+const SPORT_LOOKUP = {
+  nba: null,
+  nfl: null,
+  mlb: null
+};
+
+function ensureLookup(sportKey){
+  if (!SPORT_LOOKUP[sportKey]) {
+    SPORT_LOOKUP[sportKey] = buildLookupForSport(sportKey);
+  }
+  return SPORT_LOOKUP[sportKey];
+}
+
+function inferCodeFromText(text, sportHint = ''){
+  const raw = String(text || '').trim();
+  if (!raw) return '';
+
+  const norm = normTeamText(raw);
+  if (!norm) return '';
+
+  // 1) sport hint first
+  if (sportHint && breakTypes[sportHint]){
+    const map = ensureLookup(sportHint);
+
+    if (map.has(norm)) return map.get(norm);
+
+    const keys = Array.from(map.keys()).sort((a, b) => b.length - a.length);
+    for (const k of keys){
+      if (k.length < 3) continue;
+      if (norm.includes(k)) return map.get(k);
+    }
   }
 
-  function resolveTeamCode(payload){
-    const direct = String(
-      payload?.teamCode ||
-      payload?.code ||
-      payload?.team ||
-      payload?.entryCode ||
-      payload?.team_code ||
-      ''
-    ).toUpperCase().trim();
+  // 2) try all sports
+  for (const sportKey of ['nba', 'nfl', 'mlb']){
+    const map = ensureLookup(sportKey);
 
-    if (direct) return direct;
+    if (map.has(norm)) return map.get(norm);
 
-    const fromTitle = inferCodeFromText(
-      payload?.title ||
-      payload?.listingTitle ||
-      payload?.itemTitle ||
-      payload?.name ||
-      ''
-    );
-
-    return fromTitle;
+    const keys = Array.from(map.keys()).sort((a, b) => b.length - a.length);
+    for (const k of keys){
+      if (k.length < 3) continue;
+      if (norm.includes(k)) return map.get(k);
+    }
   }
+
+  // 3) final token fallback
+  const tokens = raw.toUpperCase().split(/\s+/).filter(Boolean);
+  for (const tok of tokens){
+    if (tok.length < 2 || tok.length > 4) continue;
+    for (const sportKey of ['nba', 'nfl', 'mlb']){
+      const map = ensureLookup(sportKey);
+      const code = map.get(normTeamText(tok));
+      if (code) return code;
+    }
+  }
+
+  return '';
+}
+
+function resolveTeamCode(payload){
+  const direct = String(
+    payload?.teamCode ||
+    payload?.code ||
+    payload?.team ||
+    payload?.entryCode ||
+    payload?.team_code ||
+    ''
+  ).toUpperCase().trim();
+
+  if (direct) return direct;
+
+  const sportHint = getEventSport(payload);
+  return inferCodeFromText(
+    payload?.title ||
+    payload?.listingTitle ||
+    payload?.itemTitle ||
+    payload?.name ||
+    '',
+    sportHint
+  );
+}
 
 function applySoldEvent(payload){
-  const code = resolveTeamCode(payload);
-  if (!code) return;
-
   const sport = getEventSport(payload);
+  const code = resolveTeamCode(payload);
+
+  if (!code) {
+    console.warn('[5Q] Could not infer team code from payload:', payload);
+    return;
+  }
+
   const buyer = resolveBuyerName(payload);
   const listingKey = getListingKey(payload);
   const listingMap = getListingMapForSport(sport);
@@ -1431,6 +1553,12 @@ function applySoldEvent(payload){
   }
 
   sseMarkSold(code, buyer, sport);
+
+  if (sport === currentBreakType) {
+    syncSoldClasses();
+    updateStats();
+    renderSoldPanel();
+  }
 }
 
 function applyUnsoldEvent(payload){
@@ -1747,7 +1875,6 @@ function setSportsLinesFromGames(games){
 
 function handleSportsEvent(data){
   if (!data || data.type !== 'scores') return;
-  if (!breakIdMatches(data)) return;
 
   const sport = String(data.sport || '').toLowerCase().trim();
   if (sport && sport !== currentBreakType) return;
@@ -1840,20 +1967,26 @@ if (type === 'buyer' || type === 'buyer_update'){
   return;
 }
 
-  if (type === 'team_unsold'){
-    applyUnsoldEvent(data);
+if (type === 'team_unsold'){
+  const sport = getEventSport(data);
+  applyUnsoldEvent(data);
+  if (sport === currentBreakType){
     updateStats();
     renderSoldPanel();
-    return;
   }
+  return;
+}
 
-  const isSaleType = ['team_sold','sale','sold','purchase','whatnot_purchase'].includes(type);
-  if (isSaleType){
-    applySoldEvent(data);
+const isSaleType = ['team_sold','sale','sold','purchase','whatnot_purchase'].includes(type);
+if (isSaleType){
+  const sport = getEventSport(data);
+  applySoldEvent(data);
+  if (sport === currentBreakType){
     updateStats();
     renderSoldPanel();
-    return;
   }
+  return;
+}
 
   if (type === 'scores'){
     handleSportsEvent(data);
@@ -1887,7 +2020,8 @@ if (type === 'buyer' || type === 'buyer_update'){
       if (titleEl) titleEl.textContent = savedTitle;
     }
 
-    document.getElementById('soldPanelWrap')?.classList.toggle('hidden', !soldPanelEnabled);
+    document.getElementById('soldPanelWrap')?.classList.remove('hidden');
+document.querySelector('.sold-control-bar')?.classList.toggle('hidden', !soldPanelEnabled);
 
     const setBreakBtn = document.getElementById('setBreakBtn');
     const breakEditPopup = document.getElementById('breakEditPopup');
