@@ -25,7 +25,7 @@
 
       --team-cols: 5;
       --team-height: 68px;
-      --teams-h: 390px;
+      --teams-h: 380px;
 
       --W:1080px;
       --radius:16px;
@@ -536,13 +536,13 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
       color: rgba(240,240,192,0.95);
       border: 2px solid rgba(240,240,192,0.18);
       border-radius: 12px;
-      padding: 8px 9px;
+      padding: 8px 4px;
       font-weight: 900;
       font-family: ui-sans-serif;
       letter-spacing: 1px;
       text-transform: uppercase;
       cursor:pointer;
-      font-size: 18px;
+      font-size: 16px;
     }
 
     .breaktype-btn.active{
@@ -566,13 +566,13 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
       color: rgba(240,240,192,0.96);
       border: 2px solid rgba(240,240,192,0.18);
       border-radius: 999px;
-      padding: 9px 12px;
+      padding: 9px 5px;
       font-weight: 900;
       cursor:pointer;
       font-family: ui-sans-serif;
       text-transform: uppercase;
       letter-spacing: 1px;
-      font-size: 16px;
+      font-size: 15px;
       white-space: nowrap;
       box-shadow: 0 8px 18px rgba(0,0,0,0.30);
       transition: transform .15s ease, box-shadow .15s ease;
@@ -625,7 +625,7 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
       display:flex;
       align-items:center;
       gap: 8px;
-      padding: 6px 10px;
+      padding: 6px 6px;
       border-radius: 999px;
       border: 2px solid rgba(240,240,192,0.18);
       background: rgba(0,0,0,0.25);
@@ -910,6 +910,27 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
       color: rgba(240,240,192,0.95);
     }
 
+.obs-modal-slider-wrap{
+  margin-top: 12px;
+  display:flex;
+  flex-direction:column;
+  gap: 6px;
+}
+
+.obs-modal-slider-wrap label{
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: rgba(240,240,192,0.92);
+}
+
+.obs-modal-slider-wrap input[type="range"]{
+  width: 100%;
+  cursor: pointer;
+}
+
+
 /* ===== Border Wick Sweep (Hit Chasers exact) ===== */
 .wick{
   position: relative;
@@ -1125,15 +1146,15 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
 
         <div class="control-actions">
 <button class="pill-btn" onclick="toggleWheelVisibility()" id="wheelToggleBtn">Hide Wheel</button>
-<button class="pill-btn" onclick="openPrompt('ticker')">Set Ticker</button>
+<button class="pill-btn" onclick="openPrompt('ticker')">✏️Ticker</button>
 <button class="pill-btn red" onclick="openPrompt('break')">Break #</button>
-<button class="pill-btn" onclick="openPrompt('title')">Set Title</button>
-<button id="nilItemsBtn" class="pill-btn" style="display:none;" onclick="openNilModal()">Custom Items</button>
+<button class="pill-btn" onclick="openPrompt('title')">✏️Title</button>
+<button id="nilItemsBtn" class="pill-btn" style="display:none;" onclick="openNilModal()">✏️Custom</button>
 
           <div class="sse-status" id="sseStatus">
             SSE:
             <span class="dot" id="sseDot"></span>
-            <span id="sseText">disconnected</span>
+            <span id="sseText">Bad</span>
           </div>
         </div>
 
@@ -1177,8 +1198,14 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
     <div class="obs-modal-inner">
       <div class="obs-modal-title" id="obsPromptTitle">Set Value</div>
       <div class="obs-modal-desc" id="obsPromptDesc"></div>
-      <input id="obsPromptInput" class="obs-modal-input" type="text" />
-      <div class="obs-modal-actions">
+     <input id="obsPromptInput" class="obs-modal-input" type="text" />
+
+<div id="tickerSpeedWrap" class="obs-modal-slider-wrap" style="display:none;">
+  <label for="tickerSpeedSlider">Ticker Speed: <span id="tickerSpeedValue">90</span></label>
+  <input id="tickerSpeedSlider" type="range" min="30" max="220" step="5" />
+</div>
+
+<div class="obs-modal-actions">
         <button class="cancel" onclick="closePrompt()">Cancel</button>
         <button class="ok" onclick="commitPrompt()">Apply</button>
       </div>
@@ -1218,16 +1245,17 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
     /* =========================
        LocalStorage namespace
     ========================== */
-    const LS = {
-      BREAK_NUMBER: 'gtr.breakNumber',
-      TICKER: 'gtr.tickerLines',
-      NIL_ENTRIES: 'gtr.custom.entries',
-      SOLD_STATE: 'gtr.soldState',
-      BRIDGE: 'gtr.bridge',
-      KEY: 'gtr.key',
-      TITLE_MAIN: 'gtr.title.main',
-      TITLE_SUB: 'gtr.title.sub'
-    };
+const LS = {
+  BREAK_NUMBER: 'gtr.breakNumber',
+  TICKER: 'gtr.tickerLines',
+  TICKER_SPEED: 'gtr.tickerSpeed',
+  NIL_ENTRIES: 'gtr.custom.entries',
+  SOLD_STATE: 'gtr.soldState',
+  BRIDGE: 'gtr.bridge',
+  KEY: 'gtr.key',
+  TITLE_MAIN: 'gtr.title.main',
+  TITLE_SUB: 'gtr.title.sub'
+};
 
     /* =========================
        Title persistence
@@ -1269,9 +1297,21 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
     let tickerMode = 'custom';
     let tickerFlipTimer = null;
 
-    const TICKER_CUSTOM_SECONDS = 12;
-    const TICKER_SPORTS_SECONDS = 8;
-    const TICKER_PX_PER_SEC = 90;
+  const TICKER_CUSTOM_SECONDS = 12;
+const TICKER_SPORTS_SECONDS = 8;
+
+function loadTickerSpeed(){
+  const raw = parseInt(localStorage.getItem(LS.TICKER_SPEED) || '90', 10);
+  return Number.isFinite(raw) ? Math.max(30, Math.min(220, raw)) : 90;
+}
+
+function saveTickerSpeed(value){
+  const safe = Math.max(30, Math.min(220, parseInt(value, 10) || 90));
+  localStorage.setItem(LS.TICKER_SPEED, String(safe));
+  return safe;
+}
+
+let TICKER_PX_PER_SEC = loadTickerSpeed();
 
     function loadTickerLines(){
       try{
@@ -1332,21 +1372,10 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
       refreshTicker();
     }
 
-    function startTickerRotation(){
-      if (tickerFlipTimer) clearTimeout(tickerFlipTimer);
-
-      const loop = () => {
-        const next = (tickerMode === 'custom') ? 'sports' : 'custom';
-        flipTickerTo(next);
-
-        const waitMs = (next === 'sports' ? TICKER_SPORTS_SECONDS : TICKER_CUSTOM_SECONDS) * 1000;
-        tickerFlipTimer = setTimeout(loop, waitMs);
-      };
-
-      tickerMode = 'custom';
-      refreshTicker();
-      tickerFlipTimer = setTimeout(loop, TICKER_CUSTOM_SECONDS * 1000);
-    }
+function startTickerRotation(){
+  tickerMode = 'custom';
+  refreshTicker();
+}
 
     function setTickerLines(lines){
       TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
@@ -1751,10 +1780,10 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
    (sets CSS vars on #overlayRoot)
 ========================= */
 const TILE_PRESETS = {
-  nfl:  { cols: 4, height: 64, teamsH: 390 },
-  nba:  { cols: 5, height: 79, teamsH: 390 },
-  mlb:  { cols: 5, height: 79, teamsH: 390 },
-  nil:  { cols: 4, height: 65, teamsH: 390 }
+  nfl:  { cols: 4, height: 62, teamsH: 370 },
+  nba:  { cols: 5, height: 79, teamsH: 370 },
+  mlb:  { cols: 5, height: 79, teamsH: 370 },
+  nil:  { cols: 4, height: 65, teamsH: 370 }
 };
 
 function applyTilePreset(sportKey){
@@ -1785,7 +1814,7 @@ let wheelSpinning = false;
 let wheelWinner = null;
 let wheelIdleRAF = null;
 let wheelLastIdleTs = 0;
-let wheelVisible = true;
+let wheelVisible = false;
 const WHEEL_IDLE_SPEED = 0.08; // radians per second
 
     function collectWheelEntries(includeSold = false){
@@ -2009,9 +2038,7 @@ function stopWheelIdleSpin(){
   wheelLastIdleTs = 0;
 }
 
-function toggleWheelVisibility(){
-  wheelVisible = !wheelVisible;
-
+function applyWheelVisibility(){
   const wheel = document.getElementById('wheel-float');
   const wheelControls = document.getElementById('soldHeaderControls');
   const wheelToggleBtn = document.getElementById('wheelToggleBtn');
@@ -2036,6 +2063,11 @@ function toggleWheelVisibility(){
   } else {
     stopWheelIdleSpin();
   }
+}
+
+function toggleWheelVisibility(){
+  wheelVisible = !wheelVisible;
+  applyWheelVisibility();
 }
 
     function spinWheel(){
@@ -2423,19 +2455,38 @@ function resetAll(){
       const title = document.getElementById('obsPromptTitle');
       const desc  = document.getElementById('obsPromptDesc');
       const input = document.getElementById('obsPromptInput');
+      const speedWrap = document.getElementById('tickerSpeedWrap');
+const speedSlider = document.getElementById('tickerSpeedSlider');
+const speedValue = document.getElementById('tickerSpeedValue');
 
       if (!modal || !title || !desc || !input) return;
+
+      if (speedWrap) speedWrap.style.display = 'none';
+if (speedSlider) speedSlider.oninput = null;
 
       if (mode === 'break'){
         title.textContent = 'Set Break Number';
         desc.textContent  = 'Enter a positive number.';
         input.value = String(loadBreakNumber());
         input.type = 'text';
-      } else if (mode === 'ticker'){
-        title.textContent = 'Set Ticker Text';
-        desc.textContent  = 'Use • to split items (example: LINE1 • LINE2 • LINE3).';
-        input.value = (loadTickerLines() || []).join(' • ');
-        input.type = 'text';
+} else if (mode === 'ticker'){
+  title.textContent = 'Set Ticker Text';
+  desc.textContent  = 'Use • to split items (example: LINE1 • LINE2 • LINE3).';
+  input.value = (loadTickerLines() || []).join(' • ');
+  input.type = 'text';
+
+  if (speedWrap && speedSlider && speedValue){
+    speedWrap.style.display = 'flex';
+    speedSlider.value = String(TICKER_PX_PER_SEC);
+    speedValue.textContent = String(TICKER_PX_PER_SEC);
+
+    speedSlider.oninput = (e) => {
+      const next = saveTickerSpeed(e.target.value);
+      TICKER_PX_PER_SEC = next;
+      speedValue.textContent = String(next);
+      refreshTicker();
+    };
+  }
       } else if (mode === 'title'){
         const t = loadTitles();
         title.textContent = 'Set Title';
@@ -2587,11 +2638,11 @@ function resetAll(){
       if (!wrap || !text) return;
 
       wrap.classList.remove('connected','error','connecting');
-      if (state === 'connected') wrap.classList.add('connected');
-      if (state === 'error') wrap.classList.add('error');
-      if (state === 'connecting') wrap.classList.add('connecting');
+      if (state === 'connected') wrap.classList.add('✅');
+      if (state === 'error') wrap.classList.add('⚠️');
+      if (state === 'connecting') wrap.classList.add('🔃');
 
-      text.textContent = String(msg || state || 'disconnected').toUpperCase();
+      text.textContent = String(msg || state || '⛔').toUpperCase();
     }
 
     function closeSSE(refName){
@@ -2621,7 +2672,7 @@ function resetAll(){
 
         es.onopen = () => {
           if (refName === 'main'){
-            setSSEStatus('connected','connected');
+            setSSEStatus('connected','✅');
             warmupPing();
           }
           if (typeof onOpen === 'function') onOpen();
@@ -2647,7 +2698,7 @@ function resetAll(){
 
         es.onerror = () => {
           if (refName === 'main'){
-            setSSEStatus('error','reconnecting');
+            setSSEStatus('error','⚠️');
           }
           try { es.close(); } catch(_){}
           if (refName === 'scores') sseScores = null;
@@ -2659,7 +2710,7 @@ function resetAll(){
         else sse = es;
       }catch(_){
         if (refName === 'main'){
-          setSSEStatus('error','failed');
+          setSSEStatus('error','⚠️');
         }
       }
     }
@@ -2667,15 +2718,15 @@ function resetAll(){
     function startSSE(){
       const base = resolveBridgeBase();
       if (!base){
-        setSSEStatus('error','missing bridge');
+        setSSEStatus('error','⚠️');
         return;
       }
 
       const mainChannel = getChannels()[0] || 'main';
-      setSSEStatus('connecting','connecting');
+      setSSEStatus('connecting','🔃');
 
       connectSSEOne(`${base}/stream?channel=${encodeURIComponent(mainChannel)}`, 'main');
-      connectSSEOne(`${base}/stream?channel=${encodeURIComponent(getScoresChannel())}`, 'scores');
+      //connectSSEOne(`${base}/stream?channel=${encodeURIComponent(getScoresChannel())}`, 'scores');
     }
 
     async function warmupPing(){
@@ -3189,11 +3240,11 @@ function initFloatingWheelDrag(){
       initializeGrid();
 
           if (automationEnabled()) startSSE();
-      else setSSEStatus('error','missing bridge');
+      else setSSEStatus('error','⚠️');
 
-  initFloatingWheelDrag();
+initFloatingWheelDrag();
 refreshWheelEntries();
-startWheelIdleSpin();
+applyWheelVisibility();
 
 soldPanelVisible = true;
 toggleSoldPanel();
