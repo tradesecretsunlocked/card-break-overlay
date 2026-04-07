@@ -2210,39 +2210,166 @@ if (listIndex === -1) soldTeamsList.push({ code, buyer: buyerFromAutomation || "
       });
     }
 
-    function resetAll(){
-      soldTeams.clear();
-      soldTeamsList = [];
-      lastCodeByListingKey.clear();
-      document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
-      saveSoldState();
-      updateStats();
-      updateSoldList();
-      buildLayout();
-    }
+   function resetAll(){
+  soldTeams.clear();
+  soldTeamsList = [];
+  lastCodeByListingKey.clear();
+  document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
+  saveSoldState();
+  updateStats();
+  updateSoldList();
+}
 
-    function newBreak(){
-      resetAll();
-      setBreakNumber(loadBreakNumber() + 1);
-    }
+function newBreak(){
+  resetAll();
+  setBreakNumber(loadBreakNumber() + 1);
+  bridgeWarmup({ breakId: computeBreakId(), breakType: currentBreakType });
+}
 
-    function cycleSport(){
-      const types = Object.keys(breakTypes);
-      const idx = types.indexOf(currentBreakType);
-      currentBreakType = types[(idx + 1) % types.length];
-      localStorage.setItem(SPORT_KEY, currentBreakType);
-      resetSportStateIfNeeded();
-      buildLayout();
-    }
+function cycleSport(){
+  const types = Object.keys(breakTypes);
+  const idx = types.indexOf(currentBreakType);
+  currentBreakType = types[(idx + 1) % types.length];
+  localStorage.setItem(SPORT_KEY, currentBreakType);
+
+  soldTeams.clear();
+  soldTeamsList = [];
+  lastCodeByListingKey.clear();
+
+  buildLayout();
+  saveSoldState();
+  bridgeWarmup({ breakId: computeBreakId(), breakType: currentBreakType });
+}
 
 function setSport(type){
   if (!breakTypes[type]) return;
   currentBreakType = type;
   localStorage.setItem(SPORT_KEY, currentBreakType);
-  resetSportStateIfNeeded();
+
+  soldTeams.clear();
+  soldTeamsList = [];
+  lastCodeByListingKey.clear();
+
+  const saved = loadSoldState();
+  if (saved && saved.sport === currentBreakType){
+    soldTeams = new Set(saved.soldTeams || []);
+    soldTeamsList = Array.isArray(saved.soldTeamsList) ? saved.soldTeamsList : [];
+    lastCodeByListingKey = new Map(Array.isArray(saved.lastCodeByListingKey) ? saved.lastCodeByListingKey : []);
+  }
+
   buildLayout();
   updateTickerMarquee();
 }
+
+function normalizeSport(value){
+  const s = String(value || "").trim().toLowerCase();
+  return breakTypes[s] ? s : "";
+}
+
+function normalizeText(s){
+  return String(s || "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function inferTeamCodeFromSaleTitle(title, sportHint = currentBreakType){
+  const t = normalizeText(title);
+  if (!t) return "";
+
+  const teams = breakTypes[sportHint]?.teams || [];
+
+  for (const team of teams){
+    const code = String(team.code || "").toUpperCase().trim();
+    const name = normalizeText(team.name || "");
+
+    if (code && normalizeText(code) === t) return code;
+    if (name && name === t) return code;
+  }
+
+  for (const team of teams){
+    const code = String(team.code || "").toUpperCase().trim();
+    const name = normalizeText(team.name || "");
+
+    if (code && t.includes(normalizeText(code))) return code;
+    if (name && t.includes(name)) return code;
+  }
+
+  return "";
+}
+
+function getSportFromPayload(data){
+  return normalizeSport(data?.sport || data?.breakType);
+}
+
+function getCodeFromPayload(data){
+  const direct = String(data?.teamCode || data?.code || data?.team || "").trim().toUpperCase();
+  if (direct) return direct;
+
+  const title = String(data?.title || data?.itemTitle || data?.listingTitle || "").trim();
+  if (!title) return "";
+
+  return inferTeamCodeFromSaleTitle(title, currentBreakType);
+}
+
+function getBuyerFromPayload(data){
+  return String(data?.buyerName || data?.buyer || data?.username || "").trim();
+}
+
+function sseMarkSold(code, buyer = ""){
+  if (!code) return;
+
+  if (!soldTeams.has(code)){
+    soldTeams.add(code);
+
+    if (!soldTeamsList.some(x => x.code === code)){
+      soldTeamsList.push({ code, buyer: buyer || "" });
+    }
+
+    const tile = document.querySelector(`[data-team-code="${CSS.escape(code)}"]`);
+    if (tile){
+      tile.classList.add("sold");
+      tile.classList.add("flash");
+      setTimeout(() => tile.classList.remove("flash"), 280);
+      if (typeof playSoldAnimation === "function") playSoldAnimation(code);
+    }
+  } else if (buyer){
+    sseUpdateBuyer(code, buyer);
+  }
+
+  saveSoldState();
+  updateStats();
+  updateSoldList();
+}
+
+function sseMarkUnsold(code){
+  if (!code) return;
+
+  soldTeams.delete(code);
+  soldTeamsList = soldTeamsList.filter(t => t.code !== code);
+
+  const tile = document.querySelector(`[data-team-code="${CSS.escape(code)}"]`);
+  if (tile) tile.classList.remove("sold");
+
+  saveSoldState();
+  updateStats();
+  updateSoldList();
+}
+
+function sseUpdateBuyer(code, buyer){
+  if (!code) return;
+
+  const entry = soldTeamsList.find(t => t.code === code);
+  if (entry){
+    entry.buyer = buyer || "";
+    saveSoldState();
+    updateSoldList();
+  }
+}
+
+
+
 
 
     function resetSportStateIfNeeded(){
@@ -2287,26 +2414,27 @@ function setSport(type){
       return tsv;
     }
 
-    /******************************************************************
-     * SSE
-     ******************************************************************/
- const BRIDGE_LS = {
-  URL: "tsu.bridge",
-  KEY: "tsu.key",
+/******************************************************************
+ * SSE
+ ******************************************************************/
+const BRIDGE_LS = {
+  URL: "tsu.bridgeUrl",
+  KEY: "tsu.bridgeKey",
   OVERLAY: "tsu.overlayId",
   CHANNEL: "tsu.channel",
-  URL_LEGACY: "tsu.bridgeUrl",
-  KEY_LEGACY: "tsu.bridgeKey",
+  URL_LEGACY: "tsu.bridge",
+  KEY_LEGACY: "tsu.key",
 };
 
-
-function cleanUrl(u){ return String(u || "").trim().replace(/\/$/, ""); }
+function cleanUrl(u){
+  return String(u || "").trim().replace(/\/$/, "");
+}
 
 function normalizeBridge(u){
   return cleanUrl(u).replace(/\/(events|stream)(\/.*)?$/, "");
 }
 
-function getBridgeBase() {
+function getBridgeBase(){
   const q = getParam("bridge");
   if (q) {
     const cleaned = normalizeBridge(q);
@@ -2314,12 +2442,12 @@ function getBridgeBase() {
     return cleaned;
   }
 
-  const std = localStorage.getItem(BRIDGE_LS.URL);
-  if (std) return std.trim().replace(/\/$/, "");
+  const std = (localStorage.getItem(BRIDGE_LS.URL) || "").trim();
+  if (std) return normalizeBridge(std);
 
-  const legacy = localStorage.getItem(BRIDGE_LS.URL_LEGACY);
+  const legacy = (localStorage.getItem(BRIDGE_LS.URL_LEGACY) || "").trim();
   if (legacy) {
-    const cleaned = String(legacy).trim().replace(/\/$/, "");
+    const cleaned = normalizeBridge(legacy);
     localStorage.setItem(BRIDGE_LS.URL, cleaned);
     return cleaned;
   }
@@ -2327,7 +2455,7 @@ function getBridgeBase() {
   return "";
 }
 
-function getBridgeKey() {
+function getBridgeKey(){
   const q = getParam("key");
   if (q) {
     const k = q.trim();
@@ -2347,7 +2475,7 @@ function getBridgeKey() {
   return "";
 }
 
-function getChannel() {
+function getChannel(){
   const q = (getParam("channel") || localStorage.getItem(BRIDGE_LS.CHANNEL) || "main");
   const ch = String(q).trim().toLowerCase() || "main";
   localStorage.setItem(BRIDGE_LS.CHANNEL, ch);
@@ -2358,14 +2486,31 @@ function getScoresChannel(){
   return (getParam("scoresChannel") || "sports").toLowerCase();
 }
 
-function getOverlayId() {
-  const q = (getParam("overlay") || localStorage.getItem(BRIDGE_LS.OVERLAY) || "texas-hobby-house-overlay");
-  const id = String(q).trim().toLowerCase() || "texas-hobby-house-overlay";
+function getOverlayId(){
+  const q = (getParam("overlay") || localStorage.getItem(BRIDGE_LS.OVERLAY) || "break-doctor");
+  const id = String(q).trim().toLowerCase() || "break-doctor";
   localStorage.setItem(BRIDGE_LS.OVERLAY, id);
   return id;
 }
 
-async function bridgePost(payload) {
+function bridgeEnabled(){
+  return !!getBridgeBase();
+}
+
+function setSSEStatus(state, msg){
+  const wrap = document.getElementById("sseStatus");
+  const txt = document.getElementById("sseText");
+  if (!wrap || !txt) return;
+
+  wrap.classList.remove("connected","error","connecting");
+  if (state === "connected") wrap.classList.add("connected");
+  if (state === "error") wrap.classList.add("error");
+  if (state === "connecting") wrap.classList.add("connecting");
+
+  txt.textContent = (msg || state || "OFF").toUpperCase();
+}
+
+async function bridgePost(payload){
   if (!bridgeEnabled()) return;
 
   const base = getBridgeBase();
@@ -2375,63 +2520,257 @@ async function bridgePost(payload) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(key ? { "x-bridge-key": key } : {}),
+      ...(key ? {
+        "x-bridge-key": key,
+        "x-api-key": key
+      } : {})
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(payload)
   }).catch(() => {});
 }
 
-function bridgeEnabled() {
-  return !!getBridgeBase();
+function bridgeWarmup(extra = {}){
+  return bridgePost({
+    type: "overlay_warmup",
+    overlay_id: getOverlayId(),
+    channel: getChannel(),
+    ts: Date.now(),
+    breakId: computeBreakId(),
+    sport: currentBreakType,
+    ...extra
+  });
 }
 
+function connectOneSSE({ channel, onOpenLabel, onEvent, refSetter }){
+  if (!bridgeEnabled()){
+    setSSEStatus("error", "OFF");
+    return;
+  }
 
-    function refreshSSEIndicator(){
-      const wrap = document.getElementById('sseStatus');
-      const txt = document.getElementById('sseText');
-      const dot = document.getElementById('sseDot');
-      if (!wrap || !txt) return;
-      wrap.classList.remove('connected','error','connecting');
-      if (dot) dot.style.display = 'none';
-      txt.textContent = 'LOCAL';
+  const base = getBridgeBase();
+  const url = `${base}/stream?channel=${encodeURIComponent(channel)}`;
+
+  const prev = refSetter();
+  if (prev){
+    try { prev.close(); } catch(_){}
+  }
+
+  const es = new EventSource(url);
+  refSetter(es);
+
+  const ingest = (e) => {
+    try{
+      const data = JSON.parse(e.data);
+      if (data?.type === "hello") return;
+      onEvent?.(data);
+    }catch(err){
+      console.warn("[SSE parse error]", err, e.data);
+    }
+  };
+
+  es.onopen = () => setSSEStatus("connected", onOpenLabel || "ON");
+  es.onmessage = ingest;
+
+  [
+    "team_sold","team_unsold","buyer","buyer_update",
+    "sale","sold","purchase","whatnot_purchase",
+    "reset","set_break","set_sport","set_title","set_ticker",
+    "scores","stream_stats","overlay_warmup"
+  ].forEach(t => {
+    try { es.addEventListener(t, ingest); } catch(_){}
+  });
+
+  es.onerror = () => {
+    setSSEStatus("error", "RETRY");
+    try { es.close(); } catch(_){}
+    refSetter(null);
+    setTimeout(() => connectOneSSE({ channel, onOpenLabel, onEvent, refSetter }), 2500);
+  };
+}
+
+function handleSportsEvent(data){
+  if (!ENABLE_SCORES) return;
+  if (String(data?.type || "").toLowerCase() !== "scores") return;
+
+  const sport = normalizeSport(data?.sport || data?.league);
+  const txt = normalizeScorePayloadToText(data);
+
+  if (sport && txt){
+    SCORES_BY_SPORT[sport] = txt;
+    SCORES_UPDATED_AT[sport] = Date.now();
+    updateTickerMarquee();
+  }
+}
+
+function handleSSEEvent(data){
+  if (!data || typeof data !== "object") return;
+
+  const t = String(data.type || "").toLowerCase();
+
+  const bypassBreakMatch = new Set([
+    "reset",
+    "set_break",
+    "set_sport",
+    "set_title",
+    "set_ticker",
+    "overlay_warmup"
+  ]);
+
+  if (!bypassBreakMatch.has(t) && !breakIdMatches(data)) return;
+
+  if (t === "scores"){
+    handleSportsEvent(data);
+    return;
+  }
+
+  if (t === "set_title"){
+    const next = String(data.title || data.value || "").trim();
+    if (next){
+      saveCustomTitle(next);
+      setHeader();
+    }
+    return;
+  }
+
+  if (t === "set_ticker"){
+    const parts = Array.isArray(data.lines)
+      ? data.lines.map(x => String(x).trim()).filter(Boolean)
+      : String(data.text || data.value || "").split("•").map(x => x.trim()).filter(Boolean);
+
+    if (parts.length){
+      TICKER_LINES = parts;
+      saveTickerLines(TICKER_LINES);
+      updateTickerMarquee();
+    }
+    return;
+  }
+
+  if (t === "reset"){
+    resetAll();
+    return;
+  }
+
+  if (t === "set_break"){
+    const n = parseInt(String(data.value || data.break || data.breakNumber || ""), 10);
+    if (Number.isFinite(n) && n > 0){
+      setBreakNumber(n);
+      saveSoldState();
+    }
+    return;
+  }
+
+  if (t === "set_sport"){
+    const sport = getSportFromPayload(data);
+    if (sport) setSport(sport);
+    return;
+  }
+
+  if (t === "buyer" || t === "buyer_update"){
+    const code = getCodeFromPayload(data);
+    const buyer = getBuyerFromPayload(data);
+    if (code) sseUpdateBuyer(code, buyer);
+    return;
+  }
+
+  if (t === "whatnot_purchase" || t === "purchase" || t === "sale" || t === "sold" || t === "team_sold"){
+    const sport = getSportFromPayload(data);
+    if (sport && sport !== currentBreakType) return;
+
+    let code = getCodeFromPayload(data);
+    if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+    if (!code) return;
+
+    const buyer = getBuyerFromPayload(data);
+
+    const listingKey = data.listingId || data.saleId || data.id || null;
+    if (listingKey){
+      const prevCode = lastCodeByListingKey.get(listingKey);
+      if (prevCode && prevCode !== code){
+        sseMarkUnsold(prevCode);
+      }
+      lastCodeByListingKey.set(listingKey, code);
     }
 
-    /******************************************************************
-     * INIT
-     ******************************************************************/
-    document.addEventListener("DOMContentLoaded", () => {
-      const qSport = String(new URLSearchParams(location.search).get('sport') || 'mlb').toLowerCase();
-      if (qSport && breakTypes[qSport]) currentBreakType = qSport;
+    sseMarkSold(code, buyer);
+    return;
+  }
 
-      restoreState();
-      setBreakNumber(loadBreakNumber());
-      buildLayout();
-startPromo();
+  if (t === "team_unsold"){
+    let code = getCodeFromPayload(data);
+    if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+    if (!code) return;
 
+    const listingKey = data.listingId || data.saleId || data.id || null;
 
-      const speedSlider = document.getElementById("tickerSpeedSlider");
-      const speedValue = document.getElementById("tickerSpeedValue");
-      if (speedSlider && speedValue){
-        speedSlider.addEventListener("input", () => {
-          const v = parseInt(speedSlider.value || "90", 10);
-          speedValue.textContent = `${v} px/s`;
-        });
+    sseMarkUnsold(code);
+
+    if (listingKey){
+      const cur = lastCodeByListingKey.get(listingKey);
+      if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+    }
+    return;
+  }
+}
+
+function initSSE(){
+  if (!bridgeEnabled()){
+    setSSEStatus("error", "OFF");
+    return;
+  }
+
+  connectOneSSE({
+    channel: getChannel(),
+    onOpenLabel: "ON",
+    onEvent: handleSSEEvent,
+    refSetter: function(v){
+      if (arguments.length) sseMain = v;
+      return sseMain;
+    }
+  });
+
+  if (ENABLE_SCORES){
+    connectOneSSE({
+      channel: getScoresChannel(),
+      onOpenLabel: "ON",
+      onEvent: handleSportsEvent,
+      refSetter: function(v){
+        if (arguments.length) sseSports = v;
+        return sseSports;
       }
-
-      document.documentElement.style.setProperty("--tickerDur", "24s");
-      updateTickerMarquee();
-      initSSE();
-
-
-
-window.initializeGrid = buildLayout;
-window.toggleTeam = toggleTeam;
-window.updateStats = updateStats;
-window.updateSoldList = updateSoldList;
-window.resetOverlay = resetAll;
-window.startPromo = startPromo;
-
     });
+  }
+
+  bridgeWarmup();
+}
+  document.addEventListener("DOMContentLoaded", () => {
+  const qSport = String(new URLSearchParams(location.search).get("sport") || "").toLowerCase();
+  if (qSport && breakTypes[qSport]) currentBreakType = qSport;
+
+  restoreState();
+  setBreakNumber(loadBreakNumber());
+  buildLayout();
+  startPromo();
+
+  const speedSlider = document.getElementById("tickerSpeedSlider");
+  const speedValue = document.getElementById("tickerSpeedValue");
+  if (speedSlider && speedValue){
+    speedSlider.addEventListener("input", () => {
+      const v = parseInt(speedSlider.value || "90", 10);
+      speedValue.textContent = `${v} px/s`;
+    });
+  }
+
+  document.documentElement.style.setProperty("--tickerDur", "24s");
+  updateTickerMarquee();
+  initSSE();
+
+  window.initializeGrid = buildLayout;
+  window.toggleTeam = toggleTeam;
+  window.updateStats = updateStats;
+  window.updateSoldList = updateSoldList;
+  window.resetOverlay = resetAll;
+  window.startPromo = startPromo;
+});
   </script>
 
   <div id="soldFxLayer" class="sold-fx-layer" aria-hidden="true"></div>
