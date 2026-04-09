@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, initial-scale=1.0" />
+  <title>Candy Time Overlay</title>
+
+  <style>
+    :root{
+      --W:1080px;
+      --H:1920px;
+
+      --pink:#ff4fb0;
+      --pink2:#ff7ed0;
+      --purple:#a248ff;
+      --blue:#38c9ff;
+      --blue2:#73e3ff;
+      --gold:#ffd35a;
+      --white:#ffffff;
+
+      --headerGlow:
+        linear-gradient(90deg,
+          rgba(255,79,176,0.34) 0%,
+          rgba(162,72,255,0.22) 35%,
+          rgba(56,201,255,0.28) 100%);
+    }
+
+    *{ box-sizing:border-box; }
+
+    html,body{
+      margin:0;
+      padding:0;
+      width:var(--W);
+      height:var(--H);
+      overflow:hidden;
+      background:transparent;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body{
+      position:relative;
+      color:var(--white);
+    }
+
+    .overlay{
+      position:relative;
+      width:auto;
+      height:210px;
+      background:transparent;
+      overflow:visible;
+    }
+
+    /* soft top banner only */
+    .top-band{
+      position:absolute;
+      top:20px;
+      left:50%;
+      transform:translateX(-50%);
+      width:980px;
+      height:150px;
+      border-radius:36px;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(255,79,176,0.18), transparent 35%),
+        radial-gradient(circle at 85% 25%, rgba(56,201,255,0.18), transparent 35%),
+        linear-gradient(90deg,
+          rgba(255,79,176,0.18) 0%,
+          rgba(162,72,255,0.14) 45%,
+          rgba(56,201,255,0.18) 100%);
+      border:2px solid rgba(255,255,255,0.18);
+      box-shadow:
+        0 0 30px rgba(255,79,176,0.16),
+        0 0 30px rgba(56,201,255,0.14),
+        inset 0 0 20px rgba(255,255,255,0.05);
+      pointer-events:none;
+    }
+
+    .logo-wrap{
+      position:absolute;
+      top:36px;
+      left:50%;
+      transform:translateX(-50%);
+      width:760px;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      pointer-events:none;
+      z-index:20;
+    }
+
+    .logo-wrap img{
+      max-width:100%;
+      max-height:260px;
+      top:-40px;
+      position:relative;
+      object-fit:contain;
+      filter:
+        drop-shadow(0 8px 18px rgba(0,0,0,0.65))
+        drop-shadow(0 0 16px rgba(255,79,176,0.18))
+        drop-shadow(0 0 16px rgba(56,201,255,0.18));
+      animation:heartbeat 2.6s ease-in-out infinite;
+      transform-origin:center center;
+    }
+
+    @keyframes heartbeat{
+      0%   { transform:scale(1); }
+      8%   { transform:scale(1.045); }
+      14%  { transform:scale(0.995); }
+      22%  { transform:scale(1.065); }
+      30%  { transform:scale(1); }
+      100% { transform:scale(1); }
+    }
+
+    /* invisible trigger zone anchor roughly where the candy box sits */
+    .spawn-zone{
+      position:absolute;
+      left:50%;
+      top:350px;
+      transform:translateX(-50%);
+      width:520px;
+      height:620px;
+      pointer-events:none;
+      z-index:30;
+    }
+
+    .purchase-video{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      opacity:0;
+      pointer-events:none;
+      display:block;
+      filter:drop-shadow(0 12px 24px rgba(0,0,0,0.45));
+    }
+
+    .purchase-video.playing{
+      opacity:1;
+    }
+
+    .status-pill{
+      position:absolute;
+      right:28px;
+      top:28px;
+      z-index:25;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 14px;
+      border-radius:999px;
+      background:rgba(0,0,0,0.20);
+      border:1px solid rgba(255,255,255,0.16);
+      backdrop-filter: blur(6px);
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      color:#fff;
+      text-shadow:0 2px 8px rgba(0,0,0,0.55);
+    }
+
+    .status-pill .dot{
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      background:#777;
+      box-shadow:0 0 10px rgba(255,255,255,0.10);
+    }
+
+    .status-pill.connected .dot{
+      background:#41ff88;
+      box-shadow:0 0 12px rgba(65,255,136,0.72);
+    }
+
+    .status-pill.connecting .dot{
+      background:#ffd35a;
+      box-shadow:0 0 12px rgba(255,211,90,0.72);
+    }
+
+    .status-pill.error .dot{
+      background:#ff4e72;
+      box-shadow:0 0 12px rgba(255,78,114,0.72);
+    }
+
+    /* optional tiny footer label for debugging in OBS; remove if you want */
+    .overlay-tag{
+      position:absolute;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      padding:8px 14px;
+      border-radius:999px;
+      background:rgba(0,0,0,0.14);
+      border:1px solid rgba(255,255,255,0.10);
+      color:rgba(255,255,255,0.80);
+      font-size:14px;
+      font-weight:800;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      pointer-events:none;
+      z-index:15;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <div class="top-band"></div>
+
+    <div class="logo-wrap">
+      <img id="brandLogo" alt="Candy Time logo" />
+    </div>
+
+    <div class="spawn-zone">
+      <video
+        id="purchaseVideo"
+        class="purchase-video"
+        playsinline
+        muted
+        preload="auto"
+      ></video>
+    </div>
+
+    <div id="sseStatus" class="status-pill connecting">
+      <span class="dot"></span>
+      <span id="sseText">Connecting</span>
+    </div>
+
+   
+  </div>
+
+  <script>
+    /* =========================
+       REQUIRED TSU STATE
+    ========================= */
+    const soldTeams = new Set()
+    let soldTeamsList = []
+    const lastCodeByListingKey = new Map()
+
+    const tsu = {
+      bridgeUrl: "tsu.bridgeUrl",
+      bridgeKey: "tsu.bridgeKey"
+    }
+
+    /* =========================
+/* =========================
+   STANDARD BASE PATHS
+========================= */
+const BASE = "../../"
+
+const LOGO_SRC = `${BASE}images/logos/candy-time-logo.png`
+
+/*
+  Use WEBM first if you have alpha.
+  Keep MOV as fallback if that's what you currently exported.
+*/
+const PURCHASE_VIDEO_WEBM = `${BASE}videos/overlays/candy-time/candy-purchase-burst.webm`
+const PURCHASE_VIDEO_MOV  = `${BASE}videos/overlays/candy-time/candy-purchase-burst.mov`
+
+    /* =========================
+       OVERLAY CONFIG
+    ========================= */
+    const OVERLAY_ID = "candy-time"
+    const DEFAULT_CHANNEL = "main"
+    const PURCHASE_COOLDOWN_MS = 900
+    const RESTART_DELAY_MS = 40
+
+    let overlay_warmup = true
+    let sse = null
+    let lastPlayAt = 0
+    let activeChannel = DEFAULT_CHANNEL
+
+const purchaseVideo = document.getElementById("purchaseVideo")
+const brandLogo = document.getElementById("brandLogo")
+
+brandLogo.src = LOGO_SRC
+
+function setPurchaseVideoSource(){
+  const webmTest = document.createElement("video")
+  const canWebm = !!webmTest.canPlayType && webmTest.canPlayType('video/webm; codecs="vp9"')
+
+  if (canWebm) {
+    purchaseVideo.src = PURCHASE_VIDEO_WEBM
+  } else {
+    purchaseVideo.src = PURCHASE_VIDEO_MOV
+  }
+
+  purchaseVideo.load()
+}
+
+setPurchaseVideoSource()
+
+    purchaseVideo.addEventListener("ended", () => {
+      purchaseVideo.classList.remove("playing")
+      try {
+        purchaseVideo.pause()
+        purchaseVideo.currentTime = 0
+      } catch (_) {}
+    })
+
+purchaseVideo.addEventListener("error", () => {
+  console.warn("[Candy Time] purchase video failed to load:", purchaseVideo.currentSrc || purchaseVideo.src)
+})
+    /* =========================
+       HELPERS
+    ========================= */
+    function getBridgeBase(){
+      const q = new URLSearchParams(location.search).get("bridge")
+      if (q){
+        const cleaned = String(q).trim().replace(/\/$/, "").replace(/\/(events|stream)(\/.*)?$/i, "")
+        localStorage.setItem(tsu.bridgeUrl, cleaned)
+        return cleaned
+      }
+      return String(localStorage.getItem(tsu.bridgeUrl) || "").trim().replace(/\/$/, "")
+    }
+
+    function getBridgeKey(){
+      const q = new URLSearchParams(location.search).get("key")
+      if (q){
+        localStorage.setItem(tsu.bridgeKey, q)
+        return String(q).trim()
+      }
+      return String(localStorage.getItem(tsu.bridgeKey) || "").trim()
+    }
+
+    function getChannel(){
+      return String(new URLSearchParams(location.search).get("channel") || DEFAULT_CHANNEL).trim().toLowerCase() || DEFAULT_CHANNEL
+    }
+
+    function setSSEStatus(state, text){
+      const pill = document.getElementById("sseStatus")
+      const label = document.getElementById("sseText")
+      pill.classList.remove("connected", "connecting", "error")
+      pill.classList.add(state)
+      label.textContent = text
+    }
+
+    function normalizePayload(raw){
+      return raw?.data && typeof raw.data === "object" ? raw.data : raw || {}
+    }
+
+function isPurchaseEvent(type){
+  const t = String(type || "").toLowerCase()
+  return [
+    "team_sold",
+    "sale",
+    "sold",
+    "purchase",
+    "whatnot_purchase"
+  ].includes(t)
+}
+    function getListingKey(payload){
+      return payload?.saleId || payload?.listingId || payload?.productId || payload?.id || null
+    }
+
+    function breakIdMatches(payload){
+      const incoming = String(
+        payload?.breakId ||
+        payload?.break_id ||
+        payload?.breakNumber ||
+        payload?.break ||
+        ""
+      ).trim()
+
+      if (!incoming) return true
+
+      const currentBreak = String(localStorage.getItem("candy.breakNumber") || "").trim()
+      if (!currentBreak) return true
+
+      return incoming === currentBreak
+    }
+
+    function shouldPlayForPayload(payload){
+      const listingKey = getListingKey(payload)
+      if (!listingKey) return true
+
+      const now = Date.now()
+      const prev = lastCodeByListingKey.get(String(listingKey)) || 0
+      if (now - prev < PURCHASE_COOLDOWN_MS) return false
+
+      lastCodeByListingKey.set(String(listingKey), now)
+      return true
+    }
+
+    /* =========================
+       PURCHASE ANIMATION
+    ========================= */
+async function playPurchaseAnimation(){
+  const now = Date.now()
+  if (now - lastPlayAt < PURCHASE_COOLDOWN_MS) return
+  lastPlayAt = now
+
+  try{
+    purchaseVideo.classList.remove("playing")
+    purchaseVideo.pause()
+    purchaseVideo.currentTime = 0
+  }catch(_){}
+
+  setTimeout(async () => {
+    try{
+      purchaseVideo.load()
+      purchaseVideo.currentTime = 0
+      purchaseVideo.classList.add("playing")
+      await purchaseVideo.play()
+    }catch(err){
+      console.warn("[Candy Time] autoplay/play failed:", err?.message || err)
+      purchaseVideo.classList.remove("playing")
+    }
+  }, RESTART_DELAY_MS)
+}
+
+    /* =========================
+       SSE EVENT HANDLER
+    ========================= */
+    function handleSSEEvent(raw){
+      const payload = normalizePayload(raw)
+      const type = String(raw?.type || payload?.type || "").toLowerCase()
+
+      if (!type || type === "hello") return
+      if (!breakIdMatches(payload)) return
+
+      if (isPurchaseEvent(type) && !overlay_warmup && shouldPlayForPayload(payload)){
+        playPurchaseAnimation()
+        return
+      }
+
+      if (type === "reset"){
+        try{
+          purchaseVideo.pause()
+          purchaseVideo.currentTime = 0
+          purchaseVideo.classList.remove("playing")
+        }catch(_){}
+      }
+    }
+
+    /* =========================
+       OPTIONAL OVERLAY WARMUP POST
+    ========================= */
+    function overlayWarmup(){
+      const base = getBridgeBase()
+      if (!base) return
+
+      const key = getBridgeKey()
+
+      fetch(`${base}/events${key ? `?key=${encodeURIComponent(key)}` : ""}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(key ? { "x-bridge-key": key, "x-api-key": key } : {})
+        },
+        body: JSON.stringify({
+          type: "overlay_warmup",
+          overlay: OVERLAY_ID,
+          channel: activeChannel,
+          ts: Date.now()
+        })
+      }).catch(() => {})
+    }
+
+    /* =========================
+       CONNECT SSE
+    ========================= */
+    function connectBridgeSSE(){
+      const base = getBridgeBase()
+      const key = getBridgeKey()
+      activeChannel = getChannel()
+
+      if (!base){
+        setSSEStatus("error", "Bridge Off")
+        return
+      }
+
+      if (sse){
+        try { sse.close() } catch(_){}
+      }
+
+      const url = new URL(`${base}/stream`)
+      url.searchParams.set("channel", activeChannel)
+      if (key) url.searchParams.set("key", key)
+
+      setSSEStatus("connecting", "Connecting")
+      sse = new EventSource(url.toString())
+
+      sse.onopen = () => {
+        setSSEStatus("connected", "Live")
+      }
+
+      sse.onerror = () => {
+        setSSEStatus("error", "Retry")
+      }
+
+      sse.onmessage = (evt) => {
+        try{
+          const data = JSON.parse(evt.data)
+          if (data?.type === "hello") return
+          handleSSEEvent(data)
+        }catch(_){}
+      }
+
+      ;["team_sold","sale","sold","purchase","whatnot_purchase","reset"].forEach(eventName => {
+        sse.addEventListener(eventName, (evt) => {
+          try{
+            const data = JSON.parse(evt.data)
+            handleSSEEvent({ ...data, type: eventName })
+          }catch(_){}
+        })
+      })
+    }
+
+    /* =========================
+       INIT
+    ========================= */
+    window.addEventListener("DOMContentLoaded", () => {
+      connectBridgeSSE()
+      overlayWarmup()
+
+      setTimeout(() => {
+        overlay_warmup = false
+      }, 1200)
+    })
+  </script>
+</body>
+</html>
