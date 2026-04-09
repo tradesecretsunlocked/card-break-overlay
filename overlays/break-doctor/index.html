@@ -2273,46 +2273,58 @@ function normalizeText(s){
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
 }
-
 function inferTeamCodeFromSaleTitle(title, sportHint = currentBreakType){
   const t = normalizeText(title);
   if (!t) return "";
 
   const teams = breakTypes[sportHint]?.teams || [];
 
+  // 1) exact full-name match first
   for (const team of teams){
     const code = String(team.code || "").toUpperCase().trim();
     const name = normalizeText(team.name || "");
-
-    if (code && normalizeText(code) === t) return code;
     if (name && name === t) return code;
   }
 
+  // 2) full-name contains match second
   for (const team of teams){
     const code = String(team.code || "").toUpperCase().trim();
     const name = normalizeText(team.name || "");
-
-    if (code && t.includes(normalizeText(code))) return code;
     if (name && t.includes(name)) return code;
+  }
+
+  // 3) only allow exact code token matches, not substring-inside-word matches
+  const tokens = t.split(/\s+/).filter(Boolean);
+  for (const team of teams){
+    const code = normalizeText(team.code || "");
+    if (code && tokens.includes(code)) return String(team.code || "").toUpperCase().trim();
   }
 
   return "";
 }
-
 function getSportFromPayload(data){
   return normalizeSport(data?.sport || data?.breakType);
 }
 
 function getCodeFromPayload(data){
-  const direct = String(data?.teamCode || data?.code || data?.team || "").trim().toUpperCase();
-  if (direct) return direct;
+  const sport = getSportFromPayload(data) || currentBreakType;
+  const teams = breakTypes[sport]?.teams || [];
 
-  const title = String(data?.title || data?.itemTitle || data?.listingTitle || "").trim();
+  const direct = String(data?.teamCode || data?.code || "").trim().toUpperCase();
+  if (direct && teams.some(t => String(t.code || "").toUpperCase() === direct)) return direct;
+
+  const title = String(
+    data?.team ||
+    data?.teamName ||
+    data?.title ||
+    data?.itemTitle ||
+    data?.listingTitle ||
+    ""
+  ).trim();
+
   if (!title) return "";
-
-  return inferTeamCodeFromSaleTitle(title, currentBreakType);
+  return inferTeamCodeFromSaleTitle(title, sport);
 }
-
 function getBuyerFromPayload(data){
   return String(data?.buyerName || data?.buyer || data?.username || "").trim();
 }
