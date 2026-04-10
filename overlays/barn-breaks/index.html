@@ -1697,11 +1697,13 @@ r1.className = "row-grid row-logo";
   function updateSoldList(){
     const soldListDiv = document.getElementById("soldList");
     soldListDiv.innerHTML = "";
-    const currentBreak = breakTypes[currentBreakType];
+    const currentTeams = currentBreakType === "custom"
+  ? getCustomEntries()
+  : breakTypes[currentBreakType].teams;
 
-    soldTeamsList.forEach(entry => {
-      const team = currentBreak.teams.find(t => t.code === entry.code);
-      if (!team) return;
+soldTeamsList.forEach(entry => {
+  const team = currentTeams.find(t => t.code === entry.code);
+  if (!team) return;
 
       const row = document.createElement("div");
       row.className = "sold-row";
@@ -1820,6 +1822,12 @@ if (team.image){
 
   let sse = null;
 
+function getChannel(){
+  return String(new URLSearchParams(location.search).get('channel') || localStorage.getItem(LS.CHANNEL) || 'main')
+    .trim()
+    .toLowerCase();
+}
+
   const BRIDGE_URL = (() => {
     const q = new URLSearchParams(location.search).get('bridge');
     if (q) {
@@ -1861,44 +1869,69 @@ if (team.image){
     text.textContent = msg || state || 'disconnected';
   }
 
-  function connectSSE(url){
-    if (sse) { try { sse.close(); } catch(_){} }
-    setSSEStatus('error','connecting');
+function connectSSE(url){
+  if (sse) { try { sse.close(); } catch(_){} }
+  setSSEStatus('error','connecting');
 
-    try{
-      sse = new EventSource(url);
+  try{
+    sse = new EventSource(url);
 
-      sse.onopen = () => {
-        setSSEStatus('connected','connected');
-        warmupPing();
-      };
+    const ingest = (e) => {
+      try{
+        const data = JSON.parse(e.data);
+        if (data?.type === "hello") return;
+        handleSSEEvent(data);
+      }catch(err){
+        console.warn("[SSE parse error]", err, e?.data);
+      }
+    };
 
-      sse.onmessage = (e) => {
-        try{
-          const data = JSON.parse(e.data);
-          handleSSEEvent(data);
-        }catch(_){}
-      };
+    sse.onopen = () => {
+      setSSEStatus('connected','connected');
+      warmupPing();
+    };
 
-      sse.onerror = () => {
-        setSSEStatus('error','reconnecting');
-        try { sse.close(); } catch(_) {}
-        sse = null;
-        setTimeout(() => connectSSE(url), 2500);
-      };
-    }catch(_){
-      setSSEStatus('error','failed');
-    }
+    sse.onmessage = ingest;
+
+    [
+      "team_sold",
+      "team_unsold",
+      "buyer",
+      "buyer_update",
+      "reset",
+      "set_break",
+      "set_sport",
+      "set_ticker",
+      "stream_stats",
+      "sale",
+      "purchase",
+      "whatnot_purchase"
+    ].forEach(t => {
+      try { sse.addEventListener(t, ingest); } catch(_) {}
+    });
+
+    sse.onerror = () => {
+      setSSEStatus('error','reconnecting');
+      try { sse.close(); } catch(_) {}
+      sse = null;
+      setTimeout(() => connectSSE(url), 2500);
+    };
+  }catch(_){
+    setSSEStatus('error','failed');
+  }
+}
+
+ function startSSE(){
+  if (!automationEnabled()){
+    setSSEStatus('error','missing bridge');
+    return;
   }
 
-  function startSSE(){
-    if (!automationEnabled()){
-      setSSEStatus('error','missing bridge');
-      return;
-    }
-    const base = normalizeBridge(BRIDGE_URL);
-    connectSSE(`${base}/stream`);
-  }
+  const base = normalizeBridge(BRIDGE_URL);
+  const channel = getChannel();
+
+  connectSSE(`${base}/stream?channel=${encodeURIComponent(channel)}`);
+}
 
   async function warmupPing(){
     if (!automationEnabled()) return;
@@ -1911,76 +1944,93 @@ if (team.image){
           'Content-Type': 'application/json',
           ...(BRIDGE_KEY ? { 'x-bridge-key': BRIDGE_KEY } : {})
         },
-        body: JSON.stringify({
-          type: 'overlay_warmup',
-          overlay: 'barnbreaks',
-          breakId: computeBreakId(),
-          ts: Date.now()
-        })
+       body: JSON.stringify({
+  type: 'overlay_warmup',
+  overlay: 'barnbreaks',
+  channel: getChannel(),
+  breakId: computeBreakId(),
+  sport: currentBreakType,
+  ts: Date.now()
+})
       });
     }catch(_){}
   }
 
-  function handleSSEEvent(data){
-    const type = String(data?.type || '').toLowerCase();
-    if (type === 'hello' || type === 'scores') return;
+function handleSSEEvent(data){
+  const payload =
+    (data && typeof data === "object" && data.data && typeof data.data === "object")
+      ? data.data
+      : data;
 
-    if (type === 'reset'){ resetAll(); return; }
+  const type = String(payload?.type || payload?.event || '').toLowerCase();
+  if (!type || type === 'hello' || type === 'scores') return;
 
-    if (type === 'set_break'){
-      const n = parseInt(String(data?.breakNumber ?? data?.value ?? ''), 10);
-      if (Number.isFinite(n) && n > 0) setBreakNumber(n);
-      return;
-    }
-
-    if (type === 'set_sport'){
-      const sport = String(data?.sport || data?.value || '').toLowerCase();
-      if (sport && breakTypes[sport]) setSport(sport);
-      return;
-    }
-
-    if (type === 'set_ticker'){
-      if (Array.isArray(data?.lines)) {
-        setTickerLines(data.lines.map(x => String(x)));
-      } else if (typeof data?.text === "string") {
-        const parts = data.text.split("•").map(s => s.trim()).filter(Boolean);
-        setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
-      }
-      return;
-    }
-
-    if (type === 'team_unsold'){
-      const code = String(data?.code || '').trim().toUpperCase();
-      if (!code) return;
-      sseMarkUnsold(code);
-      return;
-    }
-
-    if (type === 'team_sold'){
-      const sport = String(data?.sport || '').toLowerCase();
-      const buyer = String(data?.buyer || '').trim();
-
-      let code = String(data?.code || '').trim().toUpperCase();
-      if (!code) code = inferCodeFromTitle(data?.title, sport || currentBreakType);
-      if (!code) return;
-
-      if (sport && breakTypes[sport] && sport !== currentBreakType){
-        currentBreakType = sport;
-        buildLayout();
-      }
-
-      sseMarkSold(code, buyer);
-      return;
-    }
-
-    if (type === 'buyer' || type === 'buyer_update'){
-      const code = String(data?.code || '').trim().toUpperCase();
-      const buyer = String(data?.buyer || '').trim();
-      if (!code) return;
-      sseUpdateBuyer(code, buyer);
-      return;
-    }
+  if (type === 'reset'){
+    resetAll();
+    return;
   }
+
+  if (type === 'set_break'){
+    const n = parseInt(String(payload?.breakNumber ?? payload?.value ?? ''), 10);
+    if (Number.isFinite(n) && n > 0) setBreakNumber(n);
+    return;
+  }
+
+  if (type === 'set_sport'){
+    const sport = String(payload?.sport || payload?.value || '').toLowerCase();
+    if (sport && breakTypes[sport]) setSport(sport);
+    return;
+  }
+
+  if (type === 'set_ticker'){
+    if (Array.isArray(payload?.lines)) {
+      setTickerLines(payload.lines.map(x => String(x)));
+    } else if (typeof payload?.text === "string") {
+      const parts = payload.text.split("•").map(s => s.trim()).filter(Boolean);
+      setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+    }
+    return;
+  }
+
+  if (type === 'team_unsold'){
+    const code = String(payload?.code || '').trim().toUpperCase();
+    if (!code) return;
+    sseMarkUnsold(code);
+    return;
+  }
+
+  if (type === 'team_sold' || type === 'sale' || type === 'purchase' || type === 'whatnot_purchase'){
+    const sport = String(payload?.sport || '').toLowerCase();
+    const buyer = String(payload?.buyer || payload?.buyerName || '').trim();
+
+    let code = String(payload?.code || payload?.teamCode || '').trim().toUpperCase();
+    if (!code) {
+      code = inferCodeFromTitle(
+        payload?.title || payload?.itemTitle || payload?.listingTitle,
+        sport || currentBreakType
+      );
+    }
+    if (!code) return;
+
+    if (sport && breakTypes[sport] && sport !== currentBreakType){
+      currentBreakType = sport;
+      buildLayout();
+    }
+
+    sseMarkSold(code, buyer);
+    return;
+  }
+
+  if (type === 'buyer' || type === 'buyer_update'){
+    const code = String(payload?.code || payload?.teamCode || '').trim().toUpperCase();
+    const buyer = String(payload?.buyer || payload?.buyerName || '').trim();
+    if (!code) return;
+    sseUpdateBuyer(code, buyer);
+    return;
+  }
+}
+
+  
 
   function sseMarkSold(code, buyer=""){
     if (!code) return;
@@ -2094,6 +2144,9 @@ if (team.image){
   document.addEventListener("DOMContentLoaded", () => {
     const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
     if (qSport && breakTypes[qSport]) currentBreakType = qSport;
+    if (currentBreakType === "custom" && !getCustomEntries().length) {
+  currentBreakType = "nfl";
+}
 
     setBreakNumber(loadBreakNumber());
     setTickerLines(loadTickerLines());
@@ -2149,7 +2202,26 @@ if (e.target === m){
     </div>
   </div>
 </div>
+<!-- ===== PROMO EDITOR ===== -->
+<div class="modal-backdrop" id="promoModal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Promo Editor">
+    <div class="modal-head">
+      <div class="modal-title">Promo Messages</div>
+      <div class="modal-actions">
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyPromoFromModal()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closePromoEditor()">CLOSE</button>
+      </div>
+    </div>
 
+    <div class="ticker-editor">
+      <textarea id="promoModalTextarea" placeholder="Enter one promo per line&#10;Example:&#10;SEE 2 PICK 1&#10;STASH OR PASS&#10;BONUS HITS"></textarea>
+    </div>
+
+    <div class="ticker-hint">
+      Each line becomes a rotating promo message.
+    </div>
+  </div>
+</div>
 <!-- ===== CUSTOM ENTRIES EDITOR ===== -->
 <div class="modal-backdrop" id="customEntriesModal">
   <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Custom Entries Editor">
