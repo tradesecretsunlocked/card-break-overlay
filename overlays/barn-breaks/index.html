@@ -1921,72 +1921,190 @@ if (team.image){
     }catch(_){}
   }
 
-  function handleSSEEvent(data){
-    const type = String(data?.type || '').toLowerCase();
-    if (type === 'hello' || type === 'scores') return;
+let LAST_STREAM_STATS_SALE_KEY = "";
 
-    if (type === 'reset'){ resetAll(); return; }
 
-    if (type === 'set_break'){
-      const n = parseInt(String(data?.breakNumber ?? data?.value ?? ''), 10);
-      if (Number.isFinite(n) && n > 0) setBreakNumber(n);
-      return;
-    }
+function parseBridgeLastSale(line, fallbackBuyer = ""){
+  const raw = String(line || "").trim();
+  if (!raw) return null;
 
-    if (type === 'set_sport'){
-      const sport = String(data?.sport || data?.value || '').toLowerCase();
-      if (sport && breakTypes[sport]) setSport(sport);
-      return;
-    }
 
-    if (type === 'set_ticker'){
-      if (Array.isArray(data?.lines)) {
-        setTickerLines(data.lines.map(x => String(x)));
-      } else if (typeof data?.text === "string") {
-        const parts = data.text.split("•").map(s => s.trim()).filter(Boolean);
-        setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
-      }
-      return;
-    }
+  const parts = raw.split("•").map(s => s.trim()).filter(Boolean);
+  if (parts.length < 2) return null;
 
-    if (type === 'team_unsold'){
-      const code = String(data?.code || '').trim().toUpperCase();
-      if (!code) return;
-      sseMarkUnsold(code);
-      return;
-    }
 
-    if (type === 'team_sold'){
-      const sport = String(data?.sport || '').toLowerCase();
-      const buyer = String(data?.buyer || '').trim();
+  let buyer = parts[0] || String(fallbackBuyer || "").trim();
+  let price = "";
+  let titleParts = parts.slice(1);
 
-      let code = String(data?.code || '').trim().toUpperCase();
-      if (!code) code = inferCodeFromTitle(data?.title, sport || currentBreakType);
-      if (!code) return;
 
-      if (sport && breakTypes[sport] && sport !== currentBreakType){
-        currentBreakType = sport;
-        buildLayout();
-      }
+  const last = titleParts[titleParts.length - 1] || "";
+  if (/^\$?\d+(\.\d{1,2})?$/.test(last)) {
+    price = last;
+    titleParts.pop();
+  }
 
-      sseMarkSold(code, buyer);
-      return;
-    }
 
-    if (type === 'buyer' || type === 'buyer_update'){
-      const code = String(data?.code || '').trim().toUpperCase();
-      const buyer = String(data?.buyer || '').trim();
-      if (!code) return;
-      sseUpdateBuyer(code, buyer);
-      return;
+  const title = titleParts.join(" • ").trim();
+  if (!title) return null;
+
+
+  return { buyer, title, price };
+}
+
+
+function findSportByCode(code){
+  const safe = String(code || "").trim().toUpperCase();
+  if (!safe) return "";
+
+
+  for (const key of Object.keys(breakTypes)) {
+    const list = breakTypes[key]?.teams || [];
+    if (list.some(t => String(t.code || "").toUpperCase() === safe)) {
+      return key;
     }
   }
+  return "";
+}
+
+function handleSSEEvent(data){
+  const payload =
+    (data && typeof data === "object" && data.data && typeof data.data === "object")
+      ? data.data
+      : data;
+
+
+  const type = String(payload?.type || payload?.event || '').toLowerCase();
+  if (!type || type === 'hello' || type === 'scores') return;
+
+
+  if (type === 'reset'){
+    resetAll();
+    return;
+  }
+
+
+  if (type === 'set_break'){
+    const n = parseInt(String(payload?.breakNumber ?? payload?.value ?? ''), 10);
+    if (Number.isFinite(n) && n > 0) setBreakNumber(n);
+    return;
+  }
+
+
+  if (type === 'set_sport'){
+    const sport = String(payload?.sport || payload?.value || '').toLowerCase();
+    if (sport && breakTypes[sport]) setSport(sport);
+    return;
+  }
+
+
+  if (type === 'set_ticker'){
+    if (Array.isArray(payload?.lines)) {
+      setTickerLines(payload.lines.map(x => String(x)));
+    } else if (typeof payload?.text === "string") {
+      const parts = payload.text.split("•").map(s => s.trim()).filter(Boolean);
+      setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+    }
+    return;
+  }
+
+
+  if (type === 'team_unsold'){
+    const code = String(payload?.code || payload?.teamCode || '').trim().toUpperCase();
+    if (!code) return;
+    sseMarkUnsold(code);
+    return;
+  }
+
+
+  if (type === 'stream_stats'){
+    const saleLine = String(payload?.lastSale || "").trim();
+    if (!saleLine) return;
+
+
+    const dedupeKey = `${String(payload?.liveId || "")}|${saleLine}`;
+    if (dedupeKey && dedupeKey === LAST_STREAM_STATS_SALE_KEY) return;
+
+
+    const parsed = parseBridgeLastSale(saleLine, payload?.topBuyer || "");
+    if (!parsed?.title) return;
+
+
+    let sport = String(payload?.sport || "").toLowerCase();
+    let code = inferCodeFromTitle(parsed.title, sport || currentBreakType);
+
+
+    if (!code) return;
+
+
+    if (!sport) {
+      sport = findSportByCode(code);
+    }
+
+
+    if (sport && breakTypes[sport] && sport !== currentBreakType){
+      currentBreakType = sport;
+      buildLayout();
+    }
+
+
+    sseMarkSold(code, parsed.buyer || "");
+    LAST_STREAM_STATS_SALE_KEY = dedupeKey;
+    return;
+  }
+
+
+  if (type === 'team_sold' || type === 'sale' || type === 'purchase' || type === 'whatnot_purchase'){
+    let sport = String(payload?.sport || '').toLowerCase();
+    const buyer = String(payload?.buyer || payload?.buyerName || '').trim();
+
+
+    let code = String(payload?.code || payload?.teamCode || '').trim().toUpperCase();
+    if (!code) {
+      code = inferCodeFromTitle(
+        payload?.title || payload?.itemTitle || payload?.listingTitle,
+        sport || currentBreakType
+      );
+    }
+    if (!code) return;
+
+
+    if (!sport) {
+      sport = findSportByCode(code);
+    }
+
+
+    if (sport && breakTypes[sport] && sport !== currentBreakType){
+      currentBreakType = sport;
+      buildLayout();
+    }
+
+
+    sseMarkSold(code, buyer);
+    return;
+  }
+
+
+  if (type === 'buyer' || type === 'buyer_update'){
+    const code = String(payload?.code || payload?.teamCode || '').trim().toUpperCase();
+    const buyer = String(payload?.buyer || payload?.buyerName || '').trim();
+    if (!code) return;
+    sseUpdateBuyer(code, buyer);
+    return;
+  }
+}
 
   function sseMarkSold(code, buyer=""){
     if (!code) return;
 
-    const exists = breakTypes[currentBreakType].teams.some(t => t.code === code);
-    if (!exists) return;
+    const currentTeams = currentBreakType === "custom"
+  ? getCustomEntries()
+  : (breakTypes[currentBreakType]?.teams || []);
+
+
+const exists = currentTeams.some(t => String(t.code || "").toUpperCase() === String(code || "").toUpperCase());
+if (!exists) return;
+
 
     if (!soldTeams.has(code)){
       soldTeams.add(code);
