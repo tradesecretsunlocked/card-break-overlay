@@ -870,7 +870,8 @@ CUSTOM_ENTRIES: "barn.customEntries",
 CUSTOM_TITLE: "barn.customTitle",
     URL_LEGACY: "tsu.bridgeUrl",
     KEY_LEGACY: "tsu.bridgeKey",
-
+STATE: "barn.overlayState.v1",
+SEEN_SALES: "barn.seenSales.v1",
     // ✅ per-team sizing storage
     TEAM_STYLE: "barn.teamStyle.v1"
   };
@@ -1330,15 +1331,20 @@ function handleCustomFileImport(evt){
 
   function saveBreakNumber(n){ localStorage.setItem(LS.BREAK, String(n)); }
 
-  function setBreakNumber(n){
-    const safe = Number.isFinite(n) && n > 0 ? n : 1;
-    document.getElementById("breakNumberDisplay").textContent = String(safe);
-    saveBreakNumber(safe);
+function setBreakNumber(n){
+  const safe = Number.isFinite(n) && n > 0 ? n : 1;
+  document.getElementById("breakNumberDisplay").textContent = String(safe);
+  saveBreakNumber(safe);
 
-    const bi = document.getElementById("breakModalInput");
-    if (bi) bi.value = String(safe);
+  const bi = document.getElementById("breakModalInput");
+  if (bi) bi.value = String(safe);
+
+  processedSales = loadSeenSales();
+
+  if (document.getElementById("teamsWrapper")){
+    buildLayout();
   }
-
+}
   function openBreakEditor(){
     const modal = document.getElementById("breakModal");
     const input = document.getElementById("breakModalInput");
@@ -1398,6 +1404,118 @@ function handleCustomFileImport(evt){
     localStorage.setItem(LS.TEAM_STYLE, JSON.stringify(map || {}));
   }
   let TEAM_STYLE_MAP = loadTeamStyleMap();
+
+function getStateKey(){
+  return [
+    "barnbreaks",
+    getChannel(),
+    currentBreakType,
+    loadBreakNumber()
+  ].join("|");
+}
+
+function loadAllOverlayState(){
+  try{
+    const raw = localStorage.getItem(LS.STATE);
+    const obj = raw ? JSON.parse(raw) : {};
+    return (obj && typeof obj === "object") ? obj : {};
+  }catch(_){
+    return {};
+  }
+}
+
+function saveAllOverlayState(obj){
+  localStorage.setItem(LS.STATE, JSON.stringify(obj || {}));
+}
+
+function saveOverlayState(){
+  const all = loadAllOverlayState();
+  all[getStateKey()] = {
+    soldTeams: Array.from(soldTeams),
+    soldTeamsList: soldTeamsList.map(x => ({
+      code: String(x.code || "").toUpperCase(),
+      buyer: String(x.buyer || "")
+    })),
+    ts: Date.now()
+  };
+  saveAllOverlayState(all);
+}
+
+function restoreOverlayState(){
+  const all = loadAllOverlayState();
+  const state = all[getStateKey()] || null;
+
+  soldTeams = new Set();
+  soldTeamsList = [];
+
+  if (!state) return;
+
+  const codes = Array.isArray(state.soldTeams) ? state.soldTeams : [];
+  const rows = Array.isArray(state.soldTeamsList) ? state.soldTeamsList : [];
+
+  codes.forEach(code => {
+    if (code) soldTeams.add(String(code).toUpperCase());
+  });
+
+  soldTeamsList = rows
+    .map(x => ({
+      code: String(x.code || "").toUpperCase(),
+      buyer: String(x.buyer || "")
+    }))
+    .filter(x => x.code);
+}
+
+function clearOverlayState(){
+  const all = loadAllOverlayState();
+  delete all[getStateKey()];
+  saveAllOverlayState(all);
+}
+
+function loadAllSeenSales(){
+  try{
+    const raw = localStorage.getItem(LS.SEEN_SALES);
+    const obj = raw ? JSON.parse(raw) : {};
+    return (obj && typeof obj === "object") ? obj : {};
+  }catch(_){
+    return {};
+  }
+}
+
+function saveAllSeenSales(obj){
+  localStorage.setItem(LS.SEEN_SALES, JSON.stringify(obj || {}));
+}
+
+function loadSeenSales(){
+  const all = loadAllSeenSales();
+  const arr = Array.isArray(all[getStateKey()]) ? all[getStateKey()] : [];
+  return new Set(arr.map(x => String(x)));
+}
+
+function saveSeenSales(){
+  const all = loadAllSeenSales();
+  all[getStateKey()] = Array.from(processedSales).slice(-500);
+  saveAllSeenSales(all);
+}
+
+function clearSeenSales(){
+  const all = loadAllSeenSales();
+  delete all[getStateKey()];
+  saveAllSeenSales(all);
+}
+
+let processedSales = new Set();
+
+function markSaleProcessed(id){
+  const key = String(id || "").trim();
+  if (!key) return;
+  processedSales.add(key);
+
+  if (processedSales.size > 500){
+    processedSales = new Set(Array.from(processedSales).slice(-250));
+  }
+
+  saveSeenSales();
+}
 
   // Call this from console if needed:
   // setTeamStyle('nfl','DAL',{s:1.08,x:0,y:-2});
@@ -1685,10 +1803,11 @@ custom: {
     document.documentElement.style.setProperty("--cols", String(config.cols));
     applyTileSizing();
 
-    soldTeams.clear();
-    soldTeamsList = [];
+ 
 
     const teams = currentBreakType === "custom" ? getCustomEntries() : config.teams;
+    restoreOverlayState();
+processedSales = loadSeenSales();
 
     if (config.layout === "NBA_MLB_30"){
       let idx = 0;
@@ -1823,6 +1942,7 @@ r1.className = "row-grid row-logo";
 
     updateStats();
     updateSoldList();
+    saveOverlayState();
   }
 
 function updateStats(){
@@ -1881,7 +2001,10 @@ if (team.image){
       input.type = "text";
       input.placeholder = "Buyer";
       input.value = entry.buyer || "";
-      input.oninput = (e) => { entry.buyer = e.target.value; };
+     input.oninput = (e) => {
+  entry.buyer = e.target.value;
+  saveOverlayState();
+};
       row.appendChild(input);
 
       soldListDiv.appendChild(row);
@@ -1892,6 +2015,9 @@ function resetAll(){
   soldTeams.clear();
   soldTeamsList = [];
   lastCodeByListingKey.clear();
+  processedSales.clear();
+  clearSeenSales();
+  clearOverlayState();
   SCORE_LINES = [];
   ACTIVE_TICKER_MODE = "custom";
   document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
@@ -1913,11 +2039,11 @@ function resetAll(){
     buildLayout();
   }
 
-  function setSport(type){
-    if (!breakTypes[type]) return;
-    currentBreakType = type;
-    buildLayout();
-  }
+ function setSport(type){
+  if (!breakTypes[type]) return;
+  currentBreakType = type;
+  buildLayout();
+}
 
   function cssEscape(s){
     return String(s || '').replace(/"/g,'\\"');
@@ -2239,10 +2365,12 @@ function handleSSEEvent(data){
   if (type === "team_unsold"){
     let code = getCodeFromPayload(payload);
     if (!code){
-      code = inferCodeFromTitle(
-        payload.title || payload.itemTitle || payload.listingTitle || "",
-        currentBreakType
-      );
+ const unsoldSport = getSportFromPayload(payload) || currentBreakType;
+
+code = inferCodeFromTitle(
+  payload.title || payload.itemTitle || payload.listingTitle || "",
+  unsoldSport
+);
     }
 
     const listingKey = payload.saleId || payload.id || payload.listingId || null;
@@ -2259,6 +2387,15 @@ function handleSSEEvent(data){
   if (type === "team_sold" || type === "sale" || type === "sold" || type === "purchase" || type === "whatnot_purchase"){
     let sport = getSportFromPayload(payload) || currentBreakType;
     const buyer = getBuyerFromPayload(payload);
+const saleKey = String(
+  payload.saleId ||
+  payload.transactionId ||
+  payload.orderId ||
+  payload.purchaseId ||
+  ""
+).trim();
+
+if (saleKey && processedSales.has(saleKey)) return;
 
     let code = getCodeFromPayload(payload);
     if (!code){
@@ -2278,7 +2415,7 @@ function handleSSEEvent(data){
       buildLayout();
     }
 
-    const listingKey = payload.saleId || payload.id || payload.listingId || null;
+   const listingKey = payload.listingId || payload.id || null;
 
     if (listingKey && code){
       const prevCode = lastCodeByListingKey.get(listingKey);
@@ -2289,6 +2426,7 @@ function handleSSEEvent(data){
     }
 
     sseMarkSold(code, buyer);
+    if (saleKey) markSaleProcessed(saleKey);
     return;
   }
 
@@ -2319,30 +2457,37 @@ function sseMarkSold(code, buyer=""){
 
     updateStats();
     updateSoldList();
-  } else if (buyer) {
+    saveOverlayState();
+  } else {
     const entry = soldTeamsList.find(t => t.code === code);
-    if (entry) entry.buyer = buyer;
+    if (entry && buyer) entry.buyer = buyer;
+    if (!entry) soldTeamsList.push({ code, buyer });
+
     updateSoldList();
+    saveOverlayState();
   }
 }
+function sseMarkUnsold(code){
+  if (!code) return;
+  soldTeams.delete(code);
+  soldTeamsList = soldTeamsList.filter(t => t.code !== code);
 
-  function sseMarkUnsold(code){
-    if (!code) return;
-    soldTeams.delete(code);
-    soldTeamsList = soldTeamsList.filter(t => t.code !== code);
+  const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+  if (tile) tile.classList.remove("sold");
 
-    const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
-    if (tile) tile.classList.remove("sold");
+  updateStats();
+  updateSoldList();
+  saveOverlayState();
+}
 
-    updateStats();
+function sseUpdateBuyer(code, buyer){
+  const entry = soldTeamsList.find(t => t.code === code);
+  if (entry) {
+    entry.buyer = buyer || "";
     updateSoldList();
+    saveOverlayState();
   }
-
-  function sseUpdateBuyer(code, buyer){
-    const entry = soldTeamsList.find(t => t.code === code);
-    if (entry) entry.buyer = buyer || "";
-    updateSoldList();
-  }
+}
 
   function formatExportDate(d = new Date()){
     const yyyy = d.getFullYear();
@@ -2414,16 +2559,22 @@ function exportSoldListTSV(){
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
-    if (qSport && breakTypes[qSport]) currentBreakType = qSport;
-    if (currentBreakType === "custom" && !getCustomEntries().length) {
+ const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
+
+if (qSport && breakTypes[qSport]) {
+  currentBreakType = qSport;
+} else {
   currentBreakType = "nfl";
 }
 
-    setBreakNumber(loadBreakNumber());
-    setTickerLines(loadTickerLines());
+if (currentBreakType === "custom" && !getCustomEntries().length) {
+  currentBreakType = "nfl";
+}
+
+  processedSales = loadSeenSales();
+setTickerLines(loadTickerLines());
 startTickerModeRotation();
-    buildLayout();
+setBreakNumber(loadBreakNumber());
 
     if (automationEnabled()) startSSE();
     else setSSEStatus('error','missing bridge');
