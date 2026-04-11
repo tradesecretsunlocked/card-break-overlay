@@ -1,0 +1,2318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, initial-scale=1.0" />
+  <title>Chasing Cards Solution — SMS Layout Overlay</title>
+  <style>
+    :root{
+      --bg0:#05070d;
+      --bg1:#0a1020;
+      --red:#d61f3a;
+      --red2:#ff4b62;
+      --blue:#123f99;
+      --blue2:#2e67d1;
+      --white:#ffffff;
+      --panel:rgba(8,10,18,0.90);
+      --panel2:rgba(12,16,28,0.90);
+      --stroke:rgba(214,31,58,0.35);
+      --stroke2:rgba(46,103,209,0.32);
+      --ok:#19bf5c;
+      --danger:#ff4242;
+      --W:1080px;
+      --radius:16px;
+      --tileR:14px;
+      --camH:330px;
+     
+      --sideW:222px;
+      --gap:5px;
+      --bottomCols:5;
+      --tileH:66px;
+      --tickerDur:20s;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:166px;;
+      background:transparent;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--white);
+      user-select:none;
+    }
+    .overlay{
+      width:var(--W);
+      background:
+     radial-gradient(circle at -31% 57%, rgb(0 13 95 / 100%) 42%, #ffffff0f 66%), radial-gradient(circle at 117% 58%, rgb(137 24 32) 36%, #ffffff 54%), radial-gradient(circle at 19% 50%, rgb(63 154 226) 196% 74%);
+      border-radius:var(--radius);
+      border:2px solid rgba(255,255,255,0.10);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.85),
+        0 16px 40px rgba(0,0,0,0.72),
+        0 0 28px rgba(46,103,209,0.18);
+      padding:15px;
+      position:relative;
+      overflow:hidden;
+    }
+    .overlay::before{
+      content:"";
+      position:absolute; inset:-40px;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.07), transparent 55%),
+        radial-gradient(circle at 85% 35%, rgba(214,31,58,0.08), transparent 60%),
+        radial-gradient(circle at 35% 85%, rgba(46,103,209,0.08), transparent 55%);
+      filter:blur(10px);
+      opacity:.9;
+      pointer-events:none;
+    }
+    .wick{ position:relative; border-radius:14px; }
+    .wick::after{
+      content:"";
+      position:absolute; inset:-2px;
+      border-radius:inherit;
+      pointer-events:none;
+      z-index:35;
+      background:
+        linear-gradient(130deg,
+          transparent 50%,
+          rgba(255,255,255,0) 35%,
+          rgba(10, 255, 2, 0.9) 50%,
+          rgb(72, 255, 0) 56%,
+          rgba(12, 69, 173, 0.35) 62%,
+          rgba(255,255,255,0) 72%,
+          transparent 100%);
+      background-size:300% 300%;
+      animation:wickRun 5.5s linear infinite alternate;
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;
+      mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      mask-composite:exclude;
+      padding:4px;
+      filter:blur(7px);
+      opacity:.99;
+      mix-blend-mode:screen;
+    }
+    @keyframes wickRun{
+      0%{ background-position:0% 50%; }
+      100%{ background-position:100% 50%; }
+    }
+
+    .header{
+      position:relative;
+      height:70px;
+      border-radius:14px;
+      background:linear-gradient(90deg, rgba(214, 31, 58, 0.52), rgb(255 255 255 / 50%), rgba(18, 63, 153, 0.64));
+      border:2px solid rgb(84 255 0);
+      display:flex;
+      align-items:center;
+      padding:10px 14px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 -1px 0 rgba(0,0,0,0.45);
+      overflow:visible;
+      isolation:isolate;
+      z-index:5;
+    }
+    .header::before{
+      content:"";
+      position:absolute; inset:-30%;
+      background:radial-gradient(circle at 50% 120%, rgba(46,103,209,0.18), transparent 60%);
+      opacity:.4;
+      pointer-events:none;
+      z-index:0;
+    }
+    .header > *{ position:relative; z-index:2; }
+    .brand-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:260px;
+    }
+    .title{
+      font-weight:1000;
+      letter-spacing:1.8px;
+      font-size:19px;
+      text-transform:uppercase;
+      color:#fff;
+      text-shadow:0 2px 0 rgba(0,0,0,0.95);
+      opacity:.96;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width:400px;
+    }
+    .brand-center{
+      position:absolute;
+      left:50%;
+      top:70%;
+      transform:translate(-50%,-50%);
+      pointer-events:none;
+      z-index:100;
+    }
+    .brand-center img{
+      height:214px;
+      width:auto;
+      top:19px;
+      position:relative;
+      filter:
+        drop-shadow(0 10px 18px rgba(0,0,0,0.65))
+        drop-shadow(0 0 10px rgba(214,31,58,0.26))
+        drop-shadow(0 0 10px rgba(46,103,209,0.26));
+    }
+    .header-right{
+      margin-left:auto;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .sport-pill,.break-pill,.sse-pill{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 14px;
+      border-radius:12px;
+      background:rgba(0,0,0,0.48);
+      border:1px solid rgba(255,255,255,0.12);
+      box-shadow: inset 0 0 0 1px rgba(46,103,209,0.12);
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+    }
+    .sport-pill{ color:#fff; min-width:86px; justify-content:center; }
+    .break-pill .label,.sse-pill .label{ font-size:12px; opacity:.86; }
+    .break-pill .value,.sse-pill .value{ font-size:15px; color:#fff; }
+    .sse-pill.connecting .value{ color:#8fc7ff; }
+    .sse-pill.connected .value{ color:#47e38b; }
+    .sse-pill.error .value{ color:#ff7e7e; }
+
+    .main{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns:var(--sideW) 1fr var(--sideW);
+      gap:var(--gap);
+      position:relative;
+      z-index:2;
+    }
+    .sideStack{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    .board{
+      background:rgba(0,0,0,0.36);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:14px;
+      padding:4px;
+      overflow:hidden;
+      box-shadow: inset 0 0 0 1px rgba(46,103,209,0.12);
+    }
+    .board > *,.infoPanel > *,.cam > *,.banner > *,.sold-wrap > *{ position:relative; z-index:2; }
+    .colgrid{
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:5px;
+    }
+    .center{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:stretch;
+      justify-content:space-evenly;
+    }
+    .cam{
+      height:var(--camH);
+      border-radius:16px;
+      background:linear-gradient(135deg, rgba(255,255,255,0.08), rgba(0,0,0,0.24));
+      border:2px solid rgba(255,255,255,0.10);
+      box-shadow: inset 0 0 0 2px rgba(0,0,0,0.35), 0 0 0 1px rgba(46,103,209,0.16);
+      position:relative;
+      overflow:visible;
+    }
+    .cam::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), transparent 55%),
+        radial-gradient(circle at 70% 70%, rgba(46,103,209,0.10), transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.18));
+      opacity:.92;
+      pointer-events:none;
+    }
+
+.promo-image-wrap{
+  position:absolute;
+  inset:10px;
+  border-radius:14px;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,0.22);
+  border:1px solid rgba(255,255,255,0.10);
+}
+
+.promo-image-wrap img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:none;
+  position:relative;
+  z-index:2;
+}
+
+.promo-image-wrap.has-image img{
+  display:block;
+}
+
+.promo-image-empty{
+  font-size:20px;
+  font-weight:1000;
+  letter-spacing:1px;
+  color:rgba(255,255,255,0.45);
+  text-align:center;
+  padding:20px;
+  z-index:1;
+}
+
+.promo-image-wrap.has-image .promo-image-empty{
+  display:none;
+}
+
+.promo-image-controls{
+  position:absolute;
+  left:10px;
+  right:10px;
+  bottom:10px;
+  z-index:5;
+  display:flex;
+  gap:8px;
+  justify-content:center;
+}
+
+.promo-btn{
+  appearance:none;
+  border:none;
+  cursor:pointer;
+  padding:10px 14px;
+  border-radius:999px;
+  font-weight:900;
+  font-size:12px;
+  letter-spacing:.7px;
+  text-transform:uppercase;
+  color:#fff;
+  background:linear-gradient(180deg, rgba(214,31,58,0.96), rgba(46,103,209,0.92));
+  border:1px solid rgba(255,255,255,0.14);
+  box-shadow:0 6px 14px rgba(0,0,0,0.35);
+}
+
+.promo-btn.secondary{
+  background:rgba(20,20,24,0.88);
+}
+
+    .bottomGrid{
+      display:grid;
+      grid-template-columns:repeat(var(--bottomCols), 1fr);
+      gap:2px;
+    }
+    .tile{
+      height:var(--tileH);
+      border-radius:var(--tileR);
+      background:rgba(10,10,10,0.78);
+      border:2px solid rgba(255,255,255,1);
+      box-shadow:
+        inset 0 2px 0 rgba(255,255,255,0.10),
+        inset 0 0 0 1px rgba(0,0,0,0.55),
+        0 6px 14px rgba(0,0,0,0.45);
+      position:relative;
+      overflow:hidden;
+      cursor:pointer;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .tile img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      filter:drop-shadow(0 6px 10px rgba(0,0,0,0.6));
+      z-index:2;
+      position:relative;
+    }
+    .tile::before{
+      content:"";
+      position:absolute; inset:-18px;
+      background:radial-gradient(circle at 20% 70%, rgba(46,103,209,0.24), transparent 55%);
+      filter:blur(14px);
+      opacity:.52;
+      animation:tileGlowDrift 4.5s ease-in-out infinite;
+      z-index:1;
+      pointer-events:none;
+    }
+    @keyframes tileGlowDrift{
+      0%{ transform:translate(-4px, 2px) scale(0.98); opacity:0.38; }
+      50%{ transform:translate(6px,-2px) scale(1.05); opacity:0.62; }
+      100%{ transform:translate(-4px, 2px) scale(0.98); opacity:0.38; }
+    }
+    .tile.sold img{
+      filter:grayscale(1) brightness(0.45);
+      opacity:0.95;
+    }
+    .tile.sold::after{
+      content:"✕";
+      position:absolute; inset:0;
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      font-size:54px;
+      font-weight:900;
+      color:rgba(255,255,255,0.96);
+      text-shadow:
+        0 0 10px rgba(214,31,58,0.70),
+        0 0 18px rgba(46,103,209,0.35),
+        0 8px 22px rgba(0,0,0,0.85);
+      z-index:3;
+      pointer-events:none;
+    }
+    .tile.sold::before{ opacity:0.12; animation:none; }
+    .tile-buyer{
+      position:absolute;
+      left:6px; right:6px; bottom:0px;
+      z-index:4;
+      text-align:center;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+      padding:2px 6px;
+      border-radius:999px;
+      background:rgba(0,0,0,0.72);
+      border:1px solid rgba(255,255,255,0.14);
+      color:#fff;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      display:none;
+    }
+
+    .tile.custom-spot{
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.72));
+  border-style: dashed;
+}
+
+.tile-name{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px;
+  text-align:center;
+  font-size:13px;
+  line-height:1.05;
+  font-weight:1000;
+  letter-spacing:.6px;
+  text-transform:uppercase;
+  color:#fff;
+  text-shadow:0 2px 10px rgba(0,0,0,0.85);
+}
+    .tile.sold .tile-buyer{ display:block; }
+
+    .infoPanel{
+      background:rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:14px;
+      padding:4px 4px;
+      box-shadow: inset 0 0 0 1px rgba(46,103,209,0.12);
+      min-height:170px;
+    }
+    .infoTitle{
+      font-weight:900;
+      letter-spacing:1px;
+      font-size:10px;
+      text-transform:uppercase;
+      color:#fff;
+      opacity:.95;
+      text-align:center;
+      margin-bottom:2px;
+    }
+    .infoBody{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      font-weight:800;
+    }
+    .scoreRow{
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      font-size:12px;
+      opacity:.95;
+    }
+    .muted{ opacity:0.75; font-weight:800; }
+
+    .ticker{
+      margin-top:2px;
+      width:100%;
+      overflow:hidden;
+      height:50px;
+      border-radius:12px;
+      background:linear-gradient(90deg, rgba(214,31,58,0.18), rgba(0,0,0,0.72), rgba(46,103,209,0.20));
+      border:2px solid rgb(60, 255, 0);
+      display:flex;
+      align-items:center;
+      position:relative;
+      z-index:2;
+    }
+    .ticker-track{
+      display:inline-flex;
+      align-items:center;
+      white-space:nowrap;
+      will-change:transform;
+      animation:tickerMarquee linear infinite;
+      animation-duration:var(--tickerDur);
+    }
+    .ticker-text{
+      display:inline-block;
+      padding-right:48px;
+      font-size:22px;
+      font-weight:1000;
+      letter-spacing:.8px;
+      color:#fff;
+      text-shadow:0 2px 8px rgba(0,0,0,0.60);
+    }
+    @keyframes tickerMarquee{
+      0%{ transform:translateX(0); }
+      100%{ transform:translateX(-50%); }
+    }
+
+
+
+
+    .controls{
+      margin-top:6px;
+      display:grid;
+      grid-template-columns:210px 1fr 1fr 1fr 210px;
+      gap:35px;
+      z-index:2;
+      position:relative;
+    }
+    .ctl{
+      height:65px;
+      border-radius:14px;
+      background:linear-gradient(180deg, rgba(0, 0, 0, 0.753), rgba(0, 0, 0, 0.418));
+      border:2px solid rgb(51, 255, 0);
+      box-shadow:inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(46,103,209,0.10);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      position:relative;
+      overflow:hidden;
+      font-size:24px;
+      cursor:pointer;
+    }
+    .ctl:active{ transform:translateY(1px); }
+    .ctl.btn{ color:#fff; }
+    .stat{
+      flex-direction:column;
+      gap:2px;
+      cursor:default;
+    }
+    .stat .v{
+      font-size:30px;
+      color:#fff;
+      text-shadow:0 2px 0 rgba(0,0,0,0.85);
+    }
+    .stat .l{
+      font-size:16px;
+      opacity:0.85;
+    }
+
+    .sold-wrap{
+      width:var(--W);
+      margin-top:10px;
+      border-radius:14px;
+      background:rgba(0,0,0,0.95);
+      border:1px solid rgba(255,255,255,0.10);
+      box-shadow:inset 0 0 0 1px rgba(46,103,209,0.12);
+      padding:10px;
+      display:none;
+    }
+    .sold-wrap.active{ display:block; }
+    .sold-top{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+    .pill{
+      padding:8px 14px;
+      border-radius:999px;
+      background:rgba(73,71,71,0.78);
+      border:1px solid rgba(255,255,255,0.14);
+      color:#fff;
+      font-weight:900;
+      font-size:12px;
+      letter-spacing:.7px;
+      text-transform:uppercase;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .pill:hover{
+      border-color:rgba(46,103,209,0.45);
+      box-shadow:0 0 0 2px rgba(214,31,58,0.12);
+    }
+    .sold-grid{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:12px;
+    }
+    .sold-item{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:8px 10px;
+      border-radius:999px;
+      background:rgb(32,32,40);
+      border:1px solid rgba(255,255,255,0.12);
+      box-shadow:inset 0 0 0 1px rgba(0,0,0,0.45);
+    }
+    .sold-item img{
+      height:45px;
+      width:50px;
+      object-fit:contain;
+      filter:drop-shadow(0 10px 16px rgba(0,0,0,0.55));
+    }
+    .sold-item input{
+      width:100%;
+      border:none;
+      outline:none;
+      background:rgba(0,0,0,0.96);
+      color:#fff;
+      border-radius:999px;
+      padding:10px 12px;
+      font-size:14px;
+      font-weight:900;
+    }
+
+    .popup{
+      position:fixed;
+      inset:0;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      background:rgba(0,0,0,0.75);
+      z-index:99999;
+      padding:20px;
+    }
+    .popup.active{ display:flex; }
+    .popup-card{
+      width:720px;
+      max-width:92%;
+      background:linear-gradient(135deg, rgba(22,26,38,0.98), rgba(8,10,16,0.98));
+      border-radius:16px;
+      padding:16px;
+      border:1px solid rgba(255,255,255,0.12);
+      box-shadow:0 20px 60px rgba(0,0,0,0.85);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .popup-card h2{
+      margin:0;
+      font-size:16px;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      text-align:center;
+      color:#fff;
+    }
+    .popup-card textarea{
+      width:100%;
+      height:220px;
+      resize:none;
+      background:#000;
+      color:#fff;
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius:12px;
+      padding:12px;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+      font-size:13px;
+    }
+    .popup-card input{
+      padding:12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:#000;
+      color:#fff;
+      font-size:16px;
+      font-weight:900;
+      outline:none;
+    }
+    .popup-card label{
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      opacity:.85;
+    }
+    .popup-btns{
+      display:flex;
+      gap:10px;
+    }
+    .popup-btns button{
+      flex:1;
+      padding:12px;
+      border:none;
+      border-radius:12px;
+      font-weight:900;
+      cursor:pointer;
+      background:linear-gradient(180deg, rgba(214,31,58,0.96), rgba(46,103,209,0.92));
+      color:#fff;
+    }
+
+
+    .promo-stage{
+      position:absolute;
+      inset:10px;
+      border-radius:14px;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(0,0,0,0.22);
+      border:1px solid rgba(255,255,255,0.10);
+    }
+    .promo-stage img,
+    .promo-stage video{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      position:absolute;
+      inset:0;
+      z-index:2;
+      display:none;
+      background:transparent;
+    }
+    .promo-stage.show-image img{ display:block; }
+    .promo-stage.show-video video{ display:block; }
+    .promo-preset-row{
+      display:grid;
+      grid-template-columns:minmax(150px,180px) 1fr 1fr auto;
+      gap:8px;
+      align-items:center;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.10);
+      border-radius:12px;
+      padding:10px;
+    }
+    .promo-preset-name{
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      color:#fff;
+    }
+    .promo-mini-btn{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      padding:10px 12px;
+      border-radius:10px;
+      font-weight:900;
+      font-size:12px;
+      letter-spacing:.5px;
+      text-transform:uppercase;
+      color:#fff;
+      background:rgba(20,20,24,0.88);
+      border:1px solid rgba(255,255,255,0.14);
+    }
+    .promo-mini-btn.primary{
+      background:linear-gradient(180deg, rgba(214,31,58,0.96), rgba(46,103,209,0.92));
+    }
+    .promo-mini-btn.active{
+      outline:2px solid rgba(72,255,0,0.75);
+    }
+
+    .hidden{ display:none !important; }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <div class="header">
+      <div class="brand-left">
+        <div class="title" id="headerTitle">CHASING CARDS SOLUTION • NFL</div>
+      </div>
+
+      <div class="brand-center">
+        <img id="brandLogo" alt="Chasing Cards Solution" />
+      </div>
+
+ <div class="header-right">
+  <div class="sport-pill hidden">
+    <span id="sportChip">NFL</span>
+  </div>
+
+  <div class="break-pill">
+    <span class="label">Break #</span>
+    <span id="breakId" class="value">1</span>
+  </div>
+  <div class="sse-pill error" id="sseStatus">
+    <span class="label">SSE</span>
+    <span class="value" id="sseText">OFF</span>
+  </div>
+</div>
+    </div>
+
+    <div class="main">
+      <div class="sideStack">
+        <div class="board wick" id="leftBoard">
+          <div class="colgrid" id="leftGrid"></div>
+        </div>
+        <div class="infoPanel wick">
+          <div class="infoTitle">LIVE SCORES</div>
+          <div class="infoBody" id="scoreboard">
+            <div class="scoreRow"><span class="muted">Waiting for feed…</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="center">
+<div class="cam wick" id="camFrame">
+  <div class="promo-stage" id="promoStage">
+    <video id="promoVideo" playsinline muted preload="metadata"></video>
+    <img id="promoImage" alt="Promo Graphic" />
+    <div class="promo-image-empty" id="promoEmpty">NO PROMO MEDIA</div>
+  </div>
+</div>
+        <div class="bottomGrid" id="bottomGrid"></div>
+      </div>
+
+      <div class="sideStack">
+        <div class="board wick" id="rightBoard">
+          <div class="colgrid" id="rightGrid"></div>
+        </div>
+        
+<div class="infoPanel wick">
+  <div class="infoTitle">STREAM STATS</div>
+  <div class="infoBody" id="breakInfo">
+    <div class="scoreRow"><span class="muted">Break Id:</span><span id="breakIdInfoText">—</span></div>
+    <div class="scoreRow"><span class="muted">Sold:</span><span id="streamSoldText">0</span></div>
+    <div class="scoreRow"><span class="muted">Remaining:</span><span id="streamRemainingText">0</span></div>
+    <div class="scoreRow" id="streamHighBidRow"><span class="muted">High Bid:</span><span id="streamHighBidText">$0</span></div>
+    <div class="scoreRow hidden"><span class="muted">Channels:</span><span id="channelInfoText">main,sports</span></div>
+  </div>
+</div>
+
+      </div>
+    </div>
+
+ <div class="ticker">
+  <div id="tickerTrack" class="ticker-track">
+    <span id="tickerA" class="ticker-text"></span>
+    <span id="tickerB" class="ticker-text"></span>
+  </div>
+  <span id="tickerModeText" class="hidden">Custom</span>
+</div>
+
+    
+
+    <div class="controls">
+      <div class="ctl btn" id="resetBtn">Reset</div>
+
+      <div class="ctl stat">
+        <div class="v" id="teamsLeft">0</div>
+        <div class="l">Left</div>
+      </div>
+
+      <div class="ctl stat" id="highBidCtlBox">
+        <div class="v" id="highBidCtl">$0</div>
+        <div class="l">High Bid</div>
+      </div>
+
+      <div class="ctl stat" id="soldToggle">
+        <div class="v" id="teamsSold">0</div>
+        <div class="l">Sold</div>
+      </div>
+
+      <div class="ctl btn" id="nextBtn">Next</div>
+    </div>
+  </div>
+
+  <div class="sold-wrap" id="soldWrap">
+ <div class="sold-top">
+  <div class="pill" id="setBreakBtn">Set Break #</div>
+  <div class="pill" id="setTitleBtn">Set Title</div>
+  <div class="pill" id="setTickerBtn">Set Ticker</div>
+  <div class="pill" id="setHighBidBtn">Set High Bid</div>
+  <div class="pill" id="toggleHighBidBtn">Toggle High Bid</div>
+  <div class="pill" id="openPromoBtn">Promo Media</div>
+  <div class="pill" id="promoOffBtn">Clear Promo</div>
+  <div class="pill" id="nfl8CustomBtn">NFL + 8 Spots</div>
+  <div class="pill" id="sportBtn">Change Sport</div>
+  <div class="pill" id="tileHeightsBtn">Tile Heights</div>
+  <div class="pill" id="exportBtn">Export TSV</div>
+</div>
+    <div class="sold-grid" id="soldGrid"></div>
+  </div>
+
+  <div class="popup" id="exportPopup">
+    <div class="popup-card">
+      <h2>Export TSV</h2>
+      <textarea id="exportBox" readonly></textarea>
+      <div class="popup-btns">
+        <button id="copyBtn">Copy</button>
+        <button id="closeExport">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="popup" id="breakPopup">
+    <div class="popup-card">
+      <h2>Set Break Number</h2>
+      <input id="breakInput" type="number" min="1" />
+      <div class="popup-btns">
+        <button id="applyBreak">Apply</button>
+        <button id="closeBreak">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="popup" id="titlePopup">
+    <div class="popup-card">
+      <h2>Update Title</h2>
+      <label>Main Title</label>
+      <input id="titleMainInput" type="text" />
+      <label>Subtitle</label>
+      <input id="titleSubInput" type="text" />
+      <div class="popup-btns">
+        <button id="applyTitle">Apply</button>
+        <button id="closeTitle">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="popup" id="tickerPopup">
+    <div class="popup-card">
+      <h2>Update Ticker</h2>
+      <label>Ticker Lines (one per line)</label>
+      <textarea id="tickerInput"></textarea>
+      <label>Speed Seconds</label>
+      <input id="tickerSpeedInput" type="range" min="8" max="45" step="1" />
+      <div id="tickerSpeedLabel" style="font-size:12px;font-weight:900;opacity:.85;">20s</div>
+      <div class="popup-btns">
+        <button id="applyTicker">Apply</button>
+        <button id="closeTicker">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="popup" id="tileHeightPopup">
+    <div class="popup-card">
+      <h2>Tile Heights</h2>
+      <label>NFL</label>
+      <input id="tileHeightNFLInput" type="number" min="36" max="140" step="1" />
+      <label>NBA</label>
+      <input id="tileHeightNBAInput" type="number" min="36" max="140" step="1" />
+      <label>MLB</label>
+      <input id="tileHeightMLBInput" type="number" min="36" max="140" step="1" />
+      <div class="popup-btns">
+        <button id="applyTileHeights">Apply</button>
+        <button id="closeTileHeights">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="popup" id="nfl8CustomPopup">
+  <div class="popup-card">
+    <h2>NFL + 8 Custom Spots</h2>
+    <label>Paste 8 names — comma separated, CSV, or one per line</label>
+    <textarea id="nfl8CustomInput" placeholder="Example:
+Monster Chase
+Downtown Hunt
+Kaboom Spot
+...
+or:
+Monster Chase, Downtown Hunt, Kaboom Spot, ..."></textarea>
+    <div class="popup-btns">
+      <button id="applyNFL8Custom">Apply</button>
+      <button id="closeNFL8Custom">Cancel</button>
+    </div>
+  </div>
+</div>
+
+  <div class="popup" id="highBidPopup">
+    <div class="popup-card">
+      <h2>Set High Bid</h2>
+      <input id="highBidInput" type="number" min="0" step="1" />
+      <div class="popup-btns">
+        <button id="applyHighBid">Apply</button>
+        <button id="closeHighBid">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="popup" id="promoPopup">
+    <div class="popup-card" style="width:860px;max-width:96%;">
+      <h2>Promo Media Manager</h2>
+      <label>Upload a static image and optional greenscreen video for each promo. If a video exists, it will play once and then hold on the static image.</label>
+      <div id="promoPresetList" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <div class="popup-btns">
+        <button id="closePromoPopup">Close</button>
+      </div>
+    </div>
+  </div>
+
+
+<script>
+/* =========================
+   Paths (standard BASE)
+========================= */
+const BASE = (() => {
+  const isGhPages = location.hostname.endsWith('github.io');
+  if (isGhPages) {
+    const parts = location.pathname.split('/').filter(Boolean);
+    const repo = parts.length ? parts[0] : '';
+    return `/${repo}/`;
+  }
+  return '../../';
+})();
+
+const LOGO_PATH = `${BASE}images/logos/chasing-card-solution-logo.png`;
+document.getElementById('brandLogo').src = LOGO_PATH;
+
+const nbaImg = (f) => `${BASE}images/nba/${f}`;
+const nflImg = (f) => `${BASE}images/nfl/${f}`;
+const mlbImg = (f) => `${BASE}images/mlb/${f}`;
+
+
+/* =========================
+   Storage
+========================= */
+
+const LS = {
+  BREAK_NUMBER:'ccs.breakNumber',
+  TICKER:'ccs.tickerLines',
+  TICKER_SPEED:'ccs.tickerSpeed',
+  TITLE_MAIN:'ccs.title.main',
+  TITLE_SUB:'ccs.title.sub',
+  BREAK_TYPE:'ccs.breakType',
+  SOLD_PANEL:'ccs.soldPanel',
+  SPORT_TILE_HEIGHTS:'ccs.sportTileHeights',
+  NFL8_CUSTOM_SPOTS:'ccs.nfl8.customSpots',
+  PROMO_IMAGE:'ccs.promoImage',
+  PROMO_LIBRARY:'ccs.promoLibrary',
+  ACTIVE_PROMO:'ccs.activePromo',
+  HIGH_BID:'ccs.highBid',
+  SHOW_HIGH_BID:'ccs.showHighBid'
+};
+
+/* =========================
+   Data
+========================= */
+const NBA = [
+  {code:'ATL', name:'Hawks', image:nbaImg('hawks.png')},
+  {code:'BOS', name:'Celtics', image:nbaImg('celtics.png')},
+  {code:'BKN', name:'Nets', image:nbaImg('nets.png')},
+  {code:'CHA', name:'Hornets', image:nbaImg('hornets.png')},
+  {code:'CHI', name:'Bulls', image:nbaImg('bulls.png')},
+  {code:'CLE', name:'Cavaliers', image:nbaImg('cavaliers.png')},
+  {code:'DAL', name:'Mavericks', image:nbaImg('mavericks.png')},
+  {code:'DEN', name:'Nuggets', image:nbaImg('nuggets.png')},
+  {code:'DET', name:'Pistons', image:nbaImg('pistons.png')},
+  {code:'GSW', name:'Warriors', image:nbaImg('warriors.png')},
+  {code:'HOU', name:'Rockets', image:nbaImg('rockets.png')},
+  {code:'IND', name:'Pacers', image:nbaImg('pacers.png')},
+  {code:'LAC', name:'Clippers', image:nbaImg('clippers.png')},
+  {code:'LAL', name:'Lakers', image:nbaImg('lakers.png')},
+  {code:'MEM', name:'Grizzlies', image:nbaImg('grizzlies.png')},
+  {code:'MIA', name:'Heat', image:nbaImg('heat.png')},
+  {code:'MIL', name:'Bucks', image:nbaImg('bucks.png')},
+  {code:'MIN', name:'Timberwolves', image:nbaImg('timberwolves.png')},
+  {code:'NOP', name:'Pelicans', image:nbaImg('pelicans.png')},
+  {code:'NYK', name:'Knicks', image:nbaImg('knicks.png')},
+  {code:'OKC', name:'Thunder', image:nbaImg('thunder.png')},
+  {code:'ORL', name:'Magic', image:nbaImg('magic.png')},
+  {code:'PHI', name:'76ers', image:nbaImg('76ers.png')},
+  {code:'PHX', name:'Suns', image:nbaImg('suns.png')},
+  {code:'POR', name:'Trail Blazers', image:nbaImg('blazers.png')},
+  {code:'SAC', name:'Kings', image:nbaImg('kings.png')},
+  {code:'SAS', name:'Spurs', image:nbaImg('spurs.png')},
+  {code:'TOR', name:'Raptors', image:nbaImg('raptors.png')},
+  {code:'UTA', name:'Jazz', image:nbaImg('jazz.png')},
+  {code:'WAS', name:'Wizards', image:nbaImg('wizards.png')}
+];
+
+const NFL = [
+  {code:'ARI', name:'Cardinals', image:nflImg('cardinals.png')},
+  {code:'ATL', name:'Falcons', image:nflImg('falcons.png')},
+  {code:'BAL', name:'Ravens', image:nflImg('ravens.png')},
+  {code:'BUF', name:'Bills', image:nflImg('bills.png')},
+  {code:'CAR', name:'Panthers', image:nflImg('panthers.png')},
+  {code:'CHI', name:'Bears', image:nflImg('bears.png')},
+  {code:'CIN', name:'Bengals', image:nflImg('bengals.png')},
+  {code:'CLE', name:'Browns', image:nflImg('browns.png')},
+  {code:'DAL', name:'Cowboys', image:nflImg('cowboys.png')},
+  {code:'DEN', name:'Broncos', image:nflImg('broncos.png')},
+  {code:'DET', name:'Lions', image:nflImg('lions.png')},
+  {code:'GB',  name:'Packers', image:nflImg('packers.png')},
+  {code:'HOU', name:'Texans', image:nflImg('texans.png')},
+  {code:'IND', name:'Colts', image:nflImg('colts.png')},
+  {code:'JAX', name:'Jaguars', image:nflImg('jaguars.png')},
+  {code:'KC',  name:'Chiefs', image:nflImg('chiefs.png')},
+  {code:'LAC', name:'Chargers', image:nflImg('chargers.png')},
+  {code:'LAR', name:'Rams', image:nflImg('rams.png')},
+  {code:'LV',  name:'Raiders', image:nflImg('raiders.png')},
+  {code:'MIA', name:'Dolphins', image:nflImg('dolphins.png')},
+  {code:'MIN', name:'Vikings', image:nflImg('vikings.png')},
+  {code:'NE',  name:'Patriots', image:nflImg('patriots.png')},
+  {code:'NO',  name:'Saints', image:nflImg('saints.png')},
+  {code:'NYG', name:'Giants', image:nflImg('giants.png')},
+  {code:'NYJ', name:'Jets', image:nflImg('jets.png')},
+  {code:'PHI', name:'Eagles', image:nflImg('eagles.png')},
+  {code:'PIT', name:'Steelers', image:nflImg('steelers.png')},
+  {code:'SEA', name:'Seahawks', image:nflImg('seahawks.png')},
+  {code:'SF',  name:'49ers', image:nflImg('49ers.png')},
+  {code:'TB',  name:'Buccaneers', image:nflImg('buccaneers.png')},
+  {code:'TEN', name:'Titans', image:nflImg('titans.png')},
+  {code:'WAS', name:'Commanders', image:nflImg('commanders.png')}
+];
+
+const MLB = [
+  {code:'ARI', name:'Diamondbacks', image:mlbImg('diamondbacks.png')},
+  {code:'ATL', name:'Braves', image:mlbImg('braves.png')},
+  {code:'BAL', name:'Orioles', image:mlbImg('orioles.png')},
+  {code:'BOS', name:'Red Sox', image:mlbImg('redsox.png')},
+  {code:'CHC', name:'Cubs', image:mlbImg('cubs.png')},
+  {code:'CWS', name:'White Sox', image:mlbImg('whitesox.png')},
+  {code:'CIN', name:'Reds', image:mlbImg('reds.png')},
+  {code:'CLE', name:'Guardians', image:mlbImg('guardians.png')},
+  {code:'COL', name:'Rockies', image:mlbImg('rockies.png')},
+  {code:'DET', name:'Tigers', image:mlbImg('tigers.png')},
+  {code:'HOU', name:'Astros', image:mlbImg('astros.png')},
+  {code:'KC',  name:'Royals', image:mlbImg('royals.png')},
+  {code:'LAA', name:'Angels', image:mlbImg('angels.png')},
+  {code:'LAD', name:'Dodgers', image:mlbImg('dodgers.png')},
+  {code:'MIA', name:'Marlins', image:mlbImg('marlins.png')},
+  {code:'MIL', name:'Brewers', image:mlbImg('brewers.png')},
+  {code:'MIN', name:'Twins', image:mlbImg('twins.png')},
+  {code:'NYM', name:'Mets', image:mlbImg('mets.png')},
+  {code:'NYY', name:'Yankees', image:mlbImg('yankees.png')},
+  {code:'ATH', name:'Athletics', image:mlbImg('athletics.png')},
+  {code:'PHI', name:'Phillies', image:mlbImg('phillies.png')},
+  {code:'PIT', name:'Pirates', image:mlbImg('pirates.png')},
+  {code:'SD',  name:'Padres', image:mlbImg('padres.png')},
+  {code:'SEA', name:'Mariners', image:mlbImg('mariners.png')},
+  {code:'SF',  name:'Giants', image:mlbImg('giants.png')},
+  {code:'STL', name:'Cardinals', image:mlbImg('cardinals.png')},
+  {code:'TB',  name:'Rays', image:mlbImg('rays.png')},
+  {code:'TEX', name:'Rangers', image:mlbImg('rangers.png')},
+  {code:'TOR', name:'Blue Jays', image:mlbImg('bluejays.png')},
+  {code:'WSH', name:'Nationals', image:mlbImg('nationals.png')}
+];
+
+const BREAK_TYPES = {
+  nfl:{ name:'NFL', teams:NFL, count:32, bottomCols:6, bottomCount:12 },
+  nfl8:{ name:'NFL + 8', teams:[], count:40, bottomCols:5, bottomCount:20 },
+  nba:{ name:'NBA', teams:NBA, count:30, bottomCols:5, bottomCount:10 },
+  mlb:{ name:'MLB', teams:MLB, count:30, bottomCols:5, bottomCount:10 }
+};
+
+const DEFAULT_NFL8_CUSTOM_SPOTS = Array.from({ length: 8 }, (_, i) => ({
+  code: `X${i + 1}`,
+  name: `CUSTOM ${i + 1}`
+}));
+
+function loadNFL8CustomSpots(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(LS.NFL8_CUSTOM_SPOTS) || 'null');
+    if (Array.isArray(raw) && raw.length){
+      const next = raw.slice(0, 8).map((item, i) => ({
+        code: `X${i + 1}`,
+        name: String(item?.name || item || `CUSTOM ${i + 1}`).trim() || `CUSTOM ${i + 1}`
+      }));
+      while (next.length < 8){
+        next.push({ code:`X${next.length + 1}`, name:`CUSTOM ${next.length + 1}` });
+      }
+      return next;
+    }
+  }catch(_){}
+  return DEFAULT_NFL8_CUSTOM_SPOTS.map(x => ({ ...x }));
+}
+
+function saveNFL8CustomSpots(spots){
+  const safe = Array.from({ length: 8 }, (_, i) => {
+    const src = spots?.[i];
+    return {
+      code: `X${i + 1}`,
+      name: String(src?.name || src || `CUSTOM ${i + 1}`).trim() || `CUSTOM ${i + 1}`
+    };
+  });
+  localStorage.setItem(LS.NFL8_CUSTOM_SPOTS, JSON.stringify(safe));
+}
+
+let nfl8CustomSpots = loadNFL8CustomSpots();
+
+function getTeamsForBreakType(type = currentBreakType){
+  if (type === 'nfl8'){
+    return [
+      ...NFL,
+      ...nfl8CustomSpots.map((spot, i) => ({
+        code: `X${i + 1}`,
+        name: String(spot.name || `CUSTOM ${i + 1}`),
+        image: '',
+        customSpot: true
+      }))
+    ];
+  }
+  return BREAK_TYPES[type]?.teams || [];
+}
+
+/* =========================
+   State
+========================= */
+let currentBreakType = (localStorage.getItem(LS.BREAK_TYPE) || 'nfl').toLowerCase();
+if (!BREAK_TYPES[currentBreakType]) currentBreakType = 'nfl';
+let currentBreakNumber = Math.max(1, parseInt(localStorage.getItem(LS.BREAK_NUMBER) || '1', 10) || 1);
+let soldPanelEnabled = localStorage.getItem(LS.SOLD_PANEL) !== '0';
+
+const soldTeams = new Set();
+let soldTeamsList = [];
+const lastCodeByListingKey = new Map();
+let boardState = {};
+let scoresData = [];
+let highBidValue = 0;
+let showHighBid = localStorage.getItem(LS.SHOW_HIGH_BID) !== '0';
+const PROMO_PRESET_ORDER = [
+  'stash_or_pass','pyt','see_2_pick_1','see_3_pick_2','see_4_pick_2','see_5_pick_3','nuke','case_hit_live'
+];
+const PROMO_PRESET_LABELS = {
+  stash_or_pass:'Stash or Pass',
+  pyt:'PYT (Pick Your Team)',
+  see_2_pick_1:'See 2 Pick 1',
+  see_3_pick_2:'See 3 Pick 2',
+  see_4_pick_2:'See 4 Pick 2',
+  see_5_pick_3:'See 5 Pick 3',
+  nuke:'NUKE!',
+  case_hit_live:'Case Hit Live'
+};
+let promoLibrary = loadPromoLibrary();
+let activePromoKey = localStorage.getItem(LS.ACTIVE_PROMO) || '';
+
+let tickerMode = 'custom';
+let tickerFlipTimer = null;
+const TICKER_CUSTOM_SECONDS = 12;
+const TICKER_SPORTS_SECONDS = 8;
+
+
+function highBidStorageKey(){
+  return `${LS.HIGH_BID}:${currentBreakType}:${currentBreakNumber}`;
+}
+function loadHighBid(){
+  const raw = Number(localStorage.getItem(highBidStorageKey()) || 0);
+  return Number.isFinite(raw) && raw >= 0 ? raw : 0;
+}
+function saveHighBid(n){
+  localStorage.setItem(highBidStorageKey(), String(Number(n) || 0));
+}
+function formatCurrency(n){
+  const val = Number(n) || 0;
+  return `$${Math.round(val)}`;
+}
+function setHighBid(n){
+  highBidValue = Number.isFinite(Number(n)) && Number(n) >= 0 ? Number(n) : 0;
+  saveHighBid(highBidValue);
+  syncHighBidUI();
+}
+function syncHighBidUI(){
+  safeText('highBidCtl', formatCurrency(highBidValue));
+  safeText('streamHighBidText', formatCurrency(highBidValue));
+  const row = document.getElementById('streamHighBidRow');
+  const box = document.getElementById('highBidCtlBox');
+  if (row) row.style.display = showHighBid ? '' : 'none';
+  if (box) box.style.visibility = showHighBid ? 'visible' : 'hidden';
+}
+function toggleHighBidDisplay(){
+  showHighBid = !showHighBid;
+  localStorage.setItem(LS.SHOW_HIGH_BID, showHighBid ? '1' : '0');
+  syncHighBidUI();
+}
+function defaultPromoLibrary(){
+  const out = {};
+  PROMO_PRESET_ORDER.forEach(key => {
+    out[key] = { image:'', video:'' };
+  });
+  return out;
+}
+function loadPromoLibrary(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(LS.PROMO_LIBRARY) || 'null');
+    const base = defaultPromoLibrary();
+    if (raw && typeof raw === 'object'){
+      for (const key of PROMO_PRESET_ORDER){
+        const item = raw[key] || {};
+        base[key] = {
+          image: String(item.image || ''),
+          video: String(item.video || '')
+        };
+      }
+    }
+    return base;
+  }catch(_){}
+  return defaultPromoLibrary();
+}
+function savePromoLibrary(){
+  localStorage.setItem(LS.PROMO_LIBRARY, JSON.stringify(promoLibrary));
+}
+function activePromoItem(){
+  return activePromoKey && promoLibrary[activePromoKey] ? promoLibrary[activePromoKey] : null;
+}
+function setActivePromo(key){
+  activePromoKey = key && promoLibrary[key] ? key : '';
+  if (activePromoKey) localStorage.setItem(LS.ACTIVE_PROMO, activePromoKey);
+  else localStorage.removeItem(LS.ACTIVE_PROMO);
+  renderActivePromo();
+  renderPromoPresetRows();
+}
+function clearActivePromo(){
+  setActivePromo('');
+}
+function renderActivePromo(){
+  const stage = document.getElementById('promoStage');
+  const img = document.getElementById('promoImage');
+  const vid = document.getElementById('promoVideo');
+  const empty = document.getElementById('promoEmpty');
+  if (!stage || !img || !vid || !empty) return;
+
+  stage.classList.remove('show-image','show-video');
+  img.removeAttribute('src');
+  vid.pause();
+  vid.removeAttribute('src');
+  vid.load();
+
+  const item = activePromoItem();
+  if (!item || (!item.image && !item.video)){
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  if (item.video){
+    vid.src = item.video;
+    stage.classList.add('show-video');
+    vid.currentTime = 0;
+    const playPromise = vid.play();
+    if (playPromise && typeof playPromise.catch === 'function'){
+      playPromise.catch(() => {
+        if (item.image){
+          img.src = item.image;
+          stage.classList.remove('show-video');
+          stage.classList.add('show-image');
+        }
+      });
+    }
+  } else if (item.image){
+    img.src = item.image;
+    stage.classList.add('show-image');
+  }
+}
+function handlePromoVideoEnded(){
+  const stage = document.getElementById('promoStage');
+  const img = document.getElementById('promoImage');
+  const item = activePromoItem();
+  if (!stage || !img || !item) return;
+  stage.classList.remove('show-video');
+  if (item.image){
+    img.src = item.image;
+    stage.classList.add('show-image');
+  }
+}
+function renderPromoPresetRows(){
+  const host = document.getElementById('promoPresetList');
+  if (!host) return;
+  host.innerHTML = '';
+  PROMO_PRESET_ORDER.forEach(key => {
+    const item = promoLibrary[key] || { image:'', video:'' };
+    const row = document.createElement('div');
+    row.className = 'promo-preset-row';
+    row.innerHTML = `
+      <div class="promo-preset-name">${PROMO_PRESET_LABELS[key]}</div>
+      <label class="promo-mini-btn" for="promoImageUpload_${key}">${item.image ? 'Replace Image' : 'Upload Image'}</label>
+      <label class="promo-mini-btn" for="promoVideoUpload_${key}">${item.video ? 'Replace Video' : 'Upload Video'}</label>
+      <button type="button" class="promo-mini-btn primary ${activePromoKey === key ? 'active' : ''}" id="promoUse_${key}">${activePromoKey === key ? 'Active' : 'Use'}</button>
+      <input id="promoImageUpload_${key}" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="hidden" />
+      <input id="promoVideoUpload_${key}" type="file" accept="video/mp4,video/webm,video/quicktime" class="hidden" />
+    `;
+    host.appendChild(row);
+    row.querySelector(`#promoUse_${key}`).addEventListener('click', () => setActivePromo(key));
+    row.querySelector(`#promoImageUpload_${key}`).addEventListener('change', e => handlePromoAssetUpload(key, 'image', e.target.files && e.target.files[0]));
+    row.querySelector(`#promoVideoUpload_${key}`).addEventListener('change', e => handlePromoAssetUpload(key, 'video', e.target.files && e.target.files[0]));
+  });
+}
+function handlePromoAssetUpload(key, kind, file){
+  if (!file || !promoLibrary[key]) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    promoLibrary[key][kind] = String(reader.result || '');
+    savePromoLibrary();
+    if (activePromoKey === key) renderActivePromo();
+    renderPromoPresetRows();
+  };
+  reader.readAsDataURL(file);
+}
+
+
+/* =========================
+   Titles / ticker
+========================= */
+const DEFAULT_TITLE_MAIN = 'CHASING CARDS SOLUTION';
+const DEFAULT_TITLE_SUB = 'NFL • NBA • MLB BREAKS';
+
+const DEFAULT_TICKER_LINES = [
+  'CHASING CARDS SOLUTION',
+  'NFL • NBA • MLB BREAKS',
+  'RED • WHITE • BLUE • GOOD LUCK'
+];
+let SPORTS_LINES = [];
+
+function loadTitles(){
+  return {
+    main: localStorage.getItem(LS.TITLE_MAIN) || DEFAULT_TITLE_MAIN,
+    sub: localStorage.getItem(LS.TITLE_SUB) || DEFAULT_TITLE_SUB
+  };
+}
+function applyTitles(main, sub){
+  const m = String(main || DEFAULT_TITLE_MAIN).trim() || DEFAULT_TITLE_MAIN;
+  const s = String(sub || DEFAULT_TITLE_SUB).trim() || DEFAULT_TITLE_SUB;
+  localStorage.setItem(LS.TITLE_MAIN, m);
+  localStorage.setItem(LS.TITLE_SUB, s);
+  const cfg = BREAK_TYPES[currentBreakType];
+  document.getElementById('headerTitle').textContent = `${m} • ${cfg.name}`;
+  document.getElementById('infoTitleText').textContent = s;
+}
+function loadTickerLines(){
+  try{
+    const raw = localStorage.getItem(LS.TICKER);
+    if (!raw) return DEFAULT_TICKER_LINES.slice();
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr) && arr.length) return arr.map(v => String(v));
+  }catch(_){}
+  return DEFAULT_TICKER_LINES.slice();
+}
+let TICKER_LINES = loadTickerLines();
+
+function getTickerSpeed(){
+  const raw = Number(localStorage.getItem(LS.TICKER_SPEED) || 20);
+  return Number.isFinite(raw) ? Math.max(8, Math.min(45, raw)) : 20;
+}
+function setTickerTrackText(text){
+  const a = document.getElementById('tickerA');
+  const b = document.getElementById('tickerB');
+  const track = document.getElementById('tickerTrack');
+  const safe = String(text || '').trim() || ' ';
+  a.textContent = safe;
+  b.textContent = safe;
+  document.documentElement.style.setProperty('--tickerDur', `${getTickerSpeed()}s`);
+  track.style.animation = 'none';
+  void track.offsetHeight;
+  track.style.animation = '';
+}
+function refreshTicker(){
+  if (tickerMode === 'sports' && SPORTS_LINES.length){
+    document.getElementById('tickerModeText').textContent = 'Scores';
+    setTickerTrackText(SPORTS_LINES.join('   •   '));
+    return;
+  }
+  document.getElementById('tickerModeText').textContent = 'Custom';
+  setTickerTrackText(TICKER_LINES.join('   •   '));
+}
+function flipTickerTo(mode){
+  tickerMode = mode;
+  refreshTicker();
+}
+function startTickerRotation(){
+  if (tickerFlipTimer) clearTimeout(tickerFlipTimer);
+  const loop = () => {
+    const useSports = SPORTS_LINES.length > 0;
+    const next = useSports ? (tickerMode === 'custom' ? 'sports' : 'custom') : 'custom';
+    flipTickerTo(next);
+    const waitMs = ((next === 'sports' ? TICKER_SPORTS_SECONDS : TICKER_CUSTOM_SECONDS) * 1000);
+    tickerFlipTimer = setTimeout(loop, waitMs);
+  };
+  tickerMode = 'custom';
+  refreshTicker();
+  tickerFlipTimer = setTimeout(loop, TICKER_CUSTOM_SECONDS * 1000);
+}
+
+/* =========================
+   Helpers
+========================= */
+function safeText(id, val){
+  const el = document.getElementById(id);
+  if (el) el.textContent = String(val ?? '');
+}
+function safeBuyer(v){
+  return String(v || '').replace(/\s+/g, ' ').trim();
+}
+function norm(s){
+  return String(s || '')
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+function buildLookup(teams){
+  const map = new Map();
+  for (const t of teams){
+    const code = String(t.code || '').toUpperCase();
+    if (!code) continue;
+    map.set(norm(code), code);
+    map.set(norm(t.name), code);
+  }
+  return map;
+}
+function normalizeSport(v){
+  const x = String(v || '').toLowerCase().trim();
+  return ['nfl','nfl8','nba','mlb'].includes(x) ? x : '';
+}
+function getSportLabel(v = currentBreakType){
+  return BREAK_TYPES[v]?.name || String(v || '').toUpperCase();
+}
+function computeBreakId(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}-${currentBreakType}-${currentBreakNumber}`;
+}
+function breakIdMatches(data){
+  const incoming = String(data?.breakId || '').trim();
+  if (!incoming) return true;
+  return incoming === computeBreakId();
+}
+function normalizeCodeAliases(code, sportKey){
+  const c = String(code || '').toUpperCase().trim();
+  const s = String(sportKey || '').toLowerCase();
+  if (!c) return c;
+  if (s === 'mlb' && c === 'WAS') return 'WSH';
+  if (s === 'mlb' && c === 'OAK') return 'ATH';
+  if (s === 'nfl' && c === 'JAC') return 'JAX';
+  return c;
+}
+function isValidCodeForSport(code, sportKey){
+  const s = String(sportKey || '').toLowerCase();
+  if (!code || !BREAK_TYPES[s]) return false;
+  const lookup = buildLookup(getTeamsForBreakType(s));
+  return lookup.has(norm(code));
+}
+function requireValidCodeOrBail(code, sportKey, titleRaw){
+  const c = normalizeCodeAliases(code, sportKey);
+  if (isValidCodeForSport(c, sportKey)) return c;
+  console.warn('[Overlay] invalid code for sport:', c, 'sport:', sportKey, 'title:', titleRaw);
+  return null;
+}
+function inferTeamCodeFromTitle(title, sportKey = currentBreakType){
+  const teams = getTeamsForBreakType(sportKey);
+  const lookup = buildLookup(teams);
+  const t = norm(title);
+  if (!t) return null;
+  if (lookup.has(t)) return lookup.get(t);
+  const m = String(title || '').match(/\b([A-Z]{2,4})\b/);
+  if (m && m[1]) {
+    const token = norm(m[1]);
+    if (lookup.has(token)) return lookup.get(token);
+  }
+  const keys = Array.from(lookup.keys()).sort((a,b) => b.length - a.length);
+  for (const k of keys){
+    if (k.length < 3) continue;
+    if (t.includes(k)) return lookup.get(k);
+  }
+  return null;
+}
+function loadSportTileHeights(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(LS.SPORT_TILE_HEIGHTS) || '{}');
+    return {
+      nfl: Number(raw.nfl) || 66,
+      nfl8: Number(raw.nfl8) || Number(raw.nfl) || 66,
+      nba: Number(raw.nba) || 66,
+      mlb: Number(raw.mlb) || 66
+    };
+  }catch(_){
+    return { nfl:66, nfl8:66, nba:66, mlb:66 };
+  }
+}
+function saveSportTileHeights(next){
+  localStorage.setItem(LS.SPORT_TILE_HEIGHTS, JSON.stringify(next));
+}
+function applySportTileHeight(){
+  const heights = loadSportTileHeights();
+  const h = Number(heights[currentBreakType]) || 66;
+  document.documentElement.style.setProperty('--tileH', `${h}px`);
+}
+function soldEntry(code){
+  return soldTeamsList.find(x => String(x.code).toUpperCase() === String(code).toUpperCase());
+}
+
+/* =========================
+   Board state
+========================= */
+function allEntriesForCurrentSport(){
+  return getTeamsForBreakType(currentBreakType).map(t => ({
+    code:t.code,
+    name:t.name,
+    image:t.image || ''
+  }));
+}
+function ensureBoardState(){
+  const entries = allEntriesForCurrentSport();
+  const next = {};
+  entries.forEach(entry => {
+    const code = String(entry.code || '').toUpperCase().trim();
+    if (!code) return;
+    next[code] = boardState[code] || { sold:false, buyer:'' };
+  });
+  boardState = next;
+
+  soldTeams.clear();
+  soldTeamsList = [];
+  Object.keys(boardState).forEach(code => {
+    if (boardState[code].sold){
+      soldTeams.add(code);
+      soldTeamsList.push({ code, buyer: boardState[code].buyer || '' });
+    }
+  });
+}
+function persistSoldState(){
+  try{
+    localStorage.setItem(`ccs.soldState:${currentBreakType}:${currentBreakNumber}`, JSON.stringify(boardState));
+  }catch(_){}
+}
+function loadSoldState(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(`ccs.soldState:${currentBreakType}:${currentBreakNumber}`) || 'null');
+    boardState = raw || {};
+  }catch(_){
+    boardState = {};
+  }
+  ensureBoardState();
+}
+
+/* =========================
+   DOM
+========================= */
+
+
+function buildTile(team){
+  const d = document.createElement('div');
+  d.className = 'tile';
+  d.dataset.teamCode = team.code;
+
+  if (team.customSpot) d.classList.add('custom-spot');
+
+  if (team.image){
+    const img = document.createElement('img');
+    img.src = team.image;
+    img.alt = team.name;
+    img.onerror = () => {
+      img.remove();
+      const label = document.createElement('div');
+      label.className = 'tile-name';
+      label.textContent = team.name || team.code;
+      d.appendChild(label);
+    };
+    d.appendChild(img);
+  } else {
+    const label = document.createElement('div');
+    label.className = 'tile-name';
+    label.textContent = team.name || team.code;
+    d.appendChild(label);
+  }
+
+  const buyer = document.createElement('div');
+  buyer.className = 'tile-buyer';
+  buyer.textContent = safeBuyer(boardState[team.code]?.buyer || '');
+  d.appendChild(buyer);
+
+  if (boardState[team.code]?.sold) d.classList.add('sold');
+
+  d.addEventListener('click', () => {
+    if (soldTeams.has(team.code)) sseMarkUnsold(team.code);
+    else sseMarkSold(team.code, 'SOLD');
+  });
+
+  return d;
+}
+function renderTeams(){
+  const cfg = BREAK_TYPES[currentBreakType];
+  const TEAMS = getTeamsForBreakType(currentBreakType);
+  const leftGrid = document.getElementById('leftGrid');
+  const rightGrid = document.getElementById('rightGrid');
+  const bottomGrid = document.getElementById('bottomGrid');
+  leftGrid.innerHTML = '';
+  rightGrid.innerHTML = '';
+  bottomGrid.innerHTML = '';
+
+  document.documentElement.style.setProperty('--bottomCols', String(cfg.bottomCols));
+
+  const leftTeams = TEAMS.slice(0, 10);
+  const rightTeams = TEAMS.slice(10, 20);
+  const bottomTeams = TEAMS.slice(20, 20 + cfg.bottomCount);
+
+  leftTeams.forEach(t => leftGrid.appendChild(buildTile(t)));
+  rightTeams.forEach(t => rightGrid.appendChild(buildTile(t)));
+  bottomTeams.forEach(t => bottomGrid.appendChild(buildTile(t)));
+
+  updateStats();
+  renderSoldPanel();
+}
+
+function buildLayout(){
+  loadSoldState();
+  ensureBoardState();
+  applySportTileHeight();
+  const titles = loadTitles();
+  applyTitles(titles.main, titles.sub);
+  safeText('sportChip', getSportLabel());
+  safeText('breakId', currentBreakNumber);
+  safeText('breakIdCtl', currentBreakNumber);
+  safeText('breakIdInfoText', computeBreakId());
+  safeText('channelInfoText', getChannels().join(','));
+  renderTeams();
+  renderScores();
+  
+document.getElementById('nfl8CustomBtn').style.display = currentBreakType === 'nfl8' ? '' : 'none';
+
+}
+
+/* =========================
+   Sold state
+========================= */
+function applySale(code, buyerName, sold){
+  const key = String(code || '').toUpperCase().trim();
+  if (!key || !boardState[key]) return;
+
+  boardState[key].sold = !!sold;
+  boardState[key].buyer = sold ? safeBuyer(buyerName || '') : '';
+
+  if (sold){
+    soldTeams.add(key);
+    const item = soldEntry(key);
+    if (!item) soldTeamsList.push({ code:key, buyer:safeBuyer(buyerName || '') });
+    else item.buyer = safeBuyer(buyerName || '');
+  } else {
+    soldTeams.delete(key);
+    soldTeamsList = soldTeamsList.filter(x => String(x.code).toUpperCase() !== key);
+  }
+
+  persistSoldState();
+  buildLayout();
+}
+function sseMarkSold(code, buyerName = ''){
+  applySale(code, buyerName, true);
+}
+function sseMarkUnsold(code){
+  applySale(code, '', false);
+}
+function sseUpdateBuyer(code, buyerName = ''){
+  const key = String(code || '').toUpperCase().trim();
+  if (!key || !boardState[key]) return;
+  if (!boardState[key].sold) return;
+  boardState[key].buyer = safeBuyer(buyerName || '');
+  const item = soldEntry(key);
+  if (item) item.buyer = boardState[key].buyer;
+  persistSoldState();
+  buildLayout();
+}
+function resetSoldState(){
+  Object.keys(boardState).forEach(code => {
+    boardState[code].sold = false;
+    boardState[code].buyer = '';
+  });
+  soldTeams.clear();
+  soldTeamsList = [];
+  lastCodeByListingKey.clear();
+  persistSoldState();
+}
+function resetAll(){
+  resetSoldState();
+  setHighBid(0);
+  buildLayout();
+  bridgePostSafe({
+    type:'reset',
+    breakId: computeBreakId(),
+    sport: currentBreakType,
+    channel:'main',
+    ts: Date.now()
+  });
+}
+function updateStats(){
+  const total = Object.keys(boardState).length;
+  const remaining = Math.max(0, total - soldTeams.size);
+  safeText('teamsSold', soldTeams.size);
+  safeText('teamsLeft', remaining);
+  safeText('streamSoldText', soldTeams.size);
+  safeText('streamRemainingText', remaining);
+}
+function renderSoldPanel(){
+  const soldWrap = document.getElementById('soldWrap');
+  const soldGrid = document.getElementById('soldGrid');
+  soldGrid.innerHTML = '';
+
+  soldTeamsList.slice().sort((a,b) => String(a.code).localeCompare(String(b.code))).forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'sold-item';
+
+    const team = getTeamsForBreakType(currentBreakType).find(t => t.code === entry.code);
+    if (team?.image){
+      const img = document.createElement('img');
+      img.src = team.image;
+      row.appendChild(img);
+    }
+
+    const input = document.createElement('input');
+    input.value = entry.buyer || '';
+    input.placeholder = entry.code;
+    input.addEventListener('input', e => {
+      entry.buyer = e.target.value;
+      if (boardState[entry.code]) boardState[entry.code].buyer = e.target.value;
+      persistSoldState();
+      buildLayout();
+    });
+    row.appendChild(input);
+    soldGrid.appendChild(row);
+  });
+
+  soldWrap.classList.toggle('active', soldPanelEnabled);
+}
+function toggleSoldControls(){
+  soldPanelEnabled = !soldPanelEnabled;
+  localStorage.setItem(LS.SOLD_PANEL, soldPanelEnabled ? '1' : '0');
+  renderSoldPanel();
+}
+function buildExportTSV(){
+  let out = 'Code\tBuyer\tSport\tBreak#\tBreakId\n';
+  soldTeamsList.slice().sort((a,b) => String(a.code).localeCompare(String(b.code))).forEach(entry => {
+    out += `${entry.code}\t${safeBuyer(entry.buyer || '')}\t${currentBreakType.toUpperCase()}\t${currentBreakNumber}\t${computeBreakId()}\n`;
+  });
+  return out;
+}
+
+/* =========================
+   Scores / banner
+========================= */
+function renderScores(){
+  const host = document.getElementById('scoreboard');
+  host.innerHTML = '';
+  const slice = scoresData.slice(0, 4);
+  if (!slice.length){
+    host.innerHTML = '<div class="scoreRow"><span class="muted">Waiting for feed…</span></div>';
+    return;
+  }
+  slice.forEach(g => {
+    const row = document.createElement('div');
+    row.className = 'scoreRow';
+    row.innerHTML = `<span>${g.away} ${g.awayScore} • ${g.home} ${g.homeScore}</span><span class="muted">${g.state}</span>`;
+    host.appendChild(row);
+  });
+  SPORTS_LINES = slice.map(g => `${g.league || ''} ${g.away} ${g.awayScore} - ${g.home} ${g.homeScore} ${g.state}`);
+  refreshTicker();
+}
+
+
+
+
+
+/* =========================
+   Popups
+========================= */
+function openPopup(id){ document.getElementById(id).classList.add('active'); }
+function closePopup(id){ document.getElementById(id).classList.remove('active'); }
+
+function openNFL8CustomPopup(){
+  const text = nfl8CustomSpots.map(x => x.name).join('\n');
+  document.getElementById('nfl8CustomInput').value = text;
+  openPopup('nfl8CustomPopup');
+}
+
+function applyNFL8CustomSpotsFromInput(){
+  const raw = document.getElementById('nfl8CustomInput').value || '';
+  const parsed = raw
+    .split(/[\n,]+/)
+    .map(v => String(v).trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  const next = Array.from({ length: 8 }, (_, i) => ({
+    code: `X${i + 1}`,
+    name: parsed[i] || `CUSTOM ${i + 1}`
+  }));
+
+  nfl8CustomSpots = next;
+  saveNFL8CustomSpots(next);
+
+  if (currentBreakType === 'nfl8'){
+    const prevState = { ...boardState };
+    boardState = {};
+    ensureBoardState();
+
+    Object.keys(boardState).forEach(code => {
+      if (prevState[code]){
+        boardState[code] = prevState[code];
+      }
+    });
+
+    persistSoldState();
+    buildLayout();
+  }
+
+  closePopup('nfl8CustomPopup');
+}
+
+/* promo functions moved to promo library manager */
+
+/* =========================
+   Sport switching
+========================= */
+function setBreakType(type){
+  const next = normalizeSport(type);
+  if (!next || next === currentBreakType) return;
+  currentBreakType = next;
+  localStorage.setItem(LS.BREAK_TYPE, currentBreakType);
+  buildLayout();
+  bridgePostSafe({
+    type:'set_sport',
+    sport: currentBreakType,
+    breakType: currentBreakType,
+    breakId: computeBreakId(),
+    ts: Date.now()
+  });
+  bridgeWarmupSafe();
+}
+function cycleSport(){
+  const order = ['nfl','nfl8','nba','mlb'];
+  const idx = order.indexOf(currentBreakType);
+  setBreakType(order[(idx + 1 + order.length) % order.length]);
+}
+function startNewBreakCycle(){
+  resetSoldState();
+  currentBreakNumber += 1;
+  localStorage.setItem(LS.BREAK_NUMBER, String(currentBreakNumber));
+  buildLayout();
+  bridgePostSafe({
+    type:'set_break',
+    breakNumber: currentBreakNumber,
+    breakId: computeBreakId(),
+    sport: currentBreakType,
+    ts: Date.now()
+  });
+}
+
+/* =========================
+   Bridge / SSE
+========================= */
+function getParam(name){
+  return new URLSearchParams(location.search).get(name);
+}
+function normalizeBridge(v){
+  return String(v || '').trim().replace(/\/$/, '').replace(/\/(stream|events)(\/.*)?$/, '');
+}
+function getBridgeUrl(){
+  const q = getParam('bridge');
+  if (q){
+    const cleaned = normalizeBridge(q);
+    localStorage.setItem('tsu.bridgeUrl', cleaned);
+    return cleaned;
+  }
+  return normalizeBridge(localStorage.getItem('tsu.bridgeUrl') || '');
+}
+function getBridgeKey(){
+  const q = getParam('key');
+  if (q){
+    localStorage.setItem('tsu.bridgeKey', q);
+    return q;
+  }
+  return localStorage.getItem('tsu.bridgeKey') || '';
+}
+function getChannels(){
+  const params = new URLSearchParams(location.search);
+  const vals = params.getAll('channel').map(v => String(v).toLowerCase().trim()).filter(Boolean);
+  if (vals.length) return Array.from(new Set(vals));
+  return ['main','sports'];
+}
+function automationEnabled(){
+  return !!getBridgeUrl();
+}
+
+let sseMain = null;
+let sseSports = null;
+
+function setSSEStatus(state, text){
+  const box = document.getElementById('sseStatus');
+  box.classList.remove('connected','error','connecting');
+  box.classList.add(state || 'error');
+  safeText('sseText', text || state || 'OFF');
+}
+function connectOneSSE(channel, onOpenLabel, handler, refSetter){
+  const base = getBridgeUrl();
+  const url = `${base}/stream?channel=${encodeURIComponent(channel)}`;
+  let ref = refSetter();
+  if (ref) try{ ref.close(); }catch(_){}
+  setSSEStatus('connecting', 'CONNECT');
+
+  ref = new EventSource(url);
+  refSetter(ref);
+
+  const ingest = (e) => {
+    try{
+      const parsed = JSON.parse(e.data);
+      if (parsed?.type === 'hello') return;
+      handler(parsed);
+    }catch(err){
+      console.warn('[SSE parse error]', err);
+    }
+  };
+
+  ref.onopen = () => {
+    if (channel === 'main'){
+      setSSEStatus('connected', onOpenLabel || 'ON');
+      bridgeWarmupSafe();
+    }
+  };
+  ref.onmessage = ingest;
+  ['team_sold','team_unsold','sale','sold','purchase','whatnot_purchase','buyer','buyer_update','reset','set_break','set_sport','set_title','next_break','scores','overlay_warmup']
+    .forEach(type => ref.addEventListener(type, ingest));
+
+  ref.onerror = () => {
+    if (channel === 'main') setSSEStatus('error', 'RETRY');
+    try{ ref.close(); }catch(_){}
+    refSetter(null);
+    setTimeout(() => connectOneSSE(channel, onOpenLabel, handler, refSetter), 2500);
+  };
+}
+function initSSE(){
+  if (!automationEnabled()){
+    setSSEStatus('error', 'OFF');
+    return;
+  }
+  const channels = new Set(getChannels());
+  channels.add('main');
+  channels.add('sports');
+
+  if (channels.has('main')){
+    connectOneSSE('main', 'ON', handleSSEEvent, function(v){
+      if (arguments.length) sseMain = v;
+      return sseMain;
+    });
+  }
+  if (channels.has('sports')){
+    connectOneSSE('sports', 'ON', handleSportsEvent, function(v){
+      if (arguments.length) sseSports = v;
+      return sseSports;
+    });
+  }
+}
+async function bridgePost(payload){
+  if (!automationEnabled()) return;
+  const base = getBridgeUrl();
+  const key = getBridgeKey();
+  await fetch(`${base}/events`, {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      ...(key ? { 'x-bridge-key': key } : {})
+    },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
+}
+function bridgePostSafe(payload){
+  try{ bridgePost(payload); }catch(_){}
+}
+function bridgeWarmup(extra = {}){
+  return bridgePost({
+    type:'overlay_warmup',
+    overlay:'ccs-sms-layout',
+    channel:'main',
+    ts:Date.now(),
+    breakId: computeBreakId(),
+    sport: currentBreakType,
+    ...extra
+  });
+}
+function bridgeWarmupSafe(){
+  try{ bridgeWarmup(); }catch(_){}
+}
+function handleSportsEvent(data){
+  const payload = (data && typeof data === 'object' && data.data && typeof data.data === 'object') ? data.data : data;
+  if (!payload || String(payload.type || '').toLowerCase() !== 'scores') return;
+  handleSSEEvent(payload);
+}
+function handleSSEEvent(data){
+  const payload = (data && typeof data === 'object' && data.data && typeof data.data === 'object') ? data.data : data;
+  if (!payload || typeof payload !== 'object') return;
+
+  const type = String(payload.type || '').toLowerCase();
+  if (type === 'overlay_warmup') return;
+  if (!breakIdMatches(payload)) return;
+
+  if (type === 'scores'){
+    const games = Array.isArray(payload.games) ? payload.games : [];
+    scoresData = games.map(g => ({
+      league: String(g.sport || g.league || '').toUpperCase(),
+      away: String(g.away || g.awayAbbr || ''),
+      awayScore: g.awayScore ?? '',
+      home: String(g.home || g.homeAbbr || ''),
+      homeScore: g.homeScore ?? '',
+      state: String(g.status || g.state || g.phase || '')
+    }));
+    renderScores();
+    return;
+  }
+
+  if (type === 'set_title'){
+    const main = payload.main || payload.title || payload.brandTitle || DEFAULT_TITLE_MAIN;
+    const sub = payload.sub || payload.subtitle || payload.brandSub || DEFAULT_TITLE_SUB;
+    applyTitles(main, sub);
+    return;
+  }
+
+  if (type === 'stream_stats'){
+    if (payload.highBid != null) setHighBid(Number(payload.highBid) || 0);
+    if (payload.showHighBid != null){
+      showHighBid = !!payload.showHighBid;
+      localStorage.setItem(LS.SHOW_HIGH_BID, showHighBid ? '1' : '0');
+      syncHighBidUI();
+    }
+    return;
+  }
+
+  if (type === 'set_break'){
+    const next = Math.max(1, parseInt(payload.breakNumber || payload.value || '1', 10) || 1);
+    currentBreakNumber = next;
+    localStorage.setItem(LS.BREAK_NUMBER, String(next));
+    buildLayout();
+    return;
+  }
+
+  if (type === 'next_break'){
+    startNewBreakCycle();
+    return;
+  }
+
+  if (type === 'set_sport'){
+    const nextSport = normalizeSport(payload.breakType || payload.sport);
+    if (nextSport) setBreakType(nextSport);
+    return;
+  }
+
+  if (type === 'reset'){
+    resetSoldState();
+    buildLayout();
+    return;
+  }
+
+  if (type === 'buyer' || type === 'buyer_update'){
+    let code = String(payload.code || payload.teamCode || '').toUpperCase().trim();
+    if (!code){
+      const title = payload.title || payload.itemTitle || payload.listingTitle || payload.name || '';
+      code = inferTeamCodeFromTitle(title, currentBreakType);
+    }
+    code = requireValidCodeOrBail(code, currentBreakType, payload.title || '');
+    if (code) sseUpdateBuyer(code, payload.buyer || payload.buyerName || '');
+    return;
+  }
+
+  const isSale = ['team_sold','sale','sold','purchase','whatnot_purchase'].includes(type);
+  if (isSale){
+    const sport = normalizeSport(payload.sport || payload.breakType) || currentBreakType;
+    if (sport !== currentBreakType) return;
+
+    let code = String(payload.code || payload.teamCode || '').toUpperCase().trim();
+    if (!code){
+      const title = payload.title || payload.itemTitle || payload.listingTitle || payload.name || '';
+      code = inferTeamCodeFromTitle(title, currentBreakType);
+    }
+    code = requireValidCodeOrBail(code, currentBreakType, payload.title || '');
+    if (!code || !boardState[code]) return;
+
+    const buyer = payload.buyer || payload.buyerName || 'SOLD';
+    const saleAmount = Number(payload.amount ?? payload.highBid ?? payload.bidAmount ?? 0);
+    if (Number.isFinite(saleAmount) && saleAmount > highBidValue) setHighBid(saleAmount);
+    const listingKey = payload.saleId || payload.id || payload.listingId || null;
+    if (listingKey){
+      const prev = lastCodeByListingKey.get(String(listingKey));
+      if (prev && prev !== code) sseMarkUnsold(prev);
+      lastCodeByListingKey.set(String(listingKey), code);
+    }
+    sseMarkSold(code, buyer);
+    return;
+  }
+
+  if (type === 'team_unsold'){
+    let code = String(payload.code || payload.teamCode || '').toUpperCase().trim();
+    if (!code){
+      const title = payload.title || payload.itemTitle || payload.listingTitle || '';
+      code = inferTeamCodeFromTitle(title, currentBreakType);
+    }
+    code = requireValidCodeOrBail(code, currentBreakType, payload.title || '');
+    if (code) sseMarkUnsold(code);
+
+    const listingKey = payload.saleId || payload.id || payload.listingId || null;
+    if (listingKey){
+      const cur = lastCodeByListingKey.get(String(listingKey));
+      if (!cur || cur === code) lastCodeByListingKey.delete(String(listingKey));
+    }
+  }
+}
+
+/* =========================
+   UI wiring
+========================= */
+document.getElementById('resetBtn').addEventListener('click', resetAll);
+document.getElementById('nextBtn').addEventListener('click', startNewBreakCycle);
+document.getElementById('soldToggle').addEventListener('click', toggleSoldControls);
+
+document.getElementById('setBreakBtn').addEventListener('click', () => {
+  document.getElementById('breakInput').value = String(currentBreakNumber);
+  openPopup('breakPopup');
+});
+document.getElementById('closeBreak').addEventListener('click', () => closePopup('breakPopup'));
+document.getElementById('applyBreak').addEventListener('click', () => {
+  const v = Math.max(1, parseInt(document.getElementById('breakInput').value || '1', 10) || 1);
+  currentBreakNumber = v;
+  localStorage.setItem(LS.BREAK_NUMBER, String(v));
+  buildLayout();
+  bridgePostSafe({
+    type:'set_break',
+    breakNumber:v,
+    breakId:computeBreakId(),
+    sport:currentBreakType,
+    ts:Date.now()
+  });
+  closePopup('breakPopup');
+});
+
+const openPromoBtn = document.getElementById('openPromoBtn');
+if (openPromoBtn) openPromoBtn.addEventListener('click', () => {
+  renderPromoPresetRows();
+  openPopup('promoPopup');
+});
+const closePromoPopupBtn = document.getElementById('closePromoPopup');
+if (closePromoPopupBtn) closePromoPopupBtn.addEventListener('click', () => closePopup('promoPopup'));
+const promoOffBtn = document.getElementById('promoOffBtn');
+if (promoOffBtn) promoOffBtn.addEventListener('click', clearActivePromo);
+const promoVideoEl = document.getElementById('promoVideo');
+if (promoVideoEl) promoVideoEl.addEventListener('ended', handlePromoVideoEnded);
+
+const setHighBidBtn = document.getElementById('setHighBidBtn');
+if (setHighBidBtn) setHighBidBtn.addEventListener('click', () => {
+  document.getElementById('highBidInput').value = String(loadHighBid());
+  openPopup('highBidPopup');
+});
+const highBidCtlBox = document.getElementById('highBidCtlBox');
+if (highBidCtlBox) highBidCtlBox.addEventListener('click', () => {
+  document.getElementById('highBidInput').value = String(loadHighBid());
+  openPopup('highBidPopup');
+});
+const toggleHighBidBtn = document.getElementById('toggleHighBidBtn');
+if (toggleHighBidBtn) toggleHighBidBtn.addEventListener('click', toggleHighBidDisplay);
+document.getElementById('closeHighBid').addEventListener('click', () => closePopup('highBidPopup'));
+document.getElementById('applyHighBid').addEventListener('click', () => {
+  const n = Number(document.getElementById('highBidInput').value || 0);
+  setHighBid(n);
+  closePopup('highBidPopup');
+});
+
+document.getElementById('setTitleBtn').addEventListener('click', () => {
+  const titles = loadTitles();
+  document.getElementById('titleMainInput').value = titles.main;
+  document.getElementById('titleSubInput').value = titles.sub;
+  openPopup('titlePopup');
+});
+document.getElementById('closeTitle').addEventListener('click', () => closePopup('titlePopup'));
+document.getElementById('applyTitle').addEventListener('click', () => {
+  applyTitles(document.getElementById('titleMainInput').value, document.getElementById('titleSubInput').value);
+  closePopup('titlePopup');
+});
+
+document.getElementById('setTickerBtn').addEventListener('click', () => {
+  document.getElementById('tickerInput').value = TICKER_LINES.join('\n');
+  const speed = getTickerSpeed();
+  document.getElementById('tickerSpeedInput').value = String(speed);
+  document.getElementById('tickerSpeedLabel').textContent = `${speed}s`;
+  openPopup('tickerPopup');
+});
+document.getElementById('closeTicker').addEventListener('click', () => closePopup('tickerPopup'));
+document.getElementById('tickerSpeedInput').addEventListener('input', (e) => {
+  document.getElementById('tickerSpeedLabel').textContent = `${e.target.value}s`;
+});
+document.getElementById('applyTicker').addEventListener('click', () => {
+  const lines = document.getElementById('tickerInput').value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+  TICKER_LINES = lines.length ? lines : DEFAULT_TICKER_LINES.slice();
+  localStorage.setItem(LS.TICKER, JSON.stringify(TICKER_LINES));
+  localStorage.setItem(LS.TICKER_SPEED, String(document.getElementById('tickerSpeedInput').value || 20));
+  refreshTicker();
+  closePopup('tickerPopup');
+});
+
+document.getElementById('sportBtn').addEventListener('click', cycleSport);
+
+document.getElementById('tileHeightsBtn').addEventListener('click', () => {
+  const heights = loadSportTileHeights();
+  document.getElementById('tileHeightNFLInput').value = String(heights.nfl || 66);
+  document.getElementById('tileHeightNBAInput').value = String(heights.nba || 66);
+  document.getElementById('tileHeightMLBInput').value = String(heights.mlb || 66);
+  openPopup('tileHeightPopup');
+});
+document.getElementById('closeTileHeights').addEventListener('click', () => closePopup('tileHeightPopup'));
+document.getElementById('applyTileHeights').addEventListener('click', () => {
+  const current = loadSportTileHeights();
+  const next = {
+    nfl: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightNFLInput').value || current.nfl || '66', 10) || 66)),
+    nfl8: current.nfl8 || current.nfl || 66,
+    nba: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightNBAInput').value || current.nba || '66', 10) || 66)),
+    mlb: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightMLBInput').value || current.mlb || '66', 10) || 66))
+  };
+  saveSportTileHeights(next);
+  applySportTileHeight();
+  buildLayout();
+  closePopup('tileHeightPopup');
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  document.getElementById('exportBox').value = buildExportTSV();
+  openPopup('exportPopup');
+});
+document.getElementById('closeExport').addEventListener('click', () => closePopup('exportPopup'));
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  const txt = document.getElementById('exportBox').value;
+  try{
+    await navigator.clipboard.writeText(txt);
+    document.getElementById('copyBtn').textContent = 'Copied!';
+    setTimeout(() => document.getElementById('copyBtn').textContent = 'Copy', 900);
+  }catch(_){
+    const box = document.getElementById('exportBox');
+    box.focus();
+    box.select();
+    try{ document.execCommand('copy'); }catch(__){}
+  }
+});
+
+/* =========================
+   Boot
+========================= */
+window.addEventListener('DOMContentLoaded', () => {
+  buildLayout();
+  refreshTicker();
+  startTickerRotation();
+  renderPromoPresetRows();
+  renderActivePromo();
+  initSSE();
+});
+</script>
+</body>
+</html>

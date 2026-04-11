@@ -13,7 +13,7 @@
       --bg0:#04070c;
       --bg1:#09121b;
       --bg2:#150a07;
-
+--custom-rows: 2;
       --red:#d81414;
       --redGlow:#ff5a1f;
       --blue:#9ecbff;
@@ -208,7 +208,7 @@
       display:grid;
       grid-template-columns:1fr 146px 1fr;
       gap:8px;
-      height:var(--teams-h);
+      height:var(--board-height, var(--teams-h));
       border-radius:16px;
       padding:3px;
       background:
@@ -416,7 +416,7 @@ body[data-sport="CUSTOM"] .team img{
       content:"✕";
       position:absolute;
       inset:0;
-      z-index:20;
+      z-index:18;
       display:flex;
       align-items:center;
       justify-content:center;
@@ -438,6 +438,37 @@ body[data-sport="CUSTOM"] .team img{
       background:rgba(0,0,0,0.42);
       pointer-events:none;
     }
+
+.sold-buyer-overlay{
+  position:absolute;
+  inset:0;
+  z-index:26;
+  display:flex;
+  align-items:;
+  justify-content:center;
+  padding:12px 18px;
+  text-align:center;
+  pointer-events:none;
+  font-size:28px;
+  line-height:1.02;
+  font-weight:1000;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:#ffffff;
+  text-shadow:
+  0 3px 10px rgba(0, 0, 0, 0.95), 0 0 19px rgb(0 0 0), 0 0 25px rgb(0 0 0);
+  word-break:break-word;
+}
+
+body[data-sport="NFL"] .sold-buyer-overlay{
+  font-size:24px;
+}
+
+body[data-sport="NBA"] .sold-buyer-overlay,
+body[data-sport="MLB"] .sold-buyer-overlay,
+body[data-sport="CUSTOM"] .sold-buyer-overlay{
+  font-size:22px;
+}
 
     .control-bar{
       position:relative;
@@ -954,7 +985,7 @@ body[data-sport="CUSTOM"] .team img{
             <div class="label">Remaining</div>
           </div>
 
-          <button class="btn" onclick="setBreakType(nextSport())">Next</button>
+          <button class="btn" onclick="startNewBreakCycle()">Next</button>
         </div>
 
         <div id="conferenceRight" class="conference right"></div>
@@ -1355,18 +1386,18 @@ const LS = {
       return breakTypes[currentBreakType]
     }
 
-    function loadSportTileHeights(){
+function loadSportTileHeights(){
   try{
     const raw = localStorage.getItem(LS.SPORT_TILE_HEIGHTS)
     const parsed = raw ? JSON.parse(raw) : {}
     return {
-      nfl: Number(parsed?.nfl) || 60,
-      nba: Number(parsed?.nba) || 60,
-      mlb: Number(parsed?.mlb) || 60,
-      custom: Number(parsed?.custom) || 60
+      nfl: Number(parsed?.nfl) || 55,
+      nba: Number(parsed?.nba) || 75,
+      mlb: Number(parsed?.mlb) || 75,
+      custom: Number(parsed?.custom) || 75
     }
   }catch(_){
-    return { nfl:60, nba:60, mlb:60, custom:60 }
+    return { nfl:55, nba:75, mlb:75, custom:75 }
   }
 }
 
@@ -1384,6 +1415,34 @@ function applySportSizing(){
     "--custom-tile-bg",
     bg ? `url("${bg.replace(/"/g, '\\"')}")` : "none"
   )
+}
+
+function applyBoardHeight(){
+  const cfg = getActiveConfig()
+
+  if (currentBreakType !== "custom"){
+    document.documentElement.style.setProperty("--board-height", `${395}px`)
+    return
+  }
+
+  const leftRows = Array.isArray(cfg.left) ? cfg.left.length : 0
+  const rightRows = Array.isArray(cfg.right) ? cfg.right.length : 0
+  const rows = Math.max(leftRows, rightRows, 1)
+
+  document.documentElement.style.setProperty("--custom-rows", String(rows))
+
+  const tileH = Number(loadSportTileHeights().custom) || 75
+  const headerH = 28
+  const rowTopPad = 28
+  const groupVerticalGap = 6
+  const tileGap = 4
+
+  // Custom rows are division groups. Approximate height per division group:
+  // title row + tile row + borders/gaps
+  const perGroup = rowTopPad + tileH + tileGap
+  const boardHeight = Math.max(220, 16 + headerH + (rows * perGroup) + ((rows - 1) * groupVerticalGap))
+
+  document.documentElement.style.setProperty("--board-height", `${boardHeight}px`)
 }
 
 function csvSplitLine(line){
@@ -1602,11 +1661,7 @@ function clearModalTools(){
       })
     }
 
-    function nextSport(){
-      const order = ["nfl","nba","mlb","custom"]
-      const idx = order.indexOf(currentBreakType)
-      return order[(idx + 1) % order.length]
-    }
+  
 
     function teamTile(teamObj){
       const el = document.createElement("div")
@@ -1669,7 +1724,14 @@ function makeDivisionGroup(divMeta, side){
   wrap.appendChild(head)
   wrap.appendChild(grid)
 
-  if (state.sold) wrap.classList.add("sold")
+  if (state.sold) {
+    wrap.classList.add("sold")
+
+    const overlayName = document.createElement("div")
+    overlayName.className = "sold-buyer-overlay"
+    overlayName.textContent = buyerName || divMeta.code
+    wrap.appendChild(overlayName)
+  }
 
   wrap.onclick = () => {
     if (soldTeams.has(divMeta.code)) {
@@ -1791,6 +1853,7 @@ function buildLayout(){
   const cfg = getActiveConfig()
 
   applySportSizing()
+  applyBoardHeight()
 
   buildConference(document.getElementById("conferenceLeft"), "left", cfg.leftTitle || "LEFT", cfg.left)
   buildConference(document.getElementById("conferenceRight"), "right", cfg.rightTitle || "RIGHT", cfg.right)
@@ -2131,7 +2194,7 @@ function openModal(mode){
     desc.textContent = "JSON editor + CSV import + custom tile background + per-sport tile heights."
     area.classList.remove("hidden")
     area.value = JSON.stringify(getCustomConfig() || getActiveConfig(), null, 2)
-    mountCustomModalTools()
+    loadSportTileHeights()
   }
 
   document.getElementById("obsModal").classList.add("show")
@@ -2187,12 +2250,12 @@ function commitModal(){
       if (!parsed || !Array.isArray(parsed.left) || !Array.isArray(parsed.right)) throw new Error("bad")
       localStorage.setItem(LS.CUSTOM_CONFIG, JSON.stringify(parsed))
 
-      const nextHeights = {
-        nfl: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightNFL")?.value || "60", 10) || 60)),
-        nba: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightNBA")?.value || "60", 10) || 60)),
-        mlb: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightMLB")?.value || "60", 10) || 60)),
-        custom: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightCUSTOM")?.value || "60", 10) || 60))
-      }
+const nextHeights = {
+  nfl: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightNFL")?.value || "55", 10) || 55)),
+  nba: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightNBA")?.value || "75", 10) || 75)),
+  mlb: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightMLB")?.value || "75", 10) || 75)),
+  custom: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightCUSTOM")?.value || "75", 10) || 75))
+}
       saveSportTileHeights(nextHeights)
 
       currentBreakType = "custom"
