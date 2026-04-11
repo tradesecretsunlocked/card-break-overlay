@@ -763,7 +763,6 @@
       box-shadow: 0 0 8px rgba(255,255,255,0.15);
     }
     .sse.connected .dot{ background: #3cff8a; box-shadow: 0 0 10px rgba(60,255,138,0.7); }
-    .sse.connecting .dot{ background: #ffd24d; box-shadow: 0 0 10px rgba(255,210,77,0.7); }
     .sse.error .dot{ background: #ff2f2f; box-shadow: 0 0 10px rgba(255,47,47,0.7); }
   </style>
 </head>
@@ -895,156 +894,16 @@ CUSTOM_TITLE: "barn.customTitle",
   }
 
   let TICKER_LINES = loadTickerLines();
-  let SCORE_LINES = [];
-let ACTIVE_TICKER_MODE = "custom"; // "custom" | "scores"
-let TICKER_MODE_TIMER = null;
-const TICKER_ROTATE_MS = 12000;
 
-function normalizeTickerArray(arr){
-  return (Array.isArray(arr) ? arr : [])
-    .map(x => String(x || "").trim())
-    .filter(Boolean);
-}
-
-function getActiveTickerLines(){
-  if (ACTIVE_TICKER_MODE === "scores" && SCORE_LINES.length) return SCORE_LINES;
-  return TICKER_LINES.length ? TICKER_LINES : DEFAULT_TICKER_LINES.slice();
-}
-
-function startTickerModeRotation(){
-  if (TICKER_MODE_TIMER) clearInterval(TICKER_MODE_TIMER);
-
-  TICKER_MODE_TIMER = setInterval(() => {
-    if (!SCORE_LINES.length) {
-      ACTIVE_TICKER_MODE = "custom";
-      refreshTickerText();
-      return;
-    }
-
-    ACTIVE_TICKER_MODE = ACTIVE_TICKER_MODE === "custom" ? "scores" : "custom";
-    refreshTickerText();
-  }, TICKER_ROTATE_MS);
-}
-
-function setScoreLines(lines){
-  SCORE_LINES = normalizeTickerArray(lines);
-
-  if (!SCORE_LINES.length) {
-    ACTIVE_TICKER_MODE = "custom";
+  function refreshTickerText(){
+    const t = ` ${TICKER_LINES.join("   •   ")} `;
+    document.querySelectorAll(".ticker-text").forEach(el => {
+      el.textContent = t;
+      el.style.animation = "none";
+      void el.offsetHeight;
+      el.style.animation = "tickerScroll 18s linear infinite";
+    });
   }
-
-  refreshTickerText();
-}
-
-function getTeamLabel(team){
-  if (!team) return "";
-  if (typeof team === "string") return team.trim();
-  return String(
-    team.abbr ||
-    team.abbreviation ||
-    team.code ||
-    team.shortName ||
-    team.name ||
-    ""
-  ).trim();
-}
-
-function getGameStatusText(game){
-  return String(
-    game.statusText ||
-    game.displayStatus ||
-    game.state ||
-    game.status ||
-    game.phase ||
-    game.periodText ||
-    ""
-  ).trim();
-}
-
-function getGameClockText(game){
-  return String(
-    game.clock ||
-    game.time ||
-    game.timeRemaining ||
-    ""
-  ).trim();
-}
-
-function getGamePeriodText(game){
-  const p = game.period ?? game.quarter ?? game.inning ?? game.set;
-  if (p === undefined || p === null || p === "") return "";
-  return `P${p}`;
-}
-
-function buildScoreLine(game){
-  const awayTeam = game.awayTeam || game.away || game.visitor || game.team1 || game.leftTeam || {};
-  const homeTeam = game.homeTeam || game.home || game.host || game.team2 || game.rightTeam || {};
-
-  const away = getTeamLabel(awayTeam);
-  const home = getTeamLabel(homeTeam);
-
-  const awayScore = game.awayScore ?? game.visitorScore ?? game.scoreAway ?? awayTeam.score ?? awayTeam.points ?? "";
-  const homeScore = game.homeScore ?? game.hostScore ?? game.scoreHome ?? homeTeam.score ?? homeTeam.points ?? "";
-
-  const status = getGameStatusText(game);
-  const clock = getGameClockText(game);
-  const period = getGamePeriodText(game);
-
-  const matchup = [away, awayScore, "-", homeScore, home].filter(v => String(v).trim() !== "").join(" ");
-  const detail = [status, period, clock].filter(Boolean).join(" ");
-
-  if (!matchup) return "";
-  return detail ? `${matchup} • ${detail}` : matchup;
-}
-
-function extractScoreLines(payload){
-  if (!payload || typeof payload !== "object") return [];
-
-  if (Array.isArray(payload.lines)) {
-    return normalizeTickerArray(payload.lines);
-  }
-
-  if (Array.isArray(payload.texts)) {
-    return normalizeTickerArray(payload.texts);
-  }
-
-  if (typeof payload.text === "string" && payload.text.trim()) {
-    return [payload.text.trim()];
-  }
-
-  const games =
-    payload.games ||
-    payload.items ||
-    payload.events ||
-    payload.scoreboard ||
-    payload.scores ||
-    payload.matchups ||
-    payload.data?.games ||
-    payload.data?.items ||
-    payload.data?.events ||
-    payload.data?.scoreboard ||
-    payload.data?.scores ||
-    [];
-
-  if (!Array.isArray(games)) return [];
-
-  return games
-    .map(buildScoreLine)
-    .map(s => String(s || "").trim())
-    .filter(Boolean);
-}
-
-function refreshTickerText(){
-  const sourceLines = getActiveTickerLines();
-  const t = ` ${sourceLines.join("   •   ")} `;
-
-  document.querySelectorAll(".ticker-text").forEach(el => {
-    el.textContent = t;
-    el.style.animation = "none";
-    void el.offsetHeight;
-    el.style.animation = "tickerScroll 18s linear infinite";
-  });
-}
 
   function syncTickerInput(){
     const ta = document.getElementById("tickerModalTextarea");
@@ -1052,13 +911,12 @@ function refreshTickerText(){
     ta.value = TICKER_LINES.join(" • ");
   }
 
-function setTickerLines(lines){
-  TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
-  saveTickerLines(TICKER_LINES);
-  ACTIVE_TICKER_MODE = "custom";
-  refreshTickerText();
-  syncTickerInput();
-}
+  function setTickerLines(lines){
+    TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
+    saveTickerLines(TICKER_LINES);
+    refreshTickerText();
+    syncTickerInput();
+  }
 
   function openTickerEditor(){
     const modal = document.getElementById("tickerModal");
@@ -1825,20 +1683,16 @@ r1.className = "row-grid row-logo";
     updateSoldList();
   }
 
-function updateStats(){
-  const currentTeams = currentBreakType === "custom"
-    ? getCustomEntries()
-    : breakTypes[currentBreakType].teams;
+  function updateStats(){
+    const total = breakTypes[currentBreakType].teams.length;
+    const sold = soldTeams.size;
+    const left = total - sold;
 
-  const total = currentTeams.length;
-  const sold = soldTeams.size;
-  const left = total - sold;
-
-  const a = document.getElementById("teamsLeft");
-  const b = document.getElementById("teamsSold");
-  if (a) a.textContent = String(left);
-  if (b) b.textContent = String(sold);
-}
+    const a = document.getElementById("teamsLeft");
+    const b = document.getElementById("teamsSold");
+    if (a) a.textContent = String(left);
+    if (b) b.textContent = String(sold);
+  }
 
   function updateSoldList(){
     const soldListDiv = document.getElementById("soldList");
@@ -1965,28 +1819,6 @@ function resetAll(){
 
     return null;
   }
-const BRIDGE_URL = (() => {
-  const q = new URLSearchParams(location.search).get("bridge");
-  if (q) {
-    const cleaned = q.replace(/\/$/, "");
-    localStorage.setItem(LS.BRIDGE, cleaned);
-    return cleaned;
-  }
-  const saved = localStorage.getItem(LS.BRIDGE) || localStorage.getItem(LS.URL_LEGACY);
-  return saved ? saved.replace(/\/$/, "") : "";
-})();
-
-const BRIDGE_KEY = (() => {
-  const q = new URLSearchParams(location.search).get("key");
-  if (q) {
-    localStorage.setItem(LS.KEY, q);
-    return q;
-  }
-  return localStorage.getItem(LS.KEY) || localStorage.getItem(LS.KEY_LEGACY) || "";
-})();
-function automationEnabled(){
-  return !!BRIDGE_URL;
-}
 
   let sse = null;
 
@@ -2001,59 +1833,35 @@ function automationEnabled(){
     return saved ? saved.replace(/\/$/, '') : '';
   })();
 
-  wrap.classList.remove("connected", "error", "connecting");
-  if (state === "connected") wrap.classList.add("connected");
-  if (state === "error") wrap.classList.add("error");
-  if (state === "connecting") wrap.classList.add("connecting");
+  const BRIDGE_KEY = (() => {
+    const q = new URLSearchParams(location.search).get('key');
+    if (q) {
+      localStorage.setItem(LS.KEY, q);
+      return q;
+    }
+    return localStorage.getItem(LS.KEY) || '';
+  })();
 
-  text.textContent = msg || state || "off";
-}
+  function automationEnabled(){ return !!BRIDGE_URL; }
 
-function getCodeFromPayload(data){
-  return String(data?.code || data?.teamCode || data?.team || "").trim().toUpperCase();
-}
+  function normalizeBridge(u){
+    return String(u||'')
+      .trim()
+      .replace(/\/$/, '')
+      .replace(/\/(events|stream)(\/.*)?$/,'');
+  }
 
-function getBuyerFromPayload(data){
-  return String(data?.buyer || data?.buyerName || data?.username || data?.topBuyer || "").trim();
-}
+  function setSSEStatus(state, msg){
+    const wrap = document.getElementById('sseStatus');
+    const text = document.getElementById('sseText');
+    if (!wrap || !text) return;
 
-function getSportFromPayload(data){
-  return String(data?.sport || data?.breakType || "").trim().toLowerCase();
-}
+    wrap.classList.remove('connected','error');
+    if (state === 'connected') wrap.classList.add('connected');
+    if (state === 'error') wrap.classList.add('error');
 
-function handleSportsEvent(data){
-  if (!data || typeof data !== "object") return;
-
-  const payload =
-    (data.data && typeof data.data === "object")
-      ? data.data
-      : data;
-
-  const type = String(
-  payload.type ||
-  data.type ||
-  payload.event ||
-  data.event ||
-  data.__eventType ||
-  ""
-).toLowerCase();
-  if (type !== "scores") return;
-
-  const lines = extractScoreLines(payload);
-  setScoreLines(lines);
-}
-
-let sse = null;
-let sseScores = null;
-const lastCodeByListingKey = new Map();
-
-function getChannel(){
-  return new URLSearchParams(location.search).get("channel") || "main";
-}
-
-function getScoresChannel(){
-  return new URLSearchParams(location.search).get("scoresChannel") || "sports";
-}
+    text.textContent = msg || state || 'disconnected';
+  }
 
   function connectSSE(url){
     if (sse) { try { sse.close(); } catch(_){} }
@@ -2185,10 +1993,8 @@ function getCodeFromPayload(data){
 
 
 function handleSSEEvent(data){
-  if (!data || typeof data !== "object") return;
-
   const payload =
-    (data.data && typeof data.data === "object")
+    (data && typeof data === "object" && data.data && typeof data.data === "object")
       ? data.data
       : data;
 
@@ -2220,9 +2026,9 @@ function handleSSEEvent(data){
   if (type === 'set_ticker'){
     if (Array.isArray(payload?.lines)) {
       setTickerLines(payload.lines.map(x => String(x)));
-    } else if (typeof payload.text === "string") {
+    } else if (typeof payload?.text === "string") {
       const parts = payload.text.split("•").map(s => s.trim()).filter(Boolean);
-      if (parts.length) setTickerLines(parts);
+      setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
     }
     return;
   }
@@ -2335,39 +2141,11 @@ if (
 
 
 
-    if (type === "stream_stats"){
-    const saleLine = String(payload?.lastSale || "").trim();
-    if (!saleLine) return;
-
-    const dedupeKey = `${String(payload?.liveId || "")}|${saleLine}`;
-    if (window.__barnLastStreamStatsKey === dedupeKey) return;
-    window.__barnLastStreamStatsKey = dedupeKey;
-
-    let sport = getSportFromPayload(payload) || currentBreakType;
-    const buyer = getBuyerFromPayload(payload);
-
-    let code = getCodeFromPayload(payload);
-    if (!code){
-      code = inferCodeFromTitle(saleLine, sport || currentBreakType);
-    }
+  if (type === 'buyer' || type === 'buyer_update'){
+    const code = String(payload?.code || payload?.teamCode || '').trim().toUpperCase();
+    const buyer = String(payload?.buyer || payload?.buyerName || '').trim();
     if (!code) return;
-
-    if (sport && breakTypes[sport] && sport !== currentBreakType){
-      currentBreakType = sport;
-      buildLayout();
-    }
-
-    const listingKey = payload.saleId || payload.id || payload.listingId || payload.liveId || null;
-
-    if (listingKey && code){
-      const prevCode = lastCodeByListingKey.get(listingKey);
-      if (prevCode && prevCode !== code){
-        sseMarkUnsold(prevCode);
-      }
-      lastCodeByListingKey.set(listingKey, code);
-    }
-
-    sseMarkSold(code, buyer);
+    sseUpdateBuyer(code, buyer);
     return;
   }
 }
@@ -2388,24 +2166,20 @@ if (!exists) return;
       soldTeams.add(code);
       soldTeamsList.push({ code, buyer });
 
-  if (!soldTeams.has(code)){
-    soldTeams.add(code);
-    soldTeamsList.push({ code, buyer });
+      const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+      if (tile){
+        tile.classList.add("sold","flash");
+        setTimeout(()=>tile.classList.remove("flash"), 280);
+      }
 
-    const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
-    if (tile){
-      tile.classList.add("sold","flash");
-      setTimeout(() => tile.classList.remove("flash"), 280);
+      updateStats();
+      updateSoldList();
+    } else if (buyer) {
+      const entry = soldTeamsList.find(t => t.code === code);
+      if (entry) entry.buyer = buyer;
+      updateSoldList();
     }
-
-    updateStats();
-    updateSoldList();
-  } else if (buyer) {
-    const entry = soldTeamsList.find(t => t.code === code);
-    if (entry) entry.buyer = buyer;
-    updateSoldList();
   }
-}
 
 if (type === 'team_unsold'){
   let code = getCodeFromPayload(payload);
@@ -2444,26 +2218,23 @@ if (type === 'team_unsold'){
     return `${yyyy}-${mm}-${dd}`;
   }
 
-function exportSoldListTSV(){
-  const breakNum = String(loadBreakNumber());
-  const dateStr = formatExportDate(new Date());
-  const lines = [];
-  lines.push(["Spot", "Buyer", "Break #", "Date"].join("\t"));
+  function exportSoldListTSV(){
+    const breakNum = String(loadBreakNumber());
+    const dateStr = formatExportDate(new Date());
+    const lines = [];
+    lines.push(["Spot", "Buyer", "Break #", "Date"].join("\t"));
 
-  const currentTeams = currentBreakType === "custom"
-    ? getCustomEntries()
-    : breakTypes[currentBreakType].teams;
+    const currentBreak = breakTypes[currentBreakType];
+    soldTeamsList.forEach(e => {
+      if (!e || !e.code) return;
+      const team = currentBreak.teams.find(t => t.code === e.code);
+      const spot = team?.name ? team.name : e.code;
+      const buyer = String(e.buyer || "").trim();
+      lines.push([spot, buyer, breakNum, dateStr].join("\t"));
+    });
 
-  soldTeamsList.forEach(e => {
-    if (!e || !e.code) return;
-    const team = currentTeams.find(t => t.code === e.code);
-    const spot = team?.name ? team.name : e.code;
-    const buyer = String(e.buyer || "").trim();
-    lines.push([spot, buyer, breakNum, dateStr].join("\t"));
-  });
-
-  return lines.join("\n");
-}
+    return lines.join("\n");
+  }
 
   async function copySoldListTSV(){
     const text = exportSoldListTSV();
@@ -2512,7 +2283,7 @@ function exportSoldListTSV(){
 
     setBreakNumber(loadBreakNumber());
     setTickerLines(loadTickerLines());
-startTickerModeRotation();
+
     buildLayout();
 
     if (automationEnabled()) startSSE();
