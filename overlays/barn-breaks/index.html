@@ -1843,13 +1843,11 @@ function updateStats(){
   function updateSoldList(){
     const soldListDiv = document.getElementById("soldList");
     soldListDiv.innerHTML = "";
-    const currentTeams = currentBreakType === "custom"
-  ? getCustomEntries()
-  : breakTypes[currentBreakType].teams;
+    const currentBreak = breakTypes[currentBreakType];
 
-soldTeamsList.forEach(entry => {
-  const team = currentTeams.find(t => t.code === entry.code);
-  if (!team) return;
+    soldTeamsList.forEach(entry => {
+      const team = currentBreak.teams.find(t => t.code === entry.code);
+      if (!team) return;
 
       const row = document.createElement("div");
       row.className = "sold-row";
@@ -1892,13 +1890,11 @@ function resetAll(){
   soldTeams.clear();
   soldTeamsList = [];
   lastCodeByListingKey.clear();
-  SCORE_LINES = [];
-  ACTIVE_TICKER_MODE = "custom";
   document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
   updateStats();
   updateSoldList();
-  refreshTickerText();
 }
+
 
   function newBreak(){
     resetAll();
@@ -1992,17 +1988,18 @@ function automationEnabled(){
   return !!BRIDGE_URL;
 }
 
-function normalizeBridge(u){
-  return String(u || "")
-    .trim()
-    .replace(/\/$/, "")
-    .replace(/\/(events|stream)(\/.*)?$/, "");
-}
+  let sse = null;
 
-function setSSEStatus(state, msg){
-  const wrap = document.getElementById("sseStatus");
-  const text = document.getElementById("sseText");
-  if (!wrap || !text) return;
+  const BRIDGE_URL = (() => {
+    const q = new URLSearchParams(location.search).get('bridge');
+    if (q) {
+      const cleaned = q.replace(/\/$/, '');
+      localStorage.setItem(LS.BRIDGE, cleaned);
+      return cleaned;
+    }
+    const saved = localStorage.getItem(LS.BRIDGE);
+    return saved ? saved.replace(/\/$/, '') : '';
+  })();
 
   wrap.classList.remove("connected", "error", "connecting");
   if (state === "connected") wrap.classList.add("connected");
@@ -2058,100 +2055,44 @@ function getScoresChannel(){
   return new URLSearchParams(location.search).get("scoresChannel") || "sports";
 }
 
-function connectSSE(url){
-  if (sse) { try { sse.close(); } catch(_){} }
-  setSSEStatus('connecting','connecting');
+  function connectSSE(url){
+    if (sse) { try { sse.close(); } catch(_){} }
+    setSSEStatus('error','connecting');
 
-  try{
-    sse = new EventSource(url);
+    try{
+      sse = new EventSource(url);
 
-  const ingest = (e) => {
-  try{
-    const data = JSON.parse(e.data);
-    const merged = { ...data, __eventType: e.type || "" };
-    if (String(merged?.type || merged?.__eventType || "").toLowerCase() === "hello") return;
-    handleSSEEvent(merged);
-  }catch(err){
-    console.warn("[SSE parse error]", err, e?.data);
-  }
-};
+      sse.onopen = () => {
+        setSSEStatus('connected','connected');
+        warmupPing();
+      };
 
-    sse.onopen = () => {
-      setSSEStatus('connected','connected');
-      warmupPing();
-    };
+      sse.onmessage = (e) => {
+        try{
+          const data = JSON.parse(e.data);
+          handleSSEEvent(data);
+        }catch(_){}
+      };
 
-    sse.onmessage = ingest;
-
-    [
-      "team_sold",
-      "team_unsold",
-      "buyer",
-      "buyer_update",
-      "reset",
-      "set_break",
-      "set_sport",
-      "set_ticker",
-      "set_title",
-      "stream_stats",
-      "sale",
-      "sold",
-      "purchase",
-      "whatnot_purchase"
-    ].forEach(t => {
-      try { sse.addEventListener(t, ingest); } catch(_) {}
-    });
-
-    sse.onerror = () => {
-      setSSEStatus('error','reconnecting');
-      try { sse.close(); } catch(_) {}
-      sse = null;
-      setTimeout(() => connectSSE(url), 2500);
-    };
-  }catch(_){
-    setSSEStatus('error','failed');
-  }
-}
-
-function connectScoresSSE(base){
-  if (sseScores) { try { sseScores.close(); } catch(_){} }
-
-  try{
-    const url = `${base}/stream?channel=${encodeURIComponent(getScoresChannel())}`;
-    sseScores = new EventSource(url);
-
- const ingest = (e) => {
-  try{
-    const data = JSON.parse(e.data);
-    const merged = { ...data, __eventType: e.type || "" };
-    if (String(merged?.type || merged?.__eventType || "").toLowerCase() === "hello") return;
-    handleSportsEvent(merged);
-  }catch(_){}
-};
-
-    sseScores.onmessage = ingest;
-    try { sseScores.addEventListener("scores", ingest); } catch(_) {}
-
-    sseScores.onerror = () => {
-      try { sseScores.close(); } catch(_) {}
-      sseScores = null;
-      setTimeout(() => connectScoresSSE(base), 2500);
-    };
-  }catch(_){}
-}
-
-function startSSE(){
-  if (!automationEnabled()){
-    setSSEStatus('error','missing bridge');
-    return;
+      sse.onerror = () => {
+        setSSEStatus('error','reconnecting');
+        try { sse.close(); } catch(_) {}
+        sse = null;
+        setTimeout(() => connectSSE(url), 2500);
+      };
+    }catch(_){
+      setSSEStatus('error','failed');
+    }
   }
 
-  const base = normalizeBridge(BRIDGE_URL);
-  const channel = getChannel();
-
-  connectSSE(`${base}/stream?channel=${encodeURIComponent(channel)}`);
-  connectScoresSSE(base);
-}
+  function startSSE(){
+    if (!automationEnabled()){
+      setSSEStatus('error','missing bridge');
+      return;
+    }
+    const base = normalizeBridge(BRIDGE_URL);
+    connectSSE(`${base}/stream`);
+  }
 
   async function warmupPing(){
     if (!automationEnabled()) return;
@@ -2164,17 +2105,84 @@ function startSSE(){
           'Content-Type': 'application/json',
           ...(BRIDGE_KEY ? { 'x-bridge-key': BRIDGE_KEY } : {})
         },
-       body: JSON.stringify({
-  type: 'overlay_warmup',
-  overlay: 'barnbreaks',
-  channel: getChannel(),
-  breakId: computeBreakId(),
-  sport: currentBreakType,
-  ts: Date.now()
-})
+        body: JSON.stringify({
+          type: 'overlay_warmup',
+          overlay: 'barnbreaks',
+          breakId: computeBreakId(),
+          ts: Date.now()
+        })
       });
     }catch(_){}
   }
+
+let LAST_STREAM_STATS_SALE_KEY = "";
+
+
+function parseBridgeLastSale(line, fallbackBuyer = ""){
+  const raw = String(line || "").trim();
+  if (!raw) return null;
+
+
+  const parts = raw.split("•").map(s => s.trim()).filter(Boolean);
+  if (parts.length < 2) return null;
+
+
+  let buyer = parts[0] || String(fallbackBuyer || "").trim();
+  let price = "";
+  let titleParts = parts.slice(1);
+
+
+  const last = titleParts[titleParts.length - 1] || "";
+  if (/^\$?\d+(\.\d{1,2})?$/.test(last)) {
+    price = last;
+    titleParts.pop();
+  }
+
+
+  const title = titleParts.join(" • ").trim();
+  if (!title) return null;
+
+
+  return { buyer, title, price };
+}
+
+
+function findSportByCode(code){
+  const safe = String(code || "").trim().toUpperCase();
+  if (!safe) return "";
+
+
+  for (const key of Object.keys(breakTypes)) {
+    const list = breakTypes[key]?.teams || [];
+    if (list.some(t => String(t.code || "").toUpperCase() === safe)) {
+      return key;
+    }
+  }
+  return "";
+}
+
+const lastCodeByListingKey = new Map();
+
+
+function getListingKeyFromPayload(data){
+  return data?.listingId || data?.saleId || data?.id || null;
+}
+
+
+function getBuyerFromPayload(data){
+  return String(data?.buyer || data?.buyerName || data?.topBuyer || "").trim();
+}
+
+
+function getSportFromPayload(data){
+  return String(data?.sport || data?.breakType || "").trim().toLowerCase();
+}
+
+
+function getCodeFromPayload(data){
+  return String(data?.code || data?.teamCode || data?.team || "").trim().toUpperCase();
+}
+
 
 function handleSSEEvent(data){
   if (!data || typeof data !== "object") return;
@@ -2184,43 +2192,33 @@ function handleSSEEvent(data){
       ? data.data
       : data;
 
- const type = String(
-  payload.type ||
-  data.type ||
-  payload.event ||
-  data.event ||
-  data.__eventType ||
-  ""
-).toLowerCase();
-  if (!type || type === "hello") return;
 
-  if (type === "reset"){
+  const type = String(payload?.type || payload?.event || '').toLowerCase();
+  if (!type || type === 'hello' || type === 'scores') return;
+
+
+  if (type === 'reset'){
     resetAll();
     return;
   }
 
-  if (type === "set_break"){
-    const n = parseInt(String(payload.breakNumber ?? payload.value ?? ""), 10);
+
+  if (type === 'set_break'){
+    const n = parseInt(String(payload?.breakNumber ?? payload?.value ?? ''), 10);
     if (Number.isFinite(n) && n > 0) setBreakNumber(n);
     return;
   }
 
-  if (type === "set_sport"){
-    const sport = String(payload.sport || payload.breakType || payload.value || "").toLowerCase().trim();
+
+  if (type === 'set_sport'){
+    const sport = String(payload?.sport || payload?.value || '').toLowerCase();
     if (sport && breakTypes[sport]) setSport(sport);
     return;
   }
 
-  if (type === "set_title"){
-    const raw = String(payload.title || payload.titleText || payload.value || "").trim();
-    TITLE_OVERRIDE = raw;
-    saveTitleOverride(TITLE_OVERRIDE);
-    setHeader();
-    return;
-  }
 
-  if (type === "set_ticker"){
-    if (Array.isArray(payload.lines)) {
+  if (type === 'set_ticker'){
+    if (Array.isArray(payload?.lines)) {
       setTickerLines(payload.lines.map(x => String(x)));
     } else if (typeof payload.text === "string") {
       const parts = payload.text.split("•").map(s => s.trim()).filter(Boolean);
@@ -2229,68 +2227,113 @@ function handleSSEEvent(data){
     return;
   }
 
-  if (type === "buyer" || type === "buyer_update"){
-    const code = getCodeFromPayload(payload);
-    const buyer = getBuyerFromPayload(payload);
-    if (code) sseUpdateBuyer(code, buyer);
-    return;
-  }
 
-  if (type === "team_unsold"){
-    let code = getCodeFromPayload(payload);
-    if (!code){
-      code = inferCodeFromTitle(
-        payload.title || payload.itemTitle || payload.listingTitle || "",
-        currentBreakType
-      );
-    }
-
-    const listingKey = payload.saleId || payload.id || payload.listingId || null;
-
-    if (code) sseMarkUnsold(code);
-
-    if (listingKey){
-      const cur = lastCodeByListingKey.get(listingKey);
-      if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
-    }
-    return;
-  }
-
-  if (type === "team_sold" || type === "sale" || type === "sold" || type === "purchase" || type === "whatnot_purchase"){
-    let sport = getSportFromPayload(payload) || currentBreakType;
-    const buyer = getBuyerFromPayload(payload);
-
-    let code = getCodeFromPayload(payload);
-    if (!code){
-      code = inferCodeFromTitle(
-        payload.title || payload.itemTitle || payload.listingTitle || "",
-        sport || currentBreakType
-      );
-    }
+  if (type === 'team_unsold'){
+    const code = String(payload?.code || payload?.teamCode || '').trim().toUpperCase();
     if (!code) return;
-
-    if (!sport) {
-      sport = currentBreakType;
-    }
-
-    if (sport && breakTypes[sport] && sport !== currentBreakType){
-      currentBreakType = sport;
-      buildLayout();
-    }
-
-    const listingKey = payload.saleId || payload.id || payload.listingId || null;
-
-    if (listingKey && code){
-      const prevCode = lastCodeByListingKey.get(listingKey);
-      if (prevCode && prevCode !== code){
-        sseMarkUnsold(prevCode);
-      }
-      lastCodeByListingKey.set(listingKey, code);
-    }
-
-    sseMarkSold(code, buyer);
+    sseMarkUnsold(code);
     return;
   }
+
+
+  if (type === 'stream_stats'){
+    const saleLine = String(payload?.lastSale || "").trim();
+    if (!saleLine) return;
+
+
+    const dedupeKey = `${String(payload?.liveId || "")}|${saleLine}`;
+    if (dedupeKey && dedupeKey === LAST_STREAM_STATS_SALE_KEY) return;
+
+
+    const parsed = parseBridgeLastSale(saleLine, payload?.topBuyer || "");
+    if (!parsed?.title) return;
+
+
+let sport = String(payload?.sport || "").toLowerCase();
+let code = inferCodeFromTitle(parsed.title, sport || currentBreakType);
+
+
+if (!code) return;
+
+
+if (!sport) {
+  sport = findSportByCode(code);
+}
+
+
+if (sport && breakTypes[sport] && sport !== currentBreakType){
+  currentBreakType = sport;
+  buildLayout();
+}
+
+
+const listingKey = getListingKeyFromPayload(payload) || `${String(payload?.liveId || "")}|${saleLine}`;
+
+
+if (listingKey) {
+  const prevCode = lastCodeByListingKey.get(listingKey);
+  if (prevCode && prevCode !== code) {
+    sseMarkUnsold(prevCode);
+  }
+  lastCodeByListingKey.set(listingKey, code);
+}
+
+
+sseMarkSold(code, parsed.buyer || "");
+LAST_STREAM_STATS_SALE_KEY = dedupeKey;
+return;
+
+
+
+
+if (
+  type === 'team_sold' ||
+  type === 'sale' ||
+  type === 'purchase' ||
+  type === 'whatnot_purchase'
+){
+  let sport = getSportFromPayload(payload);
+  const buyer = getBuyerFromPayload(payload);
+  let code = getCodeFromPayload(payload);
+
+
+  if (!code) {
+    code = inferCodeFromTitle(
+      payload?.title || payload?.itemTitle || payload?.listingTitle,
+      sport || currentBreakType
+    );
+  }
+  if (!code) return;
+
+
+  if (!sport) {
+    sport = findSportByCode(code);
+  }
+
+
+  const listingKey = getListingKeyFromPayload(payload);
+
+
+  if (sport && breakTypes[sport] && sport !== currentBreakType){
+    currentBreakType = sport;
+    buildLayout();
+  }
+
+
+  if (listingKey) {
+    const prevCode = lastCodeByListingKey.get(listingKey);
+    if (prevCode && prevCode !== code) {
+      sseMarkUnsold(prevCode);
+    }
+    lastCodeByListingKey.set(listingKey, code);
+  }
+
+
+  sseMarkSold(code, buyer);
+  return;
+}
+
+
 
     if (type === "stream_stats"){
     const saleLine = String(payload?.lastSale || "").trim();
@@ -2329,15 +2372,21 @@ function handleSSEEvent(data){
   }
 }
 
-function sseMarkSold(code, buyer=""){
-  if (!code) return;
+  function sseMarkSold(code, buyer=""){
+    if (!code) return;
 
-  const currentTeams = currentBreakType === "custom"
-    ? getCustomEntries()
-    : breakTypes[currentBreakType].teams;
+    const currentTeams = currentBreakType === "custom"
+  ? getCustomEntries()
+  : (breakTypes[currentBreakType]?.teams || []);
 
-  const exists = currentTeams.some(t => t.code === code);
-  if (!exists) return;
+
+const exists = currentTeams.some(t => String(t.code || "").toUpperCase() === String(code || "").toUpperCase());
+if (!exists) return;
+
+
+    if (!soldTeams.has(code)){
+      soldTeams.add(code);
+      soldTeamsList.push({ code, buyer });
 
   if (!soldTeams.has(code)){
     soldTeams.add(code);
@@ -2358,17 +2407,29 @@ function sseMarkSold(code, buyer=""){
   }
 }
 
-  function sseMarkUnsold(code){
-    if (!code) return;
-    soldTeams.delete(code);
-    soldTeamsList = soldTeamsList.filter(t => t.code !== code);
-
-    const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
-    if (tile) tile.classList.remove("sold");
-
-    updateStats();
-    updateSoldList();
+if (type === 'team_unsold'){
+  let code = getCodeFromPayload(payload);
+  if (!code) {
+    code = inferCodeFromTitle(
+      payload?.title || payload?.itemTitle || payload?.listingTitle,
+      currentBreakType
+    );
   }
+
+
+  const listingKey = getListingKeyFromPayload(payload);
+
+
+  if (code) sseMarkUnsold(code);
+
+
+  if (listingKey) {
+    const cur = lastCodeByListingKey.get(listingKey);
+    if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+  }
+  return;
+}
+
 
   function sseUpdateBuyer(code, buyer){
     const entry = soldTeamsList.find(t => t.code === code);
@@ -2448,9 +2509,6 @@ function exportSoldListTSV(){
   document.addEventListener("DOMContentLoaded", () => {
     const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
     if (qSport && breakTypes[qSport]) currentBreakType = qSport;
-    if (currentBreakType === "custom" && !getCustomEntries().length) {
-  currentBreakType = "nfl";
-}
 
     setBreakNumber(loadBreakNumber());
     setTickerLines(loadTickerLines());
@@ -2506,26 +2564,7 @@ if (e.target === m){
     </div>
   </div>
 </div>
-<!-- ===== PROMO EDITOR ===== -->
-<div class="modal-backdrop" id="promoModal">
-  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Promo Editor">
-    <div class="modal-head">
-      <div class="modal-title">Promo Messages</div>
-      <div class="modal-actions">
-        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyPromoFromModal()">APPLY</button>
-        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closePromoEditor()">CLOSE</button>
-      </div>
-    </div>
 
-    <div class="ticker-editor">
-      <textarea id="promoModalTextarea" placeholder="Enter one promo per line&#10;Example:&#10;SEE 2 PICK 1&#10;STASH OR PASS&#10;BONUS HITS"></textarea>
-    </div>
-
-    <div class="ticker-hint">
-      Each line becomes a rotating promo message.
-    </div>
-  </div>
-</div>
 <!-- ===== CUSTOM ENTRIES EDITOR ===== -->
 <div class="modal-backdrop" id="customEntriesModal">
   <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Custom Entries Editor">
