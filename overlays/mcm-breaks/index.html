@@ -24,7 +24,7 @@
       --line:rgba(255,255,255,0.14);
       --lineSoft:rgba(255,255,255,0.08);
 
-      --teams-h:395px;
+      --teams-h:420px;
       --ticker-duration:20s;
 
       --fx-board:
@@ -207,10 +207,10 @@
       position:relative;
       display:grid;
       grid-template-columns:1fr 146px 1fr;
-      gap:8px;
+      gap:6px;
       height:var(--board-height, var(--teams-h));
       border-radius:16px;
-      padding:3px;
+      padding:1px;
       background:
         linear-gradient(90deg,
           rgba(112,24,8,0.90) 0%,
@@ -239,7 +239,7 @@
       overflow-y:auto;
       overflow-x:hidden;
       border-radius:14px;
-      padding:2px;
+      padding:1px;
       background:rgba(0,0,0,0.42);
       border:1px solid rgba(255,255,255,0.10);
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
@@ -264,18 +264,18 @@
 
     .conference-title{
       text-align:center;
-      font-size:15px;
+      font-size:14px;
       font-weight:900;
       letter-spacing:1px;
       text-transform:uppercase;
-      padding:0 0 2px;
+      padding:0 0 0px;
       border-bottom:1px solid rgba(255,255,255,0.12);
-      margin-bottom:2px;
+      margin-bottom:0px;
       color:#eef7ff;
     }
 
     .division-group{
-      margin-top:1px;
+      margin-top:0px;
       border:1px solid rgba(255,255,255,0.12);
       border-radius:14px;
       padding:1px;
@@ -298,10 +298,10 @@
   align-items:center;
   justify-content:space-between;
   gap:8px;
-  min-height:24px;
-  padding:0 4px 2px;
+  min-height:22px;
+  padding:0 4px 0px;
   border-bottom:1px solid rgba(255,255,255,0.12);
-  margin-bottom:2px;
+  margin-bottom:0px;
 }
 
 .division-head.right{
@@ -325,7 +325,7 @@
   flex:1 1 50px;
   padding:1px 10px;
   border-radius:999px;
-  font-size:12px;
+  font-size:11px;
   font-weight:900;
   text-align:center;
   background:rgba(14,189,20,0.86);
@@ -345,6 +345,14 @@
       grid-template-columns:repeat(4, 1fr);
     }
 
+    .division-grid.two-up{
+      grid-template-columns:repeat(2, 1fr) !important;
+    }
+
+    .division-grid.one-up{
+      grid-template-columns:1fr !important;
+    }
+
     body[data-sport="NBA"] .division-grid,
     body[data-sport="MLB"] .division-grid,
     body[data-sport="CUSTOM"] .division-grid{
@@ -353,7 +361,7 @@
 
 .team{
   position:relative;
-  height:var(--team-height, 60px);
+  height:var(--team-height, 48px);
   border-radius:10px;
   
   overflow:hidden;
@@ -1096,6 +1104,7 @@ const LS = {
     })()
 
     function imgPath(sport, file){
+      if (String(sport).includes("/")) return `${BASE}${sport}/${file}`
       return `${BASE}images/${sport}/${file}`
     }
 
@@ -1105,56 +1114,65 @@ const LS = {
         leftTitle: "AFC",
         rightTitle: "NFC",
         left: [
-          { code:"AFCE", teams:[
-            { code:"BUF", name:"Bills", image:imgPath("nfl","bills.png") },
-            { code:"MIA", name:"Dolphins", image:imgPath("nfl","dolphins.png") },
-            { code:"NE",  name:"Patriots", image:imgPath("nfl","patriots.png") },
-            { code:"NYJ", name:"Jets", image:imgPath("nfl","jets.png") }
-          ]},
-          { code:"AFCN", teams:[
+          { code:"AFCN", matchTitles:["AFC NORTH","AFCN"], teams:[
             { code:"BAL", name:"Ravens", image:imgPath("nfl","ravens.png") },
             { code:"CIN", name:"Bengals", image:imgPath("nfl","bengals.png") },
             { code:"CLE", name:"Browns", image:imgPath("nfl","browns.png") },
             { code:"PIT", name:"Steelers", image:imgPath("nfl","steelers.png") }
           ]},
-          { code:"AFCS", teams:[
+          { code:"AFCE", matchTitles:["AFC EAST","AFCE"], teams:[
+            { code:"BUF", name:"Bills", image:imgPath("nfl","bills.png") },
+            { code:"MIA", name:"Dolphins", image:imgPath("nfl","dolphins.png") },
+            { code:"NE",  name:"Patriots", image:imgPath("nfl","patriots.png") },
+            { code:"NYJ", name:"Jets", image:imgPath("nfl","jets.png") }
+          ]},
+
+          { code:"AFCS", matchTitles:["AFC SOUTH","AFCS"], teams:[
             { code:"HOU", name:"Texans", image:imgPath("nfl","texans.png") },
             { code:"IND", name:"Colts", image:imgPath("nfl","colts.png") },
             { code:"JAX", name:"Jaguars", image:imgPath("nfl","jaguars.png") },
             { code:"TEN", name:"Titans", image:imgPath("nfl","titans.png") }
           ]},
-          { code:"AFCW", teams:[
+          { code:"AFCW", matchTitles:["AFC WEST","AFCW"], teams:[
             { code:"DEN", name:"Broncos", image:imgPath("nfl","broncos.png") },
             { code:"KC",  name:"Chiefs", image:imgPath("nfl","chiefs.png") },
             { code:"LV",  name:"Raiders", image:imgPath("nfl","raiders.png") },
             { code:"LAC", name:"Chargers", image:imgPath("nfl","chargers.png") }
-          ]}
+          ]},
+       { code:"MLB/MISC", matchTitles:["MLB/MISC","MLB / MISC","MLB MISC","MLB AND MISC","MLB + MISC","MLB/MISC."], teams:[
+  { code:"MLB", name:"MLB", image:`${BASE}MLB.png` },
+  { code:"MISC", name:"Misc", image:`${BASE}misc.png` }
+]}
         ],
         right: [
-          { code:"NFCE", teams:[
-            { code:"DAL", name:"Cowboys", image:imgPath("nfl","cowboys.png") },
-            { code:"NYG", name:"Giants", image:imgPath("nfl","giants.png") },
-            { code:"PHI", name:"Eagles", image:imgPath("nfl","eagles.png") },
-            { code:"WAS", name:"Commanders", image:imgPath("nfl","commanders.png") }
-          ]},
-          { code:"NFCN", teams:[
+
+          { code:"NFCN", matchTitles:["NFC NORTH","NFCN"], teams:[
             { code:"CHI", name:"Bears", image:imgPath("nfl","bears.png") },
             { code:"DET", name:"Lions", image:imgPath("nfl","lions.png") },
             { code:"GB",  name:"Packers", image:imgPath("nfl","packers.png") },
             { code:"MIN", name:"Vikings", image:imgPath("nfl","vikings.png") }
           ]},
-          { code:"NFCS", teams:[
+                    { code:"NFCE", matchTitles:["NFC EAST","NFCE"], teams:[
+            { code:"DAL", name:"Cowboys", image:imgPath("nfl","cowboys.png") },
+            { code:"NYG", name:"Giants", image:imgPath("nfl","giants.png") },
+            { code:"PHI", name:"Eagles", image:imgPath("nfl","eagles.png") },
+            { code:"WAS", name:"Commanders", image:imgPath("nfl","commanders.png") }
+          ]},
+          { code:"NFCS", matchTitles:["NFC SOUTH","NFCS"], teams:[
             { code:"ATL", name:"Falcons", image:imgPath("nfl","falcons.png") },
             { code:"CAR", name:"Panthers", image:imgPath("nfl","panthers.png") },
             { code:"NO",  name:"Saints", image:imgPath("nfl","saints.png") },
             { code:"TB",  name:"Buccaneers", image:imgPath("nfl","buccaneers.png") }
           ]},
-          { code:"NFCW", teams:[
+          { code:"NFCW", matchTitles:["NFC WEST","NFCW"], teams:[
             { code:"ARI", name:"Cardinals", image:imgPath("nfl","cardinals.png") },
             { code:"LAR", name:"Rams", image:imgPath("nfl","rams.png") },
             { code:"SF",  name:"49ers", image:imgPath("nfl","49ers.png") },
             { code:"SEA", name:"Seahawks", image:imgPath("nfl","seahawks.png") }
-          ]}
+          ]},
+      { code:"NBA", matchTitles:["All NBA", "AllNBA", "ALL NBA", "NBA"], teams:[
+  { code:"NBA", name:"All NBA", image:`${BASE}custom-nba.png` }
+]}
         ]
       },
 
@@ -1391,13 +1409,13 @@ function loadSportTileHeights(){
     const raw = localStorage.getItem(LS.SPORT_TILE_HEIGHTS)
     const parsed = raw ? JSON.parse(raw) : {}
     return {
-      nfl: Number(parsed?.nfl) || 55,
+      nfl: Number(parsed?.nfl) || 50,
       nba: Number(parsed?.nba) || 75,
       mlb: Number(parsed?.mlb) || 75,
       custom: Number(parsed?.custom) || 75
     }
   }catch(_){
-    return { nfl:55, nba:75, mlb:75, custom:75 }
+    return { nfl:50, nba:75, mlb:75, custom:75 }
   }
 }
 
@@ -1719,6 +1737,8 @@ function makeDivisionGroup(divMeta, side){
 
   const grid = document.createElement("div")
   grid.className = "division-grid"
+  if ((divMeta.teams || []).length === 2) grid.classList.add("two-up")
+  if ((divMeta.teams || []).length === 1) grid.classList.add("one-up")
   divMeta.teams.forEach(team => grid.appendChild(teamTile(team)))
 
   wrap.appendChild(head)
@@ -1900,28 +1920,39 @@ function buildLayout(){
       })
     }
 
-    function setBreakType(type){
-      if (type === "custom"){
-        currentBreakType = "custom"
-      } else if (!breakTypes[type]) {
-        return
-      } else {
-        currentBreakType = type
-      }
-      hydrateBoardState()
-      resetSoldState()
-      bridgePostSafe({
-        type:"set_sport",
-        sport: currentBreakType,
-        breakId: currentBreakId(),
-        ts: Date.now()
-      })
-    }
+ function setBreakType(type){
+  if (type === "custom"){
+    currentBreakType = "custom";
+  } else if (!breakTypes[type]) {
+    return;
+  } else {
+    currentBreakType = type;
+  }
+
+  resetDivisionLookup(currentBreakType);
+  hydrateBoardState();
+  resetSoldState();
+
+  bridgePostSafe({
+    type:"set_sport",
+    sport: currentBreakType,
+    breakId: currentBreakId(),
+    ts: Date.now()
+  });
+}
 
     function toggleSoldControls(){
       soldControlsVisible = !soldControlsVisible
       localStorage.setItem(LS.SOLD_CONTROLS_OPEN, soldControlsVisible ? "1" : "0")
       document.getElementById("soldControlsWrap").classList.toggle("active", soldControlsVisible)
+    }
+
+    function normalizeMatchText(v){
+      return String(v || "")
+        .toUpperCase()
+        .replace(/&/g, "AND")
+        .replace(/[^A-Z0-9]+/g, " ")
+        .trim()
     }
 
     function breakIdMatches(payload){
@@ -1930,61 +1961,236 @@ function buildLayout(){
       return incoming === currentBreakId()
     }
 
-    function inferDivisionCode(payload, sport){
-      const direct = String(
-        payload?.selectionCode ||
-        payload?.divisionCode ||
-        payload?.division ||
-        payload?.entryCode ||
-        payload?.entry ||
-        payload?.teamCode ||
-        payload?.code ||
-        ""
-      ).toUpperCase().trim()
+function stripPrefixTitle(title){
+  const raw = String(title || "").trim();
+  if (!raw) return "";
 
-      const cfg = getActiveConfig()
-      const validCodes = new Set([...cfg.left, ...cfg.right].map(d => String(d.code).toUpperCase()))
+  const parts = raw.split(" - ").map(s => s.trim()).filter(Boolean);
+  return parts.length ? parts[parts.length - 1] : raw;
+}
 
-      if (direct && validCodes.has(direct)) return direct
+function norm(s){
+  return String(s || "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
 
-      if (direct){
-        const mapped = TEAM_TO_DIVISION[`${sport}:${direct}`]
-        if (mapped) return mapped
-      }
+const DIVISION_LOOKUP = {
+  nfl: null,
+  nba: null,
+  mlb: null,
+  custom: null
+};
 
-      const title = String(
-        payload?.title ||
-        payload?.itemTitle ||
-        payload?.listingTitle ||
-        payload?.listing_name ||
-        payload?.name ||
-        ""
-      ).toUpperCase()
+function getDivisionAliasesForCode(code){
+  const C = String(code || "").toUpperCase().trim();
 
-      for (const code of validCodes){
-        if (title.includes(code)) return code
-      }
+  const map = {
+    AFCE: [
+      "afc east",
+      "afc east division",
+      "bills dolphins patriots jets",
+      "buffalo miami patriots jets",
+      "buffalo bills miami dolphins new england patriots new york jets"
+    ],
+    AFCN: [
+      "afc north",
+      "afc north division",
+      "ravens bengals browns steelers",
+      "baltimore cincinnati cleveland pittsburgh",
+      "baltimore ravens cincinnati bengals cleveland browns pittsburgh steelers"
+    ],
+    AFCS: [
+      "afc south",
+      "afc south division",
+      "texans colts jaguars titans",
+      "houston indianapolis jacksonville tennessee",
+      "houston texans indianapolis colts jacksonville jaguars tennessee titans"
+    ],
+    AFCW: [
+      "afc west",
+      "afc west division",
+      "broncos chiefs raiders chargers",
+      "denver kansas city las vegas chargers",
+      "denver broncos kansas city chiefs las vegas raiders los angeles chargers"
+    ],
+    NFCE: [
+      "nfc east",
+      "nfc east division",
+      "cowboys giants eagles commanders",
+      "dallas new york giants philadelphia washington",
+      "dallas cowboys new york giants philadelphia eagles washington commanders"
+    ],
+    NFCN: [
+      "nfc north",
+      "nfc north division",
+      "bears lions packers vikings",
+      "chicago detroit green bay minnesota",
+      "chicago bears detroit lions green bay packers minnesota vikings"
+    ],
+    NFCS: [
+      "nfc south",
+      "nfc south division",
+      "falcons panthers saints buccaneers",
+      "atlanta carolina new orleans tampa bay",
+      "atlanta falcons carolina panthers new orleans saints tampa bay buccaneers"
+    ],
+    NFCW: [
+      "nfc west",
+      "nfc west division",
+      "cardinals rams 49ers seahawks",
+      "arizona los angeles rams 49ers seattle",
+      "arizona cardinals los angeles rams san francisco 49ers seattle seahawks"
+    ],
+    MLBMISC: [
+      "mlb misc",
+      "mlb and misc",
+      "mlb misc division",
+      "mlb / misc",
+      "mlb miscellaneous"
+    ],
+    NBA: [
+      "nba",
+      "nba division",
+      "all nba"
+    ]
+  };
 
-      for (const key of Object.keys(TEAM_TO_DIVISION)){
-        const [sportKey, teamCode] = key.split(":")
-        if (sportKey !== sport) continue
-        if (title.includes(teamCode)) return TEAM_TO_DIVISION[key]
-      }
+  return map[C] || [];
+}
 
-      return ""
+function buildDivisionLookupForSport(sportKey){
+  const cfg = getActiveConfig();
+  const map = new Map();
+
+  if (!cfg) return map;
+
+  const allDivs = [...(cfg.left || []), ...(cfg.right || [])];
+
+  for (const div of allDivs){
+    const code = String(div.code || "").toUpperCase().trim();
+    if (!code) continue;
+
+    map.set(norm(code), code);
+
+    for (const alias of getDivisionAliasesForCode(code)){
+      map.set(norm(alias), code);
     }
 
+    if (Array.isArray(div.teams) && div.teams.length){
+      const teamNames = div.teams
+        .map(t => String(t.name || t.code || "").trim())
+        .filter(Boolean);
+
+      const teamCodes = div.teams
+        .map(t => String(t.code || "").trim())
+        .filter(Boolean);
+
+      if (teamNames.length){
+        map.set(norm(teamNames.join(" ")), code);
+      }
+
+      if (teamCodes.length){
+        map.set(norm(teamCodes.join(" ")), code);
+      }
+
+      for (const t of div.teams){
+        const teamName = String(t.name || "").trim();
+        const teamCode = String(t.code || "").trim();
+
+        if (teamName) map.set(norm(teamName), code);
+        if (teamCode) map.set(norm(teamCode), code);
+      }
+    }
+  }
+
+  return map;
+}
+
+function ensureDivisionLookup(sportKey){
+  const key = String(sportKey || currentBreakType || "").toLowerCase().trim() || "nfl";
+  if (!DIVISION_LOOKUP[key]) {
+    DIVISION_LOOKUP[key] = buildDivisionLookupForSport(key);
+  }
+  return DIVISION_LOOKUP[key];
+}
+
+function resetDivisionLookup(sportKey){
+  const key = String(sportKey || "").toLowerCase().trim();
+  if (key && Object.prototype.hasOwnProperty.call(DIVISION_LOOKUP, key)){
+    DIVISION_LOOKUP[key] = null;
+  }
+}
+
+function inferDivisionCodeFromTitle(title, sportKey){
+  const t = norm(stripPrefixTitle(title));
+  if (!t) return "";
+
+  const map = ensureDivisionLookup(sportKey);
+
+  if (map.has(t)) return map.get(t);
+
+  const keys = Array.from(map.keys()).sort((a, b) => b.length - a.length);
+  for (const k of keys){
+    if (k.length < 3) continue;
+    if (t.includes(k)) return map.get(k);
+  }
+
+  return "";
+}
+
+function inferDivisionCode(payload, sport){
+  const currentSport = String(sport || currentBreakType || "nfl").toLowerCase().trim();
+
+  const direct = String(
+    payload?.selectionCode ||
+    payload?.divisionCode ||
+    payload?.division ||
+    payload?.entryCode ||
+    payload?.entry ||
+    payload?.teamCode ||
+    payload?.code ||
+    ""
+  ).toUpperCase().trim();
+
+  const cfg = getActiveConfig();
+  const validCodes = new Set([...(cfg.left || []), ...(cfg.right || [])].map(d => String(d.code || "").toUpperCase()));
+
+  if (direct && validCodes.has(direct)) return direct;
+
+  if (direct){
+    const mapped = TEAM_TO_DIVISION[`${currentSport}:${direct}`];
+    if (mapped && validCodes.has(mapped)) return mapped;
+  }
+
+  const title = String(
+    payload?.title ||
+    payload?.itemTitle ||
+    payload?.listingTitle ||
+    payload?.listing_name ||
+    payload?.name ||
+    ""
+  );
+
+  const inferredFromTitle = inferDivisionCodeFromTitle(title, currentSport);
+  if (inferredFromTitle && validCodes.has(inferredFromTitle)) return inferredFromTitle;
+
+  return "";
+}
     function handleSSEEvent(data){
       if (!data || !data.type) return
       if (!breakIdMatches(data)) return
 
       const eventType = String(data.type).toLowerCase()
       const incomingSport = String(data.breakType || data.sport || "").toLowerCase().trim()
-      if (incomingSport && incomingSport !== currentBreakType && breakTypes[incomingSport]) {
-        currentBreakType = incomingSport
-        hydrateBoardState()
-        buildLayout()
-      }
+     if (incomingSport && incomingSport !== currentBreakType && breakTypes[incomingSport]) {
+  currentBreakType = incomingSport;
+  resetDivisionLookup(incomingSport);
+  hydrateBoardState();
+  buildLayout();
+}
 
       if (eventType === "reset"){
         resetSoldState()
@@ -1997,15 +2203,16 @@ function buildLayout(){
         return
       }
 
-      if (eventType === "set_sport"){
-        const s = String(data.breakType || data.sport || "").toLowerCase().trim()
-        if (s === "custom" || breakTypes[s]) {
-          currentBreakType = s
-          hydrateBoardState()
-          buildLayout()
-        }
-        return
-      }
+    if (eventType === "set_sport"){
+  const s = String(data.breakType || data.sport || "").toLowerCase().trim();
+  if (s === "custom" || breakTypes[s]) {
+    currentBreakType = s;
+    resetDivisionLookup(s);
+    hydrateBoardState();
+    buildLayout();
+  }
+  return;
+}
 
       if (eventType === "set_title"){
         const newTitle = String(data.titleText || data.title || "").trim()
@@ -2131,7 +2338,7 @@ function buildLayout(){
       if (!base) return
 
       const key = getBridgeKey()
-      fetch(`${base}/event${key ? `?key=${encodeURIComponent(key)}` : ""}`, {
+     fetch(`${base}/events${key ? `?key=${encodeURIComponent(key)}` : ""}`, { 
         method:"POST",
         headers:{
           "Content-Type":"application/json",
@@ -2251,17 +2458,18 @@ function commitModal(){
       localStorage.setItem(LS.CUSTOM_CONFIG, JSON.stringify(parsed))
 
 const nextHeights = {
-  nfl: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightNFL")?.value || "55", 10) || 55)),
+  nfl: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightNFL")?.value || "50", 10) || 55)),
   nba: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightNBA")?.value || "75", 10) || 75)),
   mlb: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightMLB")?.value || "75", 10) || 75)),
   custom: Math.max(30, Math.min(180, parseInt(document.getElementById("tileHeightCUSTOM")?.value || "75", 10) || 75))
 }
       saveSportTileHeights(nextHeights)
 
-      currentBreakType = "custom"
-      hydrateBoardState()
-      resetSoldState()
-      applySportSizing()
+     currentBreakType = "custom";
+resetDivisionLookup("custom");
+hydrateBoardState();
+resetSoldState();
+applySportSizing();
     }catch(_){
       return
     }
