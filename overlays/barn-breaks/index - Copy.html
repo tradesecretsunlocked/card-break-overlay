@@ -2292,7 +2292,39 @@ function handleSSEEvent(data){
     return;
   }
 
-  if (type === "stream_stats"){
+    if (type === "stream_stats"){
+    const saleLine = String(payload?.lastSale || "").trim();
+    if (!saleLine) return;
+
+    const dedupeKey = `${String(payload?.liveId || "")}|${saleLine}`;
+    if (window.__barnLastStreamStatsKey === dedupeKey) return;
+    window.__barnLastStreamStatsKey = dedupeKey;
+
+    let sport = getSportFromPayload(payload) || currentBreakType;
+    const buyer = getBuyerFromPayload(payload);
+
+    let code = getCodeFromPayload(payload);
+    if (!code){
+      code = inferCodeFromTitle(saleLine, sport || currentBreakType);
+    }
+    if (!code) return;
+
+    if (sport && breakTypes[sport] && sport !== currentBreakType){
+      currentBreakType = sport;
+      buildLayout();
+    }
+
+    const listingKey = payload.saleId || payload.id || payload.listingId || payload.liveId || null;
+
+    if (listingKey && code){
+      const prevCode = lastCodeByListingKey.get(listingKey);
+      if (prevCode && prevCode !== code){
+        sseMarkUnsold(prevCode);
+      }
+      lastCodeByListingKey.set(listingKey, code);
+    }
+
+    sseMarkSold(code, buyer);
     return;
   }
 }
