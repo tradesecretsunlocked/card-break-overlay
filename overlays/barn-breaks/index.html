@@ -1339,8 +1339,7 @@ function setBreakNumber(n){
   const bi = document.getElementById("breakModalInput");
   if (bi) bi.value = String(safe);
 
-  processedSales = loadSeenSales();
-
+ 
   if (document.getElementById("teamsWrapper")){
     buildLayout();
   }
@@ -1807,7 +1806,7 @@ custom: {
 
     const teams = currentBreakType === "custom" ? getCustomEntries() : config.teams;
     restoreOverlayState();
-processedSales = loadSeenSales();
+
 
     if (config.layout === "NBA_MLB_30"){
       let idx = 0;
@@ -2014,7 +2013,7 @@ if (team.image){
 function resetAll(){
   soldTeams.clear();
   soldTeamsList = [];
-  lastCodeByListingKey.clear();
+  lastCodeBySaleId.clear();
   processedSales.clear();
   clearSeenSales();
   clearOverlayState();
@@ -2174,7 +2173,7 @@ function handleSportsEvent(data){
 
 let sse = null;
 let sseScores = null;
-const lastCodeByListingKey = new Map();
+const lastCodeBySaleId = new Map();
 
 function getChannel(){
   return new URLSearchParams(location.search).get("channel") || "main";
@@ -2310,14 +2309,15 @@ function handleSSEEvent(data){
       ? data.data
       : data;
 
- const type = String(
-  payload.type ||
-  data.type ||
-  payload.event ||
-  data.event ||
-  data.__eventType ||
-  ""
-).toLowerCase();
+  const type = String(
+    payload.type ||
+    data.type ||
+    payload.event ||
+    data.event ||
+    data.__eventType ||
+    ""
+  ).toLowerCase();
+
   if (!type || type === "hello") return;
 
   if (type === "reset"){
@@ -2363,23 +2363,34 @@ function handleSSEEvent(data){
   }
 
   if (type === "team_unsold"){
-    let code = getCodeFromPayload(payload);
-    if (!code){
- const unsoldSport = getSportFromPayload(payload) || currentBreakType;
+    const saleKey = String(
+      payload.saleId ||
+      payload.transactionId ||
+      payload.orderId ||
+      payload.purchaseId ||
+      ""
+    ).trim();
 
-code = inferCodeFromTitle(
-  payload.title || payload.itemTitle || payload.listingTitle || "",
-  unsoldSport
-);
+    let code = getCodeFromPayload(payload);
+
+    if (!code && saleKey && lastCodeBySaleId.has(saleKey)) {
+      code = lastCodeBySaleId.get(saleKey);
     }
 
-    const listingKey = payload.saleId || payload.id || payload.listingId || null;
+    if (!code){
+      const unsoldSport = getSportFromPayload(payload) || currentBreakType;
+      code = inferCodeFromTitle(
+        payload.title || payload.itemTitle || payload.listingTitle || "",
+        unsoldSport
+      );
+    }
 
     if (code) sseMarkUnsold(code);
 
-    if (listingKey){
-      const cur = lastCodeByListingKey.get(listingKey);
-      if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+    if (saleKey) {
+      lastCodeBySaleId.delete(saleKey);
+      processedSales.delete(saleKey);
+      saveSeenSales();
     }
     return;
   }
@@ -2387,15 +2398,14 @@ code = inferCodeFromTitle(
   if (type === "team_sold" || type === "sale" || type === "sold" || type === "purchase" || type === "whatnot_purchase"){
     let sport = getSportFromPayload(payload) || currentBreakType;
     const buyer = getBuyerFromPayload(payload);
-const saleKey = String(
-  payload.saleId ||
-  payload.transactionId ||
-  payload.orderId ||
-  payload.purchaseId ||
-  ""
-).trim();
 
-if (saleKey && processedSales.has(saleKey)) return;
+    const saleKey = String(
+      payload.saleId ||
+      payload.transactionId ||
+      payload.orderId ||
+      payload.purchaseId ||
+      ""
+    ).trim();
 
     let code = getCodeFromPayload(payload);
     if (!code){
@@ -2415,18 +2425,28 @@ if (saleKey && processedSales.has(saleKey)) return;
       buildLayout();
     }
 
-   const listingKey = payload.listingId || payload.id || null;
+    if (saleKey) {
+      const priorCode = lastCodeBySaleId.get(saleKey);
 
-    if (listingKey && code){
-      const prevCode = lastCodeByListingKey.get(listingKey);
-      if (prevCode && prevCode !== code){
-        sseMarkUnsold(prevCode);
+      if (processedSales.has(saleKey)) {
+        if (!priorCode || priorCode === code) {
+          if (buyer) sseUpdateBuyer(code, buyer);
+          return;
+        }
+
+        sseMarkUnsold(priorCode);
+        lastCodeBySaleId.set(saleKey, code);
+        sseMarkSold(code, buyer);
+        return;
       }
-      lastCodeByListingKey.set(listingKey, code);
+
+      lastCodeBySaleId.set(saleKey, code);
+      sseMarkSold(code, buyer);
+      markSaleProcessed(saleKey);
+      return;
     }
 
     sseMarkSold(code, buyer);
-    if (saleKey) markSaleProcessed(saleKey);
     return;
   }
 
@@ -2434,6 +2454,7 @@ if (saleKey && processedSales.has(saleKey)) return;
     return;
   }
 }
+
 
 function sseMarkSold(code, buyer=""){
   if (!code) return;
