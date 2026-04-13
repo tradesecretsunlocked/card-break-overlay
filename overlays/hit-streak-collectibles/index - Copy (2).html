@@ -190,9 +190,9 @@
     }
 
     .team img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: 82%;
+  height: 145%;
+  object-fit: inherit;
   position:relative;
   top:6px;
   border-radius: 4px;
@@ -264,31 +264,29 @@
       padding:0 10px;
     }
 
-.ticker-track{
-  display:flex;
-  align-items:center;
-  white-space:nowrap;
-  width:max-content;
-  will-change:transform;
-  animation:tickerMarquee linear infinite;
-  animation-duration:var(--tickerDur, 24s);
-}
+    .ticker-track{
+      display:inline-flex;
+      align-items:center;
+      white-space:nowrap;
+      will-change:transform;
+      animation:tickerMarquee linear infinite;
+      animation-duration:var(--tickerDur, 24s);
+    }
 
-.ticker-copy{
-  flex:0 0 auto;
-  display:inline-block;
-  padding-right:0;
-  font-weight:900;
-  letter-spacing:0.8px;
-  color:#f5fff4;
-  font-size:22px;
-  text-shadow:0 2px 10px rgba(0,0,0,0.72);
-}
+    .ticker-copy{
+      display:inline-block;
+      padding-right:48px;
+      font-weight:900;
+      letter-spacing:0.8px;
+      color:#f5fff4;
+      font-size:22px;
+      text-shadow:0 2px 10px rgba(0,0,0,0.72);
+    }
 
-@keyframes tickerMarquee{
-  0%{ transform:translateX(0); }
-  100%{ transform:translateX(calc(-1 * var(--tickerShift, 0px))); }
-}
+    @keyframes tickerMarquee{
+      0%{ transform:translateX(0); }
+      100%{ transform:translateX(-50%); }
+    }
 
     .controls-row{
       margin-top:6px;
@@ -409,18 +407,6 @@
     .sold-list-title{ font-size:16px; font-weight:900; color:#ffffff; letter-spacing:1px; text-align:left; padding-left:2px; }
     .sold-controls{ display:flex; gap:6px; align-items:center; justify-content:flex-end; flex-wrap:wrap; }
 
-    #soldControlsWrap{
-  display:flex;
-  gap:6px;
-  align-items:center;
-  justify-content:flex-end;
-  flex-wrap:wrap;
-}
-
-#soldControlsWrap:not(.active){
-  display:none;
-}
-
     .sold-list-grid{
       display:grid;
       grid-template-columns: repeat(3, 1fr);
@@ -535,48 +521,47 @@
       <div class="main-content">
         <div class="teams-wrapper" id="teamsWrapper"></div>
 
-<div class="controls-row">
-  <button class="btn secondary" onclick="newBreak()">NEW BREAK</button>
+        <div class="controls-row">
+          <button class="btn secondary" onclick="newBreak()">NEW BREAK</button>
 
-  <div class="stat-box">
-    <div id="teamsLeft">0</div>
-    <div class="stat-label">REMAINING</div>
-  </div>
+          <div class="stat-box">
+            <div id="teamsLeft">0</div>
+            <div class="stat-label">REMAINING</div>
+          </div>
 
-  <div class="promo-box" id="promoBox">
-    <div id="promoText">HIT STREAK COLLECTIBLES</div>
-  </div>
+          <div class="promo-box" id="promoBox">
+            <div id="promoText">HIT STREAK COLLECTIBLES</div>
+          </div>
 
-  <div class="stat-box" onclick="toggleSoldControls()" style="cursor:pointer;">
-    <div id="teamsSold">0</div>
-    <div class="stat-label">SOLD</div>
-  </div>
+          <div class="stat-box">
+            <div id="teamsSold">0</div>
+            <div class="stat-label">SOLD</div>
+          </div>
 
-  <button class="btn ghost" onclick="cycleSport()">CHANGE SPORT</button>
-</div>
+          <button class="btn ghost" onclick="cycleSport()">CHANGE SPORT</button>
+        </div>
       </div>
     </div>
 
- <div class="sold-list-container">
-  <div class="sold-top-row">
-    <div class="sold-list-title">SOLD TEAMS</div>
+    <div class="sold-list-container">
+      <div class="sold-top-row">
+        <div class="sold-list-title">SOLD TEAMS</div>
+        <div class="sold-controls">
+          <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openBreakPopup()">SET BREAK</button>
+          <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="openTitlePopup()">SET TITLE</button>
+          <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openTickerPopup()">EDIT TICKER</button>
+          <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openPromoPopup()">PROMOS</button>
+          <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openExportPopup()">EXPORT TSV</button>
+          <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="resetAll()">RESET</button>
 
-    <div id="soldControlsWrap" class="sold-controls active">
-      <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openBreakPopup()">SET BREAK</button>
-      <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="openTitlePopup()">SET TITLE</button>
-      <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openTickerPopup()">EDIT TICKER</button>
-      <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openPromoPopup()">PROMOS</button>
-      <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openExportPopup()">EXPORT TSV</button>
-      <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="resetAll()">RESET</button>
-
-      <div class="sse" id="sseStatus">
-        SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
+          <div class="sse" id="sseStatus">
+            SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
+          </div>
+        </div>
       </div>
-    </div>
-  </div>
 
-  <div id="soldList" class="sold-list-grid"></div>
-</div>
+      <div id="soldList" class="sold-list-grid"></div>
+    </div>
   </div>
 
   <div id="breakPopup" class="popup-mask hidden">
@@ -679,15 +664,13 @@ const BASE = (() => {
 
 const LOGO_PRIMARY = `${BASE}images/logos/hit-streak-logo.png`;
 
-
-
     const SCORES_BY_SPORT = {};
     const SCORES_UPDATED_AT = {};
 
     const soldTeams = new Set();
     let soldTeamsList = [];
     const lastCodeByListingKey = new Map();
-let soldControlsVisible = true;
+
     let currentBreakType = localStorage.getItem(STORAGE.sport) || "nfl";
     let sseMain = null;
     let sseSports = null;
@@ -697,9 +680,12 @@ let soldControlsVisible = true;
     let promoIndex = 0;
 
    
-const imgPathNFL = (f) => `${BASE}/images/nfl/${f}`;
-const imgPathMLB = (f) => `${BASE}/images/mlb/${f}`;
- 
+
+    function getTeamLogoPath(sport, code){
+      const s = String(sport || "").toLowerCase().trim();
+      const c = String(code || "").toLowerCase().trim();
+      return `https://a.espncdn.com/i/teamlogos/${s}/500/${c}.png`;
+    }
 
     const breakTypes = {
       mlb: {
@@ -707,87 +693,81 @@ const imgPathMLB = (f) => `${BASE}/images/mlb/${f}`;
     cols: 8,
     layout: "NBA_MLB_30",
     tileH: 54,
-    teams: [
-  { code:"ARI", name:"Arizona Diamondbacks", image: imgPathMLB("diamondbacks.png") },
-  { code:"ATL", name:"Atlanta Braves", image: imgPathMLB("braves.png") },
-  { code:"BAL", name:"Baltimore Orioles", image: imgPathMLB("orioles.png") },
-  { code:"BOS", name:"Boston Red Sox", image: imgPathMLB("redsox.png") },
-  { code:"CHC", name:"Chicago Cubs", image: imgPathMLB("cubs.png") },
-  { code:"CWS", name:"Chicago White Sox", image: imgPathMLB("whitesox.png") },
-  { code:"CIN", name:"Cincinnati Reds", image: imgPathMLB("reds.png") },
-  { code:"CLE", name:"Cleveland Guardians", image: imgPathMLB("guardians.png") },
-  { code:"COL", name:"Colorado Rockies", image: imgPathMLB("rockies.png") },
-  { code:"DET", name:"Detroit Tigers", image: imgPathMLB("tigers.png") },
-  { code:"HOU", name:"Houston Astros", image: imgPathMLB("astros.png") },
-  { code:"KC",  name:"Kansas City Royals", image: imgPathMLB("royals.png") },
-  { code:"LAA", name:"Los Angeles Angels", image: imgPathMLB("angels.png") },
-  { code:"LAD", name:"Los Angeles Dodgers", image: imgPathMLB("dodgers.png") },
-  { code:"MIA", name:"Miami Marlins", image: imgPathMLB("marlins.png") },
-  { code:"MIL", name:"Milwaukee Brewers", image: imgPathMLB("brewers.png") },
-  { code:"MIN", name:"Minnesota Twins", image: imgPathMLB("twins.png") },
-  { code:"NYM", name:"New York Mets", image: imgPathMLB("mets.png") },
-  { code:"NYY", name:"New York Yankees", image: imgPathMLB("yankees.png") },
-  { code:"ATH", name:"Athletics", image: imgPathMLB("athletics.png") },
-  { code:"PHI", name:"Philadelphia Phillies", image: imgPathMLB("phillies.png") },
-  { code:"PIT", name:"Pittsburgh Pirates", image: imgPathMLB("pirates.png") },
-  { code:"SD",  name:"San Diego Padres", image: imgPathMLB("padres.png") },
-  { code:"SF",  name:"San Francisco Giants", image: imgPathMLB("giants.png") },
-  { code:"SEA", name:"Seattle Mariners", image: imgPathMLB("mariners.png") },
-  { code:"STL", name:"St. Louis Cardinals", image: imgPathMLB("cardinals.png") },
-  { code:"TB",  name:"Tampa Bay Rays", image: imgPathMLB("rays.png") },
-  { code:"TEX", name:"Texas Rangers", image: imgPathMLB("rangers.png") },
-  { code:"TOR", name:"Toronto Blue Jays", image: imgPathMLB("bluejays.png") },
-  { code:"WSH", name:"Washington Nationals", image: imgPathMLB("nationals.png") }
-]
+    teams:[
+          { code:"ARI", name:"Arizona Diamondbacks", image:getTeamLogoPath("mlb","ARI") },
+        { code:"ATL", name:"Atlanta Braves", image:getTeamLogoPath("mlb","ATL") },
+        { code:"BAL", name:"Baltimore Orioles", image:getTeamLogoPath("mlb","BAL") },
+        { code:"BOS", name:"Boston Red Sox", image:getTeamLogoPath("mlb","BOS") },
+        { code:"CHC", name:"Chicago Cubs", image:getTeamLogoPath("mlb","CHC") },
+        { code:"CWS", name:"Chicago White Sox", image:getTeamLogoPath("mlb","CWS") },
+        { code:"CIN", name:"Cincinnati Reds", image:getTeamLogoPath("mlb","CIN") },
+        { code:"CLE", name:"Cleveland Guardians", image:getTeamLogoPath("mlb","CLE") },
+        { code:"COL", name:"Colorado Rockies", image:getTeamLogoPath("mlb","COL") },
+        { code:"DET", name:"Detroit Tigers", image:getTeamLogoPath("mlb","DET") },
+        { code:"HOU", name:"Houston Astros", image:getTeamLogoPath("mlb","HOU") },
+        { code:"KC", name:"Kansas City Royals", image:getTeamLogoPath("mlb","KC") },
+        { code:"LAA", name:"Los Angeles Angels", image:getTeamLogoPath("mlb","LAA") },
+        { code:"LAD", name:"Los Angeles Dodgers", image:getTeamLogoPath("mlb","LAD") },
+        { code:"MIA", name:"Miami Marlins", image:getTeamLogoPath("mlb","MIA") },
+        { code:"MIL", name:"Milwaukee Brewers", image:getTeamLogoPath("mlb","MIL") },
+        { code:"MIN", name:"Minnesota Twins", image:getTeamLogoPath("mlb","MIN") },
+        { code:"NYM", name:"New York Mets", image:getTeamLogoPath("mlb","NYM") },
+        { code:"NYY", name:"New York Yankees", image:getTeamLogoPath("mlb","NYY") },
+        { code:"ATH", name:"Athletics", image:getTeamLogoPath("mlb","ATH") },
+        { code:"PHI", name:"Philadelphia Phillies", image:getTeamLogoPath("mlb","PHI") },
+        { code:"PIT", name:"Pittsburgh Pirates", image:getTeamLogoPath("mlb","PIT") },
+        { code:"SD", name:"San Diego Padres", image:getTeamLogoPath("mlb","SD") },
+        { code:"SF", name:"San Francisco Giants", image:getTeamLogoPath("mlb","SF") },
+    { code:"SEA", name:"Seattle Mariners", image:getTeamLogoPath("mlb","SEA") },
+        { code:"STL", name:"St. Louis Cardinals", image:getTeamLogoPath("mlb","STL") },
+        { code:"TB", name:"Tampa Bay Rays", image:getTeamLogoPath("mlb","TB") },
+        { code:"TEX", name:"Texas Rangers", image:getTeamLogoPath("mlb","TEX") },
+        { code:"TOR", name:"Toronto Blue Jays", image:getTeamLogoPath("mlb","TOR") },
+        { code:"WSH", name:"Washington Nationals", image:getTeamLogoPath("mlb","WSH") }
+        ]
       },
   nfl: {
     name: "NFL",
     cols: 10,
     layout: "NFL_32",
     tileH: 64,
-    teams: [
-  { code:"ARI", name:"Arizona Cardinals", image: imgPathNFL("cardinals.png") },
-  { code:"ATL", name:"Atlanta Falcons", image: imgPathNFL("falcons.png") },
-  { code:"BAL", name:"Baltimore Ravens", image: imgPathNFL("ravens.png") },
-  { code:"BUF", name:"Buffalo Bills", image: imgPathNFL("bills.png") },
-  { code:"CAR", name:"Carolina Panthers", image: imgPathNFL("panthers.png") },
-  { code:"CHI", name:"Chicago Bears", image: imgPathNFL("bears.png") },
-  { code:"CIN", name:"Cincinnati Bengals", image: imgPathNFL("bengals.png") },
-  { code:"CLE", name:"Cleveland Browns", image: imgPathNFL("browns.png") },
-  { code:"DAL", name:"Dallas Cowboys", image: imgPathNFL("cowboys.png") },
-  { code:"DEN", name:"Denver Broncos", image: imgPathNFL("broncos.png") },
-  { code:"DET", name:"Detroit Lions", image: imgPathNFL("lions.png") },
-  { code:"GB",  name:"Green Bay Packers", image: imgPathNFL("packers.png") },
-  { code:"HOU", name:"Houston Texans", image: imgPathNFL("texans.png") },
-  { code:"IND", name:"Indianapolis Colts", image: imgPathNFL("colts.png") },
-  { code:"JAX", name:"Jacksonville Jaguars", image: imgPathNFL("jaguars.png") },
-  { code:"KC",  name:"Kansas City Chiefs", image: imgPathNFL("chiefs.png") },
-  { code:"LAC", name:"Los Angeles Chargers", image: imgPathNFL("chargers.png") },
-  { code:"LAR", name:"Los Angeles Rams", image: imgPathNFL("rams.png") },
-  { code:"LV",  name:"Las Vegas Raiders", image: imgPathNFL("raiders.png") },
-  { code:"MIA", name:"Miami Dolphins", image: imgPathNFL("dolphins.png") },
-  { code:"MIN", name:"Minnesota Vikings", image: imgPathNFL("vikings.png") },
-  { code:"NE",  name:"New England Patriots", image: imgPathNFL("patriots.png") },
-  { code:"NO",  name:"New Orleans Saints", image: imgPathNFL("saints.png") },
-  { code:"NYG", name:"New York Giants", image: imgPathNFL("giants.png") },
-  { code:"NYJ", name:"New York Jets", image: imgPathNFL("jets.png") },
-  { code:"PHI", name:"Philadelphia Eagles", image: imgPathNFL("eagles.png") },
-  { code:"PIT", name:"Pittsburgh Steelers", image: imgPathNFL("steelers.png") },
-  { code:"SEA", name:"Seattle Seahawks", image: imgPathNFL("seahawks.png") },
-  { code:"SF",  name:"San Francisco 49ers", image: imgPathNFL("49ers.png") },
-  { code:"TB",  name:"Tampa Bay Buccaneers", image: imgPathNFL("buccaneers.png") },
-  { code:"TEN", name:"Tennessee Titans", image: imgPathNFL("titans.png") },
-  { code:"WSH", name:"Washington Commanders", image: imgPathNFL("commanders.png") }
-]
+    teams:[
+          { code:"ARI", name:"Arizona Cardinals", image:getTeamLogoPath("nfl","ARI") },
+        { code:"ATL", name:"Atlanta Falcons", image:getTeamLogoPath("nfl","ATL") },
+        { code:"BAL", name:"Baltimore Ravens", image:getTeamLogoPath("nfl","BAL") },
+        { code:"BUF", name:"Buffalo Bills", image:getTeamLogoPath("nfl","BUF") },
+        { code:"CAR", name:"Carolina Panthers", image:getTeamLogoPath("nfl","CAR") },
+        { code:"CHI", name:"Chicago Bears", image:getTeamLogoPath("nfl","CHI") },
+        { code:"CIN", name:"Cincinnati Bengals", image:getTeamLogoPath("nfl","CIN") },
+        { code:"CLE", name:"Cleveland Browns", image:getTeamLogoPath("nfl","CLE") },
+        { code:"DAL", name:"Dallas Cowboys", image:getTeamLogoPath("nfl","DAL") },
+        { code:"DEN", name:"Denver Broncos", image:getTeamLogoPath("nfl","DEN") },
+        { code:"DET", name:"Detroit Lions", image:getTeamLogoPath("nfl","DET") },
+        { code:"GB", name:"Green Bay Packers", image:getTeamLogoPath("nfl","GB") },
+        { code:"HOU", name:"Houston Texans", image:getTeamLogoPath("nfl","HOU") },
+        { code:"IND", name:"Indianapolis Colts", image:getTeamLogoPath("nfl","IND") },
+        { code:"JAX", name:"Jacksonville Jaguars", image:getTeamLogoPath("nfl","JAX") },
+        { code:"KC", name:"Kansas City Chiefs", image:getTeamLogoPath("nfl","KC") },
+        { code:"LAC", name:"Los Angeles Chargers", image:getTeamLogoPath("nfl","LAC") },
+        { code:"LAR", name:"Los Angeles Rams", image:getTeamLogoPath("nfl","LAR") },
+        { code:"LV", name:"Las Vegas Raiders", image:getTeamLogoPath("nfl","LV") },
+        { code:"MIA", name:"Miami Dolphins", image:getTeamLogoPath("nfl","MIA") },
+        { code:"MIN", name:"Minnesota Vikings", image:getTeamLogoPath("nfl","MIN") },
+        { code:"NE", name:"New England Patriots", image:getTeamLogoPath("nfl","NE") },
+        { code:"NO", name:"New Orleans Saints", image:getTeamLogoPath("nfl","NO") },
+        { code:"NYG", name:"New York Giants", image:getTeamLogoPath("nfl","NYG") },
+        { code:"NYJ", name:"New York Jets", image:getTeamLogoPath("nfl","NYJ") },
+        { code:"PHI", name:"Philadelphia Eagles", image:getTeamLogoPath("nfl","PHI") },
+        { code:"PIT", name:"Pittsburgh Steelers", image:getTeamLogoPath("nfl","PIT") },
+        { code:"SEA", name:"Seattle Seahawks", image:getTeamLogoPath("nfl","SEA") },
+        { code:"SF", name:"San Francisco 49ers", image:getTeamLogoPath("nfl","SF") },
+        { code:"TB", name:"Tampa Bay Buccaneers", image:getTeamLogoPath("nfl","TB") },
+        { code:"TEN", name:"Tennessee Titans", image:getTeamLogoPath("nfl","TEN") },
+        { code:"WSH", name:"Washington Commanders", image:getTeamLogoPath("nfl","WSH") }
+        ]
       }
     };
-function toggleSoldControls(){
-  soldControlsVisible = !soldControlsVisible;
-  const wrap = document.getElementById("soldControlsWrap");
-  if (wrap){
-    wrap.classList.toggle("active", soldControlsVisible);
-  }
-}
+
     function saveJSON(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
     function loadJSON(key, fallback){
       try {
@@ -991,13 +971,16 @@ function makeTickerSlot(spanCols){
   const track = document.createElement("div");
   track.className = "ticker-track";
 
-  for (let i = 0; i < 3; i++) {
-    const copy = document.createElement("span");
-    copy.className = "ticker-copy";
-    track.appendChild(copy);
-  }
+  const c1 = document.createElement("span");
+  c1.className = "ticker-copy";
 
+  const c2 = document.createElement("span");
+  c2.className = "ticker-copy";
+
+  track.appendChild(c1);
+  track.appendChild(c2);
   slot.appendChild(track);
+
   return slot;
 }
 
@@ -1315,25 +1298,16 @@ function breakIdMatches(payload){
       });
     }
 
-function handleSportsEvent(data){
-  if (!data || typeof data !== "object") return;
-
-  const type = String(data.type || data.event || "").toLowerCase().trim();
-  const sport = String(data.sport || data.league || "").toLowerCase().trim();
-  const txt = normalizeScorePayloadToText(data);
-
-  const looksLikeScores =
-    type === "scores" ||
-    Array.isArray(data.games) ||
-    typeof data.text === "string";
-
-  if (!looksLikeScores) return;
-  if (!sport || !txt) return;
-
-  SCORES_BY_SPORT[sport] = txt;
-  SCORES_UPDATED_AT[sport] = Date.now();
-  updateTickerMarquee();
-}
+    function handleSportsEvent(data){
+      if (!data || String(data.type || "").toLowerCase() !== "scores") return;
+      const sport = String(data.sport || data.league || "").toLowerCase().trim();
+      const txt = normalizeScorePayloadToText(data);
+      if (sport && txt){
+        SCORES_BY_SPORT[sport] = txt;
+        SCORES_UPDATED_AT[sport] = Date.now();
+        updateTickerMarquee();
+      }
+    }
 
     function handleSSEEvent(payload){
       const data = payload && typeof payload === "object" && payload.data && typeof payload.data === "object" ? payload.data : payload;
@@ -1416,50 +1390,32 @@ function handleSportsEvent(data){
       }
     }
 
-   function setSSEIndicatorState(){
-  const wrap = document.getElementById("sseStatus");
-  const txt = document.getElementById("sseText");
-  if (!wrap || !txt) return;
+    function setSSEIndicatorState(){
+      const wrap = document.getElementById("sseStatus");
+      const txt = document.getElementById("sseText");
+      if (!wrap || !txt) return;
 
-  wrap.classList.remove("connected", "error", "connecting");
+      wrap.classList.remove("connected", "error", "connecting");
+      const states = [mainState];
+      if (ENABLE_SCORES) states.push(sportsState);
 
-  if (ENABLE_SCORES) {
-    if (mainState === "connected" && sportsState === "connected") {
-      wrap.classList.add("connected");
-      txt.textContent = "LIVE";
-      return;
+      if (states.includes("connected")) {
+        wrap.classList.add("connected");
+        txt.textContent = "LIVE";
+        return;
+      }
+      if (states.includes("connecting")) {
+        wrap.classList.add("connecting");
+        txt.textContent = "WAIT";
+        return;
+      }
+      if (states.includes("error")) {
+        wrap.classList.add("error");
+        txt.textContent = "ERR";
+        return;
+      }
+      txt.textContent = "OFF";
     }
-    if (mainState === "error" || sportsState === "error") {
-      wrap.classList.add("error");
-      txt.textContent = "ERR";
-      return;
-    }
-    if (mainState === "connecting" || sportsState === "connecting") {
-      wrap.classList.add("connecting");
-      txt.textContent = "WAIT";
-      return;
-    }
-    txt.textContent = "OFF";
-    return;
-  }
-
-  if (mainState === "connected") {
-    wrap.classList.add("connected");
-    txt.textContent = "LIVE";
-    return;
-  }
-  if (mainState === "error") {
-    wrap.classList.add("error");
-    txt.textContent = "ERR";
-    return;
-  }
-  if (mainState === "connecting") {
-    wrap.classList.add("connecting");
-    txt.textContent = "WAIT";
-    return;
-  }
-  txt.textContent = "OFF";
-}
 
     function buildSSEUrl(base, channel, key){
       const clean = base.replace(/\/$/, "");
@@ -1684,16 +1640,7 @@ function handleSportsEvent(data){
       startPromoRotation();
       initSSE();
     }
-window.__TSU_DEBUG_SCORES = function(sport = "mlb"){
-  handleSportsEvent({
-    type: "scores",
-    sport,
-    games: [
-      { away: "NYY", awayScore: 3, home: "BOS", homeScore: 5, status: "Top 8" },
-      { away: "LAD", awayScore: 1, home: "ATL", homeScore: 1, status: "Mid 6" }
-    ]
-  });
-};
+
     boot();
   </script>
 </body>

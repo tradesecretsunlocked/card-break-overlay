@@ -492,33 +492,44 @@
     }
 .logo-slot{ z-index: 60; }
 .logo-slot img{ z-index: 61; }
-    .ticker-slot{
-      border-radius: 10px;
-      height: var(--tileH);
-      display:flex;
-      align-items:center;
-      overflow:hidden;
-      background: linear-gradient(
-27deg, navy 0%, rgb(80, 42, 7) 50%, navy);
-      border: 2px solid var(--accentBorder);
-      padding: 0 10px;
-    }
+   
 
-    .ticker-text{
-      display:inline-block;
-      white-space: nowrap;
-      padding-left: 100%;
-      font-size:22px;
-      animation: tickerScroll 22s linear infinite;
-      font-weight: 900;
-      letter-spacing: 0.8px;
-      color: #fff;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.65);
-    }
-    @keyframes tickerScroll{
-      0%{ transform: translateX(0); }
-      100%{ transform: translateX(-100%); }
-    }
+.ticker-slot{
+  border-radius: 10px;
+  height: var(--tileH);
+  display:flex;
+  align-items:center;
+  overflow:hidden;
+  background: linear-gradient(27deg, navy 0%, rgb(80, 42, 7) 50%, navy);
+  border: 2px solid var(--accentBorder);
+  padding: 0 10px;
+}
+
+.ticker-track{
+  display:flex;
+  align-items:center;
+  white-space:nowrap;
+  width:max-content;
+  will-change:transform;
+  animation:tickerMarquee linear infinite;
+  animation-duration:var(--tickerDur, 24s);
+}
+
+.ticker-copy{
+  flex:0 0 auto;
+  display:inline-block;
+  padding-right:48px;
+  font-size:22px;
+  font-weight:900;
+  letter-spacing:0.8px;
+  color:#fff;
+  text-shadow:0 2px 10px rgba(0,0,0,0.65);
+}
+
+@keyframes tickerMarquee{
+  0%{ transform:translateX(0); }
+  100%{ transform:translateX(calc(-1 * var(--tickerShift, 0px))); }
+}
 
     /* ===== CONTROLS ROW (Remaining | Promo Placeholder | Sold) ===== */
     .controls-row{
@@ -765,6 +776,55 @@
     .sse.connected .dot{ background: #3cff8a; box-shadow: 0 0 10px rgba(60,255,138,0.7); }
     .sse.connecting .dot{ background: #ffd24d; box-shadow: 0 0 10px rgba(255,210,77,0.7); }
     .sse.error .dot{ background: #ff2f2f; box-shadow: 0 0 10px rgba(255,47,47,0.7); }
+
+.custom-board-shell{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.custom-tiles-scroll{
+  max-height: 430px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+.custom-tiles-scroll::-webkit-scrollbar{
+  width: 10px;
+}
+
+.custom-tiles-scroll::-webkit-scrollbar-track{
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+}
+
+.custom-tiles-scroll::-webkit-scrollbar-thumb{
+  background: rgba(244,123,32,0.75);
+  border-radius: 999px;
+  border: 2px solid rgba(7,19,37,0.85);
+}
+
+.custom-fixed-ticker{
+  flex: 0 0 auto;
+}
+
+.teams-wrapper.custom-scroll::-webkit-scrollbar{
+  width: 10px;
+}
+
+.teams-wrapper.custom-scroll::-webkit-scrollbar-track{
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+}
+
+.teams-wrapper.custom-scroll::-webkit-scrollbar-thumb{
+  background: rgba(244,123,32,0.75);
+  border-radius: 999px;
+  border: 2px solid rgba(7,19,37,0.85);
+}
+
+
   </style>
 </head>
 
@@ -857,29 +917,30 @@
   const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
   const imgPathSOC = (f) => `${BASE}images/soccer/${f}`;
 
-  const LS = {
-    TICKER: "barn.tickerLines",
-    BREAK: "barn.breakNumber",
-    TITLE: "barn.title",
-    BRIDGE: "tsu.bridge",
-    KEY: "tsu.key",
-PROMOS: "barn.promos",
-    OVERLAY: "tsu.overlayId",
-    CHANNEL: "tsu.channel",
-CUSTOM_ENTRIES: "barn.customEntries",
-CUSTOM_TITLE: "barn.customTitle",
-    URL_LEGACY: "tsu.bridgeUrl",
-    KEY_LEGACY: "tsu.bridgeKey",
-STATE: "barn.overlayState.v1",
-SEEN_SALES: "barn.seenSales.v1",
-    // ✅ per-team sizing storage
-    TEAM_STYLE: "barn.teamStyle.v1"
-  };
+ const LS = {
+  TICKER: "barn.tickerLines",
+  TICKER_SPEED: "barn.tickerSpeed",
+  BREAK: "barn.breakNumber",
+  TITLE: "barn.title",
+  BRIDGE: "tsu.bridge",
+  KEY: "tsu.key",
+  PROMOS: "barn.promos",
+  OVERLAY: "tsu.overlayId",
+  CHANNEL: "tsu.channel",
+  CUSTOM_ENTRIES: "barn.customEntries",
+  CUSTOM_TITLE: "barn.customTitle",
+  URL_LEGACY: "tsu.bridgeUrl",
+  KEY_LEGACY: "tsu.bridgeKey",
+  STATE: "barn.overlayState.v1",
+  SEEN_SALES: "barn.seenSales.v1",
+  TEAM_STYLE: "barn.teamStyle.v1"
+};
 
   const DEFAULT_TICKER_LINES = [
     "BARN BREAKS",
-    "FARM FRESH PULLS • LIVE BREAKS • GOOD LUCK"
+    "FARM FRESH PULLS • Bookmark upcoming shows"
   ];
+  const DEFAULT_TICKER_SPEED = 90;
 
   function loadTickerLines(){
     try{
@@ -894,12 +955,27 @@ SEEN_SALES: "barn.seenSales.v1",
   function saveTickerLines(lines){
     localStorage.setItem(LS.TICKER, JSON.stringify(lines));
   }
+  function loadTickerSpeed(){
+  const raw = parseInt(localStorage.getItem(LS.TICKER_SPEED) || String(DEFAULT_TICKER_SPEED), 10);
+  return Number.isFinite(raw) && raw >= 40 && raw <= 200 ? raw : DEFAULT_TICKER_SPEED;
+}
 
-  let TICKER_LINES = loadTickerLines();
-  let SCORE_LINES = [];
-let ACTIVE_TICKER_MODE = "custom"; // "custom" | "scores"
-let TICKER_MODE_TIMER = null;
-const TICKER_ROTATE_MS = 12000;
+function saveTickerSpeed(v){
+  const safe = Number.isFinite(v) ? Math.max(40, Math.min(200, v)) : DEFAULT_TICKER_SPEED;
+  localStorage.setItem(LS.TICKER_SPEED, String(safe));
+}
+
+function syncTickerSpeedUI(){
+  const slider = document.getElementById("tickerSpeedSlider");
+  const label = document.getElementById("tickerSpeedValue");
+  const speed = loadTickerSpeed();
+
+  if (slider) slider.value = String(speed);
+  if (label) label.textContent = `${speed} px/s`;
+}
+
+let TICKER_LINES = loadTickerLines();
+let SCORE_LINES = [];
 
 function normalizeTickerArray(arr){
   return (Array.isArray(arr) ? arr : [])
@@ -907,145 +983,63 @@ function normalizeTickerArray(arr){
     .filter(Boolean);
 }
 
-function getActiveTickerLines(){
-  if (ACTIVE_TICKER_MODE === "scores" && SCORE_LINES.length) return SCORE_LINES;
-  return TICKER_LINES.length ? TICKER_LINES : DEFAULT_TICKER_LINES.slice();
+function getCustomTickerText(){
+  const lines = normalizeTickerArray(TICKER_LINES);
+  return lines.length
+    ? lines.join("   •   ")
+    : DEFAULT_TICKER_LINES.join("   •   ");
 }
 
-function startTickerModeRotation(){
-  if (TICKER_MODE_TIMER) clearInterval(TICKER_MODE_TIMER);
+function getScoresTickerText(){
+  const lines = normalizeTickerArray(SCORE_LINES);
+  return lines.length ? lines.join("   •   ") : "";
+}
 
-  TICKER_MODE_TIMER = setInterval(() => {
-    if (!SCORE_LINES.length) {
-      ACTIVE_TICKER_MODE = "custom";
-      refreshTickerText();
-      return;
-    }
+function buildTickerLine(){
+  const customText = getCustomTickerText();
+  const scoresText = getScoresTickerText();
 
-    ACTIVE_TICKER_MODE = ACTIVE_TICKER_MODE === "custom" ? "scores" : "custom";
-    refreshTickerText();
-  }, TICKER_ROTATE_MS);
+  return scoresText
+    ? `${customText}   •   LIVE SCORES   •   ${scoresText}`
+    : customText;
+}
+
+function updateTickerMarquee(){
+  const line = ` ${buildTickerLine()} `;
+
+  document.querySelectorAll(".ticker-track").forEach(track => {
+    const copies = track.querySelectorAll(".ticker-copy");
+    if (copies.length < 2) return;
+
+    copies[0].textContent = line;
+    copies[1].textContent = line;
+
+    requestAnimationFrame(() => {
+      const firstWidth = copies[0].getBoundingClientRect().width;
+      if (!firstWidth) return;
+
+      const pxPerSec = loadTickerSpeed();
+      const duration = Math.max(12, Math.round(firstWidth / pxPerSec));
+
+      track.style.animation = "none";
+      track.style.setProperty("--tickerShift", `${firstWidth}px`);
+      track.style.setProperty("--tickerDur", `${duration}s`);
+      void track.offsetWidth;
+      track.style.animation = `tickerMarquee ${duration}s linear infinite`;
+    });
+  });
+}
+function refreshTickerText(){
+  updateTickerMarquee();
 }
 
 function setScoreLines(lines){
   SCORE_LINES = normalizeTickerArray(lines);
-
-  if (!SCORE_LINES.length) {
-    ACTIVE_TICKER_MODE = "custom";
-  }
-
-  refreshTickerText();
+  updateTickerMarquee();
 }
 
-function getTeamLabel(team){
-  if (!team) return "";
-  if (typeof team === "string") return team.trim();
-  return String(
-    team.abbr ||
-    team.abbreviation ||
-    team.code ||
-    team.shortName ||
-    team.name ||
-    ""
-  ).trim();
-}
 
-function getGameStatusText(game){
-  return String(
-    game.statusText ||
-    game.displayStatus ||
-    game.state ||
-    game.status ||
-    game.phase ||
-    game.periodText ||
-    ""
-  ).trim();
-}
 
-function getGameClockText(game){
-  return String(
-    game.clock ||
-    game.time ||
-    game.timeRemaining ||
-    ""
-  ).trim();
-}
-
-function getGamePeriodText(game){
-  const p = game.period ?? game.quarter ?? game.inning ?? game.set;
-  if (p === undefined || p === null || p === "") return "";
-  return `P${p}`;
-}
-
-function buildScoreLine(game){
-  const awayTeam = game.awayTeam || game.away || game.visitor || game.team1 || game.leftTeam || {};
-  const homeTeam = game.homeTeam || game.home || game.host || game.team2 || game.rightTeam || {};
-
-  const away = getTeamLabel(awayTeam);
-  const home = getTeamLabel(homeTeam);
-
-  const awayScore = game.awayScore ?? game.visitorScore ?? game.scoreAway ?? awayTeam.score ?? awayTeam.points ?? "";
-  const homeScore = game.homeScore ?? game.hostScore ?? game.scoreHome ?? homeTeam.score ?? homeTeam.points ?? "";
-
-  const status = getGameStatusText(game);
-  const clock = getGameClockText(game);
-  const period = getGamePeriodText(game);
-
-  const matchup = [away, awayScore, "-", homeScore, home].filter(v => String(v).trim() !== "").join(" ");
-  const detail = [status, period, clock].filter(Boolean).join(" ");
-
-  if (!matchup) return "";
-  return detail ? `${matchup} • ${detail}` : matchup;
-}
-
-function extractScoreLines(payload){
-  if (!payload || typeof payload !== "object") return [];
-
-  if (Array.isArray(payload.lines)) {
-    return normalizeTickerArray(payload.lines);
-  }
-
-  if (Array.isArray(payload.texts)) {
-    return normalizeTickerArray(payload.texts);
-  }
-
-  if (typeof payload.text === "string" && payload.text.trim()) {
-    return [payload.text.trim()];
-  }
-
-  const games =
-    payload.games ||
-    payload.items ||
-    payload.events ||
-    payload.scoreboard ||
-    payload.scores ||
-    payload.matchups ||
-    payload.data?.games ||
-    payload.data?.items ||
-    payload.data?.events ||
-    payload.data?.scoreboard ||
-    payload.data?.scores ||
-    [];
-
-  if (!Array.isArray(games)) return [];
-
-  return games
-    .map(buildScoreLine)
-    .map(s => String(s || "").trim())
-    .filter(Boolean);
-}
-
-function refreshTickerText(){
-  const sourceLines = getActiveTickerLines();
-  const t = ` ${sourceLines.join("   •   ")} `;
-
-  document.querySelectorAll(".ticker-text").forEach(el => {
-    el.textContent = t;
-    el.style.animation = "none";
-    void el.offsetHeight;
-    el.style.animation = "tickerScroll 18s linear infinite";
-  });
-}
 
   function syncTickerInput(){
     const ta = document.getElementById("tickerModalTextarea");
@@ -1056,17 +1050,17 @@ function refreshTickerText(){
 function setTickerLines(lines){
   TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
   saveTickerLines(TICKER_LINES);
-  ACTIVE_TICKER_MODE = "custom";
-  refreshTickerText();
+  updateTickerMarquee();
   syncTickerInput();
 }
 
-  function openTickerEditor(){
-    const modal = document.getElementById("tickerModal");
-    if (!modal) return;
-    syncTickerInput();
-    modal.classList.add("open");
-  }
+function openTickerEditor(){
+  const modal = document.getElementById("tickerModal");
+  if (!modal) return;
+  syncTickerInput();
+  syncTickerSpeedUI();
+  modal.classList.add("open");
+}
 
   function closeTickerEditor(){
     const modal = document.getElementById("tickerModal");
@@ -1074,17 +1068,21 @@ function setTickerLines(lines){
     modal.classList.remove("open");
   }
 
-  function applyTickerFromModal(){
-    const raw = (document.getElementById("tickerModalTextarea")?.value || "").trim();
+function applyTickerFromModal(){
+  const raw = (document.getElementById("tickerModalTextarea")?.value || "").trim();
+  const slider = document.getElementById("tickerSpeedSlider");
+  const speed = parseInt(slider?.value || String(DEFAULT_TICKER_SPEED), 10);
 
-    const parts = raw.includes("•")
-      ? raw.split("•").map(s => s.trim()).filter(Boolean)
-      : [raw].filter(Boolean);
+  const parts = raw.includes("•")
+    ? raw.split("•").map(s => s.trim()).filter(Boolean)
+    : [raw].filter(Boolean);
 
-    setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
-    closeTickerEditor();
-  }
-
+  setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+  saveTickerSpeed(speed);
+  updateTickerMarquee();
+  syncTickerSpeedUI();
+  closeTickerEditor();
+}
   function loadTitleOverride(){
     return String(localStorage.getItem(LS.TITLE) || "").trim();
   }
@@ -1241,7 +1239,12 @@ function parseCustomEntries(raw){
 }
 
 function getCustomEntries(){
-  return parseCustomEntries(loadCustomEntriesRaw());
+  return parseCustomEntries(loadCustomEntriesRaw())
+    .sort((a, b) => {
+      const aa = String(a?.label || a?.name || a?.code || "").toLowerCase();
+      const bb = String(b?.label || b?.name || b?.code || "").toLowerCase();
+      return aa.localeCompare(bb);
+    });
 }
 
 function getCustomFontSize(text){
@@ -1782,21 +1785,27 @@ custom: {
     return slot;
   }
 
-  function makeTickerSlot(spanCols){
-    const slot = document.createElement("div");
-    slot.className = "ticker-slot";
-    slot.style.gridColumn = `span ${spanCols}`;
+function makeTickerSlot(spanCols){
+  const slot = document.createElement("div");
+  slot.className = "ticker-slot";
+  slot.style.gridColumn = `span ${spanCols}`;
 
-    const text = document.createElement("span");
-    text.className = "ticker-text";
-    text.textContent = ` ${TICKER_LINES.join("   •   ")} `;
-    slot.appendChild(text);
-    return slot;
+  const track = document.createElement("div");
+  track.className = "ticker-track";
+
+  for (let i = 0; i < 2; i++) {
+    const copy = document.createElement("span");
+    copy.className = "ticker-copy";
+    track.appendChild(copy);
   }
 
+  slot.appendChild(track);
+  return slot;
+}
   function buildLayout(){
     const wrap = document.getElementById("teamsWrapper");
     wrap.innerHTML = "";
+    wrap.classList.remove("custom-scroll");
 
     const config = breakTypes[currentBreakType];
     document.documentElement.style.setProperty("--cols", String(config.cols));
@@ -1834,30 +1843,45 @@ r1.className = "row-grid row-logo";
 if (config.layout === "CUSTOM_30"){
   let idx = 0;
 
-  const r1 = document.createElement("div");
-  r1.className = "row-grid row-logo";
-  for (let i = 0; i < 3; i++){
-    if (teams[idx]) r1.appendChild(makeCustomTeamDiv(teams[idx++]));
-  }
-  r1.appendChild(makeLogoSlot(2));
-  for (let i = 0; i < 3; i++){
-    if (teams[idx]) r1.appendChild(makeCustomTeamDiv(teams[idx++]));
-  }
-  wrap.appendChild(r1);
+  const shell = document.createElement("div");
+  shell.className = "custom-board-shell";
 
-  for (let r = 0; r < 3; r++){
+  const tilesScroll = document.createElement("div");
+  tilesScroll.className = "custom-tiles-scroll";
+
+  const topRow = document.createElement("div");
+  topRow.className = "row-grid row-logo";
+
+  for (let i = 0; i < 3; i++){
+    if (teams[idx]) topRow.appendChild(makeCustomTeamDiv(teams[idx++]));
+  }
+
+  topRow.appendChild(makeLogoSlot(2));
+
+  for (let i = 0; i < 3; i++){
+    if (teams[idx]) topRow.appendChild(makeCustomTeamDiv(teams[idx++]));
+  }
+
+  tilesScroll.appendChild(topRow);
+
+  while (idx < teams.length){
     const row = document.createElement("div");
     row.className = "row-grid";
-    for (let i = 0; i < 8; i++){
-      if (teams[idx]) row.appendChild(makeCustomTeamDiv(teams[idx++]));
+
+    for (let i = 0; i < 8 && idx < teams.length; i++){
+      row.appendChild(makeCustomTeamDiv(teams[idx++]));
     }
-    wrap.appendChild(row);
+
+    tilesScroll.appendChild(row);
   }
 
-  const r5 = document.createElement("div");
-  r5.className = "row-grid";
-  r5.appendChild(makeTickerSlot(8));
-  wrap.appendChild(r5);
+  const tickerRow = document.createElement("div");
+  tickerRow.className = "row-grid custom-fixed-ticker";
+  tickerRow.appendChild(makeTickerSlot(8));
+
+  shell.appendChild(tilesScroll);
+  shell.appendChild(tickerRow);
+  wrap.appendChild(shell);
 }
 
     if (config.layout === "NFL_32"){
@@ -2018,13 +2042,11 @@ function resetAll(){
   clearSeenSales();
   clearOverlayState();
   SCORE_LINES = [];
-  ACTIVE_TICKER_MODE = "custom";
   document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
   updateStats();
   updateSoldList();
   refreshTickerText();
 }
-
   function newBreak(){
     resetAll();
     incrementBreak();
@@ -2129,6 +2151,7 @@ function setSSEStatus(state, msg){
   const text = document.getElementById("sseText");
   if (!wrap || !text) return;
 
+
   wrap.classList.remove("connected", "error", "connecting");
   if (state === "connected") wrap.classList.add("connected");
   if (state === "error") wrap.classList.add("error");
@@ -2147,6 +2170,47 @@ function getBuyerFromPayload(data){
 
 function getSportFromPayload(data){
   return String(data?.sport || data?.breakType || "").trim().toLowerCase();
+}
+
+function extractScoreLines(data){
+  if (!data || typeof data !== "object") return [];
+
+  const payload =
+    (data.data && typeof data.data === "object")
+      ? data.data
+      : data;
+
+  if (typeof payload.text === "string" && payload.text.trim()) {
+    return [payload.text.trim()];
+  }
+
+  if (Array.isArray(payload.lines) && payload.lines.length) {
+    return payload.lines
+      .map(x => String(x || "").trim())
+      .filter(Boolean);
+  }
+
+  const games = Array.isArray(payload.games) ? payload.games : [];
+  if (!games.length) return [];
+
+  const league = String(payload.sport || payload.league || "").toUpperCase().trim();
+
+  return games.slice(0, 4).map(g => {
+    const away = String(g.away || g.a || "AWAY").trim();
+    const home = String(g.home || g.h || "HOME").trim();
+    const awayScore = g.awayScore ?? g.as ?? "";
+    const homeScore = g.homeScore ?? g.hs ?? "";
+    const status = String(g.status || "").trim();
+
+    const core =
+      (String(awayScore) !== "" || String(homeScore) !== "")
+        ? `${away} ${awayScore}-${homeScore} ${home}`
+        : `${away} vs ${home}`;
+
+    return league
+      ? `${league}: ${core}${status ? ` (${status})` : ""}`
+      : `${core}${status ? ` (${status})` : ""}`;
+  }).filter(Boolean);
 }
 
 function handleSportsEvent(data){
@@ -2179,9 +2243,7 @@ function getChannel(){
   return new URLSearchParams(location.search).get("channel") || "main";
 }
 
-function getScoresChannel(){
-  return new URLSearchParams(location.search).get("scoresChannel") || "sports";
-}
+
 
 function connectSSE(url){
   if (sse) { try { sse.close(); } catch(_){} }
@@ -2242,7 +2304,7 @@ function connectScoresSSE(base){
   if (sseScores) { try { sseScores.close(); } catch(_){} }
 
   try{
-    const url = `${base}/stream?channel=${encodeURIComponent(getScoresChannel())}`;
+    const url = `${base}/stream?channel=sports`;
     sseScores = new EventSource(url);
 
  const ingest = (e) => {
@@ -2594,7 +2656,7 @@ if (currentBreakType === "custom" && !getCustomEntries().length) {
 
   processedSales = loadSeenSales();
 setTickerLines(loadTickerLines());
-startTickerModeRotation();
+syncTickerSpeedUI();
 setBreakNumber(loadBreakNumber());
 
     if (automationEnabled()) startSSE();
@@ -2608,7 +2670,15 @@ document.addEventListener("keydown", (e) => {
   closePromoEditor();
   closeCustomEntriesEditor();
 });
-
+const tickerSpeedSlider = document.getElementById("tickerSpeedSlider");
+if (tickerSpeedSlider){
+  tickerSpeedSlider.addEventListener("input", (e) => {
+    const speed = parseInt(e.target.value, 10);
+    saveTickerSpeed(speed);
+    syncTickerSpeedUI();
+    updateTickerMarquee();
+  });
+}
     ["tickerModal","titleModal","breakModal","promoModal","customEntriesModal"].forEach(id => {
       const m = document.getElementById(id);
       if (!m) return;
@@ -2643,6 +2713,33 @@ if (e.target === m){
 
     <div class="ticker-hint">
       Tip: Leave blank to revert to the default like <b>NFL BOX BREAK</b>.
+    </div>
+  </div>
+</div>
+
+<!-- ===== Ticker Editor Modal ===== -->
+<div class="modal-backdrop" id="tickerModal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Ticker Editor">
+    <div class="modal-head">
+      <div class="modal-title">Ticker Editor</div>
+      <div class="modal-actions">
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyTickerFromModal()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeTickerEditor()">CLOSE</button>
+      </div>
+    </div>
+
+    <div class="ticker-editor" style="flex-direction:column;">
+      <textarea id="tickerModalTextarea" placeholder="Enter ticker text. Use • to separate items.&#10;Example: BARN BREAKS • FARM FRESH PULLS • GOOD LUCK"></textarea>
+
+      <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+        <div class="btn ghost" style="padding:8px 10px; font-size:12px; cursor:default;">SPEED</div>
+        <input id="tickerSpeedSlider" type="range" min="40" max="200" step="5" style="flex:1;">
+        <div id="tickerSpeedValue" class="btn ghost" style="padding:8px 10px; font-size:12px; cursor:default;">90 px/s</div>
+      </div>
+    </div>
+
+    <div class="ticker-hint">
+      Tip: Separate items with <b>•</b>. Use the slider to control ticker scroll speed.
     </div>
   </div>
 </div>
@@ -2718,26 +2815,7 @@ if (e.target === m){
   </div>
 </div>
 
-<!-- ===== Ticker Editor Modal ===== -->
-<div class="modal-backdrop" id="tickerModal">
-  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Ticker Editor">
-    <div class="modal-head">
-      <div class="modal-title">Ticker Editor</div>
-      <div class="modal-actions">
-        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyTickerFromModal()">APPLY</button>
-        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeTickerEditor()">CLOSE</button>
-      </div>
-    </div>
 
-    <div class="ticker-editor">
-      <textarea id="tickerModalTextarea" placeholder="Enter ticker text. Use • to separate items.&#10;Example: BARN BREAKS • FARM FRESH PULLS • GOOD LUCK"></textarea>
-    </div>
-
-    <div class="ticker-hint">
-      Tip: Separate items with <b>•</b>. This box is OBS-friendly (big text, no tiny inputs).
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
