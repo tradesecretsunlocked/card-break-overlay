@@ -1218,35 +1218,27 @@ function parseCustomEntries(raw){
   if (!text) return [];
 
   const lines = text.split("\n").map(s => s.trim()).filter(Boolean);
-  const out = [];
 
-  lines.forEach((line, idx) => {
-    let label = line;
+  return lines.map((line, idx) => {
+    const aliases = line
+      .split(",")
+      .map(x => String(x || "").trim())
+      .filter(Boolean);
 
-    if (line.includes(",")) {
-      const first = line.split(",").map(x => x.trim()).filter(Boolean)[0];
-      if (first) label = first;
-    }
+    const label = aliases[0] || `Custom ${idx + 1}`;
 
-    out.push({
+    return {
       code: `C${idx + 1}`,
       name: label,
-      label
-    });
+      label,
+      aliases,
+      sourceTitle: line
+    };
   });
-
-  return out;
 }
-
 function getCustomEntries(){
-  return parseCustomEntries(loadCustomEntriesRaw())
-    .sort((a, b) => {
-      const aa = String(a?.label || a?.name || a?.code || "").toLowerCase();
-      const bb = String(b?.label || b?.name || b?.code || "").toLowerCase();
-      return aa.localeCompare(bb);
-    });
+  return parseCustomEntries(loadCustomEntriesRaw());
 }
-
 function getCustomFontSize(text){
   const len = String(text || "").trim().length;
   if (len <= 8) return "24px";
@@ -2077,46 +2069,86 @@ function resetAll(){
       .replace(/[^a-z0-9]+/g,' ')
       .trim();
   }
+function inferCodeFromTitle(title, sportHint){
+  const rawTitle = String(title || "").trim();
+  const t = norm(rawTitle);
+  if (!t) return null;
 
-  function inferCodeFromTitle(title, sportHint){
-    const t = norm(title);
-    if (!t) return null;
+  // Custom row alias matching first
+  if (sportHint === "custom" || currentBreakType === "custom"){
+    const customTeams = getCustomEntries();
 
-    if (sportHint && breakTypes[sportHint]){
-      const list = breakTypes[sportHint].teams || [];
-      for (const tm of list){
-        const code = String(tm.code||'').toUpperCase().trim();
-        if (!code) continue;
-        if (t.includes(norm(code))) return code;
-        if (tm.name && t.includes(norm(tm.name))) return code;
-      }
+    // Special support for "#1" style titles
+    const hashNum = rawTitle.match(/^\s*#\s*(\d+)\s*$/);
+    if (hashNum){
+      const idx = parseInt(hashNum[1], 10);
+      const direct = customTeams[idx - 1];
+      if (direct) return direct.code;
     }
 
+    // Special support for bare numeric titles like "1"
+    const bareNum = rawTitle.match(/^\s*(\d+)\s*$/);
+    if (bareNum){
+      const idx = parseInt(bareNum[1], 10);
+      const direct = customTeams[idx - 1];
+      if (direct) return direct.code;
+    }
+
+    for (const tm of customTeams){
+      const aliases = Array.isArray(tm.aliases) ? tm.aliases : [];
+
+      for (const alias of aliases){
+        const na = norm(alias);
+        if (!na) continue;
+
+        if (t === na) return tm.code;
+        if (t.includes(na)) return tm.code;
+        if (na.includes(t)) return tm.code;
+      }
+
+      const source = norm(tm.sourceTitle || "");
+      if (source){
+        if (t === source) return tm.code;
+        if (t.includes(source)) return tm.code;
+        if (source.includes(t)) return tm.code;
+      }
+    }
+  }
+
+  if (sportHint && breakTypes[sportHint]){
+    const list = breakTypes[sportHint].teams || [];
+    for (const tm of list){
+      const code = String(tm.code || '').toUpperCase().trim();
+      if (!code) continue;
+      if (t.includes(norm(code))) return code;
+      if (tm.name && t.includes(norm(tm.name))) return code;
+    }
+  }
+
+  for (const k of Object.keys(breakTypes)){
+    const list = breakTypes[k].teams || [];
+    for (const tm of list){
+      const code = String(tm.code || '').toUpperCase().trim();
+      if (!code) continue;
+      if (t.includes(norm(code))) return code;
+      if (tm.name && t.includes(norm(tm.name))) return code;
+    }
+  }
+
+  const tokens = t.toUpperCase().split(/\s+/).filter(Boolean);
+  for (const tok of tokens){
+    if (tok.length < 2 || tok.length > 4) continue;
     for (const k of Object.keys(breakTypes)){
       const list = breakTypes[k].teams || [];
       for (const tm of list){
-        const code = String(tm.code||'').toUpperCase().trim();
-        if (!code) continue;
-        if (t.includes(norm(code))) return code;
-        if (tm.name && t.includes(norm(tm.name))) return code;
+        const code = String(tm.code || '').toUpperCase().trim();
+        if (tok === code) return code;
       }
     }
-
-    const tokens = t.toUpperCase().split(/\s+/).filter(Boolean);
-    for (const tok of tokens){
-      if (tok.length < 2 || tok.length > 4) continue;
-      for (const k of Object.keys(breakTypes)){
-        const list = breakTypes[k].teams || [];
-        for (const tm of list){
-          const code = String(tm.code||'').toUpperCase().trim();
-          if (tok === code) return code;
-        }
-      }
-    }
-
-    return null;
   }
-const BRIDGE_URL = (() => {
+
+  return null;
+}const BRIDGE_URL = (() => {
   const q = new URLSearchParams(location.search).get("bridge");
   if (q) {
     const cleaned = q.replace(/\/$/, "");
@@ -2434,6 +2466,17 @@ function handleSSEEvent(data){
     ).trim();
 
     let code = getCodeFromPayload(payload);
+    if (!code && currentBreakType === "custom"){
+  const rawTitle = String(payload.title || payload.itemTitle || payload.listingTitle || "").trim();
+  const m = rawTitle.match(/^\s*#\s*(\d+)\s*$/) || rawTitle.match(/^\s*(\d+)\s*$/);
+  if (m){
+    const idx = parseInt(m[1], 10);
+    const customTeams = getCustomEntries();
+    if (idx > 0 && customTeams[idx - 1]){
+      code = customTeams[idx - 1].code;
+    }
+  }
+}
 
     if (!code && saleKey && lastCodeBySaleId.has(saleKey)) {
       code = lastCodeBySaleId.get(saleKey);
