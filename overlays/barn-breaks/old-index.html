@@ -492,33 +492,44 @@
     }
 .logo-slot{ z-index: 60; }
 .logo-slot img{ z-index: 61; }
-    .ticker-slot{
-      border-radius: 10px;
-      height: var(--tileH);
-      display:flex;
-      align-items:center;
-      overflow:hidden;
-      background: linear-gradient(
-27deg, navy 0%, rgb(80, 42, 7) 50%, navy);
-      border: 2px solid var(--accentBorder);
-      padding: 0 10px;
-    }
+   
 
-    .ticker-text{
-      display:inline-block;
-      white-space: nowrap;
-      padding-left: 100%;
-      font-size:22px;
-      animation: tickerScroll 22s linear infinite;
-      font-weight: 900;
-      letter-spacing: 0.8px;
-      color: #fff;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.65);
-    }
-    @keyframes tickerScroll{
-      0%{ transform: translateX(0); }
-      100%{ transform: translateX(-100%); }
-    }
+.ticker-slot{
+  border-radius: 10px;
+  height: var(--tileH);
+  display:flex;
+  align-items:center;
+  overflow:hidden;
+  background: linear-gradient(27deg, navy 0%, rgb(80, 42, 7) 50%, navy);
+  border: 2px solid var(--accentBorder);
+  padding: 0 10px;
+}
+
+.ticker-track{
+  display:flex;
+  align-items:center;
+  white-space:nowrap;
+  width:max-content;
+  will-change:transform;
+  animation:tickerMarquee linear infinite;
+  animation-duration:var(--tickerDur, 24s);
+}
+
+.ticker-copy{
+  flex:0 0 auto;
+  display:inline-block;
+  padding-right:48px;
+  font-size:22px;
+  font-weight:900;
+  letter-spacing:0.8px;
+  color:#fff;
+  text-shadow:0 2px 10px rgba(0,0,0,0.65);
+}
+
+@keyframes tickerMarquee{
+  0%{ transform:translateX(0); }
+  100%{ transform:translateX(calc(-1 * var(--tickerShift, 0px))); }
+}
 
     /* ===== CONTROLS ROW (Remaining | Promo Placeholder | Sold) ===== */
     .controls-row{
@@ -765,6 +776,55 @@
     .sse.connected .dot{ background: #3cff8a; box-shadow: 0 0 10px rgba(60,255,138,0.7); }
     .sse.connecting .dot{ background: #ffd24d; box-shadow: 0 0 10px rgba(255,210,77,0.7); }
     .sse.error .dot{ background: #ff2f2f; box-shadow: 0 0 10px rgba(255,47,47,0.7); }
+
+.custom-board-shell{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.custom-tiles-scroll{
+  max-height: 430px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+.custom-tiles-scroll::-webkit-scrollbar{
+  width: 10px;
+}
+
+.custom-tiles-scroll::-webkit-scrollbar-track{
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+}
+
+.custom-tiles-scroll::-webkit-scrollbar-thumb{
+  background: rgba(244,123,32,0.75);
+  border-radius: 999px;
+  border: 2px solid rgba(7,19,37,0.85);
+}
+
+.custom-fixed-ticker{
+  flex: 0 0 auto;
+}
+
+.teams-wrapper.custom-scroll::-webkit-scrollbar{
+  width: 10px;
+}
+
+.teams-wrapper.custom-scroll::-webkit-scrollbar-track{
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+}
+
+.teams-wrapper.custom-scroll::-webkit-scrollbar-thumb{
+  background: rgba(244,123,32,0.75);
+  border-radius: 999px;
+  border: 2px solid rgba(7,19,37,0.85);
+}
+
+
   </style>
 </head>
 
@@ -857,28 +917,30 @@
   const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
   const imgPathSOC = (f) => `${BASE}images/soccer/${f}`;
 
-  const LS = {
-    TICKER: "barn.tickerLines",
-    BREAK: "barn.breakNumber",
-    TITLE: "barn.title",
-    BRIDGE: "tsu.bridge",
-    KEY: "tsu.key",
-PROMOS: "barn.promos",
-    OVERLAY: "tsu.overlayId",
-    CHANNEL: "tsu.channel",
-CUSTOM_ENTRIES: "barn.customEntries",
-CUSTOM_TITLE: "barn.customTitle",
-    URL_LEGACY: "tsu.bridgeUrl",
-    KEY_LEGACY: "tsu.bridgeKey",
-
-    // ✅ per-team sizing storage
-    TEAM_STYLE: "barn.teamStyle.v1"
-  };
+ const LS = {
+  TICKER: "barn.tickerLines",
+  TICKER_SPEED: "barn.tickerSpeed",
+  BREAK: "barn.breakNumber",
+  TITLE: "barn.title",
+  BRIDGE: "tsu.bridge",
+  KEY: "tsu.key",
+  PROMOS: "barn.promos",
+  OVERLAY: "tsu.overlayId",
+  CHANNEL: "tsu.channel",
+  CUSTOM_ENTRIES: "barn.customEntries",
+  CUSTOM_TITLE: "barn.customTitle",
+  URL_LEGACY: "tsu.bridgeUrl",
+  KEY_LEGACY: "tsu.bridgeKey",
+  STATE: "barn.overlayState.v1",
+  
+  TEAM_STYLE: "barn.teamStyle.v1"
+};
 
   const DEFAULT_TICKER_LINES = [
     "BARN BREAKS",
-    "FARM FRESH PULLS • LIVE BREAKS • GOOD LUCK"
+    "FARM FRESH PULLS • Bookmark upcoming shows"
   ];
+  const DEFAULT_TICKER_SPEED = 90;
 
   function loadTickerLines(){
     try{
@@ -893,12 +955,27 @@ CUSTOM_TITLE: "barn.customTitle",
   function saveTickerLines(lines){
     localStorage.setItem(LS.TICKER, JSON.stringify(lines));
   }
+  function loadTickerSpeed(){
+  const raw = parseInt(localStorage.getItem(LS.TICKER_SPEED) || String(DEFAULT_TICKER_SPEED), 10);
+  return Number.isFinite(raw) && raw >= 40 && raw <= 200 ? raw : DEFAULT_TICKER_SPEED;
+}
 
-  let TICKER_LINES = loadTickerLines();
-  let SCORE_LINES = [];
-let ACTIVE_TICKER_MODE = "custom"; // "custom" | "scores"
-let TICKER_MODE_TIMER = null;
-const TICKER_ROTATE_MS = 12000;
+function saveTickerSpeed(v){
+  const safe = Number.isFinite(v) ? Math.max(40, Math.min(200, v)) : DEFAULT_TICKER_SPEED;
+  localStorage.setItem(LS.TICKER_SPEED, String(safe));
+}
+
+function syncTickerSpeedUI(){
+  const slider = document.getElementById("tickerSpeedSlider");
+  const label = document.getElementById("tickerSpeedValue");
+  const speed = loadTickerSpeed();
+
+  if (slider) slider.value = String(speed);
+  if (label) label.textContent = `${speed} px/s`;
+}
+
+let TICKER_LINES = loadTickerLines();
+let SCORE_LINES = [];
 
 function normalizeTickerArray(arr){
   return (Array.isArray(arr) ? arr : [])
@@ -906,145 +983,63 @@ function normalizeTickerArray(arr){
     .filter(Boolean);
 }
 
-function getActiveTickerLines(){
-  if (ACTIVE_TICKER_MODE === "scores" && SCORE_LINES.length) return SCORE_LINES;
-  return TICKER_LINES.length ? TICKER_LINES : DEFAULT_TICKER_LINES.slice();
+function getCustomTickerText(){
+  const lines = normalizeTickerArray(TICKER_LINES);
+  return lines.length
+    ? lines.join("   •   ")
+    : DEFAULT_TICKER_LINES.join("   •   ");
 }
 
-function startTickerModeRotation(){
-  if (TICKER_MODE_TIMER) clearInterval(TICKER_MODE_TIMER);
+function getScoresTickerText(){
+  const lines = normalizeTickerArray(SCORE_LINES);
+  return lines.length ? lines.join("   •   ") : "";
+}
 
-  TICKER_MODE_TIMER = setInterval(() => {
-    if (!SCORE_LINES.length) {
-      ACTIVE_TICKER_MODE = "custom";
-      refreshTickerText();
-      return;
-    }
+function buildTickerLine(){
+  const customText = getCustomTickerText();
+  const scoresText = getScoresTickerText();
 
-    ACTIVE_TICKER_MODE = ACTIVE_TICKER_MODE === "custom" ? "scores" : "custom";
-    refreshTickerText();
-  }, TICKER_ROTATE_MS);
+  return scoresText
+    ? `${customText}   •   LIVE SCORES   •   ${scoresText}`
+    : customText;
+}
+
+function updateTickerMarquee(){
+  const line = ` ${buildTickerLine()} `;
+
+  document.querySelectorAll(".ticker-track").forEach(track => {
+    const copies = track.querySelectorAll(".ticker-copy");
+    if (copies.length < 2) return;
+
+    copies[0].textContent = line;
+    copies[1].textContent = line;
+
+    requestAnimationFrame(() => {
+      const firstWidth = copies[0].getBoundingClientRect().width;
+      if (!firstWidth) return;
+
+      const pxPerSec = loadTickerSpeed();
+      const duration = Math.max(12, Math.round(firstWidth / pxPerSec));
+
+      track.style.animation = "none";
+      track.style.setProperty("--tickerShift", `${firstWidth}px`);
+      track.style.setProperty("--tickerDur", `${duration}s`);
+      void track.offsetWidth;
+      track.style.animation = `tickerMarquee ${duration}s linear infinite`;
+    });
+  });
+}
+function refreshTickerText(){
+  updateTickerMarquee();
 }
 
 function setScoreLines(lines){
   SCORE_LINES = normalizeTickerArray(lines);
-
-  if (!SCORE_LINES.length) {
-    ACTIVE_TICKER_MODE = "custom";
-  }
-
-  refreshTickerText();
+  updateTickerMarquee();
 }
 
-function getTeamLabel(team){
-  if (!team) return "";
-  if (typeof team === "string") return team.trim();
-  return String(
-    team.abbr ||
-    team.abbreviation ||
-    team.code ||
-    team.shortName ||
-    team.name ||
-    ""
-  ).trim();
-}
 
-function getGameStatusText(game){
-  return String(
-    game.statusText ||
-    game.displayStatus ||
-    game.state ||
-    game.status ||
-    game.phase ||
-    game.periodText ||
-    ""
-  ).trim();
-}
 
-function getGameClockText(game){
-  return String(
-    game.clock ||
-    game.time ||
-    game.timeRemaining ||
-    ""
-  ).trim();
-}
-
-function getGamePeriodText(game){
-  const p = game.period ?? game.quarter ?? game.inning ?? game.set;
-  if (p === undefined || p === null || p === "") return "";
-  return `P${p}`;
-}
-
-function buildScoreLine(game){
-  const awayTeam = game.awayTeam || game.away || game.visitor || game.team1 || game.leftTeam || {};
-  const homeTeam = game.homeTeam || game.home || game.host || game.team2 || game.rightTeam || {};
-
-  const away = getTeamLabel(awayTeam);
-  const home = getTeamLabel(homeTeam);
-
-  const awayScore = game.awayScore ?? game.visitorScore ?? game.scoreAway ?? awayTeam.score ?? awayTeam.points ?? "";
-  const homeScore = game.homeScore ?? game.hostScore ?? game.scoreHome ?? homeTeam.score ?? homeTeam.points ?? "";
-
-  const status = getGameStatusText(game);
-  const clock = getGameClockText(game);
-  const period = getGamePeriodText(game);
-
-  const matchup = [away, awayScore, "-", homeScore, home].filter(v => String(v).trim() !== "").join(" ");
-  const detail = [status, period, clock].filter(Boolean).join(" ");
-
-  if (!matchup) return "";
-  return detail ? `${matchup} • ${detail}` : matchup;
-}
-
-function extractScoreLines(payload){
-  if (!payload || typeof payload !== "object") return [];
-
-  if (Array.isArray(payload.lines)) {
-    return normalizeTickerArray(payload.lines);
-  }
-
-  if (Array.isArray(payload.texts)) {
-    return normalizeTickerArray(payload.texts);
-  }
-
-  if (typeof payload.text === "string" && payload.text.trim()) {
-    return [payload.text.trim()];
-  }
-
-  const games =
-    payload.games ||
-    payload.items ||
-    payload.events ||
-    payload.scoreboard ||
-    payload.scores ||
-    payload.matchups ||
-    payload.data?.games ||
-    payload.data?.items ||
-    payload.data?.events ||
-    payload.data?.scoreboard ||
-    payload.data?.scores ||
-    [];
-
-  if (!Array.isArray(games)) return [];
-
-  return games
-    .map(buildScoreLine)
-    .map(s => String(s || "").trim())
-    .filter(Boolean);
-}
-
-function refreshTickerText(){
-  const sourceLines = getActiveTickerLines();
-  const t = ` ${sourceLines.join("   •   ")} `;
-
-  document.querySelectorAll(".ticker-text").forEach(el => {
-    el.textContent = t;
-    el.style.animation = "none";
-    void el.offsetHeight;
-    el.style.animation = "tickerScroll 18s linear infinite";
-  });
-}
 
   function syncTickerInput(){
     const ta = document.getElementById("tickerModalTextarea");
@@ -1055,17 +1050,17 @@ function refreshTickerText(){
 function setTickerLines(lines){
   TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
   saveTickerLines(TICKER_LINES);
-  ACTIVE_TICKER_MODE = "custom";
-  refreshTickerText();
+  updateTickerMarquee();
   syncTickerInput();
 }
 
-  function openTickerEditor(){
-    const modal = document.getElementById("tickerModal");
-    if (!modal) return;
-    syncTickerInput();
-    modal.classList.add("open");
-  }
+function openTickerEditor(){
+  const modal = document.getElementById("tickerModal");
+  if (!modal) return;
+  syncTickerInput();
+  syncTickerSpeedUI();
+  modal.classList.add("open");
+}
 
   function closeTickerEditor(){
     const modal = document.getElementById("tickerModal");
@@ -1073,17 +1068,21 @@ function setTickerLines(lines){
     modal.classList.remove("open");
   }
 
-  function applyTickerFromModal(){
-    const raw = (document.getElementById("tickerModalTextarea")?.value || "").trim();
+function applyTickerFromModal(){
+  const raw = (document.getElementById("tickerModalTextarea")?.value || "").trim();
+  const slider = document.getElementById("tickerSpeedSlider");
+  const speed = parseInt(slider?.value || String(DEFAULT_TICKER_SPEED), 10);
 
-    const parts = raw.includes("•")
-      ? raw.split("•").map(s => s.trim()).filter(Boolean)
-      : [raw].filter(Boolean);
+  const parts = raw.includes("•")
+    ? raw.split("•").map(s => s.trim()).filter(Boolean)
+    : [raw].filter(Boolean);
 
-    setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
-    closeTickerEditor();
-  }
-
+  setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+  saveTickerSpeed(speed);
+  updateTickerMarquee();
+  syncTickerSpeedUI();
+  closeTickerEditor();
+}
   function loadTitleOverride(){
     return String(localStorage.getItem(LS.TITLE) || "").trim();
   }
@@ -1219,30 +1218,27 @@ function parseCustomEntries(raw){
   if (!text) return [];
 
   const lines = text.split("\n").map(s => s.trim()).filter(Boolean);
-  const out = [];
 
-  lines.forEach((line, idx) => {
-    let label = line;
+  return lines.map((line, idx) => {
+    const aliases = line
+      .split(",")
+      .map(x => String(x || "").trim())
+      .filter(Boolean);
 
-    if (line.includes(",")) {
-      const first = line.split(",").map(x => x.trim()).filter(Boolean)[0];
-      if (first) label = first;
-    }
+    const label = aliases[0] || `Custom ${idx + 1}`;
 
-    out.push({
+    return {
       code: `C${idx + 1}`,
       name: label,
-      label
-    });
+      label,
+      aliases,
+      sourceTitle: line
+    };
   });
-
-  return out;
 }
-
 function getCustomEntries(){
   return parseCustomEntries(loadCustomEntriesRaw());
 }
-
 function getCustomFontSize(text){
   const len = String(text || "").trim().length;
   if (len <= 8) return "24px";
@@ -1330,15 +1326,19 @@ function handleCustomFileImport(evt){
 
   function saveBreakNumber(n){ localStorage.setItem(LS.BREAK, String(n)); }
 
-  function setBreakNumber(n){
-    const safe = Number.isFinite(n) && n > 0 ? n : 1;
-    document.getElementById("breakNumberDisplay").textContent = String(safe);
-    saveBreakNumber(safe);
+function setBreakNumber(n){
+  const safe = Number.isFinite(n) && n > 0 ? n : 1;
+  document.getElementById("breakNumberDisplay").textContent = String(safe);
+  saveBreakNumber(safe);
 
-    const bi = document.getElementById("breakModalInput");
-    if (bi) bi.value = String(safe);
+  const bi = document.getElementById("breakModalInput");
+  if (bi) bi.value = String(safe);
+
+ 
+  if (document.getElementById("teamsWrapper")){
+    buildLayout();
   }
-
+}
   function openBreakEditor(){
     const modal = document.getElementById("breakModal");
     const input = document.getElementById("breakModalInput");
@@ -1398,6 +1398,74 @@ function handleCustomFileImport(evt){
     localStorage.setItem(LS.TEAM_STYLE, JSON.stringify(map || {}));
   }
   let TEAM_STYLE_MAP = loadTeamStyleMap();
+
+function getStateKey(){
+  return [
+    "barnbreaks",
+    getChannel(),
+    currentBreakType,
+    loadBreakNumber()
+  ].join("|");
+}
+
+function loadAllOverlayState(){
+  try{
+    const raw = localStorage.getItem(LS.STATE);
+    const obj = raw ? JSON.parse(raw) : {};
+    return (obj && typeof obj === "object") ? obj : {};
+  }catch(_){
+    return {};
+  }
+}
+
+function saveAllOverlayState(obj){
+  localStorage.setItem(LS.STATE, JSON.stringify(obj || {}));
+}
+
+function saveOverlayState(){
+  const all = loadAllOverlayState();
+  all[getStateKey()] = {
+    soldTeams: Array.from(soldTeams),
+    soldTeamsList: soldTeamsList.map(x => ({
+      code: String(x.code || "").toUpperCase(),
+      buyer: String(x.buyer || "")
+    })),
+    ts: Date.now()
+  };
+  saveAllOverlayState(all);
+}
+
+function restoreOverlayState(){
+  const all = loadAllOverlayState();
+  const state = all[getStateKey()] || null;
+
+  soldTeams = new Set();
+  soldTeamsList = [];
+
+  if (!state) return;
+
+  const codes = Array.isArray(state.soldTeams) ? state.soldTeams : [];
+  const rows = Array.isArray(state.soldTeamsList) ? state.soldTeamsList : [];
+
+  codes.forEach(code => {
+    if (code) soldTeams.add(String(code).toUpperCase());
+  });
+
+  soldTeamsList = rows
+    .map(x => ({
+      code: String(x.code || "").toUpperCase(),
+      buyer: String(x.buyer || "")
+    }))
+    .filter(x => x.code);
+}
+
+function clearOverlayState(){
+  const all = loadAllOverlayState();
+  delete all[getStateKey()];
+  saveAllOverlayState(all);
+}
+
+
 
   // Call this from console if needed:
   // setTeamStyle('nfl','DAL',{s:1.08,x:0,y:-2});
@@ -1573,7 +1641,7 @@ function handleCustomFileImport(evt){
    soccer: {
   name: "MLS",
   cols: 8,
-  layout: "NBA_MLB_30",
+  layout: "SOCCER_20",
   teams: [
     { code:'ATL', name:'atlanta united', image: imgPathSOC('atlutd.png') },
     { code:'ATX', name:'austin fc', image: imgPathSOC('austin.png') },
@@ -1665,30 +1733,37 @@ custom: {
     return slot;
   }
 
-  function makeTickerSlot(spanCols){
-    const slot = document.createElement("div");
-    slot.className = "ticker-slot";
-    slot.style.gridColumn = `span ${spanCols}`;
+function makeTickerSlot(spanCols){
+  const slot = document.createElement("div");
+  slot.className = "ticker-slot";
+  slot.style.gridColumn = `span ${spanCols}`;
 
-    const text = document.createElement("span");
-    text.className = "ticker-text";
-    text.textContent = ` ${TICKER_LINES.join("   •   ")} `;
-    slot.appendChild(text);
-    return slot;
+  const track = document.createElement("div");
+  track.className = "ticker-track";
+
+  for (let i = 0; i < 2; i++) {
+    const copy = document.createElement("span");
+    copy.className = "ticker-copy";
+    track.appendChild(copy);
   }
 
+  slot.appendChild(track);
+  return slot;
+}
   function buildLayout(){
     const wrap = document.getElementById("teamsWrapper");
     wrap.innerHTML = "";
+    wrap.classList.remove("custom-scroll");
 
     const config = breakTypes[currentBreakType];
     document.documentElement.style.setProperty("--cols", String(config.cols));
     applyTileSizing();
 
-    soldTeams.clear();
-    soldTeamsList = [];
+ 
 
     const teams = currentBreakType === "custom" ? getCustomEntries() : config.teams;
+    restoreOverlayState();
+
 
     if (config.layout === "NBA_MLB_30"){
       let idx = 0;
@@ -1716,30 +1791,45 @@ r1.className = "row-grid row-logo";
 if (config.layout === "CUSTOM_30"){
   let idx = 0;
 
-  const r1 = document.createElement("div");
-  r1.className = "row-grid row-logo";
-  for (let i = 0; i < 3; i++){
-    if (teams[idx]) r1.appendChild(makeCustomTeamDiv(teams[idx++]));
-  }
-  r1.appendChild(makeLogoSlot(2));
-  for (let i = 0; i < 3; i++){
-    if (teams[idx]) r1.appendChild(makeCustomTeamDiv(teams[idx++]));
-  }
-  wrap.appendChild(r1);
+  const shell = document.createElement("div");
+  shell.className = "custom-board-shell";
 
-  for (let r = 0; r < 3; r++){
+  const tilesScroll = document.createElement("div");
+  tilesScroll.className = "custom-tiles-scroll";
+
+  const topRow = document.createElement("div");
+  topRow.className = "row-grid row-logo";
+
+  for (let i = 0; i < 3; i++){
+    if (teams[idx]) topRow.appendChild(makeCustomTeamDiv(teams[idx++]));
+  }
+
+  topRow.appendChild(makeLogoSlot(2));
+
+  for (let i = 0; i < 3; i++){
+    if (teams[idx]) topRow.appendChild(makeCustomTeamDiv(teams[idx++]));
+  }
+
+  tilesScroll.appendChild(topRow);
+
+  while (idx < teams.length){
     const row = document.createElement("div");
     row.className = "row-grid";
-    for (let i = 0; i < 8; i++){
-      if (teams[idx]) row.appendChild(makeCustomTeamDiv(teams[idx++]));
+
+    for (let i = 0; i < 8 && idx < teams.length; i++){
+      row.appendChild(makeCustomTeamDiv(teams[idx++]));
     }
-    wrap.appendChild(row);
+
+    tilesScroll.appendChild(row);
   }
 
-  const r5 = document.createElement("div");
-  r5.className = "row-grid";
-  r5.appendChild(makeTickerSlot(8));
-  wrap.appendChild(r5);
+  const tickerRow = document.createElement("div");
+  tickerRow.className = "row-grid custom-fixed-ticker";
+  tickerRow.appendChild(makeTickerSlot(8));
+
+  shell.appendChild(tilesScroll);
+  shell.appendChild(tickerRow);
+  wrap.appendChild(shell);
 }
 
     if (config.layout === "NFL_32"){
@@ -1823,6 +1913,7 @@ r1.className = "row-grid row-logo";
 
     updateStats();
     updateSoldList();
+    saveOverlayState();
   }
 
 function updateStats(){
@@ -1881,7 +1972,10 @@ if (team.image){
       input.type = "text";
       input.placeholder = "Buyer";
       input.value = entry.buyer || "";
-      input.oninput = (e) => { entry.buyer = e.target.value; };
+     input.oninput = (e) => {
+  entry.buyer = e.target.value;
+  saveOverlayState();
+};
       row.appendChild(input);
 
       soldListDiv.appendChild(row);
@@ -1891,15 +1985,14 @@ if (team.image){
 function resetAll(){
   soldTeams.clear();
   soldTeamsList = [];
-  lastCodeByListingKey.clear();
+  lastCodeBySaleId.clear();
+  clearOverlayState();
   SCORE_LINES = [];
-  ACTIVE_TICKER_MODE = "custom";
   document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
   updateStats();
   updateSoldList();
   refreshTickerText();
 }
-
   function newBreak(){
     resetAll();
     incrementBreak();
@@ -1913,11 +2006,11 @@ function resetAll(){
     buildLayout();
   }
 
-  function setSport(type){
-    if (!breakTypes[type]) return;
-    currentBreakType = type;
-    buildLayout();
-  }
+ function setSport(type){
+  if (!breakTypes[type]) return;
+  currentBreakType = type;
+  buildLayout();
+}
 
   function cssEscape(s){
     return String(s || '').replace(/"/g,'\\"');
@@ -1930,46 +2023,86 @@ function resetAll(){
       .replace(/[^a-z0-9]+/g,' ')
       .trim();
   }
+function inferCodeFromTitle(title, sportHint){
+  const rawTitle = String(title || "").trim();
+  const t = norm(rawTitle);
+  if (!t) return null;
 
-  function inferCodeFromTitle(title, sportHint){
-    const t = norm(title);
-    if (!t) return null;
+  // Custom row alias matching first
+  if (sportHint === "custom" || currentBreakType === "custom"){
+    const customTeams = getCustomEntries();
 
-    if (sportHint && breakTypes[sportHint]){
-      const list = breakTypes[sportHint].teams || [];
-      for (const tm of list){
-        const code = String(tm.code||'').toUpperCase().trim();
-        if (!code) continue;
-        if (t.includes(norm(code))) return code;
-        if (tm.name && t.includes(norm(tm.name))) return code;
-      }
+    // Special support for "#1" style titles
+    const hashNum = rawTitle.match(/^\s*#\s*(\d+)\s*$/);
+    if (hashNum){
+      const idx = parseInt(hashNum[1], 10);
+      const direct = customTeams[idx - 1];
+      if (direct) return direct.code;
     }
 
+    // Special support for bare numeric titles like "1"
+    const bareNum = rawTitle.match(/^\s*(\d+)\s*$/);
+    if (bareNum){
+      const idx = parseInt(bareNum[1], 10);
+      const direct = customTeams[idx - 1];
+      if (direct) return direct.code;
+    }
+
+    for (const tm of customTeams){
+      const aliases = Array.isArray(tm.aliases) ? tm.aliases : [];
+
+      for (const alias of aliases){
+        const na = norm(alias);
+        if (!na) continue;
+
+        if (t === na) return tm.code;
+        if (t.includes(na)) return tm.code;
+        if (na.includes(t)) return tm.code;
+      }
+
+      const source = norm(tm.sourceTitle || "");
+      if (source){
+        if (t === source) return tm.code;
+        if (t.includes(source)) return tm.code;
+        if (source.includes(t)) return tm.code;
+      }
+    }
+  }
+
+  if (sportHint && breakTypes[sportHint]){
+    const list = breakTypes[sportHint].teams || [];
+    for (const tm of list){
+      const code = String(tm.code || '').toUpperCase().trim();
+      if (!code) continue;
+      if (t.includes(norm(code))) return code;
+      if (tm.name && t.includes(norm(tm.name))) return code;
+    }
+  }
+
+  for (const k of Object.keys(breakTypes)){
+    const list = breakTypes[k].teams || [];
+    for (const tm of list){
+      const code = String(tm.code || '').toUpperCase().trim();
+      if (!code) continue;
+      if (t.includes(norm(code))) return code;
+      if (tm.name && t.includes(norm(tm.name))) return code;
+    }
+  }
+
+  const tokens = t.toUpperCase().split(/\s+/).filter(Boolean);
+  for (const tok of tokens){
+    if (tok.length < 2 || tok.length > 4) continue;
     for (const k of Object.keys(breakTypes)){
       const list = breakTypes[k].teams || [];
       for (const tm of list){
-        const code = String(tm.code||'').toUpperCase().trim();
-        if (!code) continue;
-        if (t.includes(norm(code))) return code;
-        if (tm.name && t.includes(norm(tm.name))) return code;
+        const code = String(tm.code || '').toUpperCase().trim();
+        if (tok === code) return code;
       }
     }
-
-    const tokens = t.toUpperCase().split(/\s+/).filter(Boolean);
-    for (const tok of tokens){
-      if (tok.length < 2 || tok.length > 4) continue;
-      for (const k of Object.keys(breakTypes)){
-        const list = breakTypes[k].teams || [];
-        for (const tm of list){
-          const code = String(tm.code||'').toUpperCase().trim();
-          if (tok === code) return code;
-        }
-      }
-    }
-
-    return null;
   }
-const BRIDGE_URL = (() => {
+
+  return null;
+}const BRIDGE_URL = (() => {
   const q = new URLSearchParams(location.search).get("bridge");
   if (q) {
     const cleaned = q.replace(/\/$/, "");
@@ -2004,6 +2137,7 @@ function setSSEStatus(state, msg){
   const text = document.getElementById("sseText");
   if (!wrap || !text) return;
 
+
   wrap.classList.remove("connected", "error", "connecting");
   if (state === "connected") wrap.classList.add("connected");
   if (state === "error") wrap.classList.add("error");
@@ -2022,6 +2156,47 @@ function getBuyerFromPayload(data){
 
 function getSportFromPayload(data){
   return String(data?.sport || data?.breakType || "").trim().toLowerCase();
+}
+
+function extractScoreLines(data){
+  if (!data || typeof data !== "object") return [];
+
+  const payload =
+    (data.data && typeof data.data === "object")
+      ? data.data
+      : data;
+
+  if (typeof payload.text === "string" && payload.text.trim()) {
+    return [payload.text.trim()];
+  }
+
+  if (Array.isArray(payload.lines) && payload.lines.length) {
+    return payload.lines
+      .map(x => String(x || "").trim())
+      .filter(Boolean);
+  }
+
+  const games = Array.isArray(payload.games) ? payload.games : [];
+  if (!games.length) return [];
+
+  const league = String(payload.sport || payload.league || "").toUpperCase().trim();
+
+  return games.slice(0, 4).map(g => {
+    const away = String(g.away || g.a || "AWAY").trim();
+    const home = String(g.home || g.h || "HOME").trim();
+    const awayScore = g.awayScore ?? g.as ?? "";
+    const homeScore = g.homeScore ?? g.hs ?? "";
+    const status = String(g.status || "").trim();
+
+    const core =
+      (String(awayScore) !== "" || String(homeScore) !== "")
+        ? `${away} ${awayScore}-${homeScore} ${home}`
+        : `${away} vs ${home}`;
+
+    return league
+      ? `${league}: ${core}${status ? ` (${status})` : ""}`
+      : `${core}${status ? ` (${status})` : ""}`;
+  }).filter(Boolean);
 }
 
 function handleSportsEvent(data){
@@ -2048,33 +2223,37 @@ function handleSportsEvent(data){
 
 let sse = null;
 let sseScores = null;
-const lastCodeByListingKey = new Map();
+
+// saleId / id / listingId -> last assigned team code
+// used for safe reassignment / respins
+const lastCodeBySaleId = new Map();
 
 function getChannel(){
   return new URLSearchParams(location.search).get("channel") || "main";
 }
 
-function getScoresChannel(){
-  return new URLSearchParams(location.search).get("scoresChannel") || "sports";
-}
 
-function connectSSE(url){
+
+function connectSSE(base){
   if (sse) { try { sse.close(); } catch(_){} }
   setSSEStatus('connecting','connecting');
 
   try{
+    const channel = getChannel();
+    const url = `${base}/stream?channel=${encodeURIComponent(channel)}${BRIDGE_KEY ? `&key=${encodeURIComponent(BRIDGE_KEY)}` : ""}`;
+
     sse = new EventSource(url);
 
-  const ingest = (e) => {
-  try{
-    const data = JSON.parse(e.data);
-    const merged = { ...data, __eventType: e.type || "" };
-    if (String(merged?.type || merged?.__eventType || "").toLowerCase() === "hello") return;
-    handleSSEEvent(merged);
-  }catch(err){
-    console.warn("[SSE parse error]", err, e?.data);
-  }
-};
+    const ingest = (e) => {
+      try{
+        const data = JSON.parse(e.data);
+        const merged = { ...data, __eventType: e.type || "" };
+        if (String(merged?.type || merged?.__eventType || "").toLowerCase() === "hello") return;
+        handleSSEEvent(merged);
+      }catch(err){
+        console.warn("[SSE parse error]", err, e?.data);
+      }
+    };
 
     sse.onopen = () => {
       setSSEStatus('connected','connected');
@@ -2106,7 +2285,7 @@ function connectSSE(url){
       setSSEStatus('error','reconnecting');
       try { sse.close(); } catch(_) {}
       sse = null;
-      setTimeout(() => connectSSE(url), 2500);
+      setTimeout(() => connectSSE(base), 2500);
     };
   }catch(_){
     setSSEStatus('error','failed');
@@ -2117,17 +2296,17 @@ function connectScoresSSE(base){
   if (sseScores) { try { sseScores.close(); } catch(_){} }
 
   try{
-    const url = `${base}/stream?channel=${encodeURIComponent(getScoresChannel())}`;
+    const url = `${base}/stream?channel=sports${BRIDGE_KEY ? `&key=${encodeURIComponent(BRIDGE_KEY)}` : ""}`;
     sseScores = new EventSource(url);
 
- const ingest = (e) => {
-  try{
-    const data = JSON.parse(e.data);
-    const merged = { ...data, __eventType: e.type || "" };
-    if (String(merged?.type || merged?.__eventType || "").toLowerCase() === "hello") return;
-    handleSportsEvent(merged);
-  }catch(_){}
-};
+    const ingest = (e) => {
+      try{
+        const data = JSON.parse(e.data);
+        const merged = { ...data, __eventType: e.type || "" };
+        if (String(merged?.type || merged?.__eventType || "").toLowerCase() === "hello") return;
+        handleSportsEvent(merged);
+      }catch(_){}
+    };
 
     sseScores.onmessage = ingest;
     try { sseScores.addEventListener("scores", ingest); } catch(_) {}
@@ -2147,9 +2326,8 @@ function startSSE(){
   }
 
   const base = normalizeBridge(BRIDGE_URL);
-  const channel = getChannel();
 
-  connectSSE(`${base}/stream?channel=${encodeURIComponent(channel)}`);
+  connectSSE(base);
   connectScoresSSE(base);
 }
 
@@ -2184,14 +2362,15 @@ function handleSSEEvent(data){
       ? data.data
       : data;
 
- const type = String(
-  payload.type ||
-  data.type ||
-  payload.event ||
-  data.event ||
-  data.__eventType ||
-  ""
-).toLowerCase();
+  const type = String(
+    payload.type ||
+    data.type ||
+    payload.event ||
+    data.event ||
+    data.__eventType ||
+    ""
+  ).toLowerCase();
+
   if (!type || type === "hello") return;
 
   if (type === "reset"){
@@ -2236,27 +2415,63 @@ function handleSSEEvent(data){
     return;
   }
 
+  // ---------- TEAM UNSOLD ----------
   if (type === "team_unsold"){
+    const saleKey = String(
+      payload.saleId ||
+      payload.id ||
+      payload.listingId ||
+      payload.transactionId ||
+      payload.orderId ||
+      payload.purchaseId ||
+      ""
+    ).trim();
+
     let code = getCodeFromPayload(payload);
-    if (!code){
-      code = inferCodeFromTitle(
-        payload.title || payload.itemTitle || payload.listingTitle || "",
-        currentBreakType
-      );
+
+    if (!code && currentBreakType === "custom"){
+      const rawTitle = String(payload.title || payload.itemTitle || payload.listingTitle || "").trim();
+      const m = rawTitle.match(/^\s*#\s*(\d+)\s*$/) || rawTitle.match(/^\s*(\d+)\s*$/);
+      if (m){
+        const idx = parseInt(m[1], 10);
+        const customTeams = getCustomEntries();
+        if (idx > 0 && customTeams[idx - 1]){
+          code = customTeams[idx - 1].code;
+        }
+      }
     }
 
-    const listingKey = payload.saleId || payload.id || payload.listingId || null;
+    if (!code && saleKey){
+      code = lastCodeBySaleId.get(saleKey) || "";
+    }
+
+    if (!code){
+      const unsoldSport = getSportFromPayload(payload) || currentBreakType;
+      code = inferCodeFromTitle(
+        payload.title || payload.itemTitle || payload.listingTitle || "",
+        unsoldSport
+      ) || "";
+    }
 
     if (code) sseMarkUnsold(code);
 
-    if (listingKey){
-      const cur = lastCodeByListingKey.get(listingKey);
-      if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+    if (saleKey){
+      const cur = lastCodeBySaleId.get(saleKey);
+      if (!cur || cur === code){
+        lastCodeBySaleId.delete(saleKey);
+      }
     }
     return;
   }
 
-  if (type === "team_sold" || type === "sale" || type === "sold" || type === "purchase" || type === "whatnot_purchase"){
+  // ---------- TEAM SOLD / SALE / PURCHASE ----------
+  if (
+    type === "team_sold" ||
+    type === "sale" ||
+    type === "sold" ||
+    type === "purchase" ||
+    type === "whatnot_purchase"
+  ){
     let sport = getSportFromPayload(payload) || currentBreakType;
     const buyer = getBuyerFromPayload(payload);
 
@@ -2269,66 +2484,44 @@ function handleSSEEvent(data){
     }
     if (!code) return;
 
-    if (!sport) {
-      sport = currentBreakType;
-    }
-
+    // if payload explicitly says another supported sport, switch board
     if (sport && breakTypes[sport] && sport !== currentBreakType){
       currentBreakType = sport;
       buildLayout();
     }
 
-    const listingKey = payload.saleId || payload.id || payload.listingId || null;
+    // IMPORTANT:
+    // saleId first, then id, then listingId
+    // do NOT use productId
+    const saleKey = String(
+      payload.saleId ||
+      payload.id ||
+      payload.listingId ||
+      payload.transactionId ||
+      payload.orderId ||
+      payload.purchaseId ||
+      ""
+    ).trim();
 
-    if (listingKey && code){
-      const prevCode = lastCodeByListingKey.get(listingKey);
+    if (saleKey){
+      const prevCode = lastCodeBySaleId.get(saleKey);
+
+      // same purchase key reassigned to a new team -> unsell old, sell new
       if (prevCode && prevCode !== code){
         sseMarkUnsold(prevCode);
       }
-      lastCodeByListingKey.set(listingKey, code);
+
+      lastCodeBySaleId.set(saleKey, code);
     }
 
     sseMarkSold(code, buyer);
     return;
   }
 
-    if (type === "stream_stats"){
-    const saleLine = String(payload?.lastSale || "").trim();
-    if (!saleLine) return;
-
-    const dedupeKey = `${String(payload?.liveId || "")}|${saleLine}`;
-    if (window.__barnLastStreamStatsKey === dedupeKey) return;
-    window.__barnLastStreamStatsKey = dedupeKey;
-
-    let sport = getSportFromPayload(payload) || currentBreakType;
-    const buyer = getBuyerFromPayload(payload);
-
-    let code = getCodeFromPayload(payload);
-    if (!code){
-      code = inferCodeFromTitle(saleLine, sport || currentBreakType);
-    }
-    if (!code) return;
-
-    if (sport && breakTypes[sport] && sport !== currentBreakType){
-      currentBreakType = sport;
-      buildLayout();
-    }
-
-    const listingKey = payload.saleId || payload.id || payload.listingId || payload.liveId || null;
-
-    if (listingKey && code){
-      const prevCode = lastCodeByListingKey.get(listingKey);
-      if (prevCode && prevCode !== code){
-        sseMarkUnsold(prevCode);
-      }
-      lastCodeByListingKey.set(listingKey, code);
-    }
-
-    sseMarkSold(code, buyer);
+  if (type === "stream_stats"){
     return;
   }
 }
-
 function sseMarkSold(code, buyer=""){
   if (!code) return;
 
@@ -2351,30 +2544,37 @@ function sseMarkSold(code, buyer=""){
 
     updateStats();
     updateSoldList();
-  } else if (buyer) {
+    saveOverlayState();
+  } else {
     const entry = soldTeamsList.find(t => t.code === code);
-    if (entry) entry.buyer = buyer;
+    if (entry && buyer) entry.buyer = buyer;
+    if (!entry) soldTeamsList.push({ code, buyer });
+
     updateSoldList();
+    saveOverlayState();
   }
 }
+function sseMarkUnsold(code){
+  if (!code) return;
+  soldTeams.delete(code);
+  soldTeamsList = soldTeamsList.filter(t => t.code !== code);
 
-  function sseMarkUnsold(code){
-    if (!code) return;
-    soldTeams.delete(code);
-    soldTeamsList = soldTeamsList.filter(t => t.code !== code);
+  const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+  if (tile) tile.classList.remove("sold");
 
-    const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
-    if (tile) tile.classList.remove("sold");
+  updateStats();
+  updateSoldList();
+  saveOverlayState();
+}
 
-    updateStats();
+function sseUpdateBuyer(code, buyer){
+  const entry = soldTeamsList.find(t => t.code === code);
+  if (entry) {
+    entry.buyer = buyer || "";
     updateSoldList();
+    saveOverlayState();
   }
-
-  function sseUpdateBuyer(code, buyer){
-    const entry = soldTeamsList.find(t => t.code === code);
-    if (entry) entry.buyer = buyer || "";
-    updateSoldList();
-  }
+}
 
   function formatExportDate(d = new Date()){
     const yyyy = d.getFullYear();
@@ -2446,16 +2646,22 @@ function exportSoldListTSV(){
   }
 
   document.addEventListener("DOMContentLoaded", () => {
-    const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
-    if (qSport && breakTypes[qSport]) currentBreakType = qSport;
-    if (currentBreakType === "custom" && !getCustomEntries().length) {
+ const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
+
+if (qSport && breakTypes[qSport]) {
+  currentBreakType = qSport;
+} else {
   currentBreakType = "nfl";
 }
 
-    setBreakNumber(loadBreakNumber());
-    setTickerLines(loadTickerLines());
-startTickerModeRotation();
-    buildLayout();
+if (currentBreakType === "custom" && !getCustomEntries().length) {
+  currentBreakType = "nfl";
+}
+
+ 
+setTickerLines(loadTickerLines());
+syncTickerSpeedUI();
+setBreakNumber(loadBreakNumber());
 
     if (automationEnabled()) startSSE();
     else setSSEStatus('error','missing bridge');
@@ -2468,7 +2674,15 @@ document.addEventListener("keydown", (e) => {
   closePromoEditor();
   closeCustomEntriesEditor();
 });
-
+const tickerSpeedSlider = document.getElementById("tickerSpeedSlider");
+if (tickerSpeedSlider){
+  tickerSpeedSlider.addEventListener("input", (e) => {
+    const speed = parseInt(e.target.value, 10);
+    saveTickerSpeed(speed);
+    syncTickerSpeedUI();
+    updateTickerMarquee();
+  });
+}
     ["tickerModal","titleModal","breakModal","promoModal","customEntriesModal"].forEach(id => {
       const m = document.getElementById(id);
       if (!m) return;
@@ -2503,6 +2717,33 @@ if (e.target === m){
 
     <div class="ticker-hint">
       Tip: Leave blank to revert to the default like <b>NFL BOX BREAK</b>.
+    </div>
+  </div>
+</div>
+
+<!-- ===== Ticker Editor Modal ===== -->
+<div class="modal-backdrop" id="tickerModal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Ticker Editor">
+    <div class="modal-head">
+      <div class="modal-title">Ticker Editor</div>
+      <div class="modal-actions">
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyTickerFromModal()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeTickerEditor()">CLOSE</button>
+      </div>
+    </div>
+
+    <div class="ticker-editor" style="flex-direction:column;">
+      <textarea id="tickerModalTextarea" placeholder="Enter ticker text. Use • to separate items.&#10;Example: BARN BREAKS • FARM FRESH PULLS • GOOD LUCK"></textarea>
+
+      <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+        <div class="btn ghost" style="padding:8px 10px; font-size:12px; cursor:default;">SPEED</div>
+        <input id="tickerSpeedSlider" type="range" min="40" max="200" step="5" style="flex:1;">
+        <div id="tickerSpeedValue" class="btn ghost" style="padding:8px 10px; font-size:12px; cursor:default;">90 px/s</div>
+      </div>
+    </div>
+
+    <div class="ticker-hint">
+      Tip: Separate items with <b>•</b>. Use the slider to control ticker scroll speed.
     </div>
   </div>
 </div>
@@ -2578,26 +2819,7 @@ if (e.target === m){
   </div>
 </div>
 
-<!-- ===== Ticker Editor Modal ===== -->
-<div class="modal-backdrop" id="tickerModal">
-  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Ticker Editor">
-    <div class="modal-head">
-      <div class="modal-title">Ticker Editor</div>
-      <div class="modal-actions">
-        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyTickerFromModal()">APPLY</button>
-        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeTickerEditor()">CLOSE</button>
-      </div>
-    </div>
 
-    <div class="ticker-editor">
-      <textarea id="tickerModalTextarea" placeholder="Enter ticker text. Use • to separate items.&#10;Example: BARN BREAKS • FARM FRESH PULLS • GOOD LUCK"></textarea>
-    </div>
-
-    <div class="ticker-hint">
-      Tip: Separate items with <b>•</b>. This box is OBS-friendly (big text, no tiny inputs).
-    </div>
-  </div>
-</div>
 
 </body>
 </html>

@@ -688,7 +688,7 @@
     }
 
     .sold-list-title{
-      font-size: 16px;
+      font-size: 13px;
       font-weight: 900;
       color:#ffffff;
       letter-spacing: 1px;
@@ -773,8 +773,8 @@
       background: #666;
       box-shadow: 0 0 8px rgba(255,255,255,0.15);
     }
-    .sse.connected .dot{ background: #3cff8a; box-shadow: 0 0 10px rgba(60,255,138,0.7); }
-    .sse.connecting .dot{ background: #ffd24d; box-shadow: 0 0 10px rgba(255,210,77,0.7); }
+    .sse.ok.dot{ background: #3cff8a; box-shadow: 0 0 10px rgba(60,255,138,0.7); }
+    .sse.🔃.dot{ background: #ffd24d; box-shadow: 0 0 10px rgba(255,210,77,0.7); }
     .sse.error .dot{ background: #ff2f2f; box-shadow: 0 0 10px rgba(255,47,47,0.7); }
 
 .custom-board-shell{
@@ -824,7 +824,25 @@
   border: 2px solid rgba(7,19,37,0.85);
 }
 
+.sold-stat{
+  position:relative;
+}
 
+.sold-toggle-hotspot{
+  position:absolute;
+  inset:0;
+  z-index:5;
+  background:transparent;
+  border:none;
+  padding:0;
+  margin:0;
+  cursor:pointer;
+  opacity:0;
+}
+
+.sold-toggle-hotspot:focus{
+  outline:none;
+}
   </style>
 </head>
 
@@ -2138,10 +2156,10 @@ function setSSEStatus(state, msg){
   if (!wrap || !text) return;
 
 
-  wrap.classList.remove("connected", "error", "connecting");
-  if (state === "connected") wrap.classList.add("connected");
+  wrap.classList.remove("ok", "error", "🔃");
+  if (state === "ok") wrap.classList.add("ok");
   if (state === "error") wrap.classList.add("error");
-  if (state === "connecting") wrap.classList.add("connecting");
+  if (state === "🔃") wrap.classList.add("🔃");
 
   text.textContent = msg || state || "off";
 }
@@ -2236,7 +2254,7 @@ function getChannel(){
 
 function connectSSE(base){
   if (sse) { try { sse.close(); } catch(_){} }
-  setSSEStatus('connecting','connecting');
+  setSSEStatus('🔃','🔃');
 
   try{
     const channel = getChannel();
@@ -2256,7 +2274,7 @@ function connectSSE(base){
     };
 
     sse.onopen = () => {
-      setSSEStatus('connected','connected');
+      setSSEStatus('ok','ok');
       warmupPing();
     };
 
