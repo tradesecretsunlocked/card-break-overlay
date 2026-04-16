@@ -932,7 +932,7 @@
   URL_LEGACY: "tsu.bridgeUrl",
   KEY_LEGACY: "tsu.bridgeKey",
   STATE: "barn.overlayState.v1",
-  
+  SEEN_SALES: "barn.seenSales.v1",
   TEAM_STYLE: "barn.teamStyle.v1"
 };
 
@@ -1465,7 +1465,51 @@ function clearOverlayState(){
   saveAllOverlayState(all);
 }
 
+function loadAllSeenSales(){
+  try{
+    const raw = localStorage.getItem(LS.SEEN_SALES);
+    const obj = raw ? JSON.parse(raw) : {};
+    return (obj && typeof obj === "object") ? obj : {};
+  }catch(_){
+    return {};
+  }
+}
 
+function saveAllSeenSales(obj){
+  localStorage.setItem(LS.SEEN_SALES, JSON.stringify(obj || {}));
+}
+
+function loadSeenSales(){
+  const all = loadAllSeenSales();
+  const arr = Array.isArray(all[getStateKey()]) ? all[getStateKey()] : [];
+  return new Set(arr.map(x => String(x)));
+}
+
+function saveSeenSales(){
+  const all = loadAllSeenSales();
+  all[getStateKey()] = Array.from(processedSales).slice(-500);
+  saveAllSeenSales(all);
+}
+
+function clearSeenSales(){
+  const all = loadAllSeenSales();
+  delete all[getStateKey()];
+  saveAllSeenSales(all);
+}
+
+let processedSales = new Set();
+
+function markSaleProcessed(id){
+  const key = String(id || "").trim();
+  if (!key) return;
+  processedSales.add(key);
+
+  if (processedSales.size > 500){
+    processedSales = new Set(Array.from(processedSales).slice(-250));
+  }
+
+  saveSeenSales();
+}
 
   // Call this from console if needed:
   // setTeamStyle('nfl','DAL',{s:1.08,x:0,y:-2});
@@ -1641,7 +1685,7 @@ function clearOverlayState(){
    soccer: {
   name: "MLS",
   cols: 8,
-  layout: "SOCCER_20",
+  layout: "NBA_MLB_30",
   teams: [
     { code:'ATL', name:'atlanta united', image: imgPathSOC('atlutd.png') },
     { code:'ATX', name:'austin fc', image: imgPathSOC('austin.png') },
@@ -2234,26 +2278,23 @@ function getChannel(){
 
 
 
-function connectSSE(base){
+function connectSSE(url){
   if (sse) { try { sse.close(); } catch(_){} }
   setSSEStatus('connecting','connecting');
 
   try{
-    const channel = getChannel();
-    const url = `${base}/stream?channel=${encodeURIComponent(channel)}${BRIDGE_KEY ? `&key=${encodeURIComponent(BRIDGE_KEY)}` : ""}`;
-
     sse = new EventSource(url);
 
-    const ingest = (e) => {
-      try{
-        const data = JSON.parse(e.data);
-        const merged = { ...data, __eventType: e.type || "" };
-        if (String(merged?.type || merged?.__eventType || "").toLowerCase() === "hello") return;
-        handleSSEEvent(merged);
-      }catch(err){
-        console.warn("[SSE parse error]", err, e?.data);
-      }
-    };
+  const ingest = (e) => {
+  try{
+    const data = JSON.parse(e.data);
+    const merged = { ...data, __eventType: e.type || "" };
+    if (String(merged?.type || merged?.__eventType || "").toLowerCase() === "hello") return;
+    handleSSEEvent(merged);
+  }catch(err){
+    console.warn("[SSE parse error]", err, e?.data);
+  }
+};
 
     sse.onopen = () => {
       setSSEStatus('connected','connected');
@@ -2285,7 +2326,7 @@ function connectSSE(base){
       setSSEStatus('error','reconnecting');
       try { sse.close(); } catch(_) {}
       sse = null;
-      setTimeout(() => connectSSE(base), 2500);
+      setTimeout(() => connectSSE(url), 2500);
     };
   }catch(_){
     setSSEStatus('error','failed');
@@ -2296,17 +2337,17 @@ function connectScoresSSE(base){
   if (sseScores) { try { sseScores.close(); } catch(_){} }
 
   try{
-    const url = `${base}/stream?channel=sports${BRIDGE_KEY ? `&key=${encodeURIComponent(BRIDGE_KEY)}` : ""}`;
+    const url = `${base}/stream?channel=sports`;
     sseScores = new EventSource(url);
 
-    const ingest = (e) => {
-      try{
-        const data = JSON.parse(e.data);
-        const merged = { ...data, __eventType: e.type || "" };
-        if (String(merged?.type || merged?.__eventType || "").toLowerCase() === "hello") return;
-        handleSportsEvent(merged);
-      }catch(_){}
-    };
+ const ingest = (e) => {
+  try{
+    const data = JSON.parse(e.data);
+    const merged = { ...data, __eventType: e.type || "" };
+    if (String(merged?.type || merged?.__eventType || "").toLowerCase() === "hello") return;
+    handleSportsEvent(merged);
+  }catch(_){}
+};
 
     sseScores.onmessage = ingest;
     try { sseScores.addEventListener("scores", ingest); } catch(_) {}
@@ -2326,8 +2367,9 @@ function startSSE(){
   }
 
   const base = normalizeBridge(BRIDGE_URL);
+  const channel = getChannel();
 
-  connectSSE(base);
+  connectSSE(`${base}/stream?channel=${encodeURIComponent(channel)}`);
   connectScoresSSE(base);
 }
 

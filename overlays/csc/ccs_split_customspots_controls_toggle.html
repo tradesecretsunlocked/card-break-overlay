@@ -48,7 +48,7 @@
         0 0 0 1px rgba(0,0,0,0.85),
         0 16px 40px rgba(0,0,0,0.72),
         0 0 28px rgba(46,103,209,0.18);
-      padding:20px;
+      padding:15px;
       position:relative;
       overflow:hidden;
     }
@@ -80,7 +80,7 @@
           rgba(255,255,255,0) 72%,
           transparent 100%);
       background-size:300% 300%;
-      animation:wickRun 5.5s ease-in-out infinite alternate;
+      animation:wickRun 5.5s linear infinite alternate;
       -webkit-mask:
         linear-gradient(#000 0 0) content-box,
         linear-gradient(#000 0 0);
@@ -150,9 +150,9 @@
       z-index:100;
     }
     .brand-center img{
-      height:235px;
+      height:214px;
       width:auto;
-      top:16px;
+      top:19px;
       position:relative;
       filter:
         drop-shadow(0 10px 18px rgba(0,0,0,0.65))
@@ -223,10 +223,10 @@
       height:var(--camH);
       border-radius:16px;
       background:linear-gradient(135deg, rgba(255,255,255,0.08), rgba(0,0,0,0.24));
-      border:1px solid rgba(255,255,255,0.10);
+      border:2px solid rgba(255,255,255,0.10);
       box-shadow: inset 0 0 0 2px rgba(0,0,0,0.35), 0 0 0 1px rgba(46,103,209,0.16);
       position:relative;
-      overflow:hidden;
+      overflow:visible;
     }
     .cam::before{
       content:"";
@@ -239,6 +239,7 @@
       pointer-events:none;
     }
 
+
     .bottomGrid{
       display:grid;
       grid-template-columns:repeat(var(--bottomCols), 1fr);
@@ -248,7 +249,7 @@
       height:var(--tileH);
       border-radius:var(--tileR);
       background:rgba(10,10,10,0.78);
-      border:2px solid rgba(255,255,255,0.82);
+      border:2px solid rgba(255,255,255,1);
       box-shadow:
         inset 0 2px 0 rgba(255,255,255,0.10),
         inset 0 0 0 1px rgba(0,0,0,0.55),
@@ -323,6 +324,29 @@
       text-overflow:ellipsis;
       display:none;
     }
+
+    .tile.custom-spot{
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.72));
+  border-style: dashed;
+}
+
+.tile-name{
+  position:absolute;
+  inset:0;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px;
+  text-align:center;
+  font-size:13px;
+  line-height:1.05;
+  font-weight:1000;
+  letter-spacing:.6px;
+  text-transform:uppercase;
+  color:#fff;
+  text-shadow:0 2px 10px rgba(0,0,0,0.85);
+}
     .tile.sold .tile-buyer{ display:block; }
 
     .infoPanel{
@@ -428,7 +452,6 @@
       gap:2px;
       cursor:default;
     }
-    #soldToggle{ cursor:pointer; }
     .stat .v{
       font-size:30px;
       color:#fff;
@@ -583,6 +606,32 @@
       color:#fff;
     }
 
+
+    .promo-stage{
+      position:absolute;
+      inset:10px;
+      border-radius:14px;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(0,0,0,0.22);
+      border:1px solid rgba(255,255,255,0.10);
+    }
+    .promo-stage img,
+    .promo-stage video{
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      position:absolute;
+      inset:0;
+      z-index:2;
+      display:none;
+      background:transparent;
+    }
+    .promo-stage.show-image img{ display:block; }
+    .promo-stage.show-video video{ display:block; }
+
     .hidden{ display:none !important; }
   </style>
 </head>
@@ -597,17 +646,20 @@
         <img id="brandLogo" alt="Chasing Cards Solution" />
       </div>
 
-      <div class="header-right">
-        
-        <div class="break-pill">
-          <span class="label">Break #</span>
-          <span id="breakId" class="value">1</span>
-        </div>
-        <div class="sse-pill error" id="sseStatus">
-          <span class="label">SSE</span>
-          <span class="value" id="sseText">OFF</span>
-        </div>
-      </div>
+ <div class="header-right">
+  <div class="sport-pill hidden">
+    <span id="sportChip">NFL</span>
+  </div>
+
+  <div class="break-pill">
+    <span class="label">Break #</span>
+    <span id="breakId" class="value">1</span>
+  </div>
+  <div class="sse-pill error" id="sseStatus">
+    <span class="label">SSE</span>
+    <span class="value" id="sseText">OFF</span>
+  </div>
+</div>
     </div>
 
     <div class="main">
@@ -624,9 +676,11 @@
       </div>
 
       <div class="center">
-        <div class="cam wick" id="camFrame">
-          
-        </div>
+<div class="cam wick" id="camFrame">
+  <div class="promo-stage" id="promoStage">
+    <div class="promo-image-empty" id="promoEmpty">PROMO GRAPHICS HANDLED IN OBS</div>
+  </div>
+</div>
         <div class="bottomGrid" id="bottomGrid"></div>
       </div>
 
@@ -635,24 +689,25 @@
           <div class="colgrid" id="rightGrid"></div>
         </div>
         <div class="infoPanel wick">
-          <div class="infoTitle">BREAK INFO</div>
+          <div class="infoTitle">STREAM STATS</div>
           <div class="infoBody" id="breakInfo">
-             <div class="scoreRow"><span class="muted">Break Id:</span><span id="breakIdInfoText">—</span></div>
-            <div class="scoreRow"><span class="muted">Title:</span><span id="infoTitleText">—</span></div>
-          
-            
-           
+            <div class="scoreRow"><span class="muted">Break Id:</span><span id="breakIdInfoText">—</span></div>
+            <div class="scoreRow"><span class="muted">Sold:</span><span id="streamSoldText">0</span></div>
+            <div class="scoreRow"><span class="muted">Remaining:</span><span id="streamRemainingText">0</span></div>
+            <div class="scoreRow" id="streamHighBidRow"><span class="muted">High Bid:</span><span id="streamHighBidText">$0</span></div>
+            <div class="scoreRow hidden"><span class="muted">Channels:</span><span id="channelInfoText">main,sports</span></div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="ticker">
-      <div id="tickerTrack" class="ticker-track">
-        <span id="tickerA" class="ticker-text"></span>
-        <span id="tickerB" class="ticker-text"></span>
-      </div>
-    </div>
+ <div class="ticker">
+  <div id="tickerTrack" class="ticker-track">
+    <span id="tickerA" class="ticker-text"></span>
+    <span id="tickerB" class="ticker-text"></span>
+  </div>
+  <span id="tickerModeText" class="hidden">Custom</span>
+</div>
 
     
 
@@ -664,8 +719,8 @@
         <div class="l">Left</div>
       </div>
 
-      <div class="ctl stat">
-        <div class="v" id="highBidCtl">—</div>
+      <div class="ctl stat" id="highBidCtlBox">
+        <div class="v" id="highBidCtl">$0</div>
         <div class="l">High Bid</div>
       </div>
 
@@ -679,14 +734,17 @@
   </div>
 
   <div class="sold-wrap" id="soldWrap">
-    <div class="sold-top">
-      <div class="pill" id="setBreakBtn">Set Break #</div>
-      <div class="pill" id="setTitleBtn">Set Title</div>
-      <div class="pill" id="setTickerBtn">Set Ticker</div>
-      <div class="pill" id="sportBtn">Change Sport</div>
-      <div class="pill" id="tileHeightsBtn">Tile Heights</div>
-      <div class="pill" id="exportBtn">Export TSV</div>
-    </div>
+ <div class="sold-top">
+  <div class="pill" id="setBreakBtn">Set Break #</div>
+  <div class="pill" id="setTitleBtn">Set Title</div>
+  <div class="pill" id="setTickerBtn">Set Ticker</div>
+  <div class="pill" id="setHighBidBtn">Set High Bid</div>
+  <div class="pill" id="toggleHighBidBtn">Toggle High Bid</div>
+  <div class="pill" id="nfl8CustomBtn">NFL + 8 Spots</div>
+  <div class="pill" id="sportBtn">Change Sport</div>
+  <div class="pill" id="tileHeightsBtn">Tile Heights</div>
+  <div class="pill" id="exportBtn">Export TSV</div>
+</div>
     <div class="sold-grid" id="soldGrid"></div>
   </div>
 
@@ -757,6 +815,37 @@
     </div>
   </div>
 
+  <div class="popup" id="nfl8CustomPopup">
+  <div class="popup-card">
+    <h2>NFL + 8 Custom Spots</h2>
+    <label>Paste 8 names — comma separated, CSV, or one per line</label>
+    <textarea id="nfl8CustomInput" placeholder="Example:
+Monster Chase
+Downtown Hunt
+Kaboom Spot
+...
+or:
+Monster Chase, Downtown Hunt, Kaboom Spot, ..."></textarea>
+    <div class="popup-btns">
+      <button id="applyNFL8Custom">Apply</button>
+      <button id="closeNFL8Custom">Cancel</button>
+    </div>
+  </div>
+</div>
+
+  <div class="popup" id="highBidPopup">
+    <div class="popup-card">
+      <h2>Set High Bid</h2>
+      <input id="highBidInput" type="number" min="0" step="1" />
+      <div class="popup-btns">
+        <button id="applyHighBid">Apply</button>
+        <button id="closeHighBid">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <script>
 /* =========================
    Paths (standard BASE)
@@ -782,6 +871,7 @@ const mlbImg = (f) => `${BASE}images/mlb/${f}`;
 /* =========================
    Storage
 ========================= */
+
 const LS = {
   BREAK_NUMBER:'ccs.breakNumber',
   TICKER:'ccs.tickerLines',
@@ -790,7 +880,10 @@ const LS = {
   TITLE_SUB:'ccs.title.sub',
   BREAK_TYPE:'ccs.breakType',
   SOLD_PANEL:'ccs.soldPanel',
-  SPORT_TILE_HEIGHTS:'ccs.sportTileHeights'
+  SPORT_TILE_HEIGHTS:'ccs.sportTileHeights',
+  NFL8_CUSTOM_SPOTS:'ccs.nfl8.customSpots',
+  HIGH_BID:'ccs.highBid',
+  SHOW_HIGH_BID:'ccs.showHighBid'
 };
 
 /* =========================
@@ -898,12 +991,61 @@ const MLB = [
 ];
 
 const BREAK_TYPES = {
-  nfl:{ name:'NFL', teams:NFL, count:32, bottomCols:6, bottomCount:12 },
-  nba:{ name:'NBA', teams:NBA, count:30, bottomCols:5, bottomCount:10 },
-  mlb:{ name:'MLB', teams:MLB, count:30, bottomCols:5, bottomCount:10 }
+  nfl:{ name:'NFL', teams:NFL, count:32, bottomCols:6, bottomCount:12, leftCount:10, rightCount:10 },
+  nfl8:{ name:'NFL + 8', teams:[], count:40, bottomCols:4, bottomCount:16, leftCount:12, rightCount:12 },
+  nba:{ name:'NBA', teams:NBA, count:30, bottomCols:5, bottomCount:10, leftCount:10, rightCount:10 },
+  mlb:{ name:'MLB', teams:MLB, count:30, bottomCols:5, bottomCount:10, leftCount:10, rightCount:10 }
 };
 
+const DEFAULT_NFL8_CUSTOM_SPOTS = Array.from({ length: 8 }, (_, i) => ({
+  code: `X${i + 1}`,
+  name: `CUSTOM ${i + 1}`
+}));
 
+function loadNFL8CustomSpots(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(LS.NFL8_CUSTOM_SPOTS) || 'null');
+    if (Array.isArray(raw) && raw.length){
+      const next = raw.slice(0, 8).map((item, i) => ({
+        code: `X${i + 1}`,
+        name: String(item?.name || item || `CUSTOM ${i + 1}`).trim() || `CUSTOM ${i + 1}`
+      }));
+      while (next.length < 8){
+        next.push({ code:`X${next.length + 1}`, name:`CUSTOM ${next.length + 1}` });
+      }
+      return next;
+    }
+  }catch(_){}
+  return DEFAULT_NFL8_CUSTOM_SPOTS.map(x => ({ ...x }));
+}
+
+function saveNFL8CustomSpots(spots){
+  const safe = Array.from({ length: 8 }, (_, i) => {
+    const src = spots?.[i];
+    return {
+      code: `X${i + 1}`,
+      name: String(src?.name || src || `CUSTOM ${i + 1}`).trim() || `CUSTOM ${i + 1}`
+    };
+  });
+  localStorage.setItem(LS.NFL8_CUSTOM_SPOTS, JSON.stringify(safe));
+}
+
+let nfl8CustomSpots = loadNFL8CustomSpots();
+
+function getTeamsForBreakType(type = currentBreakType){
+  if (type === 'nfl8'){
+    return [
+      ...NFL,
+      ...nfl8CustomSpots.map((spot, i) => ({
+        code: `X${i + 1}`,
+        name: String(spot.name || `CUSTOM ${i + 1}`),
+        image: '',
+        customSpot: true
+      }))
+    ];
+  }
+  return BREAK_TYPES[type]?.teams || [];
+}
 
 /* =========================
    State
@@ -918,12 +1060,48 @@ let soldTeamsList = [];
 const lastCodeByListingKey = new Map();
 let boardState = {};
 let scoresData = [];
-let highBid = 0;
+let highBidValue = 0;
+let showHighBid = localStorage.getItem(LS.SHOW_HIGH_BID) !== '0';
 
 let tickerMode = 'custom';
 let tickerFlipTimer = null;
 const TICKER_CUSTOM_SECONDS = 12;
 const TICKER_SPORTS_SECONDS = 8;
+
+
+function highBidStorageKey(){
+  return `${LS.HIGH_BID}:${currentBreakType}:${currentBreakNumber}`;
+}
+function loadHighBid(){
+  const raw = Number(localStorage.getItem(highBidStorageKey()) || 0);
+  return Number.isFinite(raw) && raw >= 0 ? raw : 0;
+}
+function saveHighBid(n){
+  localStorage.setItem(highBidStorageKey(), String(Number(n) || 0));
+}
+function formatCurrency(n){
+  const val = Number(n) || 0;
+  return `$${Math.round(val)}`;
+}
+function setHighBid(n){
+  highBidValue = Number.isFinite(Number(n)) && Number(n) >= 0 ? Number(n) : 0;
+  saveHighBid(highBidValue);
+  syncHighBidUI();
+}
+function syncHighBidUI(){
+  safeText('highBidCtl', formatCurrency(highBidValue));
+  safeText('streamHighBidText', formatCurrency(highBidValue));
+  const row = document.getElementById('streamHighBidRow');
+  const box = document.getElementById('highBidCtlBox');
+  if (row) row.style.display = showHighBid ? '' : 'none';
+  if (box) box.style.visibility = showHighBid ? 'visible' : 'hidden';
+}
+function toggleHighBidDisplay(){
+  showHighBid = !showHighBid;
+  localStorage.setItem(LS.SHOW_HIGH_BID, showHighBid ? '1' : '0');
+  syncHighBidUI();
+}
+
 
 /* =========================
    Titles / ticker
@@ -950,7 +1128,7 @@ function applyTitles(main, sub){
   localStorage.setItem(LS.TITLE_MAIN, m);
   localStorage.setItem(LS.TITLE_SUB, s);
   const cfg = BREAK_TYPES[currentBreakType];
-  document.getElementById('headerTitle').textContent = `${m} • ${cfg.name}`;
+  safeText('headerTitle', `${m} • ${cfg.name}`);
   safeText('infoTitleText', s);
 }
 function loadTickerLines(){
@@ -982,9 +1160,11 @@ function setTickerTrackText(text){
 }
 function refreshTicker(){
   if (tickerMode === 'sports' && SPORTS_LINES.length){
+    document.getElementById('tickerModeText').textContent = 'Scores';
     setTickerTrackText(SPORTS_LINES.join('   •   '));
     return;
   }
+  document.getElementById('tickerModeText').textContent = 'Custom';
   setTickerTrackText(TICKER_LINES.join('   •   '));
 }
 function flipTickerTo(mode){
@@ -1034,7 +1214,7 @@ function buildLookup(teams){
 }
 function normalizeSport(v){
   const x = String(v || '').toLowerCase().trim();
-  return ['nfl','nba','mlb'].includes(x) ? x : '';
+  return ['nfl','nfl8','nba','mlb'].includes(x) ? x : '';
 }
 function getSportLabel(v = currentBreakType){
   return BREAK_TYPES[v]?.name || String(v || '').toUpperCase();
@@ -1063,7 +1243,7 @@ function normalizeCodeAliases(code, sportKey){
 function isValidCodeForSport(code, sportKey){
   const s = String(sportKey || '').toLowerCase();
   if (!code || !BREAK_TYPES[s]) return false;
-  const lookup = buildLookup(BREAK_TYPES[s].teams);
+  const lookup = buildLookup(getTeamsForBreakType(s));
   return lookup.has(norm(code));
 }
 function requireValidCodeOrBail(code, sportKey, titleRaw){
@@ -1073,7 +1253,7 @@ function requireValidCodeOrBail(code, sportKey, titleRaw){
   return null;
 }
 function inferTeamCodeFromTitle(title, sportKey = currentBreakType){
-  const teams = BREAK_TYPES[sportKey].teams;
+  const teams = getTeamsForBreakType(sportKey);
   const lookup = buildLookup(teams);
   const t = norm(title);
   if (!t) return null;
@@ -1094,12 +1274,13 @@ function loadSportTileHeights(){
   try{
     const raw = JSON.parse(localStorage.getItem(LS.SPORT_TILE_HEIGHTS) || '{}');
     return {
-      nfl:Number(raw.nfl) || 66,
-      nba:Number(raw.nba) || 66,
-      mlb:Number(raw.mlb) || 66
+      nfl: Number(raw.nfl) || 66,
+      nfl8: Number(raw.nfl8) || Number(raw.nfl) || 66,
+      nba: Number(raw.nba) || 66,
+      mlb: Number(raw.mlb) || 66
     };
   }catch(_){
-    return { nfl:66, nba:66, mlb:66 };
+    return { nfl:66, nfl8:66, nba:66, mlb:66 };
   }
 }
 function saveSportTileHeights(next){
@@ -1113,19 +1294,16 @@ function applySportTileHeight(){
 function soldEntry(code){
   return soldTeamsList.find(x => String(x.code).toUpperCase() === String(code).toUpperCase());
 }
-function setHighBid(val){
-  const n = Number(val);
-  highBid = Number.isFinite(n) ? Math.max(0, n) : 0;
-  const txt = highBid > 0 ? `$${highBid.toFixed(2)}` : '—';
-  safeText('highBidInfoText', txt);
-  safeText('highBidCtl', txt);
-}
 
 /* =========================
    Board state
 ========================= */
 function allEntriesForCurrentSport(){
-  return BREAK_TYPES[currentBreakType].teams.map(t => ({ code:t.code, name:t.name, image:t.image }));
+  return getTeamsForBreakType(currentBreakType).map(t => ({
+    code:t.code,
+    name:t.name,
+    image:t.image || ''
+  }));
 }
 function ensureBoardState(){
   const entries = allEntriesForCurrentSport();
@@ -1164,19 +1342,33 @@ function loadSoldState(){
 /* =========================
    DOM
 ========================= */
+
+
 function buildTile(team){
   const d = document.createElement('div');
   d.className = 'tile';
   d.dataset.teamCode = team.code;
 
-  const img = document.createElement('img');
-  img.src = team.image;
-  img.alt = team.name;
-  img.onerror = () => {
-    img.remove();
-    d.textContent = team.code;
-  };
-  d.appendChild(img);
+  if (team.customSpot) d.classList.add('custom-spot');
+
+  if (team.image){
+    const img = document.createElement('img');
+    img.src = team.image;
+    img.alt = team.name;
+    img.onerror = () => {
+      img.remove();
+      const label = document.createElement('div');
+      label.className = 'tile-name';
+      label.textContent = team.name || team.code;
+      d.appendChild(label);
+    };
+    d.appendChild(img);
+  } else {
+    const label = document.createElement('div');
+    label.className = 'tile-name';
+    label.textContent = team.name || team.code;
+    d.appendChild(label);
+  }
 
   const buyer = document.createElement('div');
   buyer.className = 'tile-buyer';
@@ -1189,12 +1381,12 @@ function buildTile(team){
     if (soldTeams.has(team.code)) sseMarkUnsold(team.code);
     else sseMarkSold(team.code, 'SOLD');
   });
+
   return d;
 }
-
 function renderTeams(){
   const cfg = BREAK_TYPES[currentBreakType];
-  const TEAMS = cfg.teams;
+  const TEAMS = getTeamsForBreakType(currentBreakType);
   const leftGrid = document.getElementById('leftGrid');
   const rightGrid = document.getElementById('rightGrid');
   const bottomGrid = document.getElementById('bottomGrid');
@@ -1204,9 +1396,11 @@ function renderTeams(){
 
   document.documentElement.style.setProperty('--bottomCols', String(cfg.bottomCols));
 
-  const leftTeams = TEAMS.slice(0, 10);
-  const rightTeams = TEAMS.slice(10, 20);
-  const bottomTeams = TEAMS.slice(20, 20 + cfg.bottomCount);
+  const leftCount = Number(cfg.leftCount || 10);
+  const rightCount = Number(cfg.rightCount || 10);
+  const leftTeams = TEAMS.slice(0, leftCount);
+  const rightTeams = TEAMS.slice(leftCount, leftCount + rightCount);
+  const bottomTeams = TEAMS.slice(leftCount + rightCount, leftCount + rightCount + cfg.bottomCount);
 
   leftTeams.forEach(t => leftGrid.appendChild(buildTile(t)));
   rightTeams.forEach(t => rightGrid.appendChild(buildTile(t)));
@@ -1220,13 +1414,19 @@ function buildLayout(){
   loadSoldState();
   ensureBoardState();
   applySportTileHeight();
+  highBidValue = loadHighBid();
   const titles = loadTitles();
   applyTitles(titles.main, titles.sub);
+  safeText('sportChip', getSportLabel());
   safeText('breakId', currentBreakNumber);
+  safeText('breakIdCtl', currentBreakNumber);
   safeText('breakIdInfoText', computeBreakId());
+  safeText('channelInfoText', getChannels().join(','));
+  syncHighBidUI();
   renderTeams();
   renderScores();
-  setHighBid(highBid);
+  const nfl8Btn = document.getElementById('nfl8CustomBtn');
+  if (nfl8Btn) nfl8Btn.style.display = currentBreakType === 'nfl8' ? '' : 'none';
 }
 
 /* =========================
@@ -1295,18 +1495,20 @@ function updateStats(){
   const remaining = Math.max(0, total - soldTeams.size);
   safeText('teamsSold', soldTeams.size);
   safeText('teamsLeft', remaining);
-  safeText('remainingInfoText', remaining);
+  safeText('streamSoldText', soldTeams.size);
+  safeText('streamRemainingText', remaining);
 }
 function renderSoldPanel(){
   const soldWrap = document.getElementById('soldWrap');
   const soldGrid = document.getElementById('soldGrid');
+  const soldTop = soldWrap ? soldWrap.querySelector('.sold-top') : null;
   soldGrid.innerHTML = '';
 
   soldTeamsList.slice().sort((a,b) => String(a.code).localeCompare(String(b.code))).forEach(entry => {
     const row = document.createElement('div');
     row.className = 'sold-item';
 
-    const team = BREAK_TYPES[currentBreakType].teams.find(t => t.code === entry.code);
+    const team = getTeamsForBreakType(currentBreakType).find(t => t.code === entry.code);
     if (team?.image){
       const img = document.createElement('img');
       img.src = team.image;
@@ -1326,7 +1528,8 @@ function renderSoldPanel(){
     soldGrid.appendChild(row);
   });
 
-  soldWrap.classList.toggle('active', soldPanelEnabled);
+  if (soldTop) soldTop.style.display = soldPanelEnabled ? 'flex' : 'none';
+  soldWrap.classList.toggle('active', soldPanelEnabled || soldTeamsList.length > 0);
 }
 function toggleSoldControls(){
   soldPanelEnabled = !soldPanelEnabled;
@@ -1372,6 +1575,48 @@ function renderScores(){
 function openPopup(id){ document.getElementById(id).classList.add('active'); }
 function closePopup(id){ document.getElementById(id).classList.remove('active'); }
 
+function openNFL8CustomPopup(){
+  const text = nfl8CustomSpots.map(x => x.name).join('\n');
+  document.getElementById('nfl8CustomInput').value = text;
+  openPopup('nfl8CustomPopup');
+}
+
+function applyNFL8CustomSpotsFromInput(){
+  const raw = document.getElementById('nfl8CustomInput').value || '';
+  const parsed = raw
+    .split(/[\n,]+/)
+    .map(v => String(v).trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  const next = Array.from({ length: 8 }, (_, i) => ({
+    code: `X${i + 1}`,
+    name: parsed[i] || `CUSTOM ${i + 1}`
+  }));
+
+  nfl8CustomSpots = next;
+  saveNFL8CustomSpots(next);
+
+  if (currentBreakType === 'nfl8'){
+    const prevState = { ...boardState };
+    boardState = {};
+    ensureBoardState();
+
+    Object.keys(boardState).forEach(code => {
+      if (prevState[code]){
+        boardState[code] = prevState[code];
+      }
+    });
+
+    persistSoldState();
+    buildLayout();
+  }
+
+  closePopup('nfl8CustomPopup');
+}
+
+/* promo functions moved to promo library manager */
+
 /* =========================
    Sport switching
 ========================= */
@@ -1379,7 +1624,6 @@ function setBreakType(type){
   const next = normalizeSport(type);
   if (!next || next === currentBreakType) return;
   currentBreakType = next;
-  setHighBid(0);
   localStorage.setItem(LS.BREAK_TYPE, currentBreakType);
   buildLayout();
   bridgePostSafe({
@@ -1392,13 +1636,12 @@ function setBreakType(type){
   bridgeWarmupSafe();
 }
 function cycleSport(){
-  const order = ['nfl','nba','mlb'];
+  const order = ['nfl','nfl8','nba','mlb'];
   const idx = order.indexOf(currentBreakType);
   setBreakType(order[(idx + 1 + order.length) % order.length]);
 }
 function startNewBreakCycle(){
   resetSoldState();
-  setHighBid(0);
   currentBreakNumber += 1;
   localStorage.setItem(LS.BREAK_NUMBER, String(currentBreakNumber));
   buildLayout();
@@ -1572,16 +1815,20 @@ function handleSSEEvent(data){
     return;
   }
 
-  if (type === 'stream_stats'){
-    const bid = Number(payload.highBid ?? payload.amount ?? payload.high_bid ?? payload.maxBid);
-    if (Number.isFinite(bid)) setHighBid(Math.max(highBid, bid));
-    return;
-  }
-
   if (type === 'set_title'){
     const main = payload.main || payload.title || payload.brandTitle || DEFAULT_TITLE_MAIN;
     const sub = payload.sub || payload.subtitle || payload.brandSub || DEFAULT_TITLE_SUB;
     applyTitles(main, sub);
+    return;
+  }
+
+  if (type === 'stream_stats'){
+    if (payload.highBid != null) setHighBid(Number(payload.highBid) || 0);
+    if (payload.showHighBid != null){
+      showHighBid = !!payload.showHighBid;
+      localStorage.setItem(LS.SHOW_HIGH_BID, showHighBid ? '1' : '0');
+      syncHighBidUI();
+    }
     return;
   }
 
@@ -1635,8 +1882,8 @@ function handleSSEEvent(data){
     if (!code || !boardState[code]) return;
 
     const buyer = payload.buyer || payload.buyerName || 'SOLD';
-    const bid = Number(payload.amount ?? payload.price ?? payload.bid ?? payload.highBid ?? payload.high_bid);
-    if (Number.isFinite(bid)) setHighBid(Math.max(highBid, bid));
+    const saleAmount = Number(payload.amount ?? payload.highBid ?? payload.bidAmount ?? 0);
+    if (Number.isFinite(saleAmount) && saleAmount > highBidValue) setHighBid(saleAmount);
     const listingKey = payload.saleId || payload.id || payload.listingId || null;
     if (listingKey){
       const prev = lastCodeByListingKey.get(String(listingKey));
@@ -1667,16 +1914,22 @@ function handleSSEEvent(data){
 /* =========================
    UI wiring
 ========================= */
-document.getElementById('resetBtn').addEventListener('click', resetAll);
-document.getElementById('nextBtn').addEventListener('click', startNewBreakCycle);
-document.getElementById('soldToggle').addEventListener('click', toggleSoldControls);
+const resetBtn = document.getElementById('resetBtn');
+if (resetBtn) resetBtn.addEventListener('click', resetAll);
+const nextBtn = document.getElementById('nextBtn');
+if (nextBtn) nextBtn.addEventListener('click', startNewBreakCycle);
+const soldToggle = document.getElementById('soldToggle');
+if (soldToggle) soldToggle.addEventListener('click', toggleSoldControls);
 
-document.getElementById('setBreakBtn').addEventListener('click', () => {
+const setBreakBtn = document.getElementById('setBreakBtn');
+if (setBreakBtn) setBreakBtn.addEventListener('click', () => {
   document.getElementById('breakInput').value = String(currentBreakNumber);
   openPopup('breakPopup');
 });
-document.getElementById('closeBreak').addEventListener('click', () => closePopup('breakPopup'));
-document.getElementById('applyBreak').addEventListener('click', () => {
+const closeBreakBtn = document.getElementById('closeBreak');
+if (closeBreakBtn) closeBreakBtn.addEventListener('click', () => closePopup('breakPopup'));
+const applyBreakBtn = document.getElementById('applyBreak');
+if (applyBreakBtn) applyBreakBtn.addEventListener('click', () => {
   const v = Math.max(1, parseInt(document.getElementById('breakInput').value || '1', 10) || 1);
   currentBreakNumber = v;
   localStorage.setItem(LS.BREAK_NUMBER, String(v));
@@ -1691,30 +1944,59 @@ document.getElementById('applyBreak').addEventListener('click', () => {
   closePopup('breakPopup');
 });
 
-document.getElementById('setTitleBtn').addEventListener('click', () => {
+
+const setHighBidBtn = document.getElementById('setHighBidBtn');
+if (setHighBidBtn) setHighBidBtn.addEventListener('click', () => {
+  document.getElementById('highBidInput').value = String(loadHighBid());
+  openPopup('highBidPopup');
+});
+const highBidCtlBox = document.getElementById('highBidCtlBox');
+if (highBidCtlBox) highBidCtlBox.addEventListener('click', () => {
+  document.getElementById('highBidInput').value = String(loadHighBid());
+  openPopup('highBidPopup');
+});
+const toggleHighBidBtn = document.getElementById('toggleHighBidBtn');
+if (toggleHighBidBtn) toggleHighBidBtn.addEventListener('click', toggleHighBidDisplay);
+const closeHighBidBtn = document.getElementById('closeHighBid');
+if (closeHighBidBtn) closeHighBidBtn.addEventListener('click', () => closePopup('highBidPopup'));
+const applyHighBidBtn = document.getElementById('applyHighBid');
+if (applyHighBidBtn) applyHighBidBtn.addEventListener('click', () => {
+  const n = Number(document.getElementById('highBidInput').value || 0);
+  setHighBid(n);
+  closePopup('highBidPopup');
+});
+
+const setTitleBtn = document.getElementById('setTitleBtn');
+if (setTitleBtn) setTitleBtn.addEventListener('click', () => {
   const titles = loadTitles();
   document.getElementById('titleMainInput').value = titles.main;
   document.getElementById('titleSubInput').value = titles.sub;
   openPopup('titlePopup');
 });
-document.getElementById('closeTitle').addEventListener('click', () => closePopup('titlePopup'));
-document.getElementById('applyTitle').addEventListener('click', () => {
+const closeTitleBtn = document.getElementById('closeTitle');
+if (closeTitleBtn) closeTitleBtn.addEventListener('click', () => closePopup('titlePopup'));
+const applyTitleBtn = document.getElementById('applyTitle');
+if (applyTitleBtn) applyTitleBtn.addEventListener('click', () => {
   applyTitles(document.getElementById('titleMainInput').value, document.getElementById('titleSubInput').value);
   closePopup('titlePopup');
 });
 
-document.getElementById('setTickerBtn').addEventListener('click', () => {
+const setTickerBtn = document.getElementById('setTickerBtn');
+if (setTickerBtn) setTickerBtn.addEventListener('click', () => {
   document.getElementById('tickerInput').value = TICKER_LINES.join('\n');
   const speed = getTickerSpeed();
   document.getElementById('tickerSpeedInput').value = String(speed);
   document.getElementById('tickerSpeedLabel').textContent = `${speed}s`;
   openPopup('tickerPopup');
 });
-document.getElementById('closeTicker').addEventListener('click', () => closePopup('tickerPopup'));
-document.getElementById('tickerSpeedInput').addEventListener('input', (e) => {
+const closeTickerBtn = document.getElementById('closeTicker');
+if (closeTickerBtn) closeTickerBtn.addEventListener('click', () => closePopup('tickerPopup'));
+const tickerSpeedInput = document.getElementById('tickerSpeedInput');
+if (tickerSpeedInput) tickerSpeedInput.addEventListener('input', (e) => {
   document.getElementById('tickerSpeedLabel').textContent = `${e.target.value}s`;
 });
-document.getElementById('applyTicker').addEventListener('click', () => {
+const applyTickerBtn = document.getElementById('applyTicker');
+if (applyTickerBtn) applyTickerBtn.addEventListener('click', () => {
   const lines = document.getElementById('tickerInput').value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
   TICKER_LINES = lines.length ? lines : DEFAULT_TICKER_LINES.slice();
   localStorage.setItem(LS.TICKER, JSON.stringify(TICKER_LINES));
@@ -1723,21 +2005,34 @@ document.getElementById('applyTicker').addEventListener('click', () => {
   closePopup('tickerPopup');
 });
 
-document.getElementById('sportBtn').addEventListener('click', cycleSport);
+const nfl8CustomBtn = document.getElementById('nfl8CustomBtn');
+if (nfl8CustomBtn) nfl8CustomBtn.addEventListener('click', openNFL8CustomPopup);
+const closeNFL8CustomBtn = document.getElementById('closeNFL8Custom');
+if (closeNFL8CustomBtn) closeNFL8CustomBtn.addEventListener('click', () => closePopup('nfl8CustomPopup'));
+const applyNFL8CustomBtn = document.getElementById('applyNFL8Custom');
+if (applyNFL8CustomBtn) applyNFL8CustomBtn.addEventListener('click', applyNFL8CustomSpotsFromInput);
 
-document.getElementById('tileHeightsBtn').addEventListener('click', () => {
+const sportBtn = document.getElementById('sportBtn');
+if (sportBtn) sportBtn.addEventListener('click', cycleSport);
+
+const tileHeightsBtn = document.getElementById('tileHeightsBtn');
+if (tileHeightsBtn) tileHeightsBtn.addEventListener('click', () => {
   const heights = loadSportTileHeights();
   document.getElementById('tileHeightNFLInput').value = String(heights.nfl || 66);
   document.getElementById('tileHeightNBAInput').value = String(heights.nba || 66);
   document.getElementById('tileHeightMLBInput').value = String(heights.mlb || 66);
   openPopup('tileHeightPopup');
 });
-document.getElementById('closeTileHeights').addEventListener('click', () => closePopup('tileHeightPopup'));
-document.getElementById('applyTileHeights').addEventListener('click', () => {
+const closeTileHeightsBtn = document.getElementById('closeTileHeights');
+if (closeTileHeightsBtn) closeTileHeightsBtn.addEventListener('click', () => closePopup('tileHeightPopup'));
+const applyTileHeightsBtn = document.getElementById('applyTileHeights');
+if (applyTileHeightsBtn) applyTileHeightsBtn.addEventListener('click', () => {
+  const current = loadSportTileHeights();
   const next = {
-    nfl: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightNFLInput').value || '66', 10) || 66)),
-    nba: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightNBAInput').value || '66', 10) || 66)),
-    mlb: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightMLBInput').value || '66', 10) || 66))
+    nfl: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightNFLInput').value || current.nfl || '66', 10) || 66)),
+    nfl8: current.nfl8 || current.nfl || 66,
+    nba: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightNBAInput').value || current.nba || '66', 10) || 66)),
+    mlb: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightMLBInput').value || current.mlb || '66', 10) || 66))
   };
   saveSportTileHeights(next);
   applySportTileHeight();
@@ -1745,12 +2040,15 @@ document.getElementById('applyTileHeights').addEventListener('click', () => {
   closePopup('tileHeightPopup');
 });
 
-document.getElementById('exportBtn').addEventListener('click', () => {
+const exportBtn = document.getElementById('exportBtn');
+if (exportBtn) exportBtn.addEventListener('click', () => {
   document.getElementById('exportBox').value = buildExportTSV();
   openPopup('exportPopup');
 });
-document.getElementById('closeExport').addEventListener('click', () => closePopup('exportPopup'));
-document.getElementById('copyBtn').addEventListener('click', async () => {
+const closeExportBtn = document.getElementById('closeExport');
+if (closeExportBtn) closeExportBtn.addEventListener('click', () => closePopup('exportPopup'));
+const copyBtn = document.getElementById('copyBtn');
+if (copyBtn) copyBtn.addEventListener('click', async () => {
   const txt = document.getElementById('exportBox').value;
   try{
     await navigator.clipboard.writeText(txt);
@@ -1764,16 +2062,21 @@ document.getElementById('copyBtn').addEventListener('click', async () => {
   }
 });
 
+document.querySelectorAll('.popup').forEach(pop => {
+  pop.addEventListener('click', (e) => {
+    if (e.target === pop) pop.classList.remove('active');
+  });
+});
 /* =========================
    Boot
 ========================= */
 window.addEventListener('DOMContentLoaded', () => {
-  safeText('breakId', currentBreakNumber);
   buildLayout();
   refreshTicker();
   startTickerRotation();
+  renderPromoPresetRows();
+  renderActivePromo();
   initSSE();
-
 });
 </script>
 </body>
