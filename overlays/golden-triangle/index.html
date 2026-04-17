@@ -1154,7 +1154,7 @@ radial-gradient(900px 420px at 30% 0%, rgba(255, 214, 92, 0.16), transparent 62%
           <div class="sse-status" id="sseStatus">
             SSE:
             <span class="dot" id="sseDot"></span>
-            <span id="sseText">Bad</span>
+          <span id="sseText">disconnected</span>
           </div>
         </div>
 
@@ -2632,18 +2632,18 @@ if (speedSlider) speedSlider.oninput = null;
       return !!resolveBridgeBase();
     }
 
-    function setSSEStatus(state, msg){
-      const wrap = document.getElementById('sseStatus');
-      const text = document.getElementById('sseText');
-      if (!wrap || !text) return;
+function setSSEStatus(state, msg){
+  const wrap = document.getElementById('sseStatus');
+  const text = document.getElementById('sseText');
+  if (!wrap || !text) return;
 
-      wrap.classList.remove('connected','error','connecting');
-      if (state === 'connected') wrap.classList.add('✅');
-      if (state === 'error') wrap.classList.add('⚠️');
-      if (state === 'connecting') wrap.classList.add('🔃');
+  wrap.classList.remove('connected','error','connecting');
+  if (state === 'connected') wrap.classList.add('connected');
+  if (state === 'error') wrap.classList.add('error');
+  if (state === 'connecting') wrap.classList.add('connecting');
 
-      text.textContent = String(msg || state || '⛔').toUpperCase();
-    }
+  text.textContent = String(msg || state || 'disconnected').toUpperCase();
+}
 
     function closeSSE(refName){
       const ref = refName === 'scores' ? sseScores : sse;
@@ -2672,7 +2672,7 @@ if (speedSlider) speedSlider.oninput = null;
 
         es.onopen = () => {
           if (refName === 'main'){
-            setSSEStatus('connected','✅');
+            setSSEStatus('connected','connected');
             warmupPing();
           }
           if (typeof onOpen === 'function') onOpen();
@@ -2698,7 +2698,7 @@ if (speedSlider) speedSlider.oninput = null;
 
         es.onerror = () => {
           if (refName === 'main'){
-            setSSEStatus('error','⚠️');
+           setSSEStatus('error','reconnecting');
           }
           try { es.close(); } catch(_){}
           if (refName === 'scores') sseScores = null;
@@ -2715,19 +2715,19 @@ if (speedSlider) speedSlider.oninput = null;
       }
     }
 
-    function startSSE(){
-      const base = resolveBridgeBase();
-      if (!base){
-        setSSEStatus('error','⚠️');
-        return;
-      }
+function startSSE(){
+  const base = resolveBridgeBase();
+  if (!base){
+    setSSEStatus('error','missing bridge');
+    return;
+  }
 
-      const mainChannel = getChannels()[0] || 'main';
-      setSSEStatus('connecting','🔃');
+  const mainChannel = getChannels()[0] || 'main';
+  setSSEStatus('connecting','connecting');
 
-      connectSSEOne(`${base}/stream?channel=${encodeURIComponent(mainChannel)}`, 'main');
-      //connectSSEOne(`${base}/stream?channel=${encodeURIComponent(getScoresChannel())}`, 'scores');
-    }
+  connectSSEOne(`${base}/stream?channel=${encodeURIComponent(mainChannel)}`, 'main');
+  // connectSSEOne(`${base}/stream?channel=${encodeURIComponent(getScoresChannel())}`, 'scores');
+}
 
     async function warmupPing(){
       const base = resolveBridgeBase();
@@ -2779,9 +2779,15 @@ if (speedSlider) speedSlider.oninput = null;
       return true;
     }
 
-    function normalizeCode(code){
-      return String(code || '').trim().toUpperCase();
-    }
+function normalizeCode(code){
+  const normalized = String(code || '').trim().toUpperCase();
+
+  const aliases = {
+    CHW: 'CWS'
+  };
+
+  return aliases[normalized] || normalized;
+}
 
     function getListingKey(payload){
       const pieces = [
@@ -2952,9 +2958,8 @@ function markSold(code, buyer = ''){
           case 'overlay_warmup':
             return;
 
-          case 'scores':
-            applyScoresPayload(payload);
-            return;
+case 'scores':
+  return;
 
           case 'stream_stats':
             return;
@@ -3239,15 +3244,15 @@ function initFloatingWheelDrag(){
       loadSoldState();
       initializeGrid();
 
-          if (automationEnabled()) startSSE();
-      else setSSEStatus('error','⚠️');
+      if (automationEnabled()) startSSE();
+      else setSSEStatus('error','missing bridge');
 
-initFloatingWheelDrag();
-refreshWheelEntries();
-applyWheelVisibility();
+      initFloatingWheelDrag();
+      refreshWheelEntries();
+      applyWheelVisibility();
 
-soldPanelVisible = true;
-toggleSoldPanel();
+      soldPanelVisible = true;
+      toggleSoldPanel();
     });
   </script>
 
