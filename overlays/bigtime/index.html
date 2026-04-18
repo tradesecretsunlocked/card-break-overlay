@@ -872,12 +872,28 @@ rotate: -3deg;
     .popup-mask.show{ display:flex; }
     .popup{
       width:min(760px, 100%);
+        min-width:420px;
+  min-height:300px;
+  resize:both;
+  overflow:auto;
       background:linear-gradient(180deg, #111, #060606);
       border:1px solid rgba(255,255,255,0.12);
       border-radius:16px;
       box-shadow:0 20px 40px rgba(0,0,0,0.7);
       padding:16px;
     }
+    .popup{
+  position:relative;
+}
+
+.popup.dragging{
+  opacity:.96;
+  cursor:grabbing;
+}
+
+.popup-header-draggable{
+  cursor:grab;
+}
     .popup h2{
       margin:0 0 12px;
       font-size:18px;
@@ -932,9 +948,10 @@ rotate: -3deg;
       overflow:visible;
     }
 
-    body.view-list .overlay{
-      width:1080px;
-      max-width:1080px;
+ body.view-list .overlay{
+  width:700px;
+  max-width:700px;
+  margin:0 auto;
       background:
         linear-gradient(180deg, rgba(12,12,12,0.94), rgba(5,5,5,0.94));
       border:2px solid rgba(254,222,38,0.30);
@@ -1020,9 +1037,13 @@ rotate: -3deg;
       white-space:nowrap;
     }
 
-    .player-list{
-      display:flex;
-      flex-direction:column;
+   .player-list{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:8px;
+  max-height:520px;
+  overflow:auto;
+  padding-right:2px;
       gap:6px;
       max-height:520px;
       overflow:auto;
@@ -1043,7 +1064,7 @@ rotate: -3deg;
       padding:10px 12px;
       background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.68));
       border:1px solid rgba(255,255,255,0.10);
-      min-height:48px;
+      min-height:56px;
       cursor:pointer;
       transition:transform .14s ease, border-color .14s ease, box-shadow .14s ease;
     }
@@ -1313,7 +1334,7 @@ rotate: -3deg;
 
   <div class="popup-mask" id="playerListPopupMask">
     <div class="popup">
-      <h2>Player List</h2>
+      <h2 class="popup-header-draggable">Player List</h2>
       <div class="popup-subnote">Enter one player per line or import a CSV/text file. Click entries in list view to highlight them.</div>
 
       <div class="player-import-actions">
@@ -2890,6 +2911,9 @@ function connectOneSSE(channel, onOpenLabel, handler, refSetter){
   };
 }
 
+
+
+
 function initSSE(){
   if (!automationEnabled()){
     setSSEStatus('error', 'OFF');
@@ -3081,6 +3105,42 @@ function applyViewModeUI(){
   }
 }
 
+function enablePopupDragging(){
+  document.querySelectorAll('.popup').forEach(popup => {
+    const handle = popup.querySelector('.popup-header-draggable');
+    if (!handle) return;
+
+    let isDown = false;
+    let offsetX = 0;
+    let offsetY = 0;
+
+    handle.addEventListener('mousedown', (e) => {
+      isDown = true;
+      popup.classList.add('dragging');
+
+      const rect = popup.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+
+      popup.style.position = 'fixed';
+      popup.style.left = rect.left + 'px';
+      popup.style.top = rect.top + 'px';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+
+      popup.style.left = (e.clientX - offsetX) + 'px';
+      popup.style.top = (e.clientY - offsetY) + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDown = false;
+      popup.classList.remove('dragging');
+    });
+  });
+}
+
 /* =========================
    Init
 ========================= */
@@ -3095,6 +3155,7 @@ function applyViewModeUI(){
   buildLayout();
   renderScores();
   refreshTicker();
+  enablePopupDragging();
   startTickerRotation();
   initSSE();
 })();
