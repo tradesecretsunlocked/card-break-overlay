@@ -924,107 +924,6 @@ rotate: -3deg;
       min-height:42px;
       font-size:13px;
     }
-
-    body.view-list{
-      min-height:auto;
-      width:auto;
-      background:transparent;
-      overflow:visible;
-    }
-
-    body.view-list .overlay{
-      width:1080px;
-      max-width:1080px;
-      background:
-        linear-gradient(180deg, rgba(12,12,12,0.94), rgba(5,5,5,0.94));
-      border:2px solid rgba(254,222,38,0.30);
-      box-shadow:
-        0 0 0 1px rgba(255,255,255,0.05),
-        0 14px 34px rgba(0,0,0,0.55),
-        0 0 22px rgba(254,222,38,0.08);
-      overflow:visible;
-    }
-
-    body.view-list .overlay::before{
-      opacity:.55;
-      filter:blur(14px);
-    }
-
-    body.view-list .main{
-      margin-top:0;
-      gap:8px;
-    }
-
-    body.view-list .floating-list-wrap{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:10px;
-    }
-
-    body.view-list .list-panel{
-      border-radius:16px;
-      border:1px solid rgba(255,255,255,0.10);
-      background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.66));
-      box-shadow: inset 0 0 0 1px rgba(254,222,38,0.05);
-      padding:10px;
-      min-height:120px;
-    }
-
-    body.view-list .list-panel-title{
-      font-size:14px;
-      font-weight:1000;
-      letter-spacing:1px;
-      text-transform:uppercase;
-      color:var(--gold);
-      margin-bottom:8px;
-    }
-
-    body.view-list .sold-list,
-    body.view-list .chaser-list{
-      margin-top:0;
-      max-height:none;
-      overflow:visible;
-    }
-
-    .chaser-list{
-      display:grid;
-      grid-template-columns:repeat(4, 1fr);
-      gap:6px;
-    }
-
-    .chaser-item{
-      border-radius:12px;
-      padding:8px 10px;
-      background:linear-gradient(180deg, rgba(255,250,210,0.08), rgba(0,0,0,0.68));
-      border:1px solid rgba(255,221,122,0.24);
-      min-height:54px;
-      box-shadow:
-        0 0 0 1px rgba(255,221,122,0.05),
-        0 0 14px rgba(254,222,38,0.06);
-    }
-
-    .chaser-item .code{
-      font-size:14px;
-      font-weight:1000;
-      color:var(--gold);
-      text-transform:uppercase;
-      letter-spacing:.8px;
-    }
-
-    .chaser-item .name{
-      font-size:12px;
-      font-weight:900;
-      color:rgba(255,255,255,0.90);
-      margin-top:4px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
-    body.view-list .ticker{
-      margin-top:0;
-    }
-    
     .hidden{ display:none !important; }
   </style>
 </head>
@@ -1083,17 +982,7 @@ rotate: -3deg;
         </div>
       </div>
 
-      <div id="floatingListWrap" class="floating-list-wrap hidden">
-        <div class="list-panel wick">
-          <div class="list-panel-title">Sold Teams</div>
-          <div class="sold-list" id="soldListFloating"></div>
-        </div>
 
-        <div class="list-panel wick">
-          <div class="list-panel-title">Chaser Teams</div>
-          <div class="chaser-list" id="chaserListFloating"></div>
-        </div>
-      </div>
 
       <div id="soldControlsWrap" class="sold-controls-wrap active">
         <div class="sold-controls">
@@ -1275,21 +1164,6 @@ function getTeamLogoPath(sport, file){
 
 function getAssetBase(){
   return BASE;
-}
-
-function getViewMode(){
-  const raw = String(new URLSearchParams(location.search).get('view') || 'main').toLowerCase().trim();
-  return ['main','list'].includes(raw) ? raw : 'main';
-}
-
-const VIEW_MODE = getViewMode();
-
-function isMainView(){
-  return VIEW_MODE === 'main';
-}
-
-function isListView(){
-  return VIEW_MODE === 'list';
 }
 
 /* =========================
@@ -1782,7 +1656,7 @@ const BREAK_TYPES = {
       'EASTERN': {
         'ATLANTIC': [
           ['BOS','bruins.png','Bruins'],['BUF','sabres.png','Sabres'],['DET','redwings.png','Red Wings'],['FLA','panthers.png','Panthers'],
-          ['MTL','canadiens.png','Canadiens'],['OTT','senators.png','Senators'],['TB','lightning.png','Lightning'],['TOR','maple_leafs.png','Maple Leafs']
+          ['MTL','canadiens.png','Canadiens'],['OTT','senators.png','Senators'],['TB','lightning.png','Lightning'],['TOR','mapleleafs.png','Maple Leafs']
         ],
         'METROPOLITAN': [
           ['CAR','hurricanes.png','Hurricanes'],['CBJ','bluejackets.png','Blue Jackets'],['NJD','devils.png','Devils'],['NYI','islanders.png','Islanders'],
@@ -1796,7 +1670,7 @@ const BREAK_TYPES = {
         ],
         'PACIFIC': [
           ['ANA','ducks.png','Ducks'],['CGY','flames.png','Flames'],['EDM','oilers.png','Oilers'],['LAK','kings.png','Kings'],
-          ['SEA','kraken.png','Kraken'],['SJS','sharks.png','Sharks'],['VAN','canucks.png','Canucks'],['VGK','golden_knights.png','Golden Knights']
+          ['SEA','kraken.png','Kraken'],['SJS','sharks.png','Sharks'],['VAN','canucks.png','Canucks'],['VGK','goldenknights.png','Golden Knights']
         ]
       }
     }
@@ -2129,7 +2003,7 @@ function buildLayout(){
   applySportTileHeight();
   loadSoldState();
   ensureBoardState();
-
+  
   const cfg = BREAK_TYPES[currentBreakType];
   const left = document.getElementById('conferenceLeft');
   const right = document.getElementById('conferenceRight');
@@ -2164,8 +2038,6 @@ function buildLayout(){
 
   updateStats();
   renderSoldPanel();
-  renderFloatingSoldList();
-  renderChaserListPanel();
   renderBreakTypeButtons();
   persistSoldState();
 }
@@ -2240,8 +2112,6 @@ function updateStats(){
 }
 function renderSoldPanel(){
   const list = document.getElementById('soldList');
-  if (!list) return;
-
   list.innerHTML = '';
   soldTeamsList
     .slice()
@@ -2252,59 +2122,9 @@ function renderSoldPanel(){
       item.innerHTML = `<div class="code">${entry.code}</div><div class="buyer">${safeBuyer(entry.buyer || 'SOLD')}</div>`;
       list.appendChild(item);
     });
-
-  const controls = document.getElementById('soldControlsWrap');
-  if (controls) controls.classList.toggle('active', soldPanelEnabled && isMainView());
+  document.getElementById('soldControlsWrap').classList.toggle('active', soldPanelEnabled);
 }
-
-function renderChaserListPanel(){
-  const host = document.getElementById('chaserListFloating');
-  if (!host) return;
-
-  host.innerHTML = '';
-
-  const entries = getChaserEntriesForType(currentBreakType)
-    .filter(item => isChaserCode(item.code, currentBreakType))
-    .sort((a,b) => String(a.code).localeCompare(String(b.code)));
-
-  if (!entries.length){
-    host.innerHTML = `<div class="sold-item"><div class="code">NONE</div><div class="buyer">No chasers selected</div></div>`;
-    return;
-  }
-
-  entries.forEach(entry => {
-    const item = document.createElement('div');
-    item.className = 'chaser-item';
-    item.innerHTML = `<div class="code">${entry.code}</div><div class="name">${entry.name || entry.code}</div>`;
-    host.appendChild(item);
-  });
-}
-
-function renderFloatingSoldList(){
-  const host = document.getElementById('soldListFloating');
-  if (!host) return;
-
-  host.innerHTML = '';
-
-  const rows = soldTeamsList
-    .slice()
-    .sort((a,b) => String(a.code).localeCompare(String(b.code)));
-
-  if (!rows.length){
-    host.innerHTML = `<div class="sold-item"><div class="code">NONE</div><div class="buyer">No sold teams yet</div></div>`;
-    return;
-  }
-
-  rows.forEach(entry => {
-    const item = document.createElement('div');
-    item.className = 'sold-item';
-    item.innerHTML = `<div class="code">${entry.code}</div><div class="buyer">${safeBuyer(entry.buyer || 'SOLD')}</div>`;
-    host.appendChild(item);
-  });
-}
-
 function toggleSoldControls(){
-  if (!isMainView()) return;
   soldPanelEnabled = !soldPanelEnabled;
   localStorage.setItem(LS.SOLD_PANEL, soldPanelEnabled ? '1' : '0');
   renderSoldPanel();
@@ -2841,29 +2661,10 @@ function handleSSEEvent(data){
   }
 }
 
-function applyViewModeUI(){
-  document.body.classList.toggle('view-main', isMainView());
-  document.body.classList.toggle('view-list', isListView());
-
-  const header = document.querySelector('.header');
-  const teamsSection = document.querySelector('.teams-section');
-  const soldControlsWrap = document.getElementById('soldControlsWrap');
-  const soldList = document.getElementById('soldList');
-  const floatingListWrap = document.getElementById('floatingListWrap');
-
-  if (header) header.classList.toggle('hidden', isListView());
-  if (teamsSection) teamsSection.classList.toggle('hidden', isListView());
-  if (soldControlsWrap) soldControlsWrap.classList.toggle('hidden', isListView());
-  if (soldList) soldList.classList.toggle('hidden', isListView());
-  if (floatingListWrap) floatingListWrap.classList.toggle('hidden', !isListView());
-}
-
 /* =========================
    Init
 ========================= */
 (function init(){
-  applyViewModeUI();
-
   const titles = loadTitles();
   applyTitles(titles.main, titles.sub);
   setBreakNumberUI(currentBreakNumber);
