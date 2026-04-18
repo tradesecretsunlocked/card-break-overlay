@@ -956,8 +956,8 @@ rotate: -3deg;
     }
 
     body.view-list .floating-list-wrap{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
+      display:flex;
+      flex-direction:column;
       gap:10px;
     }
 
@@ -967,7 +967,6 @@ rotate: -3deg;
       background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.66));
       box-shadow: inset 0 0 0 1px rgba(254,222,38,0.05);
       padding:10px;
-      min-height:120px;
     }
 
     body.view-list .list-panel-title{
@@ -979,50 +978,120 @@ rotate: -3deg;
       margin-bottom:8px;
     }
 
-    body.view-list .sold-list,
-    body.view-list .chaser-list{
-      margin-top:0;
-      max-height:none;
-      overflow:visible;
-    }
-
-    .chaser-list{
-      display:grid;
-      grid-template-columns:repeat(4, 1fr);
-      gap:6px;
-    }
-
-    .chaser-item{
-      border-radius:12px;
-      padding:8px 10px;
-      background:linear-gradient(180deg, rgba(255,250,210,0.08), rgba(0,0,0,0.68));
-      border:1px solid rgba(255,221,122,0.24);
-      min-height:54px;
-      box-shadow:
-        0 0 0 1px rgba(255,221,122,0.05),
-        0 0 14px rgba(254,222,38,0.06);
-    }
-
-    .chaser-item .code{
-      font-size:14px;
-      font-weight:1000;
-      color:var(--gold);
-      text-transform:uppercase;
-      letter-spacing:.8px;
-    }
-
-    .chaser-item .name{
-      font-size:12px;
-      font-weight:900;
-      color:rgba(255,255,255,0.90);
-      margin-top:4px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-
     body.view-list .ticker{
       margin-top:0;
+    }
+
+    .chaser-strip{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      align-items:center;
+    }
+
+    .chaser-pill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-height:44px;
+      padding:8px 14px;
+      border-radius:999px;
+      background:linear-gradient(180deg, rgba(255,250,210,0.16), rgba(255,152,0,0.16));
+      border:1px solid rgba(255,221,122,0.30);
+      box-shadow:
+        0 0 0 1px rgba(255,221,122,0.06),
+        0 0 14px rgba(254,222,38,0.08);
+    }
+
+    .chaser-pill .code{
+      font-size:18px;
+      font-weight:1000;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      color:var(--gold);
+      line-height:1;
+    }
+
+    .chaser-pill .name{
+      font-size:15px;
+      font-weight:900;
+      color:rgba(255,255,255,0.94);
+      line-height:1;
+      white-space:nowrap;
+    }
+
+    .player-list{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      max-height:520px;
+      overflow:auto;
+      padding-right:2px;
+    }
+
+    .player-list::-webkit-scrollbar{
+      width:8px;
+    }
+
+    .player-list::-webkit-scrollbar-thumb{
+      background:rgba(255,221,122,0.26);
+      border-radius:999px;
+    }
+
+    .player-item{
+      border-radius:12px;
+      padding:10px 12px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.68));
+      border:1px solid rgba(255,255,255,0.10);
+      min-height:48px;
+      cursor:pointer;
+      transition:transform .14s ease, border-color .14s ease, box-shadow .14s ease;
+    }
+
+    .player-item:hover{
+      transform:translateY(-1px);
+      border-color:rgba(255,221,122,0.36);
+      box-shadow:0 8px 16px rgba(0,0,0,0.25);
+    }
+
+    .player-item.active{
+      background:linear-gradient(180deg, rgba(255,250,210,0.18), rgba(255,152,0,0.20));
+      border-color:rgba(255,221,122,0.92);
+      box-shadow:
+        0 0 0 1px rgba(255,221,122,0.12),
+        0 0 14px rgba(254,222,38,0.12);
+    }
+
+    .player-item .name{
+      font-size:16px;
+      font-weight:1000;
+      letter-spacing:.4px;
+      color:#fff;
+      line-height:1.15;
+    }
+
+    .player-import-actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:10px;
+      margin-bottom:10px;
+    }
+
+    .player-import-actions button{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      border-radius:12px;
+      background: linear-gradient(180deg, rgba(254,222,38,0.95), rgba(194,136,3,0.96));
+      color:#111;
+      font-weight:1000;
+      text-transform:uppercase;
+      letter-spacing:.7px;
+      box-shadow:0 6px 14px rgba(0,0,0,0.35);
+      border:1px solid rgba(255,255,255,0.14);
+      min-height:40px;
+      padding:0 12px;
     }
     
     .hidden{ display:none !important; }
@@ -1085,13 +1154,13 @@ rotate: -3deg;
 
       <div id="floatingListWrap" class="floating-list-wrap hidden">
         <div class="list-panel wick">
-          <div class="list-panel-title">Sold Teams</div>
-          <div class="sold-list" id="soldListFloating"></div>
+          <div class="list-panel-title">Chaser Teams</div>
+          <div class="chaser-strip" id="chaserListFloating"></div>
         </div>
 
         <div class="list-panel wick">
-          <div class="list-panel-title">Chaser Teams</div>
-          <div class="chaser-list" id="chaserListFloating"></div>
+          <div class="list-panel-title">Player List</div>
+          <div class="player-list" id="playerListFloating"></div>
         </div>
       </div>
 
@@ -1104,6 +1173,7 @@ rotate: -3deg;
           <button class="btn" onclick="cycleSport()">Next Sport</button>
           <button class="btn" onclick="copyExportTSV()">Export TSV</button>
           <button class="btn" onclick="openChaserPopup()">Chasers</button>
+          <button class="btn" onclick="openPlayerListPopup()">Player List</button>
           <button class="btn" onclick="openCustomImportPopup()">Import Custom</button>
           <button class="btn" onclick="openTileHeightPopup()">Tile Heights</button>
         </div>
@@ -1241,6 +1311,29 @@ rotate: -3deg;
     </div>
   </div>
 
+  <div class="popup-mask" id="playerListPopupMask">
+    <div class="popup">
+      <h2>Player List</h2>
+      <div class="popup-subnote">Enter one player per line or import a CSV/text file. Click entries in list view to highlight them.</div>
+
+      <div class="player-import-actions">
+        <button type="button" onclick="triggerPlayerListFileInput()">Import File</button>
+        <button type="button" onclick="clearPlayerListInput()">Clear Input</button>
+      </div>
+
+      <input id="playerListFileInput" type="file" accept=".csv,.txt,text/csv,text/plain" class="hidden" />
+
+      <label>Entries</label>
+      <textarea id="playerListInput" placeholder="Player One&#10;Player Two&#10;Player Three"></textarea>
+
+      <div class="popup-actions">
+        <button onclick="clearPlayerListAll()">Clear Saved</button>
+        <button onclick="closePopup('playerListPopupMask')">Cancel</button>
+        <button onclick="applyPlayerListEdit()">Apply</button>
+      </div>
+    </div>
+  </div>
+
   <div class="popup-mask" id="exportPopupMask">
     <div class="popup">
       <h2>Export TSV</h2>
@@ -1304,9 +1397,9 @@ const LS = {
   BREAK_TYPE: 'bigtime.breakType',
   SOLD_STATE: 'bigtime.soldState',
   SOLD_PANEL: 'bigtime.soldPanel',
-    CUSTOM_LAYOUT: 'bigtime.customLayout',
-   SPORT_TILE_HEIGHTS: 'bigtime.sportTileHeights',
-  CHASERS: 'bigtime.chasers'
+  CHASERS: 'bigtime.chasers',
+  CUSTOM_PLAYER_LIST: 'bigtime.customPlayerList',
+  CUSTOM_PLAYER_HIGHLIGHTS: 'bigtime.customPlayerHighlights'
 };
 
 
@@ -1549,6 +1642,64 @@ function getChaserEntriesForType(type = currentBreakType){
 let chaserSelections = loadChaserSelections();
 let modalChaserSet = new Set();
 
+
+function loadPlayerListBySport(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(LS.CUSTOM_PLAYER_LIST) || '{}');
+    return raw && typeof raw === 'object' ? raw : {};
+  }catch(_){
+    return {};
+  }
+}
+
+function savePlayerListBySport(){
+  localStorage.setItem(LS.CUSTOM_PLAYER_LIST, JSON.stringify(playerListBySport));
+}
+
+function loadPlayerHighlightsBySport(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(LS.CUSTOM_PLAYER_HIGHLIGHTS) || '{}');
+    const out = {};
+    Object.keys(raw || {}).forEach(key => {
+      out[key] = Array.isArray(raw[key]) ? raw[key].map(v => String(v || '').trim()).filter(Boolean) : [];
+    });
+    return out;
+  }catch(_){
+    return {};
+  }
+}
+
+function savePlayerHighlightsBySport(){
+  localStorage.setItem(LS.CUSTOM_PLAYER_HIGHLIGHTS, JSON.stringify(playerHighlightsBySport));
+}
+
+function getPlayerListStorageKey(type = currentBreakType){
+  return normalizeSport(type) || currentBreakType;
+}
+
+function getActivePlayerList(type = currentBreakType){
+  const key = getPlayerListStorageKey(type);
+  if (!Array.isArray(playerListBySport[key])) playerListBySport[key] = [];
+  return playerListBySport[key];
+}
+
+function getActivePlayerHighlights(type = currentBreakType){
+  const key = getPlayerListStorageKey(type);
+  if (!Array.isArray(playerHighlightsBySport[key])) playerHighlightsBySport[key] = [];
+  return playerHighlightsBySport[key];
+}
+
+function parsePlayerListText(raw){
+  return String(raw || '')
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map(v => v.trim())
+    .filter(Boolean);
+}
+
+let playerListBySport = loadPlayerListBySport();
+let playerHighlightsBySport = loadPlayerHighlightsBySport();
+
 function renderChaserSelectorGrid(){
   const grid = document.getElementById('chaserSelectorGrid');
   const items = getChaserEntriesForType(currentBreakType);
@@ -1615,6 +1766,79 @@ function clearChasersForCurrentSport(){
   modalChaserSet = new Set();
   renderChaserSelectorGrid();
 }
+
+function openPlayerListPopup(){
+  document.getElementById('playerListInput').value = getActivePlayerList(currentBreakType).join('\n');
+  openPopup('playerListPopupMask');
+}
+
+function triggerPlayerListFileInput(){
+  document.getElementById('playerListFileInput').click();
+}
+
+function clearPlayerListInput(){
+  document.getElementById('playerListInput').value = '';
+}
+
+function clearPlayerListAll(){
+  const key = getPlayerListStorageKey(currentBreakType);
+  playerListBySport[key] = [];
+  playerHighlightsBySport[key] = [];
+  savePlayerListBySport();
+  savePlayerHighlightsBySport();
+  renderPlayerListPanel();
+  closePopup('playerListPopupMask');
+}
+
+function applyPlayerListEdit(){
+  const key = getPlayerListStorageKey(currentBreakType);
+  const entries = parsePlayerListText(document.getElementById('playerListInput').value);
+
+  playerListBySport[key] = entries;
+
+  const allowed = new Set(entries);
+  playerHighlightsBySport[key] = getActivePlayerHighlights(currentBreakType).filter(v => allowed.has(v));
+
+  savePlayerListBySport();
+  savePlayerHighlightsBySport();
+  renderPlayerListPanel();
+  closePopup('playerListPopupMask');
+}
+
+function togglePlayerHighlight(name){
+  const key = getPlayerListStorageKey(currentBreakType);
+  const arr = getActivePlayerHighlights(currentBreakType).slice();
+  const idx = arr.indexOf(name);
+  if (idx >= 0) arr.splice(idx, 1);
+  else arr.push(name);
+  playerHighlightsBySport[key] = arr;
+  savePlayerHighlightsBySport();
+  renderPlayerListPanel();
+}
+
+function renderPlayerListPanel(){
+  const host = document.getElementById('playerListFloating');
+  if (!host) return;
+
+  host.innerHTML = '';
+
+  const entries = getActivePlayerList(currentBreakType);
+  const active = new Set(getActivePlayerHighlights(currentBreakType));
+
+  if (!entries.length){
+    host.innerHTML = `<div class="player-item"><div class="name">No player list loaded</div></div>`;
+    return;
+  }
+
+  entries.forEach(name => {
+    const item = document.createElement('div');
+    item.className = 'player-item' + (active.has(name) ? ' active' : '');
+    item.innerHTML = `<div class="name">${name}</div>`;
+    item.onclick = () => togglePlayerHighlight(name);
+    host.appendChild(item);
+  });
+}
+
 function breakIdMatches(data){
   const incoming = String(data?.breakId || '').trim();
   if (!incoming) return true;
@@ -2164,8 +2388,8 @@ function buildLayout(){
 
   updateStats();
   renderSoldPanel();
-  renderFloatingSoldList();
   renderChaserListPanel();
+  renderPlayerListPanel();
   renderBreakTypeButtons();
   persistSoldState();
 }
@@ -2268,40 +2492,19 @@ function renderChaserListPanel(){
     .sort((a,b) => String(a.code).localeCompare(String(b.code)));
 
   if (!entries.length){
-    host.innerHTML = `<div class="sold-item"><div class="code">NONE</div><div class="buyer">No chasers selected</div></div>`;
+    host.innerHTML = `<div class="chaser-pill"><div class="code">NONE</div><div class="name">No chasers selected</div></div>`;
     return;
   }
 
   entries.forEach(entry => {
     const item = document.createElement('div');
-    item.className = 'chaser-item';
+    item.className = 'chaser-pill';
     item.innerHTML = `<div class="code">${entry.code}</div><div class="name">${entry.name || entry.code}</div>`;
     host.appendChild(item);
   });
 }
 
-function renderFloatingSoldList(){
-  const host = document.getElementById('soldListFloating');
-  if (!host) return;
 
-  host.innerHTML = '';
-
-  const rows = soldTeamsList
-    .slice()
-    .sort((a,b) => String(a.code).localeCompare(String(b.code)));
-
-  if (!rows.length){
-    host.innerHTML = `<div class="sold-item"><div class="code">NONE</div><div class="buyer">No sold teams yet</div></div>`;
-    return;
-  }
-
-  rows.forEach(entry => {
-    const item = document.createElement('div');
-    item.className = 'sold-item';
-    item.innerHTML = `<div class="code">${entry.code}</div><div class="buyer">${safeBuyer(entry.buyer || 'SOLD')}</div>`;
-    host.appendChild(item);
-  });
-}
 
 function toggleSoldControls(){
   if (!isMainView()) return;
@@ -2394,6 +2597,22 @@ function applyTickerEdit(){
   refreshTicker();
   closePopup('tickerPopupMask');
 }
+
+document.getElementById('playerListFileInput').addEventListener('change', async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  const text = await file.text();
+  const rows = text
+    .replace(/\r/g, '\n')
+    .split('\n')
+    .map(v => v.split(',')[0].trim())
+    .filter(Boolean);
+
+  document.getElementById('playerListInput').value = rows.join('\n');
+  e.target.value = '';
+});
+
 function openBreakPopup(){
   document.getElementById('breakNumberInput').value = String(currentBreakNumber);
   openPopup('breakPopupMask');
@@ -2856,6 +3075,10 @@ function applyViewModeUI(){
   if (soldControlsWrap) soldControlsWrap.classList.toggle('hidden', isListView());
   if (soldList) soldList.classList.toggle('hidden', isListView());
   if (floatingListWrap) floatingListWrap.classList.toggle('hidden', !isListView());
+    if (isListView()){
+    renderChaserListPanel();
+    renderPlayerListPanel();
+  }
 }
 
 /* =========================
