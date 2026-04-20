@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=1080, initial-scale=1.0" />
+  <title>TSU Custom Breaks — Disney / Star Wars Starter (Fixed)</title>
+  <style>
+    :root{
+      --overlayW:1080px;
+      --overlayH:760px;
+      --gap:6px;
+      --tileH:66px;
+      --tileTitle:16px;
+      --tileMeta:10px;
+      --boardCols:10;
+      --tickerDur:26s;
+
+      --bg0:#0b1120;
+      --bg1:#18345e;
+      --panel:rgba(8,14,30,.92);
+      --panel2:rgba(20,40,72,.92);
+      --line:rgba(255,255,255,.12);
+      --lineStrong:rgba(255,255,255,.24);
+      --text:#fff9ef;
+      --muted:rgba(255,249,239,.78);
+      --accent:#8fd7ff;
+      --accent2:#ffd86f;
+      --danger:#ff5668;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{
+      margin:0;
+      background:transparent;
+      color:var(--text);
+      font-family:Arial, Helvetica, sans-serif;
+      overflow:hidden;
+      user-select:none;
+    }
+    body{
+      width:1080px;
+      height:840px;
+    }
+
+    body.theme-disney{
+      --bg0:#11203d;
+      --bg1:#244a82;
+      --panel:rgba(12,23,48,.94);
+      --panel2:rgba(29,55,98,.94);
+      --line:rgba(183,226,255,.18);
+      --lineStrong:rgba(255,217,120,.34);
+      --text:#fff9ef;
+      --muted:rgba(255,249,239,.78);
+      --accent:#8fd7ff;
+      --accent2:#ffd86f;
+      --danger:#ff6485;
+    }
+
+    body.theme-starwars{
+      --bg0:#05070d;
+      --bg1:#141924;
+      --panel:rgba(8,10,16,.95);
+      --panel2:rgba(18,21,30,.95);
+      --line:rgba(122,167,255,.10);
+      --lineStrong:rgba(255,225,106,.26);
+      --text:#f7f0c8;
+      --muted:rgba(247,240,200,.72);
+      --accent:#6f9cff;
+      --accent2:#ffe16a;
+      --danger:#ff5959;
+    }
+
+    .overlay{
+      width:var(--overlayW);
+      height:var(--overlayH);
+      position:relative;
+      overflow:hidden;
+      border-radius:22px;
+      display:flex;
+      flex-direction:column;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,.06), transparent 26%),
+        radial-gradient(circle at 15% 18%, rgba(143,215,255,.12), transparent 22%),
+        radial-gradient(circle at 85% 22%, rgba(255,216,111,.10), transparent 22%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      border:2px solid var(--lineStrong);
+      box-shadow:0 14px 34px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+
+    .overlay::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(
+          115deg,
+          transparent 0%,
+          transparent 42%,
+          rgba(255,255,255,.05) 49%,
+          rgba(255,255,255,.10) 50%,
+          rgba(255,255,255,.05) 51%,
+          transparent 58%,
+          transparent 100%
+        );
+      transform:translateX(-120%);
+      animation:ambientSweep 8s linear infinite;
+      z-index:0;
+    }
+
+    body.theme-disney .overlay::after{
+      content:"✦ ✦ ✦";
+      position:absolute;
+      top:12px;
+      right:18px;
+      letter-spacing:8px;
+      font-size:20px;
+      color:rgba(255,216,111,.6);
+      text-shadow:0 0 12px rgba(255,216,111,.25);
+      pointer-events:none;
+      z-index:0;
+    }
+
+    body.theme-starwars .overlay::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image:radial-gradient(circle, rgba(255,255,255,.7) 0 1px, transparent 1.5px);
+      background-size:38px 38px;
+      opacity:.16;
+      pointer-events:none;
+      z-index:0;
+    }
+
+    @keyframes ambientSweep{
+      0%{ transform:translateX(-120%); }
+      100%{ transform:translateX(120%); }
+    }
+
+    .header,
+    .board-shell,
+    .sold-wrap,
+    .modal-mask{
+      position:relative;
+      z-index:2;
+    }
+
+    .header{
+      margin:8px;
+      padding:12px 14px;
+      border-radius:18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background:linear-gradient(90deg, var(--panel2), rgba(255,255,255,.05), var(--panel2));
+      border:2px solid var(--lineStrong);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+
+    .header-left{
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+
+    .header-title{
+      font-size:28px;
+      font-weight:900;
+      letter-spacing:1.4px;
+      text-transform:uppercase;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .header-sub{
+      font-size:12px;
+      font-weight:800;
+      letter-spacing:1.6px;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+
+    .header-right{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex:0 0 auto;
+    }
+
+    .theme-pill,
+    .break-pill{
+      min-width:132px;
+      padding:10px 14px;
+      border-radius:999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      background:rgba(0,0,0,.25);
+      border:2px solid var(--lineStrong);
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+    }
+
+    .break-pill .value{
+      font-size:22px;
+    }
+
+    .board-shell{
+      flex:1 1 auto;
+      min-height:0;
+      padding:0 8px 8px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+
+    .board{
+      flex:1 1 auto;
+      min-height:0;
+      border-radius:18px;
+      padding:8px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:2px solid var(--line);
+      overflow:hidden;
+    }
+
+    .board-top{
+      display:grid;
+      grid-template-columns:1fr auto 1fr;
+      gap:8px;
+      align-items:center;
+      min-height:110px;
+    }
+
+    .top-card{
+      height:110px;
+      border-radius:16px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:10px;
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.24));
+      border:2px solid var(--line);
+    }
+
+    .top-card .kicker{
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:1.4px;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+
+    .top-card .value{
+      margin-top:4px;
+      font-size:26px;
+      font-weight:900;
+    }
+
+    .logo-slot{
+      width:190px;
+      height:110px;
+      border-radius:18px;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px;
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.22));
+      border:2px solid var(--lineStrong);
+    }
+
+    .logo-slot img{
+      max-width:100%;
+      max-height:100%;
+      object-fit:contain;
+      filter:drop-shadow(0 6px 14px rgba(0,0,0,.35));
+    }
+
+    .grid-wrap{
+      flex:1 1 auto;
+      min-height:0;
+      overflow:hidden;
+      border-radius:16px;
+      padding:6px;
+      background:linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.16));
+      border:1px solid rgba(255,255,255,.04);
+    }
+
+    .custom-grid{
+      height:100%;
+      display:grid;
+      grid-template-columns:repeat(var(--boardCols), minmax(0, 1fr));
+      gap:var(--gap);
+      align-content:start;
+    }
+
+    .tile{
+      position:relative;
+      height:var(--tileH);
+      border-radius:12px;
+      overflow:hidden;
+      cursor:pointer;
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.30));
+      border:2px solid var(--lineStrong);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03), 0 4px 10px rgba(0,0,0,.18);
+      transition:transform .14s ease, box-shadow .14s ease;
+    }
+
+    .tile:hover{
+      transform:translateY(-2px);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.05), 0 10px 16px rgba(0,0,0,.24);
+    }
+
+    .tile img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .tile::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.42));
+      z-index:1;
+    }
+
+    body.theme-disney .tile::after{
+      content:"";
+      position:absolute;
+      left:8px;
+      bottom:8px;
+      width:18px;
+      height:18px;
+      border-radius:50%;
+      background:radial-gradient(circle at 50% 50%, rgba(255,216,111,.95), rgba(255,216,111,.18));
+      opacity:.55;
+      z-index:1;
+      box-shadow:
+        24px -8px 0 -3px rgba(255,216,111,.35),
+        48px -2px 0 -6px rgba(143,215,255,.28);
+    }
+
+    body.theme-starwars .tile::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(135deg, rgba(111,156,255,.10), transparent 38%, transparent 62%, rgba(255,225,106,.10));
+      z-index:1;
+    }
+
+    .tile-label{
+      position:absolute;
+      inset:0;
+      z-index:2;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:8px 6px;
+    }
+
+    .tile-title{
+      font-size:var(--tileTitle);
+      line-height:1.02;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+      text-shadow:0 2px 8px rgba(0,0,0,.85);
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+
+    .tile-meta{
+      margin-top:4px;
+      font-size:var(--tileMeta);
+      line-height:1.05;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.8px;
+      color:var(--muted);
+      display:-webkit-box;
+      -webkit-line-clamp:1;
+      -webkit-box-orient:vertical;
+      overflow:hidden;
+    }
+
+    .tile.sold img{
+      opacity:.20;
+      filter:grayscale(1) brightness(.40);
+    }
+
+    .tile.sold .tile-label{
+      opacity:.70;
+    }
+
+    .sold-x{
+      position:absolute;
+      inset:0;
+      z-index:3;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:48px;
+      font-weight:900;
+      text-shadow:0 0 14px rgba(0,0,0,.65);
+      opacity:0;
+      transform:scale(.88);
+      transition:opacity .14s ease, transform .14s ease;
+    }
+
+    body.theme-disney .sold-x{ color:#fff3cc; }
+    body.theme-starwars .sold-x{ color:#ffe16a; }
+
+    .tile.sold .sold-x{
+      opacity:1;
+      transform:scale(1);
+    }
+
+    .ticker-slot{
+      height:42px;
+      border-radius:14px;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      border:2px solid var(--lineStrong);
+      background:linear-gradient(90deg, rgba(255,255,255,.07), rgba(0,0,0,.24), rgba(255,255,255,.07));
+    }
+
+    .ticker-track{
+      display:inline-flex;
+      align-items:center;
+      white-space:nowrap;
+      will-change:transform;
+      animation:tickerMarquee linear infinite;
+      animation-duration:var(--tickerDur);
+    }
+
+    .ticker-copy{
+      display:inline-block;
+      padding-right:48px;
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      color:var(--text);
+    }
+
+    @keyframes tickerMarquee{
+      0%{ transform:translateX(0); }
+      100%{ transform:translateX(-50%); }
+    }
+
+    .sold-wrap{
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(0,0,0,.34), rgba(0,0,0,.42));
+      border:2px solid var(--line);
+      padding:10px;
+    }
+
+    .sold-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+
+    .sold-title{
+      font-size:16px;
+      font-weight:900;
+      letter-spacing:1.4px;
+      text-transform:uppercase;
+    }
+
+    .sold-tools{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+
+    .tool-btn,
+    .modal-btn{
+      border:none;
+      cursor:pointer;
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:900;
+      letter-spacing:.9px;
+      text-transform:uppercase;
+      background:linear-gradient(180deg, var(--accent2), #f0b04f);
+      color:#09111d;
+      box-shadow:0 8px 18px rgba(0,0,0,.24);
+    }
+
+    .tool-btn.alt,
+    .modal-btn.secondary{
+      color:var(--text);
+      background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(0,0,0,.26));
+      border:1px solid var(--lineStrong);
+    }
+
+    .sse{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--lineStrong);
+      background:rgba(0,0,0,.22);
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.7px;
+      text-transform:uppercase;
+    }
+
+    .sse .dot{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:#666;
+      box-shadow:0 0 8px rgba(255,255,255,.15);
+    }
+
+    .sse.connected .dot{
+      background:#3cff8a;
+      box-shadow:0 0 10px rgba(60,255,138,.7);
+    }
+
+    .sse.error .dot{
+      background:#ff4545;
+      box-shadow:0 0 10px rgba(255,69,69,.7);
+    }
+
+    .sse.connecting .dot{
+      background:#ffe16a;
+      box-shadow:0 0 10px rgba(255,225,106,.7);
+    }
+
+    .sold-panel{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:10px;
+      max-height:160px;
+      overflow:auto;
+    }
+
+    .sold-row{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px;
+      border-radius:999px;
+      background:rgba(255,255,255,.06);
+      border:1px solid var(--line);
+    }
+
+    .sold-code{
+      min-width:72px;
+      padding:8px 10px;
+      border-radius:999px;
+      background:rgba(0,0,0,.30);
+      border:1px solid var(--lineStrong);
+      text-align:center;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.8px;
+      text-transform:uppercase;
+    }
+
+    .sold-buyer{
+      flex:1;
+      min-width:0;
+      border:none;
+      outline:none;
+      border-radius:999px;
+      padding:10px 12px;
+      background:rgba(0,0,0,.34);
+      color:var(--text);
+      font-weight:800;
+    }
+
+    .modal-mask{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.72);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .modal-mask.hidden{
+      display:none;
+    }
+
+    .modal-card{
+      width:760px;
+      max-width:92%;
+      background:linear-gradient(180deg, rgba(11,17,29,.98), rgba(7,10,18,.98));
+      border-radius:18px;
+      border:2px solid var(--lineStrong);
+      box-shadow:0 24px 64px rgba(0,0,0,.60);
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .modal-title{
+      font-size:18px;
+      font-weight:900;
+      text-align:center;
+      text-transform:uppercase;
+      letter-spacing:1px;
+    }
+
+    .modal-label{
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+
+    .modal-help{
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .modal-input,
+    .modal-textarea{
+      width:100%;
+      border-radius:12px;
+      border:2px solid var(--lineStrong);
+      background:rgba(0,0,0,.36);
+      color:var(--text);
+      outline:none;
+      padding:12px;
+      font-weight:800;
+    }
+
+    .modal-textarea{
+      min-height:220px;
+      resize:none;
+    }
+
+    .modal-row{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+
+    .modal-slider{
+      width:100%;
+    }
+
+    .modal-pill{
+      min-width:110px;
+      padding:8px 10px;
+      border-radius:999px;
+      text-align:center;
+      border:2px solid var(--lineStrong);
+      background:rgba(0,0,0,.28);
+      font-weight:900;
+    }
+
+    .modal-actions{
+      display:flex;
+      gap:10px;
+      justify-content:space-between;
+    }
+
+    .modal-actions > *{
+      flex:1;
+    }
+  </style>
+</head>
+<body class="theme-disney">
+  <div class="overlay">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-title" id="headerTitle">CUSTOM BREAKS</div>
+        <div class="header-sub" id="headerSub">DISNEY CUSTOM BREAK BOARD</div>
+      </div>
+      <div class="header-right">
+        <div class="theme-pill" id="themeLabel">Disney</div>
+        <div class="break-pill">Break # <span class="value" id="breakNumberDisplay">1</span></div>
+      </div>
+    </div>
+
+    <div class="board-shell">
+      <div class="board">
+        <div class="board-top">
+          <div class="top-card">
+            <div class="kicker">Remaining</div>
+            <div class="value" id="remainingCount">0</div>
+          </div>
+
+          <div class="logo-slot">
+            <img id="themeLogo" alt="Theme logo" src="https://dummyimage.com/320x180/1e3a63/ffffff&text=Disney+Theme" />
+          </div>
+
+          <div class="top-card">
+            <div class="kicker">Sold</div>
+            <div class="value" id="soldCount">0</div>
+          </div>
+        </div>
+
+        <div class="grid-wrap">
+          <div class="custom-grid" id="customGrid"></div>
+        </div>
+      </div>
+
+      <div class="ticker-slot">
+        <div class="ticker-track" id="tickerTrack">
+          <span class="ticker-copy" id="tickerCopyA">CUSTOM BREAKS • DISNEY + STAR WARS • CUSTOM SPOT ENTRY • AUTO FIT BOARD</span>
+          <span class="ticker-copy" id="tickerCopyB">CUSTOM BREAKS • DISNEY + STAR WARS • CUSTOM SPOT ENTRY • AUTO FIT BOARD</span>
+        </div>
+      </div>
+
+      <div class="sold-wrap">
+        <div class="sold-head">
+          <div class="sold-title">Sold Spots</div>
+          <div class="sold-tools">
+            <button class="tool-btn" onclick="openBreakModal()">Set Break</button>
+            <button class="tool-btn" onclick="openTitleModal()">Set Title</button>
+            <button class="tool-btn" onclick="openTickerModal()">Edit Ticker</button>
+            <button class="tool-btn" onclick="openEntriesModal()">Custom Spots</button>
+            <button class="tool-btn alt" onclick="toggleTheme()">Toggle Theme</button>
+            <button class="tool-btn alt" onclick="resetAll()">Reset</button>
+            <button class="tool-btn alt" onclick="openExportModal()">Export TSV</button>
+            <div class="sse connecting" id="sseStatus">
+              SSE <span class="dot"></span><span id="sseText">OFF</span>
+            </div>
+          </div>
+        </div>
+        <div class="sold-panel" id="soldPanel"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask hidden" id="breakModal">
+    <div class="modal-card">
+      <div class="modal-title">Set Break Number</div>
+      <input id="breakModalInput" class="modal-input" type="number" min="1" step="1" />
+      <div class="modal-actions">
+        <button class="modal-btn" onclick="applyBreakModal()">Apply</button>
+        <button class="modal-btn secondary" onclick="closeBreakModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask hidden" id="titleModal">
+    <div class="modal-card">
+      <div class="modal-title">Set Title</div>
+      <div class="modal-label">Main Title</div>
+      <input id="titleMainInput" class="modal-input" type="text" />
+      <div class="modal-label">Subtitle</div>
+      <input id="titleSubInput" class="modal-input" type="text" />
+      <div class="modal-actions">
+        <button class="modal-btn" onclick="applyTitleModal()">Apply</button>
+        <button class="modal-btn secondary" onclick="closeTitleModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask hidden" id="tickerModal">
+    <div class="modal-card">
+      <div class="modal-title">Edit Ticker</div>
+      <div class="modal-label">Ticker Text</div>
+      <textarea id="tickerModalInput" class="modal-textarea"></textarea>
+      <div class="modal-label">Scroll Speed</div>
+      <div class="modal-row">
+        <input id="tickerSpeedSlider" class="modal-slider" type="range" min="16" max="60" step="1" />
+        <div class="modal-pill" id="tickerSpeedValue">26s</div>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn" onclick="applyTickerModal()">Apply</button>
+        <button class="modal-btn secondary" onclick="closeTickerModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask hidden" id="entriesModal">
+    <div class="modal-card">
+      <div class="modal-title">Custom Spots</div>
+      <div class="modal-label">One spot per line</div>
+      <textarea id="entriesModalInput" class="modal-textarea" placeholder="Spot 1&#10;Spot 2&#10;Spot 3"></textarea>
+      <div class="modal-label">Disney tile design image path</div>
+      <input id="disneyImageInput" class="modal-input" type="text" placeholder="./assets/disney-tile-1.png" />
+      <div class="modal-label">Star Wars tile design image path</div>
+      <input id="starwarsImageInput" class="modal-input" type="text" placeholder="./assets/starwars-tile-1.png" />
+      <div class="modal-help">This starter applies one image path per theme across all spots until you swap in per-tile art later.</div>
+      <div class="modal-actions">
+        <button class="modal-btn" onclick="applyEntriesModal()">Apply</button>
+        <button class="modal-btn secondary" onclick="closeEntriesModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask hidden" id="exportModal">
+    <div class="modal-card">
+      <div class="modal-title">Export TSV</div>
+      <textarea id="exportOutput" class="modal-textarea" readonly></textarea>
+      <div class="modal-actions">
+        <button class="modal-btn" onclick="copyExportTSV()">Copy</button>
+        <button class="modal-btn secondary" onclick="closeExportModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE = {
+      titleMain: "tsu.custom.titleMain",
+      titleSub: "tsu.custom.titleSub",
+      breakNumber: "tsu.custom.breakNumber",
+      tickerText: "tsu.custom.tickerText",
+      tickerDur: "tsu.custom.tickerDur",
+      theme: "tsu.custom.theme",
+      entries: "tsu.custom.entries",
+      disneyImage: "tsu.custom.disneyImage",
+      starwarsImage: "tsu.custom.starwarsImage",
+      soldTeams: "tsu.custom.soldTeams",
+      soldTeamsList: "tsu.custom.soldTeamsList",
+    };
+
+    const soldTeams = new Set();
+    let soldTeamsList = [];
+    const lastCodeByListingKey = new Map();
+
+    const tsu = {
+      bridgeUrl: (localStorage.getItem("tsu.bridgeUrl") || "").replace(/\/(stream|events)$/, "").replace(/\/$/, "").trim(),
+      bridgeKey: localStorage.getItem("tsu.bridgeKey") || "",
+      channel: "main"
+    };
+
+    let overlay_warmup = false;
+
+    const DEFAULT_ENTRIES = Array.from({length: 50}, (_, i) => ({
+      code: `SPOT${String(i + 1).padStart(2, "0")}`,
+      title: `Spot ${i + 1}`,
+      meta: ""
+    }));
+
+    function getTheme() {
+      return localStorage.getItem(STORAGE.theme) || "disney";
+    }
+
+    function setTheme(theme) {
+      localStorage.setItem(STORAGE.theme, theme);
+      document.body.classList.remove("theme-disney", "theme-starwars");
+      document.body.classList.add(`theme-${theme}`);
+      document.getElementById("themeLabel").textContent = theme === "starwars" ? "Star Wars" : "Disney";
+      document.getElementById("themeLogo").src = theme === "starwars"
+        ? (localStorage.getItem(STORAGE.starwarsImage) || "https://dummyimage.com/320x180/0f172a/ffe16a&text=Star+Wars+Theme")
+        : (localStorage.getItem(STORAGE.disneyImage) || "https://dummyimage.com/320x180/1e3a63/ffffff&text=Disney+Theme");
+    }
+
+    function toggleTheme() {
+      setTheme(getTheme() === "disney" ? "starwars" : "disney");
+      const sub = getTheme() === "starwars" ? "STAR WARS CUSTOM BREAK BOARD" : "DISNEY CUSTOM BREAK BOARD";
+      if (!localStorage.getItem(STORAGE.titleSub)) {
+        document.getElementById("headerSub").textContent = sub;
+      }
+      buildLayout();
+    }
+
+    function getEntries() {
+      const raw = localStorage.getItem(STORAGE.entries);
+      if (!raw) return DEFAULT_ENTRIES.slice();
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) && parsed.length ? parsed : DEFAULT_ENTRIES.slice();
+      } catch {
+        return DEFAULT_ENTRIES.slice();
+      }
+    }
+
+    function saveEntries(entries) {
+      localStorage.setItem(STORAGE.entries, JSON.stringify(entries));
+    }
+
+    function applyBoardSizing(count) {
+      let cols = 10;
+      if (count <= 54) cols = 9;
+      if (count <= 45) cols = 8;
+      if (count >= 66) cols = 10;
+
+      const rows = Math.ceil(count / cols);
+      const gridHeight = 760 - 220 - 42 - 36;
+      const tileH = Math.max(52, Math.min(84, Math.floor((gridHeight - ((rows - 1) * 6)) / rows)));
+      const tileTitle = Math.max(12, Math.min(18, Math.floor(tileH * 0.24)));
+      const tileMeta = Math.max(9, Math.min(11, Math.floor(tileH * 0.15)));
+
+      document.documentElement.style.setProperty("--boardCols", String(cols));
+      document.documentElement.style.setProperty("--tileH", `${tileH}px`);
+      document.documentElement.style.setProperty("--tileTitle", `${tileTitle}px`);
+      document.documentElement.style.setProperty("--tileMeta", `${tileMeta}px`);
+    }
+
+    function buildLayout() {
+      const grid = document.getElementById("customGrid");
+      const entries = getEntries();
+      applyBoardSizing(entries.length);
+      grid.innerHTML = "";
+
+      const theme = getTheme();
+      const imagePath = theme === "starwars"
+        ? (localStorage.getItem(STORAGE.starwarsImage) || "")
+        : (localStorage.getItem(STORAGE.disneyImage) || "");
+
+      entries.forEach(entry => {
+        const tile = document.createElement("div");
+        tile.className = "tile";
+        tile.dataset.code = entry.code;
+
+        tile.innerHTML = `
+          ${imagePath ? `<img src="${escapeHtml(imagePath)}" alt="${escapeHtml(entry.title)}" />` : ""}
+          <div class="tile-label">
+            <div class="tile-title">${escapeHtml(entry.title)}</div>
+            <div class="tile-meta">${escapeHtml(entry.meta || entry.code)}</div>
+          </div>
+          <div class="sold-x">X</div>
+        `;
+
+        tile.addEventListener("click", () => {
+          if (soldTeams.has(entry.code)) {
+            sseMarkUnsold(entry.code);
+          } else {
+            sseMarkSold(entry.code, "manual");
+          }
+        });
+
+        if (soldTeams.has(entry.code)) tile.classList.add("sold");
+        grid.appendChild(tile);
+      });
+
+      renderSoldPanel();
+      renderCounts();
+    }
+
+    function renderCounts() {
+      const entries = getEntries();
+      document.getElementById("soldCount").textContent = String(soldTeams.size);
+      document.getElementById("remainingCount").textContent = String(Math.max(0, entries.length - soldTeams.size));
+    }
+
+    function renderSoldPanel() {
+      const panel = document.getElementById("soldPanel");
+      panel.innerHTML = "";
+
+      soldTeamsList.forEach(row => {
+        const wrap = document.createElement("div");
+        wrap.className = "sold-row";
+        wrap.innerHTML = `
+          <div class="sold-code">${escapeHtml(row.code)}</div>
+          <input class="sold-buyer" value="${escapeHtml(row.buyer || "")}" placeholder="Buyer" />
+        `;
+
+        const input = wrap.querySelector(".sold-buyer");
+        input.addEventListener("input", () => {
+          const item = soldTeamsList.find(x => x.code === row.code);
+          if (item) item.buyer = input.value;
+          persistSoldState();
+        });
+
+        panel.appendChild(wrap);
+      });
+    }
+
+    function persistSoldState() {
+      localStorage.setItem(STORAGE.soldTeams, JSON.stringify(Array.from(soldTeams)));
+      localStorage.setItem(STORAGE.soldTeamsList, JSON.stringify(soldTeamsList));
+    }
+
+    function restoreSoldState() {
+      try {
+        const savedTeams = JSON.parse(localStorage.getItem(STORAGE.soldTeams) || "[]");
+        const savedList = JSON.parse(localStorage.getItem(STORAGE.soldTeamsList) || "[]");
+        soldTeams.clear();
+        savedTeams.forEach(code => soldTeams.add(code));
+        soldTeamsList = Array.isArray(savedList) ? savedList : [];
+      } catch {
+        soldTeams.clear();
+        soldTeamsList = [];
+      }
+    }
+
+    function sseMarkSold(code, buyer = "") {
+      if (!code) return;
+      soldTeams.add(code);
+
+      const existing = soldTeamsList.find(x => x.code === code);
+      if (existing) {
+        if (buyer) existing.buyer = buyer;
+      } else {
+        soldTeamsList.push({ code, buyer });
+      }
+
+      const tile = document.querySelector(`.tile[data-code="${CSS.escape(code)}"]`);
+      if (tile) tile.classList.add("sold");
+
+      persistSoldState();
+      renderSoldPanel();
+      renderCounts();
+    }
+
+    function sseMarkUnsold(code) {
+      if (!code) return;
+      soldTeams.delete(code);
+      soldTeamsList = soldTeamsList.filter(x => x.code !== code);
+
+      const tile = document.querySelector(`.tile[data-code="${CSS.escape(code)}"]`);
+      if (tile) tile.classList.remove("sold");
+
+      persistSoldState();
+      renderSoldPanel();
+      renderCounts();
+    }
+
+    function sseUpdateBuyer(code, buyer = "") {
+      if (!code) return;
+      const item = soldTeamsList.find(x => x.code === code);
+      if (item) {
+        item.buyer = buyer;
+        persistSoldState();
+        renderSoldPanel();
+      }
+    }
+
+    function breakIdMatches() {
+      return true;
+    }
+
+    function normalizePayload(payload) {
+      return payload?.data || payload || {};
+    }
+
+    function handleSSEEvent(payload) {
+      try {
+        const type = String(payload?.type || payload?.event || "");
+        const data = normalizePayload(payload);
+        const code = data.team || data.code || data.teamCode || data.spot || "";
+        const buyer = data.buyer || data.username || "";
+        const listingKey = data.saleId || data.id || data.listingId || null;
+
+        if (type === "team_sold" || type === "sale" || type === "sold" || type === "purchase" || type === "whatnot_purchase") {
+          if (listingKey) {
+            const prevCode = lastCodeByListingKey.get(listingKey);
+            if (prevCode && prevCode !== code) {
+              sseMarkUnsold(prevCode);
+            }
+            lastCodeByListingKey.set(listingKey, code);
+          }
+          sseMarkSold(code, buyer);
+        }
+
+        if (type === "team_unsold") {
+          sseMarkUnsold(code);
+          if (listingKey && lastCodeByListingKey.get(listingKey) === code) {
+            lastCodeByListingKey.delete(listingKey);
+          }
+        }
+
+        if (type === "buyer" || type === "buyer_update") {
+          sseUpdateBuyer(code, buyer);
+        }
+
+        if (type === "reset") {
+          resetAll();
+        }
+
+        if (type === "set_break" && data.breakNumber) {
+          setBreakNumber(data.breakNumber);
+        }
+
+        if (type === "set_title" && data.title) {
+          document.getElementById("headerTitle").textContent = data.title;
+          localStorage.setItem(STORAGE.titleMain, data.title);
+        }
+      } catch (err) {
+        console.warn("handleSSEEvent error", err);
+      }
+    }
+
+    let eventSource = null;
+
+    function connectSSE() {
+      if (!tsu.bridgeUrl) {
+        setStatus("connecting", "OFF");
+        return;
+      }
+
+      if (eventSource) {
+        try { eventSource.close(); } catch {}
+      }
+
+      setStatus("connecting", "CONNECTING");
+      const qs = new URLSearchParams({ channel: tsu.channel });
+      if (tsu.bridgeKey) qs.set("key", tsu.bridgeKey);
+
+      eventSource = new EventSource(`${tsu.bridgeUrl}/stream?${qs.toString()}`);
+
+      eventSource.onopen = () => setStatus("connected", "LIVE");
+
+      eventSource.onerror = () => {
+        setStatus("error", "ERROR");
+        try { eventSource.close(); } catch {}
+        eventSource = null;
+        setTimeout(connectSSE, 2500);
+      };
+
+      eventSource.onmessage = (e) => {
+        if (!e.data || e.data === "hello") return;
+        try {
+          const payload = JSON.parse(e.data);
+          handleSSEEvent(payload);
+        } catch {}
+      };
+
+      ["team_sold","team_unsold","sale","sold","purchase","whatnot_purchase","buyer","buyer_update","reset","set_break","set_title"].forEach(evt => {
+        eventSource.addEventListener(evt, (e) => {
+          try {
+            const payload = JSON.parse(e.data);
+            payload.type = evt;
+            handleSSEEvent(payload);
+          } catch {}
+        });
+      });
+    }
+
+    function setStatus(state, label) {
+      const el = document.getElementById("sseStatus");
+      el.classList.remove("connected", "error", "connecting");
+      el.classList.add(state);
+      document.getElementById("sseText").textContent = label;
+    }
+
+    function resetAll() {
+      soldTeams.clear();
+      soldTeamsList = [];
+      lastCodeByListingKey.clear();
+      persistSoldState();
+      buildLayout();
+    }
+
+    function setBreakNumber(value) {
+      const safe = Math.max(1, parseInt(value, 10) || 1);
+      localStorage.setItem(STORAGE.breakNumber, String(safe));
+      document.getElementById("breakNumberDisplay").textContent = String(safe);
+    }
+
+    function openBreakModal() {
+      document.getElementById("breakModalInput").value = localStorage.getItem(STORAGE.breakNumber) || "1";
+      document.getElementById("breakModal").classList.remove("hidden");
+    }
+    function closeBreakModal() { document.getElementById("breakModal").classList.add("hidden"); }
+    function applyBreakModal() {
+      setBreakNumber(document.getElementById("breakModalInput").value);
+      closeBreakModal();
+    }
+
+    function openTitleModal() {
+      document.getElementById("titleMainInput").value = localStorage.getItem(STORAGE.titleMain) || "CUSTOM BREAKS";
+      document.getElementById("titleSubInput").value = localStorage.getItem(STORAGE.titleSub) || "";
+      document.getElementById("titleModal").classList.remove("hidden");
+    }
+    function closeTitleModal() { document.getElementById("titleModal").classList.add("hidden"); }
+    function applyTitleModal() {
+      const main = document.getElementById("titleMainInput").value.trim() || "CUSTOM BREAKS";
+      const sub = document.getElementById("titleSubInput").value.trim() || (getTheme() === "starwars" ? "STAR WARS CUSTOM BREAK BOARD" : "DISNEY CUSTOM BREAK BOARD");
+      localStorage.setItem(STORAGE.titleMain, main);
+      localStorage.setItem(STORAGE.titleSub, sub);
+      document.getElementById("headerTitle").textContent = main;
+      document.getElementById("headerSub").textContent = sub;
+      closeTitleModal();
+    }
+
+    function openTickerModal() {
+      document.getElementById("tickerModalInput").value = localStorage.getItem(STORAGE.tickerText) || "CUSTOM BREAKS • DISNEY + STAR WARS • CUSTOM SPOT ENTRY • AUTO FIT BOARD";
+      const speed = parseInt(localStorage.getItem(STORAGE.tickerDur) || "26", 10);
+      document.getElementById("tickerSpeedSlider").value = String(speed);
+      document.getElementById("tickerSpeedValue").textContent = `${speed}s`;
+      document.getElementById("tickerModal").classList.remove("hidden");
+    }
+    function closeTickerModal() { document.getElementById("tickerModal").classList.add("hidden"); }
+    function applyTickerModal() {
+      const text = document.getElementById("tickerModalInput").value.trim() || "CUSTOM BREAKS";
+      const speed = parseInt(document.getElementById("tickerSpeedSlider").value, 10) || 26;
+      localStorage.setItem(STORAGE.tickerText, text);
+      localStorage.setItem(STORAGE.tickerDur, String(speed));
+      document.getElementById("tickerCopyA").textContent = text;
+      document.getElementById("tickerCopyB").textContent = text;
+      document.documentElement.style.setProperty("--tickerDur", `${speed}s`);
+      closeTickerModal();
+    }
+
+    function openEntriesModal() {
+      const entries = getEntries();
+      document.getElementById("entriesModalInput").value = entries.map(x => x.title).join("\n");
+      document.getElementById("disneyImageInput").value = localStorage.getItem(STORAGE.disneyImage) || "";
+      document.getElementById("starwarsImageInput").value = localStorage.getItem(STORAGE.starwarsImage) || "";
+      document.getElementById("entriesModal").classList.remove("hidden");
+    }
+    function closeEntriesModal() { document.getElementById("entriesModal").classList.add("hidden"); }
+    function applyEntriesModal() {
+      const lines = document.getElementById("entriesModalInput").value
+        .split(/\r?\n/)
+        .map(x => x.trim())
+        .filter(Boolean);
+
+      const entries = (lines.length ? lines : DEFAULT_ENTRIES.map(x => x.title)).map((title, idx) => ({
+        code: `SPOT${String(idx + 1).padStart(2, "0")}`,
+        title,
+        meta: `Spot ${idx + 1}`
+      }));
+
+      saveEntries(entries);
+      localStorage.setItem(STORAGE.disneyImage, document.getElementById("disneyImageInput").value.trim());
+      localStorage.setItem(STORAGE.starwarsImage, document.getElementById("starwarsImageInput").value.trim());
+      setTheme(getTheme());
+      buildLayout();
+      closeEntriesModal();
+    }
+
+    function buildExportTSV() {
+      const rows = [["code", "title", "buyer", "break"]];
+      const entries = getEntries();
+      soldTeamsList.forEach(item => {
+        const match = entries.find(x => x.code === item.code);
+        rows.push([
+          item.code,
+          match ? match.title : item.code,
+          item.buyer || "",
+          localStorage.getItem(STORAGE.breakNumber) || "1"
+        ]);
+      });
+      return rows.map(row => row.join("\t")).join("\n");
+    }
+
+    function openExportModal() {
+      document.getElementById("exportOutput").value = buildExportTSV();
+      document.getElementById("exportModal").classList.remove("hidden");
+    }
+    function closeExportModal() { document.getElementById("exportModal").classList.add("hidden"); }
+    async function copyExportTSV() {
+      const text = document.getElementById("exportOutput").value;
+      try { await navigator.clipboard.writeText(text); } catch {}
+    }
+
+    document.getElementById("tickerSpeedSlider").addEventListener("input", (e) => {
+      document.getElementById("tickerSpeedValue").textContent = `${e.target.value}s`;
+    });
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function overlay_warmup() {
+      overlay_warmup = true;
+      restoreSoldState();
+      setTheme(getTheme());
+      document.getElementById("headerTitle").textContent = localStorage.getItem(STORAGE.titleMain) || "CUSTOM BREAKS";
+      document.getElementById("headerSub").textContent = localStorage.getItem(STORAGE.titleSub) || (getTheme() === "starwars" ? "STAR WARS CUSTOM BREAK BOARD" : "DISNEY CUSTOM BREAK BOARD");
+      setBreakNumber(localStorage.getItem(STORAGE.breakNumber) || "1");
+      const ticker = localStorage.getItem(STORAGE.tickerText) || "CUSTOM BREAKS • DISNEY + STAR WARS • CUSTOM SPOT ENTRY • AUTO FIT BOARD";
+      const speed = parseInt(localStorage.getItem(STORAGE.tickerDur) || "26", 10);
+      document.getElementById("tickerCopyA").textContent = ticker;
+      document.getElementById("tickerCopyB").textContent = ticker;
+      document.documentElement.style.setProperty("--tickerDur", `${speed}s`);
+      buildLayout();
+      connectSSE();
+    }
+
+    window.addEventListener("load", overlay_warmup);
+  </script>
+</body>
+</html>

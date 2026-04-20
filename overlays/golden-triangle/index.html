@@ -1375,6 +1375,12 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
 function startTickerRotation(){
   tickerMode = 'custom';
   refreshTicker();
+
+  if (tickerFlipTimer) clearInterval(tickerFlipTimer);
+  tickerFlipTimer = setInterval(() => {
+    tickerMode = tickerMode === 'custom' ? 'sports' : 'custom';
+    refreshTicker();
+  }, 12000);
 }
 
     function setTickerLines(lines){
@@ -2722,11 +2728,20 @@ function startSSE(){
     return;
   }
 
+  const key = resolveBridgeKey();
   const mainChannel = getChannels()[0] || 'main';
+  const scoresChannel = getScoresChannel();
+
   setSSEStatus('connecting','connecting');
 
-  connectSSEOne(`${base}/stream?channel=${encodeURIComponent(mainChannel)}`, 'main');
-  // connectSSEOne(`${base}/stream?channel=${encodeURIComponent(getScoresChannel())}`, 'scores');
+  const mainQs = new URLSearchParams({ channel: mainChannel });
+  if (key) mainQs.set('key', key);
+
+  const scoresQs = new URLSearchParams({ channel: scoresChannel });
+  if (key) scoresQs.set('key', key);
+
+  connectSSEOne(`${base}/stream?${mainQs.toString()}`, 'main');
+  connectSSEOne(`${base}/stream?${scoresQs.toString()}`, 'scores');
 }
 
     async function warmupPing(){
@@ -2992,12 +3007,18 @@ case 'scores':
             return;
           }
 
-          case 'set_title':
-            if (typeof payload?.value === 'string' && payload.value.trim()){
-              const current = loadTitles();
-              applyTitles(payload.value.trim(), current.sub);
-            }
-            return;
+case 'set_title': {
+  const nextTitle =
+    (typeof payload?.value === 'string' && payload.value.trim()) ? payload.value.trim() :
+    (typeof payload?.title === 'string' && payload.title.trim()) ? payload.title.trim() :
+    '';
+
+  if (nextTitle){
+    const current = loadTitles();
+    applyTitles(nextTitle, current.sub);
+  }
+  return;
+}
 
           case 'team_unsold':
           case 'unsold':
