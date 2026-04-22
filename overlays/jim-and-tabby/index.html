@@ -42,13 +42,26 @@
 
     *{ box-sizing:border-box; }
     html,body{
-      margin:0;
-      background:transparent;
-      color:var(--text);
-      font-family:"Arial Black", Arial, sans-serif;
-      overflow:hidden;
-      user-select:none;
-    }
+  margin:0;
+  background:transparent;
+  color:var(--text);
+  font-family:"Arial Black", Arial, sans-serif;
+  overflow:hidden;
+  user-select:none;
+}
+
+.modal-card,
+.modal-card input,
+.modal-card textarea,
+.modal-card button{
+  user-select:text;
+}
+
+.modal-btn,
+.tool-btn,
+.prize-spot-chip{
+  user-select:none;
+}
 
     body{
       width:1080px;
@@ -187,7 +200,7 @@
     linear-gradient(180deg, rgba(9,18,33,.95), rgba(14,29,50,.95));
   border:1px solid rgba(255,217,120,.18);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
-  overflow:hidden;
+  overflow:visible;
 }
 
 .board{
@@ -200,7 +213,7 @@
   display:flex;
   flex-direction:column;
   gap:4px;
-  overflow:hidden;
+  overflow:visible;
 }
 
 .board-row{
@@ -209,7 +222,6 @@
   gap:var(--gap);
   height:var(--tileH);
 }
-
 
 .custom-board-wrap{
   flex:0 0 auto;
@@ -470,15 +482,16 @@
 }
 
 .team.sold.chase-sold::after{
-  content:"CHASER";
+  content:attr(data-chase-label);
   width:auto;
   min-width:68px;
   height:28px;
   padding:0 10px;
   border-radius:999px;
-  color:white;
-  font-size:19px;
+  color:#fff;
+  font-size:12px;
   letter-spacing:1px;
+  text-transform:uppercase;
 }
 
  .team.flash{
@@ -507,7 +520,7 @@
 
 .logo-slot{
   grid-column:span 2;
-  z-index:20;
+  z-index:30;
   height:var(--customTileH);
   position:relative;
   overflow:visible;
@@ -515,10 +528,10 @@
 
 .logo-slot img{
   position:absolute;
-  left:50%;
-  top:-120px;
+  left:13%;
+  top:-105px;
   transform:translateX(-50%);
-  width:150px;
+  width:115px;
   z-index:999;
   max-width:none;
   height:auto;
@@ -1185,9 +1198,10 @@
 }
 
 .chase-color-card{
-  display:flex;
-  align-items:center;
+  display:grid;
+  grid-template-columns:auto 1fr 96px;
   gap:10px;
+  align-items:center;
   padding:10px 12px;
   border-radius:14px;
   border:2px solid rgba(255,217,120,.16);
@@ -1204,7 +1218,6 @@
 }
 
 .chase-color-name{
-  flex:1;
   min-width:0;
   font-size:12px;
   font-weight:900;
@@ -1213,12 +1226,19 @@
   color:#fff8ea;
 }
 
-.chase-color-input{
-  width:56px !important;
-  height:40px !important;
-  padding:2px !important;
-  border-radius:10px !important;
-  cursor:pointer;
+.chase-color-text{
+  width:100%;
+  height:40px;
+  border:none;
+  outline:none;
+  border-radius:10px;
+  background:rgba(0,0,0,.42);
+  color:#fff;
+  border:2px solid rgba(255,217,120,.20);
+  padding:0 10px;
+  font-weight:900;
+  font-size:12px;
+  text-transform:uppercase;
 }
 
 .chase-manager-list{
@@ -1232,7 +1252,7 @@
 
 .chase-row{
   display:grid;
-  grid-template-columns:1.5fr 1fr 1fr;
+  grid-template-columns:1.4fr 160px 1fr;
   gap:10px;
   align-items:center;
   padding:10px;
@@ -1263,7 +1283,6 @@
   text-transform:uppercase;
 }
 
-.chase-row select,
 .chase-row input{
   width:100%;
   height:42px;
@@ -1278,30 +1297,20 @@
   font-size:13px;
 }
 
-.chase-row select{
-  appearance:none;
-  -webkit-appearance:none;
-  -moz-appearance:none;
+.chase-category-btn{
+  width:100%;
+  height:42px;
+  border:none;
+  outline:none;
+  border-radius:10px;
   cursor:pointer;
-  background:
-    linear-gradient(180deg, rgba(0,0,0,.42), rgba(0,0,0,.42)),
-    linear-gradient(45deg, transparent 50%, #ffd978 50%),
-    linear-gradient(135deg, #ffd978 50%, transparent 50%);
-  background-position:
-    0 0,
-    calc(100% - 18px) 17px,
-    calc(100% - 12px) 17px;
-  background-size:
-    100% 100%,
-    6px 6px,
-    6px 6px;
-  background-repeat:no-repeat;
-  padding-right:30px;
-}
-
-.chase-row select option{
-  background:#132746;
-  color:#fff;
+  background:linear-gradient(180deg, rgba(16,27,43,.96), rgba(8,14,22,.96));
+  color:#fff8ea;
+  border:2px solid rgba(127,200,255,.35);
+  font-weight:900;
+  font-size:12px;
+  letter-spacing:1px;
+  text-transform:uppercase;
 }
 
 .chase-empty{
@@ -2195,7 +2204,7 @@ function makeTotalChaseCounter(){
 
   div.innerHTML = `
     <img src="${getCustomEnvelopePath()}" alt="Chasers" />
-    <div class="count">${getTotalRemainingChases()}</div>
+    <div class="count">${getChaseRemainingCount("chaser")}</div>
     <div class="mini-label">Chasers</div>
   `;
 
@@ -2285,9 +2294,7 @@ function getScoresAllSportsText(){
 }
 
 function buildTickerLine(){
-  const base = getTickerText();
-  const scores = getScoresAllSportsText();
-  return scores ? `${base}   •   ${scores}` : base;
+  return getTickerText();
 }
 
 function updateTicker(){
@@ -2325,19 +2332,19 @@ function setSSEStatus(){
 
   box.classList.remove("connected","error","connecting");
 
-  if (mainState === "connected" && sportsState === "connected"){
+  if (mainState === "connected"){
     box.classList.add("connected");
     txt.textContent = "LIVE";
     return;
   }
 
-  if (mainState === "error" || sportsState === "error"){
+  if (mainState === "error"){
     box.classList.add("error");
     txt.textContent = "ERR";
     return;
   }
 
-  if (mainState === "connecting" || sportsState === "connecting"){
+  if (mainState === "connecting"){
     box.classList.add("connecting");
     txt.textContent = "WAIT";
     return;
@@ -2731,9 +2738,13 @@ function makeCustomTile(entry){
 
   if (soldTeams.has(entry.key)){
     el.classList.add("sold");
+
     if (isChaseSpotCode(entry.key)) {
+      const chaseCfg = customChaseMap.get(entry.key) || {};
       el.classList.add("chase-sold");
+      el.dataset.chaseLabel = String(chaseCfg.label || "CHASE").toUpperCase();
     }
+
     applySoldChaseTileStyle(el, entry.key);
   }
 
@@ -3485,15 +3496,61 @@ function applyPrizeSpotSelectorModal(){
   buildBoard();
 }
 
+function applyChaseModal(){
+  const colorGrid = document.getElementById("chaseColorConfig");
+  const list = document.getElementById("chaseManagerList");
+  if (!list) return;
+
+  const nextColors = {
+    ...getDefaultChaseCategoryColors()
+  };
+
+  if (colorGrid){
+    Array.from(colorGrid.querySelectorAll(".chase-color-text")).forEach(input => {
+      const category = String(input.dataset.category || "").trim();
+      const value = String(input.value || "").trim();
+      if (category && /^#[0-9a-fA-F]{6}$/.test(value)) nextColors[category] = value;
+    });
+  }
+
+  chaseCategoryColors = nextColors;
+  saveChaseCategoryColors();
+
+  const next = new Map();
+
+  Array.from(list.querySelectorAll(".chase-row")).forEach(row => {
+    const code = String(row.dataset.code || "").trim();
+    if (!code) return;
+
+    const category = String(row.querySelector(".chase-category-btn")?.dataset.category || "pack")
+      .toLowerCase()
+      .replace(/\s+/g, "");
+
+    const label = String(row.querySelector(".chase-label-input")?.value || "CHASE").trim() || "CHASE";
+
+    next.set(code, {
+      label,
+      category
+    });
+  });
+
+  customChaseMap = next;
+  saveCustomChaseMap();
+  closeChaseModal();
+  buildBoard();
+}
+
 function renderChaseManagerModal(){
   const colorGrid = document.getElementById("chaseColorConfig");
   const list = document.getElementById("chaseManagerList");
   if (!list) return;
 
+  const CATEGORY_ORDER = ["pack","team","chaser","prizepack"];
+
   if (colorGrid){
     colorGrid.innerHTML = "";
 
-    ["pack","team","chaser","prizepack"].forEach(category => {
+    CATEGORY_ORDER.forEach(category => {
       const cfg = CHASE_CATEGORY_CONFIG[category];
       const color = chaseCategoryColors?.[category] || cfg.defaultColor;
 
@@ -3504,14 +3561,17 @@ function renderChaseManagerModal(){
       row.innerHTML = `
         <div class="chase-color-swatch" style="background:${color}"></div>
         <div class="chase-color-name">${cfg.label}</div>
-        <input class="chase-color-input" type="color" value="${color}" data-category="${category}" />
+        <input class="chase-color-text" type="text" value="${color}" data-category="${category}" />
       `;
 
-      const input = row.querySelector(".chase-color-input");
+      const input = row.querySelector(".chase-color-text");
       const swatch = row.querySelector(".chase-color-swatch");
 
       input?.addEventListener("input", () => {
-        if (swatch) swatch.style.background = input.value;
+        const v = String(input.value || "").trim();
+        if (/^#[0-9a-fA-F]{6}$/.test(v) && swatch) {
+          swatch.style.background = v;
+        }
       });
 
       colorGrid.appendChild(row);
@@ -3540,15 +3600,21 @@ function renderChaseManagerModal(){
         <div class="chase-row-name">${entry.name || entry.key}</div>
       </div>
 
-      <select class="chase-category">
-        <option value="pack" ${cfg.category === "pack" ? "selected" : ""}>Pack</option>
-        <option value="team" ${cfg.category === "team" ? "selected" : ""}>Team</option>
-        <option value="chaser" ${cfg.category === "chaser" ? "selected" : ""}>Chaser</option>
-        <option value="prizepack" ${cfg.category === "prizepack" ? "selected" : ""}>Prize Pack</option>
-      </select>
+      <button class="chase-category-btn" type="button" data-category="${cfg.category || "pack"}">
+        ${(CHASE_CATEGORY_CONFIG[cfg.category || "pack"] || CHASE_CATEGORY_CONFIG.pack).label}
+      </button>
 
       <input class="chase-label-input" type="text" value="${cfg.label || "CHASE"}" placeholder="Label" />
     `;
+
+    const btn = row.querySelector(".chase-category-btn");
+    btn?.addEventListener("click", () => {
+      const current = String(btn.dataset.category || "pack");
+      const idx = CATEGORY_ORDER.indexOf(current);
+      const next = CATEGORY_ORDER[(idx + 1) % CATEGORY_ORDER.length];
+      btn.dataset.category = next;
+      btn.textContent = CHASE_CATEGORY_CONFIG[next].label;
+    });
 
     list.appendChild(row);
   });
@@ -3563,49 +3629,7 @@ function closeChaseModal(){
   document.getElementById("chaseModal")?.classList.add("hidden");
 }
 
-function applyChaseModal(){
-  const colorGrid = document.getElementById("chaseColorConfig");
-  const list = document.getElementById("chaseManagerList");
-  if (!list) return;
 
-  const nextColors = {
-    ...getDefaultChaseCategoryColors()
-  };
-
-  if (colorGrid){
-    Array.from(colorGrid.querySelectorAll(".chase-color-input")).forEach(input => {
-      const category = String(input.dataset.category || "").trim();
-      const value = String(input.value || "").trim();
-      if (category && value) nextColors[category] = value;
-    });
-  }
-
-  chaseCategoryColors = nextColors;
-  saveChaseCategoryColors();
-
-  const next = new Map();
-
-  Array.from(list.querySelectorAll(".chase-row")).forEach(row => {
-    const code = String(row.dataset.code || "").trim();
-    if (!code) return;
-
-    const category = String(row.querySelector(".chase-category")?.value || "pack")
-      .toLowerCase()
-      .replace(/\s+/g, "");
-
-    const label = String(row.querySelector(".chase-label-input")?.value || "CHASE").trim() || "CHASE";
-
-    next.set(code, {
-      label,
-      category
-    });
-  });
-
-  customChaseMap = next;
-  saveCustomChaseMap();
-  closeChaseModal();
-  buildBoard();
-}
 
 function toggleLayoutMode(){
   layoutMode = layoutMode === "combo" ? "custom" : "combo";
@@ -3681,29 +3705,13 @@ function resetAll(){
 
   renderChaseBuyersPanel();
 }
-function handleSportsEvent(data){
-  if (!data || typeof data !== "object") return;
-
-  const type = String(data.type || data.event || "").toLowerCase().trim();
-  const sport = String(data.sport || data.league || "").toLowerCase().trim();
-  const txt = normalizeScorePayloadToText(data);
-
-  const looksLikeScores =
-    type === "scores" ||
-    Array.isArray(data.games) ||
-    typeof data.text === "string";
-
-  if (!looksLikeScores) return;
-  if (!sport || !txt) return;
-  if (sport !== "mlb" && sport !== "nfl") return;
-
-  SCORES_BY_SPORT[sport] = txt;
-  SCORES_UPDATED_AT[sport] = Date.now();
-  updateTicker();
+function handleSportsEvent(_data){
+  return;
 }
 
 document.addEventListener("click", (e) => {
-["tickerModal","customEntriesModal","prizeSpotSelectorModal","chaseModal","exportSoldModal"].forEach(id => {
+  ["tickerModal","customEntriesModal","prizeSpotSelectorModal","chaseModal","exportSoldModal"].forEach(id => {
+    const modal = document.getElementById(id);
     if (modal && !modal.classList.contains("hidden") && e.target === modal){
       modal.classList.add("hidden");
     }
@@ -3712,7 +3720,7 @@ document.addEventListener("click", (e) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  ["tickerModal","customEntriesModal","prizeSpotSelectorModal","chaseModal"].forEach(id => {
+  ["tickerModal","customEntriesModal","prizeSpotSelectorModal","chaseModal","exportSoldModal"].forEach(id => {
     document.getElementById(id)?.classList.add("hidden");
   });
 });
@@ -3824,8 +3832,8 @@ function initSSE(){
   try { if (sseMain) sseMain.close(); } catch(_){}
   try { if (sseSports) sseSports.close(); } catch(_){}
 
-  mainState = "connecting";
-  sportsState = "connecting";
+   mainState = "connecting";
+  sportsState = "off";
   setSSEStatus();
 
   const connectMain = () => {
@@ -3848,28 +3856,7 @@ function initSSE(){
     }
   };
 
-  const connectSports = () => {
-    try{
-      sseSports = connectEventSource("sports", handleSportsEvent);
-      sseSports.onopen = () => {
-        sportsState = "connected";
-        setSSEStatus();
-      };
-      sseSports.onerror = () => {
-        sportsState = "error";
-        setSSEStatus();
-        try { sseSports.close(); } catch(_){}
-        setTimeout(connectSports, 2500);
-      };
-    }catch(_){
-      sportsState = "error";
-      setSSEStatus();
-      setTimeout(connectSports, 2500);
-    }
-  };
-
-  connectMain();
-  connectSports();
+   connectMain();
 }
 
 function buildSoldExportTSV(){
