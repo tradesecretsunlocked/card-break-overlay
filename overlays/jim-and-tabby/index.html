@@ -212,7 +212,7 @@
 
 
 .custom-board-wrap{
-  flex:1 1 auto;
+  flex:0 0 auto;
   min-height:0;
   display:flex;
   flex-direction:column;
@@ -221,18 +221,18 @@
   z-index:10;
 }
 
-
 .custom-top-row{
   display:grid;
   grid-template-columns:repeat(var(--customCols, 14), 1fr);
   gap:var(--gap);
   height:var(--customTileH);
+  flex:0 0 auto;
 }
 
 .custom-scroll{
-  flex:1 1 auto;
+  flex:0 0 auto;
   min-height:0;
-  overflow:hidden;
+  overflow:visible;
   border-radius:14px;
   padding-right:0;
 }
@@ -467,6 +467,18 @@
   box-shadow:
     0 0 12px var(--soldXGlow, rgba(217,54,54,.65)),
     0 0 20px var(--soldXGlowSoft, rgba(217,54,54,.25));
+}
+
+.team.sold.chase-sold::after{
+  content:"CHASER";
+  width:auto;
+  min-width:68px;
+  height:28px;
+  padding:0 10px;
+  border-radius:999px;
+  color:white;
+  font-size:19px;
+  letter-spacing:1px;
 }
 
  .team.flash{
@@ -1266,6 +1278,32 @@
   font-size:13px;
 }
 
+.chase-row select{
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  cursor:pointer;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.42), rgba(0,0,0,.42)),
+    linear-gradient(45deg, transparent 50%, #ffd978 50%),
+    linear-gradient(135deg, #ffd978 50%, transparent 50%);
+  background-position:
+    0 0,
+    calc(100% - 18px) 17px,
+    calc(100% - 12px) 17px;
+  background-size:
+    100% 100%,
+    6px 6px,
+    6px 6px;
+  background-repeat:no-repeat;
+  padding-right:30px;
+}
+
+.chase-row select option{
+  background:#132746;
+  color:#fff;
+}
+
 .chase-empty{
   padding:18px 14px;
   border-radius:14px;
@@ -1838,7 +1876,7 @@ const BASE = (() => {
   if (isGhPages) {
     const parts = location.pathname.split("/").filter(Boolean);
     const repo = parts.length ? parts[0] : "";
-    return `/${repo}/overlays/jim-and-tabbly/`;
+    return `/${repo}/overlays/jim-and-tabby/`;
   }
   return "./";
 })();
@@ -2156,9 +2194,9 @@ function makeTotalChaseCounter(){
   div.className = "chase-counter chase-total";
 
   div.innerHTML = `
-    <img src="${getCustomEnvelopePath()}" alt="Chases" />
+    <img src="${getCustomEnvelopePath()}" alt="Chasers" />
     <div class="count">${getTotalRemainingChases()}</div>
-    <div class="mini-label">Chases</div>
+    <div class="mini-label">Chasers</div>
   `;
 
   return div;
@@ -2667,7 +2705,6 @@ function makeLogoSlot(){
   slot.appendChild(img);
   return slot;
 }
-
 function makeCustomTile(entry){
   const el = document.createElement("div");
   el.className = "team custom-tile";
@@ -2694,12 +2731,14 @@ function makeCustomTile(entry){
 
   if (soldTeams.has(entry.key)){
     el.classList.add("sold");
+    if (isChaseSpotCode(entry.key)) {
+      el.classList.add("chase-sold");
+    }
     applySoldChaseTileStyle(el, entry.key);
   }
 
   return el;
 }
-
 function makeControl(label, value = "", kind = "btn"){
   const el = document.createElement("div");
   el.className = `bottom-control ${kind}`;
@@ -3085,6 +3124,22 @@ function parseImportedCustomEntries(text){
   return lines;
 }
 
+function initCustomEntriesPaste(){
+  const area = document.getElementById("customEntriesInput");
+  if (!area) return;
+
+  area.addEventListener("paste", (e) => {
+    const text = e.clipboardData?.getData("text") || "";
+    if (!text) return;
+
+    const entries = parseImportedCustomEntries(text);
+    if (!entries.length) return;
+
+    e.preventDefault();
+    area.value = entries.join("\n");
+  });
+}
+
 function initCustomEntriesImport(){
   const input = document.getElementById("customEntriesFileInput");
   if (!input) return;
@@ -3114,11 +3169,7 @@ function applyCustomEntriesModal(){
   const envRaw = document.getElementById("customEnvelopeInput")?.value || "";
   const env = String(envRaw).trim() || CUSTOM_ENVELOPE;
 
-  const lines = raw
-    .replace(/\r/g, "")
-    .split("\n")
-    .map(v => v.trim())
-    .filter(Boolean);
+  const lines = parseImportedCustomEntries(raw);
 
   customEntries = lines.map((name, index) => ({
     key: getCustomEntryCode(index),
@@ -3150,7 +3201,6 @@ function applyCustomEntriesModal(){
   closeCustomEntriesModal();
   resetAll();
 }
-
 function isChaseSpotCode(code){
   return customChaseMap.has(code);
 }
@@ -3653,7 +3703,7 @@ function handleSportsEvent(data){
 }
 
 document.addEventListener("click", (e) => {
-["tickerModal","customEntriesModal","prizeSpotSelectorModal","chaseModal","exportSoldModal"].forEach(id => {    const modal = document.getElementById(id);
+["tickerModal","customEntriesModal","prizeSpotSelectorModal","chaseModal","exportSoldModal"].forEach(id => {
     if (modal && !modal.classList.contains("hidden") && e.target === modal){
       modal.classList.add("hidden");
     }
@@ -3901,6 +3951,7 @@ updateHeaderMode();
 renderChaseBuyersPanel();
 
 initCustomEntriesImport();
+initCustomEntriesPaste();
 initChaseBuyersPopupInteractions();
 
   const speedSlider = document.getElementById("tickerSpeedSlider");

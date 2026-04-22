@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jim & Tabby's Chase Wheel</title>
+  <style>
+    :root{
+      --bg0:#07111f;
+      --bg1:#10233e;
+      --panel:#0c1830;
+      --panel2:#13284a;
+      --gold:#f3c45a;
+      --gold2:#ffd978;
+      --orange:#f08d2d;
+      --sky:#7fc7ff;
+      --sky2:#b7e2ff;
+      --text:#fff7e8;
+      --muted:rgba(255,247,232,.78);
+      --line:rgba(255,217,120,.35);
+      --shadow:0 18px 42px rgba(0,0,0,.45);
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{
+      margin:0;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      background:transparent;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--text);
+      user-select:none;
+    }
+
+    .wheel-popup{
+      position:fixed;
+      left:80px;
+      top:60px;
+      width:900px;
+      height:660px;
+      min-width:680px;
+      min-height:500px;
+      border-radius:22px;
+      overflow:hidden;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(255,217,120,.10), transparent 34%),
+        radial-gradient(circle at 14% 20%, rgba(127,199,255,.12), transparent 24%),
+        radial-gradient(circle at 86% 24%, rgba(240,141,45,.10), transparent 24%),
+        linear-gradient(180deg, #09121f 0%, #10213c 45%, #09111d 100%);
+      border:2px solid rgba(255,217,120,.35);
+      box-shadow:var(--shadow), inset 0 0 0 1px rgba(255,255,255,.04);
+      display:grid;
+      grid-template-rows:auto 1fr;
+      z-index:99990;
+    }
+
+    .wheel-popup::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:linear-gradient(115deg, transparent 0%, transparent 42%, rgba(255,255,255,.04) 49%, rgba(183,226,255,.10) 50%, rgba(255,255,255,.04) 51%, transparent 58%, transparent 100%);
+      transform:translateX(-120%);
+      animation:sweep 8s linear infinite;
+    }
+
+    .wheel-head{
+      position:relative;
+      z-index:1;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 16px;
+      cursor:move;
+      background:linear-gradient(90deg, rgba(18,36,64,.96) 0%, rgba(172,133,52,.95) 18%, rgba(243,196,90,.95) 34%, rgba(239,141,45,.92) 50%, rgba(243,196,90,.95) 66%, rgba(127,199,255,.24) 84%, rgba(17,33,59,.96) 100%);
+      border-bottom:2px solid rgba(127,200,255,.55);
+    }
+
+    .brand-wrap{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      min-width:0;
+    }
+
+    .brand-logo{
+      width:64px;
+      height:64px;
+      object-fit:contain;
+      filter:drop-shadow(0 4px 12px rgba(0,0,0,.45));
+      animation:breath 4s ease-in-out infinite;
+      flex:0 0 auto;
+    }
+
+    .brand-copy{
+      min-width:0;
+    }
+
+    .brand-title{
+      font-size:28px;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      color:#fff8ea;
+      text-shadow:0 3px 0 rgba(9,17,29,.8), 0 0 10px rgba(255,217,120,.18);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .brand-sub{
+      margin-top:4px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:1.8px;
+      color:#fff2cf;
+      text-transform:uppercase;
+    }
+
+    .head-actions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .chip-btn{
+      height:38px;
+      padding:0 14px;
+      border:none;
+      border-radius:999px;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      color:#fff;
+      background:linear-gradient(180deg, rgba(16,27,43,.96), rgba(8,14,22,.96));
+      border:1px solid rgba(255,240,195,.16);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+
+    .chip-btn.gold{
+      color:#0d1624;
+      background:linear-gradient(180deg, var(--gold2), var(--gold) 55%, #d7a53f 100%);
+      border:2px solid rgba(255,241,205,.55);
+    }
+
+    .wheel-body{
+      position:relative;
+      z-index:1;
+      min-height:0;
+      display:grid;
+      grid-template-columns:minmax(340px, 1fr) 320px;
+      gap:12px;
+      padding:12px;
+      overflow:hidden;
+    }
+
+    .wheel-stage,
+    .wheel-controls{
+      min-height:0;
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(9,18,33,.95), rgba(14,29,50,.95));
+      border:1px solid rgba(255,217,120,.18);
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+    }
+
+    .wheel-stage{
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:12px;
+      padding:16px;
+      overflow:hidden;
+    }
+
+    .pointer{
+      position:absolute;
+      top:16px;
+      left:50%;
+      transform:translateX(-50%);
+      width:0;
+      height:0;
+      border-left:18px solid transparent;
+      border-right:18px solid transparent;
+      border-top:32px solid var(--gold2);
+      filter:drop-shadow(0 4px 10px rgba(0,0,0,.5));
+      z-index:3;
+    }
+
+    .wheel-wrap{
+      width:min(100%, 520px);
+      aspect-ratio:1/1;
+      position:relative;
+      display:grid;
+      place-items:center;
+    }
+
+    canvas{
+      width:100%;
+      height:100%;
+      border-radius:50%;
+      filter:drop-shadow(0 14px 24px rgba(0,0,0,.42));
+    }
+
+    .hub{
+      position:absolute;
+      width:20%;
+      aspect-ratio:1/1;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:radial-gradient(circle, #10213c 0%, #09121f 75%);
+      border:6px solid rgba(255,217,120,.75);
+      box-shadow:0 0 16px rgba(243,196,90,.2), inset 0 0 0 1px rgba(255,255,255,.06);
+      color:#fff8ea;
+      font-size:16px;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      text-align:center;
+      line-height:1.05;
+      padding:10px;
+      z-index:2;
+    }
+
+    .winner-pill{
+      min-height:54px;
+      width:min(100%, 520px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:10px 14px;
+      border-radius:16px;
+      background:linear-gradient(90deg, rgba(18,36,64,.96), rgba(243,196,90,.16), rgba(17,33,59,.96));
+      border:2px solid rgba(127,200,255,.55);
+      color:#fff6da;
+      font-size:20px;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      box-shadow:0 0 14px rgba(243,196,90,.12);
+    }
+
+    .wheel-controls{
+      display:grid;
+      grid-template-rows:auto auto auto 1fr auto;
+      gap:10px;
+      padding:12px;
+      overflow:hidden;
+    }
+
+    .controls-row{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+
+    .controls-row.one{
+      grid-template-columns:1fr;
+    }
+
+    .speed-wrap,
+    .input-wrap,
+    .list-wrap{
+      border-radius:14px;
+      background:rgba(0,0,0,.24);
+      border:1px solid rgba(255,217,120,.12);
+      padding:10px;
+    }
+
+    .section-label{
+      margin-bottom:8px;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:1.4px;
+      text-transform:uppercase;
+      color:#fff4cd;
+    }
+
+    .modal-input,
+    .modal-textarea,
+    .wheel-list{
+      width:100%;
+      border:none;
+      outline:none;
+      border-radius:12px;
+      background:rgba(0,0,0,.42);
+      color:#fff;
+      border:2px solid rgba(255,217,120,.20);
+      font-weight:900;
+      font-family:Arial, Helvetica, sans-serif;
+    }
+
+    .modal-input{
+      height:42px;
+      padding:0 12px;
+      font-size:14px;
+    }
+
+    .modal-textarea{
+      min-height:108px;
+      resize:none;
+      padding:10px 12px;
+      font-size:13px;
+      line-height:1.35;
+    }
+
+    .wheel-list{
+      height:100%;
+      min-height:0;
+      overflow:auto;
+      padding:8px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .wheel-item{
+      display:grid;
+      grid-template-columns:44px 1fr auto;
+      align-items:center;
+      gap:8px;
+      padding:7px 8px;
+      border-radius:12px;
+      background:rgba(255,214,92,.08);
+      border:1px solid rgba(255,217,120,.14);
+      min-width:0;
+    }
+
+    .wheel-item-index{
+      display:grid;
+      place-items:center;
+      height:30px;
+      border-radius:10px;
+      background:rgba(0,0,0,.42);
+      border:1px solid rgba(127,200,255,.16);
+      color:#fff7db;
+      font-size:13px;
+      font-weight:900;
+    }
+
+    .wheel-item-name{
+      min-width:0;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      font-size:13px;
+      font-weight:900;
+      color:#fff8ea;
+    }
+
+    .mini-btn{
+      height:30px;
+      padding:0 10px;
+      border:none;
+      border-radius:999px;
+      cursor:pointer;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+      color:#fff;
+      background:linear-gradient(180deg, #243c62, #132746 55%, #0d1624 100%);
+      border:1px solid rgba(127,200,255,.35);
+    }
+
+    .mini-btn.red{
+      background:linear-gradient(180deg, #df5a48, #b92d25 55%, #7c1513 100%);
+      border-color:rgba(255,213,197,.35);
+    }
+
+    .meta-row{
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:10px;
+      align-items:center;
+    }
+
+    .count-pill{
+      min-width:92px;
+      height:42px;
+      padding:0 12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:999px;
+      background:linear-gradient(180deg, rgba(13,28,50,.96), rgba(8,18,33,.98));
+      border:2px solid rgba(127,200,255,.55);
+      color:#fff8e9;
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:1px;
+      text-transform:uppercase;
+    }
+
+    .hidden-file{
+      display:none;
+    }
+
+    .resizer{
+      position:absolute;
+      right:0;
+      bottom:0;
+      width:18px;
+      height:18px;
+      cursor:nwse-resize;
+      background:linear-gradient(135deg, transparent 0 40%, rgba(255,217,120,.55) 40% 52%, transparent 52% 64%, rgba(127,200,255,.55) 64% 76%, transparent 76%);
+      z-index:2;
+    }
+
+    @keyframes sweep{
+      0%{ transform:translateX(-120%); opacity:0; }
+      8%{ opacity:1; }
+      50%{ opacity:1; }
+      100%{ transform:translateX(120%); opacity:0; }
+    }
+
+    @keyframes breath{
+      0%,100%{ transform:scale(1); }
+      50%{ transform:scale(1.03); }
+    }
+  </style>
+</head>
+<body>
+  <div class="wheel-popup" id="wheelPopup">
+    <div class="wheel-head" id="wheelDragHandle">
+      <div class="brand-wrap">
+        <img class="brand-logo" src="/mnt/data/jim-and-tabby-logo.png" alt="Jim &amp; Tabby's Breaks" />
+        <div class="brand-copy">
+          <div class="brand-title">Jim &amp; Tabby's Breaks</div>
+          <div class="brand-sub">Chase Wheel</div>
+        </div>
+      </div>
+      <div class="head-actions">
+        <button class="chip-btn" id="shuffleBtn">Shuffle</button>
+        <button class="chip-btn gold" id="spinBtn">Spin</button>
+      </div>
+    </div>
+
+    <div class="wheel-body">
+      <div class="wheel-stage">
+        <div class="pointer"></div>
+        <div class="wheel-wrap">
+          <canvas id="wheelCanvas" width="900" height="900"></canvas>
+          <div class="hub">J&amp;T</div>
+        </div>
+        <div class="winner-pill" id="winnerDisplay">Ready to spin</div>
+      </div>
+
+      <div class="wheel-controls">
+        <div class="controls-row">
+          <button class="chip-btn" id="addItemBtn">Add Item</button>
+          <button class="chip-btn" id="importBtn">Import CSV/TXT</button>
+        </div>
+
+        <div class="input-wrap">
+          <div class="section-label">Quick Add</div>
+          <input class="modal-input" id="singleItemInput" type="text" placeholder="Type chase item and press Add Item" />
+        </div>
+
+        <div class="input-wrap">
+          <div class="section-label">Bulk Add</div>
+          <textarea class="modal-textarea" id="bulkInput" placeholder="One item per line or comma-separated"></textarea>
+        </div>
+
+        <div class="list-wrap" style="min-height:0; display:grid; grid-template-rows:auto auto 1fr; gap:8px;">
+          <div class="meta-row">
+            <div class="section-label" style="margin:0;">Wheel Items</div>
+            <div class="count-pill"><span id="itemCount">0</span>&nbsp;Items</div>
+          </div>
+          <div class="controls-row one">
+            <button class="chip-btn" id="applyBulkBtn">Apply Bulk List</button>
+          </div>
+          <div class="wheel-list" id="wheelList"></div>
+        </div>
+
+        <div class="controls-row">
+          <button class="chip-btn" id="clearBtn">Clear All</button>
+          <button class="chip-btn" id="copyBtn">Copy List</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="resizer" id="wheelResizer"></div>
+  </div>
+
+  <input class="hidden-file" id="fileInput" type="file" accept=".txt,.csv" />
+
+  <script>
+    const popup = document.getElementById('wheelPopup');
+    const dragHandle = document.getElementById('wheelDragHandle');
+    const resizer = document.getElementById('wheelResizer');
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const wheelList = document.getElementById('wheelList');
+    const winnerDisplay = document.getElementById('winnerDisplay');
+    const itemCount = document.getElementById('itemCount');
+    const singleItemInput = document.getElementById('singleItemInput');
+    const bulkInput = document.getElementById('bulkInput');
+    const fileInput = document.getElementById('fileInput');
+
+    const STORAGE_KEY = 'jim_tabby_chase_wheel_items';
+    const POPUP_KEY = 'jim_tabby_chase_wheel_popup';
+
+    let items = loadItems();
+    let angle = 0;
+    let spinning = false;
+    let dragState = null;
+    let resizeState = null;
+
+    const palette = [
+      ['#132746', '#1f4170'],
+      ['#9d6c16', '#f3c45a'],
+      ['#9a4f18', '#f08d2d'],
+      ['#284768', '#7fc7ff'],
+      ['#6b3fa5', '#a86bff'],
+      ['#8d2a22', '#df5a48']
+    ];
+
+    function loadItems(){
+      try{
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        return Array.isArray(raw) ? raw.map(v => String(v).trim()).filter(Boolean) : [];
+      }catch(_){
+        return [];
+      }
+    }
+
+    function saveItems(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    }
+
+    function loadPopupState(){
+      try{
+        return JSON.parse(localStorage.getItem(POPUP_KEY) || '{}');
+      }catch(_){
+        return {};
+      }
+    }
+
+    function savePopupState(){
+      localStorage.setItem(POPUP_KEY, JSON.stringify({
+        left: popup.style.left || '80px',
+        top: popup.style.top || '60px',
+        width: popup.style.width || '900px',
+        height: popup.style.height || '660px'
+      }));
+    }
+
+    function applyPopupState(){
+      const saved = loadPopupState();
+      popup.style.left = saved.left || '80px';
+      popup.style.top = saved.top || '60px';
+      popup.style.width = saved.width || '900px';
+      popup.style.height = saved.height || '660px';
+    }
+
+    function parseLines(text){
+      const raw = String(text || '').replace(/\r/g, '\n');
+      if (!raw.trim()) return [];
+      return raw
+        .split(/\n|,/)
+        .map(v => String(v || '').trim())
+        .filter(Boolean);
+    }
+
+    function addItems(next){
+      next.forEach(v => {
+        const clean = String(v || '').trim();
+        if (clean) items.push(clean);
+      });
+      saveItems();
+      renderList();
+      drawWheel();
+    }
+
+    function setItems(next){
+      items = next.map(v => String(v || '').trim()).filter(Boolean);
+      saveItems();
+      renderList();
+      drawWheel();
+    }
+
+    function shuffleItems(){
+      for(let i = items.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
+      saveItems();
+      renderList();
+      drawWheel();
+    }
+
+    function removeItem(index){
+      items.splice(index, 1);
+      saveItems();
+      renderList();
+      drawWheel();
+    }
+
+    function renderList(){
+      wheelList.innerHTML = '';
+      itemCount.textContent = String(items.length);
+
+      if(!items.length){
+        const empty = document.createElement('div');
+        empty.className = 'wheel-item';
+        empty.innerHTML = '<div class="wheel-item-index">—</div><div class="wheel-item-name">No items loaded</div>';
+        wheelList.appendChild(empty);
+        return;
+      }
+
+      items.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'wheel-item';
+        row.innerHTML = `
+          <div class="wheel-item-index">${index + 1}</div>
+          <div class="wheel-item-name">${escapeHtml(item)}</div>
+        `;
+        const btn = document.createElement('button');
+        btn.className = 'mini-btn red';
+        btn.textContent = 'Remove';
+        btn.onclick = () => removeItem(index);
+        row.appendChild(btn);
+        wheelList.appendChild(row);
+      });
+    }
+
+    function escapeHtml(v){
+      return String(v || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function fitCanvas(){
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.max(300, Math.floor(rect.width * ratio));
+      canvas.height = Math.max(300, Math.floor(rect.height * ratio));
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      drawWheel();
+    }
+
+    function drawWheel(){
+      const rect = canvas.getBoundingClientRect();
+      const w = rect.width;
+      const h = rect.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const radius = Math.min(w, h) / 2 - 8;
+
+      ctx.clearRect(0, 0, w, h);
+
+      if(!items.length){
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#132746';
+        ctx.fill();
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = 'rgba(255,217,120,.72)';
+        ctx.stroke();
+        ctx.fillStyle = '#fff7e8';
+        ctx.font = '900 28px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Add wheel items', 0, 8);
+        ctx.restore();
+        return;
+      }
+
+      const arc = (Math.PI * 2) / items.length;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(angle);
+
+      for(let i = 0; i < items.length; i++){
+        const start = i * arc;
+        const end = start + arc;
+        const [c1, c2] = palette[i % palette.length];
+
+        const grad = ctx.createLinearGradient(Math.cos(start) * radius, Math.sin(start) * radius, Math.cos(end) * radius, Math.sin(end) * radius);
+        grad.addColorStop(0, c1);
+        grad.addColorStop(1, c2);
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, start, end);
+        ctx.closePath();
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(255,217,120,.78)';
+        ctx.stroke();
+
+        ctx.save();
+        ctx.rotate(start + arc / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#fff8ea';
+        ctx.font = `900 ${Math.max(12, Math.min(24, radius * 0.085))}px Arial`;
+        ctx.shadowColor = 'rgba(0,0,0,.7)';
+        ctx.shadowBlur = 6;
+
+        const label = truncateLabel(items[i], 18);
+        ctx.fillText(label, radius - 24, 8);
+        ctx.restore();
+      }
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = 'rgba(255,217,120,.95)';
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function truncateLabel(v, max){
+      const s = String(v || '');
+      return s.length <= max ? s : `${s.slice(0, max - 1)}…`;
+    }
+
+    function currentWinner(){
+      if(!items.length) return '';
+      const arc = (Math.PI * 2) / items.length;
+      const pointerAngle = ((Math.PI * 1.5 - angle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      const index = Math.floor(pointerAngle / arc) % items.length;
+      return items[index];
+    }
+
+    function spinWheel(){
+      if(spinning || !items.length) return;
+      spinning = true;
+      winnerDisplay.textContent = 'Spinning...';
+
+      const start = performance.now();
+      const duration = 5200 + Math.random() * 1400;
+      const startAngle = angle;
+      const extraTurns = 8 + Math.random() * 3;
+      const finalOffset = Math.random() * Math.PI * 2;
+      const endAngle = startAngle + extraTurns * Math.PI * 2 + finalOffset;
+
+      function frame(now){
+        const t = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - t, 4);
+        angle = startAngle + (endAngle - startAngle) * eased;
+        drawWheel();
+
+        if(t < 1){
+          requestAnimationFrame(frame);
+        } else {
+          spinning = false;
+          angle = endAngle % (Math.PI * 2);
+          drawWheel();
+          winnerDisplay.textContent = currentWinner() || 'Ready to spin';
+        }
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    dragHandle.addEventListener('mousedown', (e) => {
+      if(e.target.closest('button')) return;
+      const rect = popup.getBoundingClientRect();
+      dragState = {
+        startX: e.clientX,
+        startY: e.clientY,
+        left: rect.left,
+        top: rect.top
+      };
+      e.preventDefault();
+    });
+
+    resizer.addEventListener('mousedown', (e) => {
+      const rect = popup.getBoundingClientRect();
+      resizeState = {
+        startX: e.clientX,
+        startY: e.clientY,
+        width: rect.width,
+        height: rect.height
+      };
+      e.preventDefault();
+      e.stopPropagation();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if(dragState){
+        popup.style.left = `${Math.max(0, dragState.left + (e.clientX - dragState.startX))}px`;
+        popup.style.top = `${Math.max(0, dragState.top + (e.clientY - dragState.startY))}px`;
+      }
+      if(resizeState){
+        popup.style.width = `${Math.max(680, resizeState.width + (e.clientX - resizeState.startX))}px`;
+        popup.style.height = `${Math.max(500, resizeState.height + (e.clientY - resizeState.startY))}px`;
+        fitCanvas();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      if(dragState || resizeState){
+        dragState = null;
+        resizeState = null;
+        savePopupState();
+      }
+    });
+
+    document.getElementById('shuffleBtn').onclick = shuffleItems;
+    document.getElementById('spinBtn').onclick = spinWheel;
+
+    document.getElementById('addItemBtn').onclick = () => {
+      const value = singleItemInput.value.trim();
+      if(!value) return;
+      addItems([value]);
+      singleItemInput.value = '';
+      singleItemInput.focus();
+    };
+
+    singleItemInput.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        document.getElementById('addItemBtn').click();
+      }
+    });
+
+    document.getElementById('applyBulkBtn').onclick = () => {
+      const next = parseLines(bulkInput.value);
+      if(!next.length) return;
+      setItems(next);
+    };
+
+    document.getElementById('importBtn').onclick = () => fileInput.click();
+    fileInput.addEventListener('change', async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if(!file) return;
+      try{
+        const text = await file.text();
+        const next = parseLines(text);
+        if(next.length){
+          setItems(next);
+          bulkInput.value = next.join('\n');
+        }
+      }catch(err){
+        console.warn('[wheel import failed]', err);
+      }
+      fileInput.value = '';
+    });
+
+    document.getElementById('clearBtn').onclick = () => {
+      items = [];
+      saveItems();
+      renderList();
+      drawWheel();
+      winnerDisplay.textContent = 'Ready to spin';
+      bulkInput.value = '';
+      singleItemInput.value = '';
+    };
+
+    document.getElementById('copyBtn').onclick = async () => {
+      const text = items.join('\n');
+      try{
+        await navigator.clipboard.writeText(text);
+      }catch(_){ }
+    };
+
+    window.addEventListener('resize', fitCanvas);
+
+    applyPopupState();
+    renderList();
+    fitCanvas();
+  </script>
+</body>
+</html>
