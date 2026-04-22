@@ -28,8 +28,9 @@
   --text:#fff7e8;
   --muted:rgba(255,247,232,.82);
 
-  --tileH:58px;
-  --gap:4px;
+   --tileH:58px;
+  --customTileH:30px;
+  --gap:2px;
 
   --line:rgba(255,217,120,.55);
   --lineSoft:rgba(183,226,255,.22);
@@ -51,12 +52,12 @@
 
     body{
       width:1080px;
-      height:840px;
+      height:1000px;
     }
 
 .overlay{
   width:1080px;
-  height:760px;
+  height:1000px;
   margin:0;
   color:var(--text);
   font-family:Arial, Helvetica, sans-serif;
@@ -113,9 +114,9 @@
   align-items:center;
   justify-content:space-between;
   gap:12px;
-  padding:12px 14px;
+  padding:2px 14px;
   border-radius:18px;
-  margin:8px;
+  margin:3px;
   background:
     linear-gradient(90deg,
       rgba(18,36,64,.96) 0%,
@@ -173,34 +174,33 @@
       font-size:22px;
       color:#fff;
     }
-
 .board-shell{
   position:relative;
   z-index:2;
   flex:1 1 auto;
   min-height:0;
-  display:flex;
-  flex-direction:column;
+  display:grid;
+  grid-template-rows:1fr auto auto;
   gap:8px;
   padding:0 8px 8px;
   background:
     linear-gradient(180deg, rgba(9,18,33,.95), rgba(14,29,50,.95));
   border:1px solid rgba(255,217,120,.18);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
-  overflow:visible;
+  overflow:hidden;
 }
 
 .board{
   flex:1 1 auto;
   min-height:0;
-  padding:6px;
+  padding:2px;
   border-radius:16px;
   background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
   border:2px solid rgba(255,240,195,.14);
   display:flex;
   flex-direction:column;
   gap:4px;
-  overflow:visible;
+  overflow:hidden;
 }
 
 .board-row{
@@ -221,64 +221,37 @@
   z-index:10;
 }
 
-.custom-scroll{
-  flex:1 1 auto;
-  min-height:0;
-  overflow-y:auto;
-  overflow-x:hidden;
-  border-radius:14px;
-  padding-right:4px;
-}
-
-.custom-scroll::-webkit-scrollbar{
-  width:8px;
-}
-.custom-scroll::-webkit-scrollbar-thumb{
-  background:rgba(255,217,120,.35);
-  border-radius:999px;
-}
 
 .custom-top-row{
   display:grid;
-  grid-template-columns:repeat(10, 1fr);
-  gap:4px;
-  height:var(--tileH);
+  grid-template-columns:repeat(var(--customCols, 14), 1fr);
+  gap:var(--gap);
+  height:var(--customTileH);
 }
 
 .custom-scroll{
   flex:1 1 auto;
   min-height:0;
-  overflow-y:auto;
-  overflow-x:hidden;
+  overflow:hidden;
   border-radius:14px;
-  padding-right:4px;
-}
-
-.custom-scroll::-webkit-scrollbar{
-  width:8px;
-}
-.custom-scroll::-webkit-scrollbar-thumb{
-  background:rgba(255,217,120,.35);
-  border-radius:999px;
+  padding-right:0;
 }
 
 .custom-grid{
   display:grid;
-  grid-template-columns:repeat(10, 1fr);
-  gap:4px;
+  grid-template-columns:repeat(var(--customCols, 14), 1fr);
+  gap:var(--gap);
+  grid-auto-rows:var(--customTileH);
 }
 
 .custom-controls-row{
   display:grid;
   grid-template-columns:
-    1.35fr   /* reset */
-    1.15fr   /* sold */
-    .92fr    /* pack */
-    .92fr    /* team */
-    .92fr    /* chaser */
-    .92fr    /* prize pack */
-    1.35fr   /* remaining */
-    1.25fr;  /* new break */
+    1.35fr
+    1.15fr
+    1.15fr
+    1.35fr
+    1.25fr;
   gap:4px;
   height:var(--tileH);
 }
@@ -289,7 +262,7 @@
   min-width:135px;
   border-radius:10px;
   overflow:hidden;
-  border:2px solid 4px solid rgb(127 200 255);
+  border:4px solid rgb(127 200 255);
   background:linear-gradient(180deg, rgba(8,14,22,.96), rgba(18,27,39,.96));
   display:flex;
   align-items:center;
@@ -363,59 +336,45 @@
     border:4px solid rgb(127 200 255);
 }
 .team.custom-tile{
-  height:54px;
-  min-height:54px;
+  height:var(--customTileH);
+  min-height:var(--customTileH);
+  border-radius:8px;
 }
 
 .team.custom-tile img{
   object-fit:cover;
-  filter:brightness(.75);
+  filter:brightness(.74);
 }
 
 .custom-label{
   position:absolute;
   inset:0;
   display:flex;
-  flex-direction:column;
   align-items:center;
   justify-content:center;
-  padding:8px 6px;
+  padding:0;
   text-align:center;
   z-index:2;
-  background:linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.42));
+  background:linear-gradient(180deg, rgba(0,0,0,.06), rgba(0,0,0,.28));
 }
 
 .custom-title{
-  font-size:14px;
-  line-height:1.04;
+  font-size:clamp(14px, 2vw, 22px);
+  line-height:1;
   font-weight:900;
   color:#fffdf4;
-  text-transform:uppercase;
-  text-shadow:0 2px 8px rgba(0,0,0,.78);
+  text-transform:none;
+  text-shadow:
+    0 2px 8px rgba(0,0,0,.92),
+    0 0 6px rgba(0,0,0,.55);
 }
 
 .custom-sub{
-  margin-top:3px;
-  font-size:10px;
-  line-height:1.05;
-  font-weight:800;
-  color:#fff1c6;
-  text-transform:uppercase;
-  text-shadow:0 2px 8px rgba(0,0,0,.78);
+  display:none !important;
 }
 
 .chase-badge{
-  position:absolute;
-  top:5px;
-  right:5px;
-  z-index:3;
-  padding:3px 7px;
-  border-radius:999px;
-  font-size:9px;
-  font-weight:900;
-  letter-spacing:.8px;
-  text-transform:uppercase;
-  color:#08111d;
+  display:none !important;
 }
 
 
@@ -484,29 +443,31 @@
     }
 
 .team.sold{
-  filter:saturate(.8) brightness(.72);
+  filter:saturate(.9) brightness(.76);
 }
 
-    .team.sold::after{
-      content:"X";
-      position:absolute;
-      left:50%;
-      top:50%;
-      transform:translate(-50%, -50%);
-      width:28px;
-      height:28px;
-      border-radius:50%;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:rgba(6,13,24,.36);
-      border:2px solid #fff;
-      color:#fff;
-      font-size:18px;
-      font-weight:900;
-      z-index:3;
-      box-shadow:0 0 10px rgba(217,54,54,.55);
-    }
+.team.sold::after{
+  content:"X";
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%, -50%);
+  width:30px;
+  height:30px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:var(--soldXBg, rgba(6,13,24,.52));
+  border:2px solid var(--soldXBorder, #fff);
+  color:var(--soldXColor, #fff);
+  font-size:19px;
+  font-weight:900;
+  z-index:3;
+  box-shadow:
+    0 0 12px var(--soldXGlow, rgba(217,54,54,.65)),
+    0 0 20px var(--soldXGlowSoft, rgba(217,54,54,.25));
+}
 
  .team.flash{
   animation:soldFlash .45s ease;
@@ -530,29 +491,22 @@
   }
 }
 
-    .logo-slot{
-      grid-column:span 2;
-      height:var(--tileH);
-     
-      position:relative;
-      overflow:visible;
 
-    }
 
 .logo-slot{
   grid-column:span 2;
-  z-index: 20;
-  height:var(--tileH);
+  z-index:20;
+  height:var(--customTileH);
   position:relative;
   overflow:visible;
 }
 
 .logo-slot img{
   position:absolute;
-  left:1%;
-  top: -152px;
-  transform:translate(-50%, -50%);
-  width:178px;
+  left:50%;
+  top:-120px;
+  transform:translateX(-50%);
+  width:150px;
   z-index:999;
   max-width:none;
   height:auto;
@@ -658,10 +612,17 @@
     }
 
 .sold-wrap{
+  flex:0 0 auto;
   background:
     linear-gradient(180deg, rgba(9,18,33,.95), rgba(14,29,50,.95));
   border:1px solid rgba(255,217,120,.18);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
+  border-radius:14px;
+  padding:8px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  overflow:hidden;
 }
 
     .sold-head{
@@ -743,9 +704,9 @@
 }
 
 .sold-panel{
-  flex:1;
-  min-height:0;
-  max-height:160px;
+  min-height:340px;
+  height:340px;
+  max-height:340px;
   padding:8px;
   border-radius:14px;
   background:
@@ -757,61 +718,239 @@
   gap:6px;
   overflow-y:auto;
   overflow-x:hidden;
+  align-content:start;
 }
 
     .sold-panel.hidden{
       display:none;
     }
 
+.chase-popup{
+  position:fixed;
+  left:760px;
+  top:170px;
+  width:300px;
+  height:290px;
+  z-index:99980;
+  border-radius:16px;
+  background:
+    linear-gradient(180deg, rgba(9,18,33,.98), rgba(14,29,50,.98));
+  border:2px solid rgba(127,200,255,.42);
+  box-shadow:
+    0 18px 40px rgba(0,0,0,.48),
+    0 0 18px rgba(243,196,90,.12);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  resize:none;
+}
+
+.chase-popup.hidden{
+  display:none !important;
+}
+
+.chase-popup-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  background:linear-gradient(90deg, rgba(18,36,64,.96), rgba(243,196,90,.16), rgba(17,33,59,.96));
+  border-bottom:1px solid rgba(255,217,120,.14);
+  cursor:move;
+  user-select:none;
+}
+
+.chase-popup-title{
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  color:#fff4cd;
+}
+
+.chase-popup-actions{
+  display:flex;
+  gap:6px;
+  flex-wrap:wrap;
+}
+
+.chase-popup-body{
+  flex:1 1 auto;
+  min-height:0;
+  padding:10px;
+  overflow:hidden;
+}
+
+.chase-popup-resizer{
+  position:absolute;
+  right:0;
+  bottom:0;
+  width:18px;
+  height:18px;
+  cursor:nwse-resize;
+  background:
+    linear-gradient(135deg, transparent 0 40%, rgba(255,217,120,.55) 40% 52%, transparent 52% 64%, rgba(127,200,255,.55) 64% 76%, transparent 76%);
+}
+
+.chase-buyers-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.chase-buyers-title,
+.chase-buyers-col-title{
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  color:#fff4cd;
+}
+
+.chase-buyers-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.chase-buyers-columns{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  min-height:0;
+}
+
+.chase-buyers-col{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-height:0;
+}
+
+.chase-buyers-list{
+  min-height:84px;
+ 
+  overflow:auto;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding-right:2px;
+}
+
+.chase-buyer-row{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  align-items:center;
+  padding:7px 8px;
+  border-radius:12px;
+  background:rgba(255,214,92,.08);
+  border:1px solid rgba(255,217,120,.14);
+}
+
+.chase-buyer-meta{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.chase-buyer-name{
+  font-size:12px;
+  font-weight:900;
+  color:#fff8ea;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.chase-buyer-sub{
+  font-size:10px;
+  font-weight:900;
+  color:#b7e2ff;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+}
+
+.chase-remove-btn{
+  height:30px;
+  padding:0 10px;
+  border:none;
+  border-radius:999px;
+  cursor:pointer;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:#fff;
+  background:linear-gradient(180deg, #df5a48, #b92d25 55%, #7c1513 100%);
+  border:1px solid rgba(255,213,197,.35);
+}
+
+.chase-empty-state{
+  padding:10px;
+  border-radius:12px;
+  border:1px dashed rgba(255,217,120,.18);
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  color:rgba(255,244,205,.72);
+  text-align:center;
+}
+
     .sold-item{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      padding:4px 6px;
-      border-radius:999px;
-      background:rgba(255,214,92,.10);
-      min-width:0;
-    }
+  display:grid;
+  grid-template-columns:72px 1fr;
+  align-items:center;
+  gap:2px;
+  padding:2px 2px;
+  border-radius:12px;
+  background:rgba(255,214,92,.10);
+  min-width:0;
+  border:1px solid rgba(255,217,120,.12);
+}
 
-    .sold-item img{
-      width:34px;
-      height:34px;
-      object-fit:cover;
-      border-radius:8px;
-      background:rgba(0,0,0,.25);
-      flex:0 0 auto;
-    }
+.sold-meta{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:0;
+  width:100%;
+}
 
-    .sold-meta{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      min-width:0;
-      width:100%;
-    }
+.sold-name{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:24px;
+  border-radius:10px;
+  background:rgba(0,0,0,.42);
+  border:1px solid rgba(127,200,255,.16);
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:.6px;
+  text-transform:uppercase;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  color:#fff7db;
+}
 
-    .sold-name{
-      font-size:10px;
-      font-weight:900;
-      text-transform:uppercase;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      color:#fff7db;
-    }
-
-    .buyer-input{
-      width:100%;
-      border:none;
-      outline:none;
-      background:rgba(0,0,0,.55);
-      color:#fff;
-      border-radius:999px;
-      padding:5px 8px;
-      font-size:12px;
-      font-weight:900;
-      border:1px solid rgba(255,214,92,.14);
-    }
+.buyer-input{
+  width:100%;
+  border:none;
+  outline:none;
+  background:rgba(0,0,0,.55);
+  color:#fff;
+  border-radius:10px;
+  padding:1px 1px;
+  font-size:16px;
+  font-weight:900;
+  border:1px solid rgba(255,214,92,.14);
+}
 
   .hidden{
   display:none !important;
@@ -966,6 +1105,11 @@
 .modal-actions{
   display:flex;
   gap:12px;
+  flex-wrap:wrap;
+}
+
+.modal-actions .modal-btn{
+  min-width:0;
 }
 
 .prize-spot-grid{
@@ -1019,6 +1163,50 @@
   line-height:1.1;
   color:#fff8ea;
   text-transform:uppercase;
+}
+
+.chase-color-grid{
+  display:grid;
+  grid-template-columns:repeat(2, 1fr);
+  gap:10px;
+  margin-bottom:6px;
+}
+
+.chase-color-card{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:2px solid rgba(255,217,120,.16);
+  background:linear-gradient(180deg, rgba(9,18,33,.96), rgba(14,29,50,.96));
+}
+
+.chase-color-swatch{
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,.28);
+  box-shadow:0 0 0 1px rgba(0,0,0,.28) inset;
+  flex:0 0 auto;
+}
+
+.chase-color-name{
+  flex:1;
+  min-width:0;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:#fff8ea;
+}
+
+.chase-color-input{
+  width:56px !important;
+  height:40px !important;
+  padding:2px !important;
+  border-radius:10px !important;
+  cursor:pointer;
 }
 
 .chase-manager-list{
@@ -1483,8 +1671,10 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
   <button class="tool-btn" onclick="openTickerModal()">Edit Ticker</button>
   <button class="tool-btn" onclick="openCustomEntriesModal()">Custom Entries</button>
   <button class="tool-btn" onclick="openPrizeSpotSelectorModal()">Select Prize Spots</button>
-  <button class="tool-btn" onclick="openChaseModal()">Chase Manager</button>
-  <button class="tool-btn" onclick="toggleLayoutMode()">Toggle Layout</button>
+<button class="tool-btn" onclick="openChaseModal()">Chase Manager</button>
+<button class="tool-btn" onclick="toggleChaseBuyersPanel()">Chase Buyers</button>
+<button class="tool-btn" onclick="openExportSoldModal()">Export Sold</button>
+<button class="tool-btn" onclick="toggleLayoutMode()">Toggle Layout</button>
   <button class="tool-btn" onclick="toggleSoldPanel()">Toggle Sold Panel</button>
   <div class="sse">
     SSE <span class="dot"></span><span>OFF</span>
@@ -1493,12 +1683,58 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
         </div>
 
 <div class="sold-panel" id="soldPanel"></div>
+
+
       </div>
     </div>
   </div>
 
+<div class="chase-popup hidden" id="chaseBuyersPopup">
+  <div class="chase-popup-head" id="chaseBuyersPopupDragHandle">
+    <div class="chase-popup-title">Chase Buyers</div>
+    <div class="chase-popup-actions">
+      <button class="tool-btn" onclick="shuffleChaseBuyers()">Shuffle</button>
+      <button class="tool-btn" onclick="resetChaseBuyers()">Clear / Reset</button>
+      <button class="tool-btn" onclick="toggleChaseBuyersPanel()">Close</button>
+    </div>
+  </div>
 
+  <div class="chase-popup-body">
+    <div class="chase-buyers-columns">
+      <div class="chase-buyers-col">
+        <div class="chase-buyers-col-title">Active</div>
+        <div class="chase-buyers-list" id="chaseBuyersActiveList"></div>
+      </div>
 
+      <div class="chase-buyers-col">
+        <div class="chase-buyers-col-title">Removed</div>
+        <div class="chase-buyers-list removed" id="chaseBuyersRemovedList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chase-popup-resizer" id="chaseBuyersPopupResizer"></div>
+</div>
+
+<div class="modal-mask hidden" id="exportSoldModal">
+  <div class="modal-card">
+    <div class="modal-title">Export Sold List</div>
+
+    <div class="modal-label">Tab Delimited Output</div>
+    <textarea
+      id="exportSoldOutput"
+      class="modal-textarea"
+      placeholder="Export will appear here"
+    ></textarea>
+
+    <div class="modal-help">Copy and paste directly into Excel or Google Sheets.</div>
+
+    <div class="modal-actions">
+      <button class="modal-btn secondary" onclick="copyExportSoldOutput()">Copy</button>
+      <button class="modal-btn primary" onclick="closeExportSoldModal()">Close</button>
+    </div>
+  </div>
+</div>
   
   <div class="modal-mask hidden" id="tickerModal">
     <div class="modal-card">
@@ -1518,10 +1754,10 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
         <div id="tickerSpeedValue" class="modal-speed-pill">90 px/s</div>
       </div>
 
-      <div class="modal-actions">
-        <button class="modal-btn primary" onclick="applyTickerModal()">Apply</button>
-        <button class="modal-btn secondary" onclick="closeTickerModal()">Cancel</button>
-      </div>
+<div class="modal-actions">
+  <button class="modal-btn primary" onclick="applyTickerModal()">Apply</button>
+  <button class="modal-btn secondary" onclick="closeTickerModal()">Cancel</button>
+</div>
     </div>
   </div>
 
@@ -1533,7 +1769,7 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
     <textarea
       id="customEntriesInput"
       class="modal-textarea"
-      placeholder="One entry per line&#10;Examples:&#10;Chicago Cubs&#10;Chicago Bears&#10;Envelope Spot 12"
+      placeholder="One entry per line&#10;These names are used internally for matching automation.&#10;The board itself will display only spot numbers."
     ></textarea>
 
     <div class="modal-label">Envelope Image Path</div>
@@ -1544,10 +1780,18 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
       placeholder="../../jim-tabby-envelope.png"
     />
 
-    <div class="modal-actions">
-      <button class="modal-btn primary" onclick="applyCustomEntriesModal()">Apply</button>
-      <button class="modal-btn secondary" onclick="closeCustomEntriesModal()">Cancel</button>
-    </div>
+<div class="modal-actions">
+  <button class="modal-btn secondary" onclick="triggerCustomEntriesImport()">Import CSV/TXT</button>
+  <button class="modal-btn primary" onclick="applyCustomEntriesModal()">Apply</button>
+  <button class="modal-btn secondary" onclick="closeCustomEntriesModal()">Cancel</button>
+</div>
+
+<input
+  id="customEntriesFileInput"
+  type="file"
+  accept=".txt,.csv"
+  style="display:none"
+/>
   </div>
 </div>
 
@@ -1571,10 +1815,15 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
   <div class="modal-card">
     <div class="modal-title">Chase Manager</div>
 
-    <div class="modal-label">Selected Prize Spots</div>
-    <div class="modal-help">Assign a category and label for each selected prize spot.</div>
+<div class="modal-label">Category Colors</div>
+<div class="modal-help">Choose the sold-tile color for each category.</div>
 
-    <div id="chaseManagerList" class="chase-manager-list"></div>
+<div id="chaseColorConfig" class="chase-color-grid"></div>
+
+<div class="modal-label">Selected Prize Spots</div>
+<div class="modal-help">Assign a category and label for each selected prize spot.</div>
+
+<div id="chaseManagerList" class="chase-manager-list"></div>
 
     <div class="modal-actions">
       <button class="modal-btn primary" onclick="applyChaseModal()">Apply</button>
@@ -1612,7 +1861,12 @@ const STORAGE = {
   customEntries: "jtb.combo.customEntries",
   customEnvelopeImage: "jtb.combo.customEnvelopeImage",
   customChaseMap: "jtb.combo.customChaseMap",
-  selectedPrizeSpotCodes: "jtb.combo.selectedPrizeSpotCodes"
+  selectedPrizeSpotCodes: "jtb.combo.selectedPrizeSpotCodes",
+  chaseCategoryColors: "jtb.combo.chaseCategoryColors",
+
+  chaseBuyersOpen: "jtb.combo.chaseBuyersOpen",
+  chaseBuyersActive: "jtb.combo.chaseBuyersActive",
+  chaseBuyersRemoved: "jtb.combo.chaseBuyersRemoved"
 };
 
     const MLB_TEAMS = [
@@ -1687,6 +1941,13 @@ const soldTeams = new Set();
 let soldTeamsList = [];
 let soldPanelOpen = true;
 
+let chaseBuyersOpen = false;
+let chaseBuyersActive = [];
+let chaseBuyersRemoved = [];
+
+let chasePopupDragState = null;
+let chasePopupResizeState = null;
+
 let layoutMode = localStorage.getItem(STORAGE.layoutMode) || "combo";
 let customEntries = [];
 let customChaseMap = new Map();
@@ -1707,24 +1968,53 @@ let sportsState = "off";
       localStorage.setItem(STORAGE.soldPanelOpen, soldPanelOpen ? "1" : "0");
     }
 
-    function loadState(){
-      try{
-        const sold = JSON.parse(localStorage.getItem(STORAGE.soldState) || "[]");
-        sold.forEach(code => soldTeams.add(code));
-      }catch(_){}
+function loadState(){
+  try{
+    const sold = JSON.parse(localStorage.getItem(STORAGE.soldState) || "[]");
+    sold.forEach(code => soldTeams.add(code));
+  }catch(_){}
 
-      try{
-        soldTeamsList = JSON.parse(localStorage.getItem(STORAGE.soldList) || "[]");
-        if (!Array.isArray(soldTeamsList)) soldTeamsList = [];
-      }catch(_){
-        soldTeamsList = [];
-      }
+  try{
+    soldTeamsList = JSON.parse(localStorage.getItem(STORAGE.soldList) || "[]");
+    if (!Array.isArray(soldTeamsList)) soldTeamsList = [];
+  }catch(_){
+    soldTeamsList = [];
+  }
 
-      soldPanelOpen = localStorage.getItem(STORAGE.soldPanelOpen) !== "0";
-    }
+  soldPanelOpen = localStorage.getItem(STORAGE.soldPanelOpen) !== "0";
+  chaseBuyersOpen = localStorage.getItem(STORAGE.chaseBuyersOpen) === "1";
+
+  try{
+    chaseBuyersActive = JSON.parse(localStorage.getItem(STORAGE.chaseBuyersActive) || "[]");
+    if (!Array.isArray(chaseBuyersActive)) chaseBuyersActive = [];
+  }catch(_){
+    chaseBuyersActive = [];
+  }
+
+  try{
+    chaseBuyersRemoved = JSON.parse(localStorage.getItem(STORAGE.chaseBuyersRemoved) || "[]");
+    if (!Array.isArray(chaseBuyersRemoved)) chaseBuyersRemoved = [];
+  }catch(_){
+    chaseBuyersRemoved = [];
+  }
+}
 
 function saveLayoutMode(){
   localStorage.setItem(STORAGE.layoutMode, layoutMode);
+}
+
+function saveChaseBuyersState(){
+  localStorage.setItem(STORAGE.chaseBuyersOpen, chaseBuyersOpen ? "1" : "0");
+  localStorage.setItem(STORAGE.chaseBuyersActive, JSON.stringify(chaseBuyersActive));
+  localStorage.setItem(STORAGE.chaseBuyersRemoved, JSON.stringify(chaseBuyersRemoved));
+
+  const popup = document.getElementById("chaseBuyersPopup");
+  if (popup){
+    localStorage.setItem("jtb.combo.chasePopup.left", popup.style.left || "760px");
+    localStorage.setItem("jtb.combo.chasePopup.top", popup.style.top || "170px");
+    localStorage.setItem("jtb.combo.chasePopup.width", popup.style.width || "300px");
+    localStorage.setItem("jtb.combo.chasePopup.height", popup.style.height || "290px");
+  }
 }
 
 function loadCustomEntries(){
@@ -1780,24 +2070,55 @@ const CHASE_CATEGORY_CONFIG = {
   pack: {
     label: "Pack",
     className: "chase-pack",
-    image: `${BASE}jim-tabby-envelope-blue.png`
+    image: `${BASE}jim-tabby-envelope-blue.png`,
+    defaultColor: "#4ea8ff"
   },
   team: {
     label: "Team",
     className: "chase-team",
-    image: `${BASE}jim-tabby-envelope-purple.png`
+    image: `${BASE}jim-tabby-envelope-purple.png`,
+    defaultColor: "#a86bff"
   },
   chaser: {
     label: "Chaser",
     className: "chase-chaser",
-    image: `${BASE}jim-tabby-envelope-gold.png`
+    image: `${BASE}jim-tabby-envelope-gold.png`,
+    defaultColor: "#f3c45a"
   },
   prizepack: {
     label: "Prize Pack",
     className: "chase-prizepack",
-    image: `${BASE}jim-tabby-envelope-orange.png`
+    image: `${BASE}jim-tabby-envelope-orange.png`,
+    defaultColor: "#ff944d"
   }
 };
+
+let chaseCategoryColors = {};
+
+function getDefaultChaseCategoryColors(){
+  return {
+    pack: CHASE_CATEGORY_CONFIG.pack.defaultColor,
+    team: CHASE_CATEGORY_CONFIG.team.defaultColor,
+    chaser: CHASE_CATEGORY_CONFIG.chaser.defaultColor,
+    prizepack: CHASE_CATEGORY_CONFIG.prizepack.defaultColor
+  };
+}
+
+function loadChaseCategoryColors(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORAGE.chaseCategoryColors) || "{}");
+    return {
+      ...getDefaultChaseCategoryColors(),
+      ...(raw && typeof raw === "object" ? raw : {})
+    };
+  }catch(_){
+    return getDefaultChaseCategoryColors();
+  }
+}
+
+function saveChaseCategoryColors(){
+  localStorage.setItem(STORAGE.chaseCategoryColors, JSON.stringify(chaseCategoryColors));
+}
 
 function getChaseRemainingCount(category){
   let count = 0;
@@ -1818,15 +2139,26 @@ function getChaseRemainingCount(category){
   return count;
 }
 
-function makeChaseCounter(category){
-  const cfg = CHASE_CATEGORY_CONFIG[category];
+function getTotalRemainingChases(){
+  let count = 0;
+
+  for (const entry of customEntries){
+    const chase = customChaseMap.get(entry.key);
+    if (!chase) continue;
+    if (!soldTeams.has(entry.key)) count++;
+  }
+
+  return count;
+}
+
+function makeTotalChaseCounter(){
   const div = document.createElement("div");
-  div.className = `chase-counter ${cfg.className}`;
+  div.className = "chase-counter chase-total";
 
   div.innerHTML = `
-    <img src="${cfg.image}" alt="${cfg.label}" />
-    <div class="count">${getChaseRemainingCount(category)}</div>
-    <div class="mini-label">${cfg.label}</div>
+    <img src="${getCustomEnvelopePath()}" alt="Chases" />
+    <div class="count">${getTotalRemainingChases()}</div>
+    <div class="mini-label">Chases</div>
   `;
 
   return div;
@@ -1979,233 +2311,64 @@ function setSSEStatus(){
 function getTeamByKey(code){
   return getEntryByCode(code);
 }
-function inferTeamCodeFromTitle(title, sportHint=""){
-  const raw = String(title || "").toLowerCase().trim();
-  if (!raw) return "";
 
-  if (layoutMode === "custom"){
-    for (const entry of customEntries){
-      const name = String(entry.name || "").toLowerCase().trim();
-      if (name && raw === name) return entry.key;
-      if (name && raw.includes(name)) return entry.key;
-    }
-  }
-
-  const list =
-    sportHint === "mlb"
-      ? MLB_TEAMS.map(t => ({ ...t, key:`MLB_${t.code}`, sport:"MLB" }))
-      : sportHint === "nfl"
-      ? NFL_TEAMS.map(t => ({ ...t, key:`NFL_${t.code}`, sport:"NFL" }))
-      : getAllTeams();
-
-  for (const t of list){
-    const fullName = `${t.sport} ${t.name}`.toLowerCase();
-    const plainName = t.name.toLowerCase();
-
-    if (raw.includes(fullName)) return t.key;
-    if (raw.includes(plainName)) return t.key;
-  }
-
-  if (sportHint === "mlb" || sportHint === "nfl"){
-    for (const t of list){
-      const shortCode = String(t.code || "").toLowerCase();
-      if (shortCode && new RegExp(`\\b${shortCode}\\b`).test(raw)) return t.key;
-    }
-  }
-
-  return "";
+function loadBreakNumber(){
+  const raw = localStorage.getItem(STORAGE.breakNumber);
+  const n = parseInt(raw || "1", 10);
+  return Number.isFinite(n) && n > 0 ? n : 1;
 }
 
-function getCodeFromPayload(p){
-  const raw = String(p?.code || p?.teamCode || p?.team || p?.abbr || "").trim().toUpperCase();
-  const sport = String(p?.sport || p?.league || "").trim().toLowerCase();
-
-  if (!raw) return "";
-
-  if (raw.startsWith("MLB_") || raw.startsWith("NFL_")) return raw;
-
-  if (sport === "mlb") return `MLB_${raw}`;
-  if (sport === "nfl") return `NFL_${raw}`;
-
-  return "";
-}
-
-function getBuyerFromPayload(p){
-  return String(p?.buyer || p?.buyerName || p?.username || p?.user || "").trim();
-}
-
-function normalizeScorePayloadToText(data){
-  if (!data) return "";
-  if (typeof data.text === "string" && data.text.trim()) return data.text.trim();
-
-  const games = Array.isArray(data.games) ? data.games : [];
-  if (!games.length) return "";
-
-  const league = String(data.sport || data.league || "").toUpperCase();
-  const chunks = games.slice(0, 4).map(g => {
-    const a = g.away || g.a || "AWAY";
-    const h = g.home || g.h || "HOME";
-    const as = g.awayScore ?? g.as ?? "";
-    const hs = g.homeScore ?? g.hs ?? "";
-    const st = g.status || "";
-    const scorePart = (String(as) !== "" || String(hs) !== "") ? `${a} ${as}-${hs} ${h}` : `${a} vs ${h}`;
-    return st ? `${scorePart} (${st})` : scorePart;
-  });
-
-  return (league ? `${league}: ` : "SCORES: ") + chunks.join(" • ");
+function setBreakNumber(n){
+  const safe = Number.isFinite(n) && n > 0 ? n : 1;
+  localStorage.setItem(STORAGE.breakNumber, String(safe));
+  const el = document.getElementById("breakNumberDisplay");
+  if (el) el.textContent = String(safe);
 }
 
 function updateHeaderMode(){
   const sub = document.querySelector(".header-sub");
   if (!sub) return;
-
-  sub.textContent =
-    layoutMode === "custom"
-      ? "CUSTOM BREAK BOARD"
-      : "MLB + NFL COMBO BREAK BOARD";
+  sub.textContent = layoutMode === "custom"
+    ? "CUSTOM ENVELOPE BREAK BOARD"
+    : "MLB + NFL COMBO BREAK BOARD";
 }
 
-
-    function loadBreakNumber(){
-      const n = parseInt(localStorage.getItem(STORAGE.breakNumber) || "1", 10);
-      return Number.isFinite(n) && n > 0 ? n : 1;
-    }
-
-    function setBreakNumber(n){
-      const safe = Number.isFinite(n) && n > 0 ? n : 1;
-      localStorage.setItem(STORAGE.breakNumber, String(safe));
-      document.getElementById("breakNumberDisplay").textContent = String(safe);
-    }
-
-function getAllTeams(){
-  return [
-    ...MLB_TEAMS.map(t => ({ ...t, key:`MLB_${t.code}`, sport:"MLB" })),
-    ...NFL_TEAMS.map(t => ({ ...t, key:`NFL_${t.code}`, sport:"NFL" }))
-  ];
+function getBuyerFromPayload(p){
+  return String(
+    p?.buyer || p?.buyerName || p?.customer || p?.user || p?.username || ""
+  ).trim();
 }
 
-function getCustomEntryCode(index){
-  return `CUSTOM_${String(index + 1).padStart(3, "0")}`;
-}
+function normalizeScorePayloadToText(data){
+  if (!data) return "";
 
-function makeTeamTile(team){
-  const el = document.createElement("div");
-  el.className = "team";
-  el.dataset.teamCode = team.key;
-  el.onclick = () => toggleTeam(team);
+  if (typeof data.text === "string" && data.text.trim()) return data.text.trim();
 
-  if (team.image){
-    const img = document.createElement("img");
-    img.src = team.image;
-    img.alt = team.name || team.key || "";
-    img.onerror = () => {
-      el.innerHTML = `<div class="fallback">${team.code || team.key || "?"}</div>`;
-    };
-    el.appendChild(img);
-  } else {
-    el.innerHTML = `<div class="fallback">${team.code || team.key || "?"}</div>`;
+  if (Array.isArray(data.lines) && data.lines.length){
+    return data.lines.map(s => String(s).trim()).filter(Boolean).join(" • ");
   }
 
-  if (soldTeams.has(team.key)) el.classList.add("sold");
-  return el;
-}
+  const league = String(data.league || data.sport || "").toUpperCase();
+  if (Array.isArray(data.games) && data.games.length){
+    const chunks = data.games.slice(0, 10).map(g => {
+      const a = String(g.away || g.a || g.awayTeam || "").toUpperCase();
+      const h = String(g.home || g.h || g.homeTeam || "").toUpperCase();
+      const as = (g.awayScore ?? g.as ?? g.aScore);
+      const hs = (g.homeScore ?? g.hs ?? g.hScore);
+      const st = String(g.status || g.state || g.clock || "").trim();
 
-function makeCustomTile(entry){
-  const el = document.createElement("div");
-  el.className = "team custom-tile";
-  el.dataset.teamCode = entry.key;
-  el.onclick = () => toggleTeam(entry);
+      const scorePart = (Number.isFinite(+as) && Number.isFinite(+hs))
+        ? `${a} ${as}-${hs} ${h}`
+        : `${a} vs ${h}`;
 
-  const img = document.createElement("img");
-  img.src = entry.image || getCustomEnvelopePath();
-  img.alt = entry.name || entry.key || "";
-  img.onerror = () => {
-    el.innerHTML = `<div class="fallback">${entry.name || entry.key || "CUSTOM"}</div>`;
-  };
-  el.appendChild(img);
+      return st ? `${scorePart} (${st})` : scorePart;
+    });
 
-  const label = document.createElement("div");
-  label.className = "custom-label";
-
-  const title = document.createElement("div");
-  title.className = "custom-title";
-  title.textContent = entry.name || entry.key || "CUSTOM";
-  label.appendChild(title);
-
-  if (entry.meta){
-    const sub = document.createElement("div");
-    sub.className = "custom-sub";
-    sub.textContent = entry.meta;
-    label.appendChild(sub);
+    const prefix = league ? `${league}: ` : "SCORES: ";
+    return prefix + chunks.join(" • ");
   }
 
-  el.appendChild(label);
-
-  const chase = customChaseMap.get(entry.key);
-  if (chase){
-    const badge = document.createElement("div");
-    badge.className = "chase-badge";
-    badge.textContent = chase.label || "CHASE";
-    el.appendChild(badge);
-  }
-
-  if (soldTeams.has(entry.key)) el.classList.add("sold");
-  return el;
-}
-
-function makeLogoSlot(){
-  const slot = document.createElement("div");
-  slot.className = "logo-slot";
-
-  const img = document.createElement("img");
-  img.src = LOGO_PRIMARY;
-  img.alt = "Jim & Tabby's Breaks Logo";
-  slot.appendChild(img);
-
-  return slot;
-}
-
-function makeControl(label, value = "", kind = "btn"){
-  const el = document.createElement("div");
-  el.className = `bottom-control ${kind}`;
-
-  if (kind.includes("stat")){
-    el.innerHTML = `
-      <div class="value">${value}</div>
-      <div class="label">${label}</div>
-    `;
-  } else {
-    el.textContent = label;
-  }
-
-  return el;
-}
-
-function getAllEntries(){
-  if (layoutMode === "custom") return customEntries;
-  return getAllTeams();
-}
-
-function getEntryByCode(code){
-  return getAllEntries().find(t => t.key === code) || null;
-}
-
-function splitByCounts(arr, counts){
-  const out = [];
-  let idx = 0;
-
-  for (const count of counts){
-    out.push(arr.slice(idx, idx + count));
-    idx += count;
-  }
-
-  return out;
-}
-
-function makeHiddenCell(){
-  const spacer = document.createElement("div");
-  spacer.className = "hidden";
-  return spacer;
+  return "";
 }
 
 function escapeHtml(v){
@@ -2260,7 +2423,7 @@ function playSoldAnimation(code){
   card.style.setProperty("--fx-end-y", `${endY}px`);
 
   const imageSrc = entry.image || getCustomEnvelopePath();
-  const displayName = entry.name || entry.code || code;
+  const displayName = getDisplayEntryName(entry) || code;
 
   card.innerHTML = `
     <div class="sold-fx-spin">
@@ -2275,9 +2438,7 @@ function playSoldAnimation(code){
 
   const fxImg = card.querySelector(".sold-fx-team-img");
   if (fxImg){
-    fxImg.onerror = () => {
-      fxImg.style.display = "none";
-    };
+    fxImg.onerror = () => { fxImg.style.display = "none"; };
   }
 
   layer.appendChild(strike);
@@ -2292,6 +2453,269 @@ function playSoldAnimation(code){
   setTimeout(() => card.remove(), 2100);
 }
 
+function inferTeamCodeFromTitle(title, sportHint=""){
+  const raw = String(title || "").toLowerCase().trim();
+  if (!raw) return "";
+
+  const numeric = raw.match(/^#?\s*(\d{1,3})\s*$/);
+  if (layoutMode === "custom" && numeric){
+    const n = parseInt(numeric[1], 10);
+    if (Number.isFinite(n) && n > 0){
+      return `CUSTOM_${String(n).padStart(3, "0")}`;
+    }
+  }
+
+  if (layoutMode === "custom"){
+    for (const entry of customEntries){
+      const name = String(entry.name || "").toLowerCase().trim();
+      if (name && raw === name) return entry.key;
+      if (name && raw.includes(name)) return entry.key;
+    }
+  }
+
+  const list =
+    sportHint === "mlb"
+      ? MLB_TEAMS.map(t => ({ ...t, key:`MLB_${t.code}`, sport:"MLB" }))
+      : sportHint === "nfl"
+      ? NFL_TEAMS.map(t => ({ ...t, key:`NFL_${t.code}`, sport:"NFL" }))
+      : getAllTeams();
+
+  for (const t of list){
+    const fullName = `${t.sport} ${t.name}`.toLowerCase();
+    const plainName = t.name.toLowerCase();
+
+    if (raw.includes(fullName)) return t.key;
+    if (raw.includes(plainName)) return t.key;
+  }
+
+  if (sportHint === "mlb" || sportHint === "nfl"){
+    for (const t of list){
+      const shortCode = String(t.code || "").toLowerCase();
+      if (shortCode && new RegExp(`\\b${shortCode}\\b`).test(raw)) return t.key;
+    }
+  }
+
+  return "";
+}
+function getCodeFromPayload(p){
+  const raw = String(
+    p?.code || p?.teamCode || p?.customCode || p?.team || p?.abbr || ""
+  ).trim().toUpperCase();
+
+  const sport = String(p?.sport || p?.league || "").trim().toLowerCase();
+
+  if (!raw) return "";
+
+  if (raw.startsWith("MLB_") || raw.startsWith("NFL_") || raw.startsWith("CUSTOM_")) return raw;
+
+  if (sport === "mlb") return `MLB_${raw}`;
+  if (sport === "nfl") return `NFL_${raw}`;
+
+  return "";
+}
+
+function getCustomEntryCode(index){
+  return `CUSTOM_${String(index + 1).padStart(3, "0")}`;
+}
+
+function getCustomSpotNumber(entry){
+  const m = String(entry?.key || "").match(/^CUSTOM_(\d+)$/);
+  return m ? String(parseInt(m[1], 10)) : "";
+}
+
+function getDisplayEntryName(entry){
+  if (!entry) return "";
+  if (String(entry.key || "").startsWith("CUSTOM_")) {
+    return getCustomSpotNumber(entry);
+  }
+  return entry.sport ? `${entry.sport} ${entry.name}` : (entry.name || entry.code || entry.key || "");
+}
+
+function compareSoldEntries(a, b){
+  const av = String(a?.name || a?.code || "");
+  const bv = String(b?.name || b?.code || "");
+
+  return av.localeCompare(bv, undefined, {
+    numeric: true,
+    sensitivity: "base"
+  });
+}
+
+function getAllTeams(){
+  return [
+    ...MLB_TEAMS.map(t => ({ ...t, key:`MLB_${t.code}`, sport:"MLB" })),
+    ...NFL_TEAMS.map(t => ({ ...t, key:`NFL_${t.code}`, sport:"NFL" }))
+  ];
+}
+
+function getAllEntries(){
+  if (layoutMode === "custom") return customEntries;
+  return getAllTeams();
+}
+
+function getEntryByCode(code){
+  return getAllEntries().find(t => t.key === code) || null;
+}
+
+function splitByCounts(arr, counts){
+  const out = [];
+  let idx = 0;
+
+  for (const count of counts){
+    out.push(arr.slice(idx, idx + count));
+    idx += count;
+  }
+
+  return out;
+}
+
+function getCustomLayoutMetrics(count){
+  if (count <= 90)  return { cols: 12, tileH: 36 };
+  if (count <= 120) return { cols: 13, tileH: 33 };
+  if (count <= 150) return { cols: 14, tileH: 29 };
+  return { cols: 15, tileH: 26 };
+}
+
+function makeHiddenCell(){
+  const spacer = document.createElement("div");
+  spacer.className = "hidden";
+  return spacer;
+}
+
+function makeTeamTile(team){
+  const el = document.createElement("div");
+  el.className = "team";
+  el.dataset.teamCode = team.key;
+  el.onclick = () => toggleTeam(team);
+
+  if (team.image){
+    const img = document.createElement("img");
+    img.src = team.image;
+    img.alt = team.name || team.key || "";
+    img.onerror = () => {
+      el.innerHTML = `<div class="fallback">${team.code || team.key || "?"}</div>`;
+    };
+    el.appendChild(img);
+  } else {
+    el.innerHTML = `<div class="fallback">${team.code || team.key || "?"}</div>`;
+  }
+
+  if (soldTeams.has(team.key)) el.classList.add("sold");
+  return el;
+}
+
+function hexToRgba(hex, alpha){
+  const clean = String(hex || "").replace("#", "").trim();
+  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return `rgba(255,255,255,${alpha})`;
+
+  const r = parseInt(clean.slice(0, 2), 16);
+  const g = parseInt(clean.slice(2, 4), 16);
+  const b = parseInt(clean.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function getChaseCategoryForCode(code){
+  const cfg = customChaseMap.get(code);
+  return String(cfg?.category || "").toLowerCase().replace(/\s+/g, "");
+}
+
+function getChaseColorForCode(code){
+  const category = getChaseCategoryForCode(code);
+  if (!category) return "";
+  return chaseCategoryColors?.[category] || CHASE_CATEGORY_CONFIG?.[category]?.defaultColor || "";
+}
+
+function applySoldChaseTileStyle(el, code){
+  if (!el || !code || !soldTeams.has(code)) return;
+
+  const color = getChaseColorForCode(code);
+  if (!color) return;
+
+  el.style.borderColor = color;
+  el.style.background = `
+    linear-gradient(
+      180deg,
+      ${hexToRgba(color, .68)} 0%,
+      ${hexToRgba(color, .42)} 38%,
+      rgba(8,14,22,.96) 100%
+    )
+  `;
+  el.style.boxShadow = `
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    0 0 18px ${hexToRgba(color, .55)},
+    0 0 30px ${hexToRgba(color, .28)}
+  `;
+
+  el.style.setProperty("--soldXBg", hexToRgba(color, .22));
+  el.style.setProperty("--soldXBorder", color);
+  el.style.setProperty("--soldXColor", color);
+  el.style.setProperty("--soldXGlow", hexToRgba(color, .85));
+  el.style.setProperty("--soldXGlowSoft", hexToRgba(color, .35));
+}
+
+function makeLogoSlot(){
+  const slot = document.createElement("div");
+  slot.className = "logo-slot";
+
+  const img = document.createElement("img");
+  img.src = LOGO_PRIMARY;
+  img.alt = "Jim & Tabby's Breaks Logo";
+  img.onerror = () => {
+    slot.innerHTML = `<div class="fallback">LOGO</div>`;
+  };
+
+  slot.appendChild(img);
+  return slot;
+}
+
+function makeCustomTile(entry){
+  const el = document.createElement("div");
+  el.className = "team custom-tile";
+  el.dataset.teamCode = entry.key;
+  el.onclick = () => toggleTeam(entry);
+
+  const img = document.createElement("img");
+  img.src = entry.image || getCustomEnvelopePath();
+  img.alt = getCustomSpotNumber(entry) || entry.key || "";
+  img.onerror = () => {
+    el.innerHTML = `<div class="fallback">${getCustomSpotNumber(entry) || "?"}</div>`;
+  };
+  el.appendChild(img);
+
+  const label = document.createElement("div");
+  label.className = "custom-label";
+
+  const title = document.createElement("div");
+  title.className = "custom-title";
+  title.textContent = getCustomSpotNumber(entry) || "";
+  label.appendChild(title);
+
+  el.appendChild(label);
+
+  if (soldTeams.has(entry.key)){
+    el.classList.add("sold");
+    applySoldChaseTileStyle(el, entry.key);
+  }
+
+  return el;
+}
+
+function makeControl(label, value = "", kind = "btn"){
+  const el = document.createElement("div");
+  el.className = `bottom-control ${kind}`;
+
+  if (kind.includes("stat")){
+    el.innerHTML = `
+      <div class="value">${value}</div>
+      <div class="label">${label}</div>
+    `;
+  } else {
+    el.textContent = label;
+  }
+
+  return el;
+}
+
 function buildBoard(){
   const board = document.getElementById("board");
   if (!board) return;
@@ -2302,25 +2726,33 @@ function buildBoard(){
     const wrap = document.createElement("div");
     wrap.className = "custom-board-wrap";
 
-    const topRow = document.createElement("div");
-    topRow.className = "custom-top-row";
+const metrics = getCustomLayoutMetrics(customEntries.length);
+document.documentElement.style.setProperty("--customCols", String(metrics.cols));
+document.documentElement.style.setProperty("--customTileH", `${metrics.tileH}px`);
 
-    const topEntries = customEntries.slice(0, 8);
-    const remainingEntries = customEntries.slice(8);
+const topRow = document.createElement("div");
+topRow.className = "custom-top-row";
 
-    topEntries.slice(0, 4).forEach(entry => {
-      topRow.appendChild(makeCustomTile(entry));
-    });
+const topRowTileCount = Math.max(2, metrics.cols - 2);
+const leftCount = Math.floor(topRowTileCount / 2);
+const rightCount = topRowTileCount - leftCount;
 
-    topRow.appendChild(makeLogoSlot());
+const topEntries = customEntries.slice(0, topRowTileCount);
+const remainingEntries = customEntries.slice(topRowTileCount);
 
-    topEntries.slice(4, 8).forEach(entry => {
-      topRow.appendChild(makeCustomTile(entry));
-    });
+ topEntries.slice(0, leftCount).forEach(entry => {
+  topRow.appendChild(makeCustomTile(entry));
+});
 
-    while (topRow.children.length < 10){
-      topRow.appendChild(makeHiddenCell());
-    }
+topRow.appendChild(makeLogoSlot());
+
+topEntries.slice(leftCount, leftCount + rightCount).forEach(entry => {
+  topRow.appendChild(makeCustomTile(entry));
+});
+
+while (topRow.children.length < metrics.cols){
+  topRow.appendChild(makeHiddenCell());
+}
 
     wrap.appendChild(topRow);
 
@@ -2349,10 +2781,7 @@ function buildBoard(){
     soldStat.id = "soldStatBottom";
     controlsRow.appendChild(soldStat);
 
-    controlsRow.appendChild(makeChaseCounter("pack"));
-    controlsRow.appendChild(makeChaseCounter("team"));
-    controlsRow.appendChild(makeChaseCounter("chaser"));
-    controlsRow.appendChild(makeChaseCounter("prizepack"));
+    controlsRow.appendChild(makeTotalChaseCounter());
 
     const remainStat = makeControl("Remaining", getRemainingCount(), "stat");
     remainStat.id = "remainStatBottom";
@@ -2484,7 +2913,7 @@ function sseMarkSold(code, buyer=""){
     if (!soldTeamsList.some(x => x.code === code)){
       soldTeamsList.push({
         code,
-        name: team.sport ? `${team.sport} ${team.name}` : (team.name || code),
+        name: getDisplayEntryName(team),
         buyer: buyer || "",
         image: team.image || getCustomEnvelopePath()
       });
@@ -2502,6 +2931,10 @@ function sseMarkSold(code, buyer=""){
     sseUpdateBuyer(code, buyer);
   }
 
+  if (buyer && isChaseSpotCode(code)){
+    upsertChaseBuyer(code, buyer);
+  }
+
   saveState();
   buildBoard();
 }
@@ -2514,6 +2947,8 @@ function sseMarkUnsold(code){
   const tile = document.querySelector(`[data-team-code="${code}"]`);
   if (tile) tile.classList.remove("sold");
 
+  purgeChaseBuyer(code);
+
   saveState();
   buildBoard();
 }
@@ -2523,6 +2958,7 @@ function sseUpdateBuyer(code, buyer){
   if (!entry) return;
 
   entry.buyer = buyer || "";
+  syncChaseBuyerName(code, entry.buyer);
   saveState();
   renderSoldPanel();
 }
@@ -2629,20 +3065,69 @@ function closeCustomEntriesModal(){
   document.getElementById("customEntriesModal")?.classList.add("hidden");
 }
 
-function applyCustomEntriesModal(){
-  const raw = document.getElementById("customEntriesInput")?.value || "";
-  const env = document.getElementById("customEnvelopeInput")?.value || "";
+function triggerCustomEntriesImport(){
+  document.getElementById("customEntriesFileInput")?.click();
+}
+
+function parseImportedCustomEntries(text){
+  const raw = String(text || "").replace(/\r/g, "");
+  if (!raw.trim()) return [];
 
   const lines = raw.split("\n").map(v => v.trim()).filter(Boolean);
 
-customEntries = lines.map((name, index) => ({
-  key: getCustomEntryCode(index),
-  code: getCustomEntryCode(index),
-  name,
-  image: String(env || "").trim() || CUSTOM_ENVELOPE,
-  meta: "",
-  sport: ""
-}));
+  if (lines.some(line => line.includes(","))){
+    return lines
+      .flatMap(line => line.split(","))
+      .map(v => v.trim())
+      .filter(Boolean);
+  }
+
+  return lines;
+}
+
+function initCustomEntriesImport(){
+  const input = document.getElementById("customEntriesFileInput");
+  if (!input) return;
+
+  input.addEventListener("change", async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    try{
+      const text = await file.text();
+      const entries = parseImportedCustomEntries(text);
+
+      const area = document.getElementById("customEntriesInput");
+      if (area){
+        area.value = entries.join("\n");
+      }
+    }catch(err){
+      console.warn("[custom import failed]", err);
+    }
+
+    input.value = "";
+  });
+}
+
+function applyCustomEntriesModal(){
+  const raw = document.getElementById("customEntriesInput")?.value || "";
+  const envRaw = document.getElementById("customEnvelopeInput")?.value || "";
+  const env = String(envRaw).trim() || CUSTOM_ENVELOPE;
+
+  const lines = raw
+    .replace(/\r/g, "")
+    .split("\n")
+    .map(v => v.trim())
+    .filter(Boolean);
+
+  customEntries = lines.map((name, index) => ({
+    key: getCustomEntryCode(index),
+    code: getCustomEntryCode(index),
+    name,
+    image: env,
+    meta: "",
+    sport: ""
+  }));
 
   const validCodes = new Set(customEntries.map(entry => entry.key));
 
@@ -2661,12 +3146,226 @@ customEntries = lines.map((name, index) => ({
 
   layoutMode = "custom";
   saveLayoutMode();
-updateHeaderMode();
-  resetAll();
+  updateHeaderMode();
   closeCustomEntriesModal();
-  buildBoard();
+  resetAll();
 }
 
+function isChaseSpotCode(code){
+  return customChaseMap.has(code);
+}
+
+function upsertChaseBuyer(code, buyer){
+  if (!code || !buyer || !soldTeams.has(code) || !isChaseSpotCode(code)) return;
+
+  const entry = getEntryByCode(code);
+  if (!entry) return;
+
+  const cfg = customChaseMap.get(code) || {};
+  const category = String(cfg.category || "").toLowerCase().replace(/\s+/g, "");
+  const color = getChaseColorForCode(code) || "";
+
+  const item = {
+    code,
+    buyer: String(buyer || "").trim(),
+    spot: getDisplayEntryName(entry),
+    category,
+    label: cfg.label || "CHASE",
+    color
+  };
+
+  const removedIdx = chaseBuyersRemoved.findIndex(x => x.code === code);
+  if (removedIdx !== -1){
+    chaseBuyersRemoved.splice(removedIdx, 1);
+  }
+
+  const activeIdx = chaseBuyersActive.findIndex(x => x.code === code);
+  if (activeIdx !== -1){
+    chaseBuyersActive[activeIdx] = item;
+  } else {
+    chaseBuyersActive.push(item);
+  }
+
+  saveChaseBuyersState();
+  renderChaseBuyersPanel();
+}
+
+function removeChaseBuyer(code){
+  const idx = chaseBuyersActive.findIndex(x => x.code === code);
+  if (idx === -1) return;
+
+  const [item] = chaseBuyersActive.splice(idx, 1);
+  chaseBuyersRemoved.push(item);
+
+  saveChaseBuyersState();
+  renderChaseBuyersPanel();
+}
+
+function purgeChaseBuyer(code){
+  chaseBuyersActive = chaseBuyersActive.filter(x => x.code !== code);
+  chaseBuyersRemoved = chaseBuyersRemoved.filter(x => x.code !== code);
+  saveChaseBuyersState();
+  renderChaseBuyersPanel();
+}
+
+function syncChaseBuyerName(code, buyer){
+  if (!code || !isChaseSpotCode(code)) return;
+
+  if (!buyer){
+    chaseBuyersActive = chaseBuyersActive.filter(x => x.code !== code);
+    saveChaseBuyersState();
+    renderChaseBuyersPanel();
+    return;
+  }
+
+  upsertChaseBuyer(code, buyer);
+}
+
+function shuffleChaseBuyers(){
+  for (let i = chaseBuyersActive.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [chaseBuyersActive[i], chaseBuyersActive[j]] = [chaseBuyersActive[j], chaseBuyersActive[i]];
+  }
+  saveChaseBuyersState();
+  renderChaseBuyersPanel();
+}
+
+function resetChaseBuyers(){
+  chaseBuyersActive = [];
+  chaseBuyersRemoved = [];
+  saveChaseBuyersState();
+  renderChaseBuyersPanel();
+}
+
+function toggleChaseBuyersPanel(){
+  chaseBuyersOpen = !chaseBuyersOpen;
+  saveChaseBuyersState();
+  renderChaseBuyersPanel();
+}
+
+function applyChasePopupSavedPosition(){
+  const popup = document.getElementById("chaseBuyersPopup");
+  if (!popup) return;
+
+  popup.style.left = localStorage.getItem("jtb.combo.chasePopup.left") || "760px";
+  popup.style.top = localStorage.getItem("jtb.combo.chasePopup.top") || "170px";
+  popup.style.width = localStorage.getItem("jtb.combo.chasePopup.width") || "300px";
+  popup.style.height = localStorage.getItem("jtb.combo.chasePopup.height") || "290px";
+}
+
+function initChaseBuyersPopupInteractions(){
+  const popup = document.getElementById("chaseBuyersPopup");
+  const handle = document.getElementById("chaseBuyersPopupDragHandle");
+  const resizer = document.getElementById("chaseBuyersPopupResizer");
+  if (!popup || !handle || !resizer) return;
+
+  applyChasePopupSavedPosition();
+
+  handle.addEventListener("mousedown", (e) => {
+    if (e.target.closest("button")) return;
+    const rect = popup.getBoundingClientRect();
+    chasePopupDragState = {
+      startX: e.clientX,
+      startY: e.clientY,
+      left: rect.left,
+      top: rect.top
+    };
+    e.preventDefault();
+  });
+
+  resizer.addEventListener("mousedown", (e) => {
+    const rect = popup.getBoundingClientRect();
+    chasePopupResizeState = {
+      startX: e.clientX,
+      startY: e.clientY,
+      width: rect.width,
+      height: rect.height
+    };
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  window.addEventListener("mousemove", (e) => {
+    if (chasePopupDragState){
+      const dx = e.clientX - chasePopupDragState.startX;
+      const dy = e.clientY - chasePopupDragState.startY;
+
+      popup.style.left = `${Math.max(0, chasePopupDragState.left + dx)}px`;
+      popup.style.top = `${Math.max(0, chasePopupDragState.top + dy)}px`;
+    }
+
+    if (chasePopupResizeState){
+      const dx = e.clientX - chasePopupResizeState.startX;
+      const dy = e.clientY - chasePopupResizeState.startY;
+
+      popup.style.width = `${Math.max(260, chasePopupResizeState.width + dx)}px`;
+      popup.style.height = `${Math.max(220, chasePopupResizeState.height + dy)}px`;
+    }
+  });
+
+  window.addEventListener("mouseup", () => {
+    if (chasePopupDragState || chasePopupResizeState){
+      chasePopupDragState = null;
+      chasePopupResizeState = null;
+      saveChaseBuyersState();
+    }
+  });
+}
+
+function renderChaseBuyerList(el, items, removed=false){
+  if (!el) return;
+  el.innerHTML = "";
+
+  if (!items.length){
+    el.innerHTML = `<div class="chase-empty-state">${removed ? "No removed names" : "No chase buyers yet"}</div>`;
+    return;
+  }
+
+  items.forEach(item => {
+    const row = document.createElement("div");
+    row.className = "chase-buyer-row";
+
+    row.innerHTML = `
+      <div class="chase-buyer-meta">
+        <div class="chase-buyer-name">${escapeHtml(item.buyer || "")}</div>
+        <div class="chase-buyer-sub">${escapeHtml(item.spot || "")} • ${escapeHtml(item.category || "")}</div>
+      </div>
+    `;
+
+    if (!removed){
+      const btn = document.createElement("button");
+      btn.className = "chase-remove-btn";
+      btn.type = "button";
+      btn.textContent = "Remove";
+      btn.onclick = () => removeChaseBuyer(item.code);
+      row.appendChild(btn);
+    }
+
+    if (item.color){
+      row.style.borderColor = hexToRgba(item.color, .40);
+      row.style.boxShadow = `0 0 12px ${hexToRgba(item.color, .14)}`;
+    }
+
+    el.appendChild(row);
+  });
+}
+
+function renderChaseBuyersPanel(){
+  const popup = document.getElementById("chaseBuyersPopup");
+  const activeList = document.getElementById("chaseBuyersActiveList");
+  const removedList = document.getElementById("chaseBuyersRemovedList");
+
+  if (!popup) return;
+
+  if (!chaseBuyersOpen){
+    popup.classList.add("hidden");
+    return;
+  }
+
+  popup.classList.remove("hidden");
+  renderChaseBuyerList(activeList, chaseBuyersActive, false);
+  renderChaseBuyerList(removedList, chaseBuyersRemoved, true);
+}
 
 function renderPrizeSpotSelectorModal(){
   const grid = document.getElementById("prizeSpotSelectorGrid");
@@ -2737,8 +3436,37 @@ function applyPrizeSpotSelectorModal(){
 }
 
 function renderChaseManagerModal(){
+  const colorGrid = document.getElementById("chaseColorConfig");
   const list = document.getElementById("chaseManagerList");
   if (!list) return;
+
+  if (colorGrid){
+    colorGrid.innerHTML = "";
+
+    ["pack","team","chaser","prizepack"].forEach(category => {
+      const cfg = CHASE_CATEGORY_CONFIG[category];
+      const color = chaseCategoryColors?.[category] || cfg.defaultColor;
+
+      const row = document.createElement("div");
+      row.className = "chase-color-card";
+      row.dataset.category = category;
+
+      row.innerHTML = `
+        <div class="chase-color-swatch" style="background:${color}"></div>
+        <div class="chase-color-name">${cfg.label}</div>
+        <input class="chase-color-input" type="color" value="${color}" data-category="${category}" />
+      `;
+
+      const input = row.querySelector(".chase-color-input");
+      const swatch = row.querySelector(".chase-color-swatch");
+
+      input?.addEventListener("input", () => {
+        if (swatch) swatch.style.background = input.value;
+      });
+
+      colorGrid.appendChild(row);
+    });
+  }
 
   list.innerHTML = "";
 
@@ -2786,8 +3514,24 @@ function closeChaseModal(){
 }
 
 function applyChaseModal(){
+  const colorGrid = document.getElementById("chaseColorConfig");
   const list = document.getElementById("chaseManagerList");
   if (!list) return;
+
+  const nextColors = {
+    ...getDefaultChaseCategoryColors()
+  };
+
+  if (colorGrid){
+    Array.from(colorGrid.querySelectorAll(".chase-color-input")).forEach(input => {
+      const category = String(input.dataset.category || "").trim();
+      const value = String(input.value || "").trim();
+      if (category && value) nextColors[category] = value;
+    });
+  }
+
+  chaseCategoryColors = nextColors;
+  saveChaseCategoryColors();
 
   const next = new Map();
 
@@ -2826,7 +3570,10 @@ function resetAll(){
   soldTeams.clear();
   soldTeamsList = [];
   lastCodeByListingKey.clear();
+  chaseBuyersActive = [];
+  chaseBuyersRemoved = [];
   saveState();
+  saveChaseBuyersState();
   buildBoard();
 }
 
@@ -2841,51 +3588,49 @@ function resetAll(){
       renderSoldPanel();
     }
 
-    function renderSoldPanel(){
-      const panel = document.getElementById("soldPanel");
-      panel.innerHTML = "";
+   function renderSoldPanel(){
+  const panel = document.getElementById("soldPanel");
+  panel.innerHTML = "";
 
-      if (!soldPanelOpen){
-        panel.classList.add("hidden");
-        return;
-      }
+  if (!soldPanelOpen){
+    panel.classList.add("hidden");
+    return;
+  }
 
-      panel.classList.remove("hidden");
+  panel.classList.remove("hidden");
 
-      soldTeamsList.forEach(entry => {
-        const item = document.createElement("div");
-        item.className = "sold-item";
+  const sortedSold = [...soldTeamsList].sort(compareSoldEntries);
 
-        const img = document.createElement("img");
-        img.src = entry.image || "";
-        img.alt = entry.name || "";
-        img.onerror = () => { img.style.display = "none"; };
-        item.appendChild(img);
+  sortedSold.forEach(entry => {
+    const item = document.createElement("div");
+    item.className = "sold-item";
 
-        const meta = document.createElement("div");
-        meta.className = "sold-meta";
+    const name = document.createElement("div");
+    name.className = "sold-name";
+    name.textContent = entry.name || entry.code || "";
+    item.appendChild(name);
 
-        const name = document.createElement("div");
-        name.className = "sold-name";
-        name.textContent = entry.name || entry.code || "";
-        meta.appendChild(name);
+    const meta = document.createElement("div");
+    meta.className = "sold-meta";
 
-        const input = document.createElement("input");
-        input.className = "buyer-input";
-        input.type = "text";
-        input.placeholder = "Buyer";
-        input.value = entry.buyer || "";
-        input.oninput = (e) => {
-          entry.buyer = e.target.value || "";
-          saveState();
-        };
-        meta.appendChild(input);
+    const input = document.createElement("input");
+    input.className = "buyer-input";
+    input.type = "text";
+    input.placeholder = "Buyer";
+    input.value = entry.buyer || "";
+    input.oninput = (e) => {
+      entry.buyer = e.target.value || "";
+      syncChaseBuyerName(entry.code, entry.buyer);
+      saveState();
+    };
 
-        item.appendChild(meta);
-        panel.appendChild(item);
-      });
-    }
+    meta.appendChild(input);
+    item.appendChild(meta);
+    panel.appendChild(item);
+  });
 
+  renderChaseBuyersPanel();
+}
 function handleSportsEvent(data){
   if (!data || typeof data !== "object") return;
 
@@ -2908,8 +3653,7 @@ function handleSportsEvent(data){
 }
 
 document.addEventListener("click", (e) => {
-  ["tickerModal","customEntriesModal","prizeSpotSelectorModal","chaseModal"].forEach(id => {
-    const modal = document.getElementById(id);
+["tickerModal","customEntriesModal","prizeSpotSelectorModal","chaseModal","exportSoldModal"].forEach(id => {    const modal = document.getElementById(id);
     if (modal && !modal.classList.contains("hidden") && e.target === modal){
       modal.classList.add("hidden");
     }
@@ -3078,6 +3822,59 @@ function initSSE(){
   connectSports();
 }
 
+function buildSoldExportTSV(){
+  const d = new Date();
+  const dateStr = [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0")
+  ].join("-");
+
+  const rows = [
+    ["Date", "Break Number", "Code", "Spot", "Buyer"]
+  ];
+
+  soldTeamsList.forEach(entry => {
+    rows.push([
+      dateStr,
+      String(loadBreakNumber()),
+      String(entry.code || ""),
+      String(entry.name || ""),
+      String(entry.buyer || "")
+    ]);
+  });
+
+  return rows.map(row => row.join("\t")).join("\n");
+}
+
+function openExportSoldModal(){
+  const output = document.getElementById("exportSoldOutput");
+  if (output){
+    output.value = buildSoldExportTSV();
+    output.focus();
+    output.select();
+  }
+  document.getElementById("exportSoldModal")?.classList.remove("hidden");
+}
+
+function closeExportSoldModal(){
+  document.getElementById("exportSoldModal")?.classList.add("hidden");
+}
+
+async function copyExportSoldOutput(){
+  const output = document.getElementById("exportSoldOutput");
+  if (!output) return;
+
+  output.focus();
+  output.select();
+
+  try{
+    await navigator.clipboard.writeText(output.value || "");
+  }catch(_){
+    document.execCommand("copy");
+  }
+}
+
     function openBreakPrompt(){
       const current = loadBreakNumber();
       const next = window.prompt("Set break number", String(current));
@@ -3094,12 +3891,17 @@ function boot(){
   customEntries = loadCustomEntries();
   customChaseMap = loadCustomChaseMap();
   selectedPrizeSpotCodes = loadSelectedPrizeSpotCodes();
+  chaseCategoryColors = loadChaseCategoryColors();
   layoutMode = localStorage.getItem(STORAGE.layoutMode) || "combo";
   TICKER_LINES = loadTickerLines();
   setBreakNumber(loadBreakNumber());
-  buildBoard();
-  updateTicker();
-  updateHeaderMode();
+buildBoard();
+updateTicker();
+updateHeaderMode();
+renderChaseBuyersPanel();
+
+initCustomEntriesImport();
+initChaseBuyersPopupInteractions();
 
   const speedSlider = document.getElementById("tickerSpeedSlider");
   const speedValue = document.getElementById("tickerSpeedValue");
