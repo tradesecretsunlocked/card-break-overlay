@@ -3,29 +3,31 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=1080, initial-scale=1.0" />
-  <title>TSU Custom Breaks — Disney / Star Wars Starter (Fixed)</title>
+  <title>Death Star Breaks — Disney / Star Wars Custom Overlay</title>
   <style>
     :root{
       --overlayW:1080px;
-      --overlayH:760px;
+      --overlayH:510px;
       --gap:6px;
       --tileH:66px;
-      --tileTitle:16px;
+      --tileTitle:18px;
       --tileMeta:10px;
       --boardCols:10;
       --tickerDur:26s;
 
-      --bg0:#0b1120;
-      --bg1:#18345e;
-      --panel:rgba(8,14,30,.92);
-      --panel2:rgba(20,40,72,.92);
-      --line:rgba(255,255,255,.12);
-      --lineStrong:rgba(255,255,255,.24);
-      --text:#fff9ef;
-      --muted:rgba(255,249,239,.78);
-      --accent:#8fd7ff;
-      --accent2:#ffd86f;
-      --danger:#ff5668;
+      /* Death Star Breaks palette pulled from the logo art:
+         deep void navy + electric cyan + neon magenta + soft violet */
+      --bg0:#070b18;
+      --bg1:#141a32;
+      --panel:rgba(8,12,28,.92);
+      --panel2:rgba(19,27,54,.94);
+      --line:rgba(103,224,233,.16);
+      --lineStrong:rgba(214,104,159,.34);
+      --text:#f7fbff;
+      --muted:rgba(230,244,255,.78);
+      --accent:#17a9c9;
+      --accent2:#d3689f;
+      --danger:#ff5b7a;
     }
 
     *{ box-sizing:border-box; }
@@ -37,37 +39,74 @@
       overflow:hidden;
       user-select:none;
     }
-    body{
+      body{
       width:1080px;
-      height:840px;
+      min-height:840px;
+      overflow:visible;
     }
 
     body.theme-disney{
-      --bg0:#11203d;
-      --bg1:#244a82;
-      --panel:rgba(12,23,48,.94);
-      --panel2:rgba(29,55,98,.94);
-      --line:rgba(183,226,255,.18);
-      --lineStrong:rgba(255,217,120,.34);
-      --text:#fff9ef;
-      --muted:rgba(255,249,239,.78);
-      --accent:#8fd7ff;
-      --accent2:#ffd86f;
-      --danger:#ff6485;
+      /* Brighter cosmic / Stitch-inspired side of the brand */
+      --bg0:#152249;
+      --bg1:#204f7d;
+      --panel:rgba(15,28,61,.94);
+      --panel2:rgba(28,72,112,.94);
+      --line:rgba(133,234,244,.24);
+      --lineStrong:rgba(211,104,159,.42);
+      --text:#fff7ff;
+      --muted:rgba(247,244,255,.80);
+      --accent:#54dbea;
+      --accent2:#f05fa8;
+      --danger:#ff6a8c;
     }
 
     body.theme-starwars{
-      --bg0:#05070d;
-      --bg1:#141924;
-      --panel:rgba(8,10,16,.95);
-      --panel2:rgba(18,21,30,.95);
-      --line:rgba(122,167,255,.10);
-      --lineStrong:rgba(255,225,106,.26);
-      --text:#f7f0c8;
-      --muted:rgba(247,240,200,.72);
-      --accent:#6f9cff;
-      --accent2:#ffe16a;
-      --danger:#ff5959;
+      /* Darker space-first version with bright logo highlights */
+      --bg0:#03050d;
+      --bg1:#0c1221;
+      --panel:rgba(4,6,14,.95);
+      --panel2:rgba(12,16,30,.96);
+      --line:rgba(84,219,234,.14);
+      --lineStrong:rgba(211,104,159,.28);
+      --text:#eef6ff;
+      --muted:rgba(214,229,244,.72);
+      --accent:#23c9da;
+      --accent2:#d3689f;
+      --danger:#ff5b7a;
+    }
+
+           body.layout-disney .grid-wrap{
+      padding:8px;
+      border-radius:18px;
+    }
+
+    body.layout-disney .tile{
+      border-radius:18px;
+      border-width:2px;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.05),
+        0 6px 16px rgba(0,0,0,.22),
+        0 0 14px rgba(84,219,234,.10);
+    }
+
+    body.layout-disney .tile-title{
+      letter-spacing:.6px;
+    }
+
+    body.layout-starwars .grid-wrap{
+      padding:5px;
+      border-radius:12px;
+    }
+
+    body.layout-starwars .tile{
+      border-radius:8px;
+      border-width:1px;
+      box-shadow:
+        inset 0 0 0 1px #ff5b7a, 0 3px 10px #d3689f5c;
+    }
+
+    body.layout-starwars .tile-title{
+      letter-spacing:.3px;
     }
 
     .overlay{
@@ -78,11 +117,11 @@
       border-radius:22px;
       display:flex;
       flex-direction:column;
+
       background:
-        radial-gradient(circle at 50% 0%, rgba(255,255,255,.06), transparent 26%),
-        radial-gradient(circle at 15% 18%, rgba(143,215,255,.12), transparent 22%),
-        radial-gradient(circle at 85% 22%, rgba(255,216,111,.10), transparent 22%),
-        linear-gradient(180deg, var(--bg0), var(--bg1));
+        linear-gradient(180deg, rgba(0,0,0,.55), rgba(0,0,0,.75)),
+        url("star-wars-bg.jpg") center / cover no-repeat;
+
       border:2px solid var(--lineStrong);
       box-shadow:0 14px 34px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,255,255,.03);
     }
@@ -108,8 +147,43 @@
       z-index:0;
     }
 
+    .floating-logo-layer{
+      position:absolute;
+      left:50%;
+      top:12px;
+      transform:translateX(-50%);
+      width:220px;
+      height:220px;
+      display:flex;
+      align-items:start;
+      justify-content:center;
+      pointer-events:none;
+      z-index:100;
+      overflow:visible;
+    }
+
+    .floating-logo-layer img{
+      width:93%;
+      height:auto;
+      display:block;
+      object-fit:contain;
+      filter:
+        drop-shadow(0 14px 24px rgba(0,0,0,.50))
+        drop-shadow(0 0 18px rgba(84,219,234,.16));
+    }
+
+    body.theme-disney .floating-logo-layer{
+      
+      width:200px;
+    }
+
+    body.theme-starwars .floating-logo-layer{
+    
+      width:200px;
+    }
+
     body.theme-disney .overlay::after{
-      content:"✦ ✦ ✦";
+      content:"✦ ✦ ✦ ✦";
       position:absolute;
       top:12px;
       right:18px;
@@ -125,7 +199,7 @@
       content:"";
       position:absolute;
       inset:0;
-      background-image:radial-gradient(circle, rgba(255,255,255,.7) 0 1px, transparent 1.5px);
+      background-image:radial-gradient(circle, rgba(255,255,255,.72) 0 1px, transparent 1.6px), radial-gradient(circle at 40% 60%, rgba(84,219,234,.16) 0 1px, transparent 1.6px), radial-gradient(circle at 70% 35%, rgba(211,104,159,.16) 0 1px, transparent 1.6px);
       background-size:38px 38px;
       opacity:.16;
       pointer-events:none;
@@ -151,9 +225,12 @@
       border-radius:18px;
       display:flex;
       align-items:center;
+      overflow: visible;
+    position: relative;
+    z-index: 10;
       justify-content:space-between;
       gap:12px;
-      background:linear-gradient(90deg, var(--panel2), rgba(255,255,255,.05), var(--panel2));
+      background:linear-gradient(90deg, rgb(12 89 158 / 94%), rgba(255, 255, 255, .05), rgb(112 28 78 / 94%));
       border:2px solid var(--lineStrong);
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);
     }
@@ -212,10 +289,11 @@
     .board-shell{
       flex:1 1 auto;
       min-height:0;
-      padding:0 8px 8px;
+      padding:0 8px 0;
       display:flex;
       flex-direction:column;
       gap:8px;
+      overflow:visible;
     }
 
     .board{
@@ -231,62 +309,80 @@
       overflow:hidden;
     }
 
-    .board-top{
+        /* top-row branding removed; brand now lives inside the grid */
+
+    .board-bottom{
       display:grid;
-      grid-template-columns:1fr auto 1fr;
+      grid-template-columns: auto 1fr auto;
       gap:8px;
       align-items:center;
-      min-height:110px;
     }
 
-    .top-card{
-      height:110px;
+    .board-bottom-side{
+      display:flex;
+      gap:8px;
+      align-items:stretch;
+    }
+
+    .stat-card{
+      min-width:95px;
       border-radius:16px;
+      padding:2px 6px;
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:center;
       text-align:center;
-      padding:10px;
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.24));
-      border:2px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.24));
+      border:2px solid #ff5b7a;
     }
 
-    .top-card .kicker{
+    .stat-card .kicker{
       font-size:12px;
       font-weight:900;
-      letter-spacing:1.4px;
+      letter-spacing:1.2px;
       text-transform:uppercase;
       color:var(--muted);
     }
 
-    .top-card .value{
+    .stat-card .value{
       margin-top:4px;
-      font-size:26px;
+      font-size:24px;
       font-weight:900;
     }
 
-    .logo-slot{
-      width:190px;
-      height:110px;
-      border-radius:18px;
-      overflow:hidden;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:8px;
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.22));
-      border:2px solid var(--lineStrong);
+    .board-action{
+      max-width:100px;
+      border:none;
+      cursor:pointer;
+      border-radius:16px;
+      font-size:16px;
+      text-wrap:auto;
+      padding:4px 6px;
+      font-weight:900;
+      letter-spacing:.9px;
+      text-transform:uppercase;
+      background:linear-gradient(180deg, var(--accent2), #f0b04f);
+      color:#09111d;
+      box-shadow:0 8px 18px rgba(0,0,0,.24);
     }
 
-    .logo-slot img{
-      max-width:100%;
-      max-height:100%;
-      object-fit:contain;
-      filter:drop-shadow(0 6px 14px rgba(0,0,0,.35));
+    .board-action.alt{
+      color:black;
+      font-size:16px;
+      min-width:100px;
+      background:linear-gradient(180deg, var(--accent2), #f0b04f);
+      border:1px solid var(--lineStrong);
     }
 
-    .grid-wrap{
+    .board-bottom .ticker-slot{
+      height:100%;
+      min-height:58px;
+    }
+
+
+
+       .grid-wrap{
       flex:1 1 auto;
       min-height:0;
       overflow:hidden;
@@ -294,16 +390,23 @@
       padding:6px;
       background:linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.16));
       border:1px solid rgba(255,255,255,.04);
+      display:flex;
     }
 
     .custom-grid{
+      width:100%;
       height:100%;
       display:grid;
       grid-template-columns:repeat(var(--boardCols), minmax(0, 1fr));
       gap:var(--gap);
       align-content:start;
+      overflow-y:auto;
+      overflow-x:hidden;
     }
 
+    .custom-grid::-webkit-scrollbar {
+    display: none
+    }
     .tile{
       position:relative;
       height:var(--tileH);
@@ -311,7 +414,7 @@
       overflow:hidden;
       cursor:pointer;
       background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.30));
-      border:2px solid var(--lineStrong);
+      border:2px solid rgb(211 104 159);
       box-shadow:inset 0 0 0 1px rgba(255,255,255,.03), 0 4px 10px rgba(0,0,0,.18);
       transition:transform .14s ease, box-shadow .14s ease;
     }
@@ -326,6 +429,65 @@
       height:100%;
       object-fit:cover;
       display:block;
+      filter:brightness(.6);
+    }
+
+    .brand-hero{
+      grid-column: span 2;
+      grid-row: span 2;
+      height: calc((var(--tileH) * 2) + var(--gap));
+      min-height: calc((var(--tileH) * 2) + var(--gap));
+      border-radius:22px;
+      overflow:visible;
+      position:relative;
+      border:2px solid rgba(211,104,159,.38);
+      background:
+        radial-gradient(circle at 50% 20%, rgba(255,255,255,.04), transparent 42%),
+        linear-gradient(180deg, rgba(0,0,0,.16), rgba(0,0,0,.28));
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.03),
+        0 8px 18px rgba(0,0,0,.20);
+    }
+
+    .brand-hero::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(circle at 50% 20%, rgba(84,219,234,.14), transparent 40%),
+        radial-gradient(circle at 50% 80%, rgba(211,104,159,.10), transparent 42%);
+      pointer-events:none;
+      z-index:1;
+    }
+
+    .brand-hero img{
+     width: 175px;
+    height: auto;
+    object-fit: cover;
+      padding:2px;
+      display:block;
+      top:-120px;
+      position:relative;
+      opacity:0;
+      pointer-events:none;
+      z-index:999;
+      filter:drop-shadow(0 8px 20px rgba(0,0,0,.42));
+    }
+
+    body.layout-disney .brand-hero{
+      border-radius:14px;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.06),
+        0 10px 24px rgba(0,0,0,.26),
+        0 0 18px rgba(84,219,234,.16);
+    }
+
+    body.layout-starwars .brand-hero{
+      border-radius:16px;
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.04),
+        0 8px 18px rgba(0,0,0,.34),
+        0 0 14px rgba(35,201,218,.08);
     }
 
     .tile::before{
@@ -369,7 +531,7 @@
       align-items:center;
       justify-content:center;
       text-align:center;
-      padding:8px 6px;
+      padding:2px 2px;
     }
 
     .tile-title{
@@ -476,13 +638,13 @@
       display:flex;
       align-items:center;
       justify-content:space-between;
-      gap:10px;
+      gap:2px;
       flex-wrap:wrap;
       margin-bottom:10px;
     }
 
     .sold-title{
-      font-size:16px;
+      font-size:14px;
       font-weight:900;
       letter-spacing:1.4px;
       text-transform:uppercase;
@@ -491,7 +653,7 @@
     .sold-tools{
       display:flex;
       align-items:center;
-      gap:8px;
+      gap:2px;
       flex-wrap:wrap;
     }
 
@@ -500,7 +662,7 @@
       border:none;
       cursor:pointer;
       border-radius:12px;
-      padding:10px 12px;
+      padding:8px 10px;
       font-weight:900;
       letter-spacing:.9px;
       text-transform:uppercase;
@@ -556,29 +718,33 @@
     .sold-panel{
       display:grid;
       grid-template-columns:repeat(4, 1fr);
-      gap:10px;
-      max-height:160px;
+      gap:2px;
+      max-height:420px;
       overflow:auto;
+    }
+
+    .sold-panel::-webkit-scrollbar{
+      display:none;
     }
 
     .sold-row{
       display:flex;
       align-items:center;
-      gap:8px;
-      padding:8px;
+      gap:1px;
+      padding:2px;
       border-radius:999px;
       background:rgba(255,255,255,.06);
       border:1px solid var(--line);
     }
 
     .sold-code{
-      min-width:72px;
-      padding:8px 10px;
+      min-width:56px;
+      padding:5px 2px;
       border-radius:999px;
       background:rgba(0,0,0,.30);
       border:1px solid var(--lineStrong);
       text-align:center;
-      font-size:12px;
+      font-size:10px;
       font-weight:900;
       letter-spacing:.8px;
       text-transform:uppercase;
@@ -590,8 +756,8 @@
       border:none;
       outline:none;
       border-radius:999px;
-      padding:10px 12px;
-      background:rgba(0,0,0,.34);
+      padding:4px 2px;
+      background:rgba(0,0,0,.95);
       color:var(--text);
       font-weight:800;
     }
@@ -689,14 +855,48 @@
     .modal-actions > *{
       flex:1;
     }
+
+        .overlay-wrap{
+      width:1080px;
+      overflow:visible;
+    }
+
+    .sold-panel-slot{
+      width:1080px;
+      margin-top:8px;
+      overflow:visible;
+    }
+
+    .sold-wrap{
+      border-radius:18px;
+      background:linear-gradient(180deg, rgb(75 68 125), rgb(18 21 34));
+      border:2px solid #ff5b7a;
+      padding:6px;
+      position:relative;
+      z-index:2;
+    }
+
+    .sold-panel{
+      display:grid;
+      grid-template-columns:repeat(4, 1fr);
+      gap:10px;
+      max-height:none;
+      overflow:visible;
+    }
+
   </style>
 </head>
 <body class="theme-disney">
-  <div class="overlay">
+  <div class="overlay-wrap">
+    <div class="overlay">
+      <div class="floating-logo-layer">
+        <img id="floatingLogo" alt="Death Star Breaks logo" />
+      </div>
+
     <div class="header">
       <div class="header-left">
-        <div class="header-title" id="headerTitle">CUSTOM BREAKS</div>
-        <div class="header-sub" id="headerSub">DISNEY CUSTOM BREAK BOARD</div>
+        <div class="header-title" id="headerTitle">DEATH STAR BREAKS</div>
+        <div class="header-sub" id="headerSub">DISNEY BREAK BOARD</div>
       </div>
       <div class="header-right">
         <div class="theme-pill" id="themeLabel">Disney</div>
@@ -706,54 +906,65 @@
 
     <div class="board-shell">
       <div class="board">
-        <div class="board-top">
-          <div class="top-card">
-            <div class="kicker">Remaining</div>
-            <div class="value" id="remainingCount">0</div>
-          </div>
+           <!-- branding now lives inside the custom grid -->
 
-          <div class="logo-slot">
-            <img id="themeLogo" alt="Theme logo" src="https://dummyimage.com/320x180/1e3a63/ffffff&text=Disney+Theme" />
-          </div>
-
-          <div class="top-card">
-            <div class="kicker">Sold</div>
-            <div class="value" id="soldCount">0</div>
-          </div>
-        </div>
-
-        <div class="grid-wrap">
+         <div class="grid-wrap">
           <div class="custom-grid" id="customGrid"></div>
         </div>
-      </div>
 
-      <div class="ticker-slot">
-        <div class="ticker-track" id="tickerTrack">
-          <span class="ticker-copy" id="tickerCopyA">CUSTOM BREAKS • DISNEY + STAR WARS • CUSTOM SPOT ENTRY • AUTO FIT BOARD</span>
-          <span class="ticker-copy" id="tickerCopyB">CUSTOM BREAKS • DISNEY + STAR WARS • CUSTOM SPOT ENTRY • AUTO FIT BOARD</span>
-        </div>
-      </div>
+        <div class="board-bottom">
+          <div class="board-bottom-side">
+            <button class="board-action" onclick="nextBreak()">Next Break</button>
+            <div class="stat-card">
+              <div class="kicker">Sold</div>
+              <div class="value" id="soldCount">0</div>
+            </div>
+            
+          </div>
 
-      <div class="sold-wrap">
-        <div class="sold-head">
-          <div class="sold-title">Sold Spots</div>
-          <div class="sold-tools">
-            <button class="tool-btn" onclick="openBreakModal()">Set Break</button>
-            <button class="tool-btn" onclick="openTitleModal()">Set Title</button>
-            <button class="tool-btn" onclick="openTickerModal()">Edit Ticker</button>
-            <button class="tool-btn" onclick="openEntriesModal()">Custom Spots</button>
-            <button class="tool-btn alt" onclick="toggleTheme()">Toggle Theme</button>
-            <button class="tool-btn alt" onclick="resetAll()">Reset</button>
-            <button class="tool-btn alt" onclick="openExportModal()">Export TSV</button>
-            <div class="sse connecting" id="sseStatus">
-              SSE <span class="dot"></span><span id="sseText">OFF</span>
+          <div class="ticker-slot">
+            <div class="ticker-track" id="tickerTrack">
+              <span class="ticker-copy" id="tickerCopyA">DEATH STAR BREAKS • DISNEY + STAR WARS • CUSTOM SPOT ENTRY • AUTO FIT BOARD</span>
+              <span class="ticker-copy" id="tickerCopyB">DEATH STAR BREAKS • DISNEY + STAR WARS • CUSTOM SPOT ENTRY • AUTO FIT BOARD</span>
             </div>
           </div>
+
+          <div class="board-bottom-side" style="justify-content:flex-end;">
+            <div class="stat-card">
+              <div class="kicker">Remaining</div>
+              <div class="value" id="remainingCount">0</div>
+            </div>
+            <button class="board-action alt" onclick="resetAll()">Reset</button>
+          </div>
         </div>
-        <div class="sold-panel" id="soldPanel"></div>
       </div>
+
+
+
+
     </div>
   </div>
+
+    <div class="sold-panel-slot">
+    <div class="sold-wrap">
+      <div class="sold-head">
+        <div class="sold-title">Sold Spots</div>
+        <div class="sold-tools">
+          <button class="tool-btn" onclick="openBreakModal()">Set Break</button>
+          <button class="tool-btn" onclick="openTitleModal()">Set Title</button>
+          <button class="tool-btn" onclick="openTickerModal()">Edit Ticker</button>
+          <button class="tool-btn" onclick="openEntriesModal()">Custom Spots</button>
+          <button class="tool-btn alt" onclick="toggleTheme()">Toggle Theme</button>
+          <button class="tool-btn alt" onclick="openExportModal()">Export TSV</button>
+          <div class="sse connecting" id="sseStatus">
+            SSE <span class="dot"></span><span id="sseText">OFF</span>
+          </div>
+        </div>
+      </div>
+      <div class="sold-panel" id="soldPanel"></div>
+    </div>
+  </div>
+</div>
 
   <div class="modal-mask hidden" id="breakModal">
     <div class="modal-card">
@@ -803,9 +1014,9 @@
       <div class="modal-label">One spot per line</div>
       <textarea id="entriesModalInput" class="modal-textarea" placeholder="Spot 1&#10;Spot 2&#10;Spot 3"></textarea>
       <div class="modal-label">Disney tile design image path</div>
-      <input id="disneyImageInput" class="modal-input" type="text" placeholder="./assets/disney-tile-1.png" />
+     <input id="disneyImageInput" class="modal-input" type="text" placeholder="../../images/logos/starwars-break-logo.png" />
       <div class="modal-label">Star Wars tile design image path</div>
-      <input id="starwarsImageInput" class="modal-input" type="text" placeholder="./assets/starwars-tile-1.png" />
+     <input id="starwarsImageInput" class="modal-input" type="text" placeholder="../../images/logos/starwars-break-logo.png" />
       <div class="modal-help">This starter applies one image path per theme across all spots until you swap in per-tile art later.</div>
       <div class="modal-actions">
         <button class="modal-btn" onclick="applyEntriesModal()">Apply</button>
@@ -826,6 +1037,30 @@
   </div>
 
   <script>
+    
+    
+    
+        /******************************************************************
+     * BASE PATH (standard base ../../)
+     ******************************************************************/
+    const BASE = (() => {
+      const isGhPages = location.hostname.endsWith('github.io');
+      if (isGhPages) {
+        const parts = location.pathname.split('/').filter(Boolean);
+        const repo = parts.length ? parts[0] : '';
+        return `/${repo}/`;
+      }
+      return '../../';
+    })();
+
+    // Standard shared asset paths
+    const LOGO_DISNEY = `${BASE}images/logos/starwars-break-logo.png`;
+    const LOGO_STARWARS = `${BASE}images/logos/starwars-break-logo.png`;
+
+    const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+    const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
+    const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
+
     const STORAGE = {
       titleMain: "tsu.custom.titleMain",
       titleSub: "tsu.custom.titleSub",
@@ -870,7 +1105,7 @@
       channel: "main"
     };
 
-    let overlay_warmup = false;
+    let overlayWarmupComplete = false;
 
     const DEFAULT_ENTRIES = Array.from({length: 50}, (_, i) => ({
       code: `SPOT${String(i + 1).padStart(2, "0")}`,
@@ -878,28 +1113,52 @@
       meta: ""
     }));
 
-    function getTheme() {
-      return localStorage.getItem(STORAGE.theme) || "disney";
-    }
+function getTheme() {
+  return localStorage.getItem(STORAGE.theme) || "disney";
+}
 
-    function setTheme(theme) {
-      localStorage.setItem(STORAGE.theme, theme);
-      document.body.classList.remove("theme-disney", "theme-starwars");
-      document.body.classList.add(`theme-${theme}`);
-      document.getElementById("themeLabel").textContent = theme === "starwars" ? "Star Wars" : "Disney";
-      document.getElementById("themeLogo").src = theme === "starwars"
-        ? (localStorage.getItem(STORAGE.starwarsImage) || "https://dummyimage.com/320x180/0f172a/ffe16a&text=Star+Wars+Theme")
-        : (localStorage.getItem(STORAGE.disneyImage) || "https://dummyimage.com/320x180/1e3a63/ffffff&text=Disney+Theme");
-    }
+function getDefaultSubtitle(theme) {
+  return theme === "starwars" ? "STAR WARS BREAK BOARD" : "DISNEY BREAK BOARD";
+}
 
-    function toggleTheme() {
-      setTheme(getTheme() === "disney" ? "starwars" : "disney");
-      const sub = getTheme() === "starwars" ? "STAR WARS CUSTOM BREAK BOARD" : "DISNEY CUSTOM BREAK BOARD";
-      if (!localStorage.getItem(STORAGE.titleSub)) {
-        document.getElementById("headerSub").textContent = sub;
-      }
-      buildLayout();
-    }
+function setTheme(theme) {
+  localStorage.setItem(STORAGE.theme, theme);
+
+  document.body.classList.remove(
+    "theme-disney",
+    "theme-starwars",
+    "layout-disney",
+    "layout-starwars"
+  );
+
+  document.body.classList.add(`theme-${theme}`);
+  document.body.classList.add(`layout-${theme}`);
+
+  document.getElementById("themeLabel").textContent = theme === "starwars" ? "Star Wars" : "Disney";
+
+  const disneyImg = (localStorage.getItem(STORAGE.disneyImage) || "").trim() || LOGO_DISNEY;
+  const starwarsImg = (localStorage.getItem(STORAGE.starwarsImage) || "").trim() || LOGO_STARWARS;
+
+  const floatingLogo = document.getElementById("floatingLogo");
+  if (floatingLogo) {
+    floatingLogo.src = theme === "starwars" ? starwarsImg : starwarsImg;
+  }
+
+  const savedSub = (localStorage.getItem(STORAGE.titleSub) || "").trim();
+  const disneyDefault = getDefaultSubtitle("disney");
+  const starwarsDefault = getDefaultSubtitle("starwars");
+
+  if (!savedSub || savedSub === disneyDefault || savedSub === starwarsDefault) {
+    document.getElementById("headerSub").textContent = getDefaultSubtitle(theme);
+    localStorage.setItem(STORAGE.titleSub, getDefaultSubtitle(theme));
+  }
+}
+
+ function toggleTheme() {
+  const nextTheme = getTheme() === "disney" ? "starwars" : "disney";
+  setTheme(nextTheme);
+  buildLayout();
+}
 
     function getEntries() {
       const raw = localStorage.getItem(STORAGE.entries);
@@ -916,25 +1175,26 @@
       localStorage.setItem(STORAGE.entries, JSON.stringify(entries));
     }
 
-    function applyBoardSizing(count) {
-      let cols = 10;
-      if (count <= 54) cols = 9;
-      if (count <= 45) cols = 8;
-      if (count >= 66) cols = 10;
+function applyBoardSizing(count) {
+  const cols = 10;
 
-      const rows = Math.ceil(count / cols);
-      const gridHeight = 760 - 220 - 42 - 36;
-      const tileH = Math.max(52, Math.min(84, Math.floor((gridHeight - ((rows - 1) * 6)) / rows)));
-      const tileTitle = Math.max(12, Math.min(18, Math.floor(tileH * 0.24)));
-      const tileMeta = Math.max(9, Math.min(11, Math.floor(tileH * 0.15)));
+  // +4 because the hero tile occupies a 2x2 area inside the grid
+  const effectiveCellCount = count + 4;
+  const rows = Math.ceil(effectiveCellCount / cols);
 
-      document.documentElement.style.setProperty("--boardCols", String(cols));
-      document.documentElement.style.setProperty("--tileH", `${tileH}px`);
-      document.documentElement.style.setProperty("--tileTitle", `${tileTitle}px`);
-      document.documentElement.style.setProperty("--tileMeta", `${tileMeta}px`);
-    }
+  // shorter board, denser look like your screenshot
+  const gridHeight = 320;
+  const tileH = Math.max(56, Math.min(58, Math.floor((gridHeight - ((rows - 1) * 6)) / rows)));
+  const tileTitle = Math.max(17, Math.min(17, Math.floor(tileH * 0.24)));
+  const tileMeta = Math.max(8, Math.min(10, Math.floor(tileH * 0.15)));
 
-    function buildLayout() {
+  document.documentElement.style.setProperty("--boardCols", String(cols));
+  document.documentElement.style.setProperty("--tileH", `${tileH}px`);
+  document.documentElement.style.setProperty("--tileTitle", `${tileTitle}px`);
+  document.documentElement.style.setProperty("--tileMeta", `${tileMeta}px`);
+}
+
+       function buildLayout() {
       const grid = document.getElementById("customGrid");
       const entries = getEntries();
       applyBoardSizing(entries.length);
@@ -942,10 +1202,10 @@
 
       const theme = getTheme();
       const imagePath = theme === "starwars"
-        ? (localStorage.getItem(STORAGE.starwarsImage) || "")
-        : (localStorage.getItem(STORAGE.disneyImage) || "");
+        ? ((localStorage.getItem(STORAGE.starwarsImage) || "").trim() || LOGO_STARWARS)
+        : ((localStorage.getItem(STORAGE.disneyImage) || "").trim() || LOGO_DISNEY);
 
-      entries.forEach(entry => {
+      function makeSpotTile(entry) {
         const tile = document.createElement("div");
         tile.className = "tile";
         tile.dataset.code = entry.code;
@@ -968,8 +1228,27 @@
         });
 
         if (soldTeams.has(entry.code)) tile.classList.add("sold");
-        grid.appendChild(tile);
-      });
+        return tile;
+      }
+
+      function makeBrandHeroTile() {
+        const hero = document.createElement("div");
+        hero.className = "brand-hero";
+
+        const logoPath = theme === "starwars"
+          ? ((localStorage.getItem(STORAGE.starwarsImage) || "").trim() || LOGO_STARWARS)
+          : ((localStorage.getItem(STORAGE.disneyImage) || "").trim() || LOGO_DISNEY);
+
+        hero.innerHTML = `<img src="${escapeHtml(logoPath)}" alt="Death Star Breaks branding" />`;
+        return hero;
+      }
+
+      const leftStart = entries.slice(0, 4);
+      const rest = entries.slice(4);
+
+      leftStart.forEach(entry => grid.appendChild(makeSpotTile(entry)));
+      grid.appendChild(makeBrandHeroTile());
+      rest.forEach(entry => grid.appendChild(makeSpotTile(entry)));
 
       renderSoldPanel();
       renderCounts();
@@ -1022,24 +1301,25 @@
       }
     }
 
-    function sseMarkSold(code, buyer = "") {
-      if (!code) return;
-      soldTeams.add(code);
+function sseMarkSold(code, buyer = "") {
+  if (!code) return;
 
-      const existing = soldTeamsList.find(x => x.code === code);
-      if (existing) {
-        if (buyer) existing.buyer = buyer;
-      } else {
-        soldTeamsList.push({ code, buyer });
-      }
+  soldTeams.add(code);
 
-      const tile = document.querySelector(`.tile[data-code="${CSS.escape(code)}"]`);
-      if (tile) tile.classList.add("sold");
+  const existing = soldTeamsList.find(x => x.code === code);
+  if (existing) {
+    if (buyer) existing.buyer = buyer;
+  } else {
+    soldTeamsList.push({ code, buyer: buyer || "" });
+  }
 
-      persistSoldState();
-      renderSoldPanel();
-      renderCounts();
-    }
+  const tile = document.querySelector(`.tile[data-code="${CSS.escape(code)}"]`);
+  if (tile) tile.classList.add("sold");
+
+  persistSoldState();
+  renderSoldPanel();
+  renderCounts();
+}
 
     function sseMarkUnsold(code) {
       if (!code) return;
@@ -1063,61 +1343,113 @@
         renderSoldPanel();
       }
     }
+function breakIdMatches(payload) {
+  const incoming = String(payload?.breakId || "").trim();
+  if (!incoming) return true;
 
-    function breakIdMatches() {
-      return true;
-    }
-
+  const n = String(localStorage.getItem(STORAGE.breakNumber) || "1");
+  return incoming.endsWith(`-${n}`) || incoming === n;
+}
     function normalizePayload(payload) {
       return payload?.data || payload || {};
     }
 
     function handleSSEEvent(payload) {
-      try {
-        const type = String(payload?.type || payload?.event || "");
-        const data = normalizePayload(payload);
-        const code = data.team || data.code || data.teamCode || data.spot || "";
-        const buyer = data.buyer || data.username || "";
-        const listingKey = data.saleId || data.id || data.listingId || null;
+  try {
+    const type = String(payload?.type || payload?.event || "").toLowerCase();
+    const data = normalizePayload(payload);
 
-        if (type === "team_sold" || type === "sale" || type === "sold" || type === "purchase" || type === "whatnot_purchase") {
-          if (listingKey) {
-            const prevCode = lastCodeByListingKey.get(listingKey);
-            if (prevCode && prevCode !== code) {
-              sseMarkUnsold(prevCode);
-            }
-            lastCodeByListingKey.set(listingKey, code);
-          }
-          sseMarkSold(code, buyer);
-        }
+    if (!breakIdMatches(payload)) return;
+    if (!type || type === "overlay_warmup" || type === "hello") return;
 
-        if (type === "team_unsold") {
-          sseMarkUnsold(code);
-          if (listingKey && lastCodeByListingKey.get(listingKey) === code) {
-            lastCodeByListingKey.delete(listingKey);
-          }
-        }
+    const code = String(data.team || data.code || data.teamCode || data.spot || "").trim();
+    const buyer = String(data.buyer || data.username || "").trim();
+    const listingKey = data.saleId || data.id || data.listingId || null;
 
-        if (type === "buyer" || type === "buyer_update") {
-          sseUpdateBuyer(code, buyer);
-        }
+    if (type === "team_sold" || type === "sale" || type === "sold" || type === "purchase" || type === "whatnot_purchase") {
+      if (!code) return;
 
-        if (type === "reset") {
-          resetAll();
+      if (listingKey) {
+        const prevCode = lastCodeByListingKey.get(listingKey);
+        if (prevCode && prevCode !== code) {
+          sseMarkUnsold(prevCode);
         }
-
-        if (type === "set_break" && data.breakNumber) {
-          setBreakNumber(data.breakNumber);
-        }
-
-        if (type === "set_title" && data.title) {
-          document.getElementById("headerTitle").textContent = data.title;
-          localStorage.setItem(STORAGE.titleMain, data.title);
-        }
-      } catch (err) {
-        console.warn("handleSSEEvent error", err);
+        lastCodeByListingKey.set(listingKey, code);
       }
+
+      sseMarkSold(code, buyer);
+      return;
     }
+
+    if (type === "team_unsold") {
+      if (!code) return;
+
+      sseMarkUnsold(code);
+      if (listingKey && lastCodeByListingKey.get(listingKey) === code) {
+        lastCodeByListingKey.delete(listingKey);
+      }
+      return;
+    }
+
+    if (type === "buyer" || type === "buyer_update") {
+      if (code) sseUpdateBuyer(code, buyer);
+      return;
+    }
+
+    if (type === "reset") {
+      resetAll();
+      return;
+    }
+
+    if (type === "set_break") {
+      const nextBreak = data.breakNumber || data.value;
+      if (nextBreak) setBreakNumber(nextBreak);
+      return;
+    }
+
+    if (type === "next_break") {
+      nextBreak();
+      return;
+    }
+
+    if (type === "set_title") {
+      const nextTitle = String(data.title || data.value || "").trim();
+      if (nextTitle) {
+        document.getElementById("headerTitle").textContent = nextTitle;
+        localStorage.setItem(STORAGE.titleMain, nextTitle);
+      }
+      return;
+    }
+
+    if (type === "set_ticker") {
+      const nextText = String(data.tickerText || data.text || "").trim();
+      const nextSpeed = parseInt(data.tickerSpeed || data.speed, 10);
+
+      if (nextText) {
+        localStorage.setItem(STORAGE.tickerText, nextText);
+        document.getElementById("tickerCopyA").textContent = nextText;
+        document.getElementById("tickerCopyB").textContent = nextText;
+      }
+
+      if (Number.isFinite(nextSpeed)) {
+        localStorage.setItem(STORAGE.tickerDur, String(nextSpeed));
+        document.documentElement.style.setProperty("--tickerDur", `${nextSpeed}s`);
+      }
+      return;
+    }
+
+    if (type === "set_sport") {
+      const nextTheme = String(data.sport || data.breakType || "").toLowerCase().trim();
+      if (nextTheme === "disney" || nextTheme === "starwars") {
+        setTheme(nextTheme);
+        buildLayout();
+      }
+      return;
+    }
+  } catch (err) {
+    console.warn("handleSSEEvent error", err);
+  }
+}
 
     let eventSource = null;
 
@@ -1172,12 +1504,24 @@
       document.getElementById("sseText").textContent = label;
     }
 
-    function resetAll() {
-      soldTeams.clear();
-      soldTeamsList = [];
-      lastCodeByListingKey.clear();
-      persistSoldState();
-      buildLayout();
+ function resetAll() {
+  soldTeams.clear();
+  soldTeamsList = [];
+  lastCodeByListingKey.clear();
+  persistSoldState();
+  buildLayout();
+}
+
+function nextBreak() {
+  const current = parseInt(localStorage.getItem(STORAGE.breakNumber) || "1", 10) || 1;
+  resetAll();
+  setBreakNumber(current + 1);
+}
+
+    function nextBreak() {
+      const current = parseInt(localStorage.getItem(STORAGE.breakNumber) || "1", 10) || 1;
+      resetAll();
+      setBreakNumber(current + 1);
     }
 
     function setBreakNumber(value) {
@@ -1197,14 +1541,14 @@
     }
 
     function openTitleModal() {
-      document.getElementById("titleMainInput").value = localStorage.getItem(STORAGE.titleMain) || "CUSTOM BREAKS";
+      document.getElementById("titleMainInput").value = localStorage.getItem(STORAGE.titleMain) || "DEATH STAR BREAKS";
       document.getElementById("titleSubInput").value = localStorage.getItem(STORAGE.titleSub) || "";
       document.getElementById("titleModal").classList.remove("hidden");
     }
     function closeTitleModal() { document.getElementById("titleModal").classList.add("hidden"); }
     function applyTitleModal() {
-      const main = document.getElementById("titleMainInput").value.trim() || "CUSTOM BREAKS";
-      const sub = document.getElementById("titleSubInput").value.trim() || (getTheme() === "starwars" ? "STAR WARS CUSTOM BREAK BOARD" : "DISNEY CUSTOM BREAK BOARD");
+      const main = document.getElementById("titleMainInput").value.trim() || "DEATH STAR BREAKS";
+      const sub = document.getElementById("titleSubInput").value.trim() || (getTheme() === "starwars" ? "STAR WARS BREAK BOARD" : "DISNEY BREAK BOARD");
       localStorage.setItem(STORAGE.titleMain, main);
       localStorage.setItem(STORAGE.titleSub, sub);
       document.getElementById("headerTitle").textContent = main;
@@ -1213,7 +1557,7 @@
     }
 
     function openTickerModal() {
-      document.getElementById("tickerModalInput").value = localStorage.getItem(STORAGE.tickerText) || "CUSTOM BREAKS • DISNEY + STAR WARS • CUSTOM SPOT ENTRY • AUTO FIT BOARD";
+      document.getElementById("tickerModalInput").value = localStorage.getItem(STORAGE.tickerText) || "DEATH STAR BREAKS • DISNEY + STAR WARS • CUSTOM SPOT ENTRY • AUTO FIT BOARD";
       const speed = parseInt(localStorage.getItem(STORAGE.tickerDur) || "26", 10);
       document.getElementById("tickerSpeedSlider").value = String(speed);
       document.getElementById("tickerSpeedValue").textContent = `${speed}s`;
@@ -1221,7 +1565,7 @@
     }
     function closeTickerModal() { document.getElementById("tickerModal").classList.add("hidden"); }
     function applyTickerModal() {
-      const text = document.getElementById("tickerModalInput").value.trim() || "CUSTOM BREAKS";
+      const text = document.getElementById("tickerModalInput").value.trim() || "DEATH STAR BREAKS";
       const speed = parseInt(document.getElementById("tickerSpeedSlider").value, 10) || 26;
       localStorage.setItem(STORAGE.tickerText, text);
       localStorage.setItem(STORAGE.tickerDur, String(speed));
@@ -1234,8 +1578,8 @@
     function openEntriesModal() {
       const entries = getEntries();
       document.getElementById("entriesModalInput").value = entries.map(x => x.title).join("\n");
-      document.getElementById("disneyImageInput").value = localStorage.getItem(STORAGE.disneyImage) || "";
-      document.getElementById("starwarsImageInput").value = localStorage.getItem(STORAGE.starwarsImage) || "";
+      document.getElementById("disneyImageInput").value = (localStorage.getItem(STORAGE.disneyImage) || "").trim() || LOGO_DISNEY;
+      document.getElementById("starwarsImageInput").value = (localStorage.getItem(STORAGE.starwarsImage) || "").trim() || LOGO_STARWARS;
       document.getElementById("entriesModal").classList.remove("hidden");
     }
     function closeEntriesModal() { document.getElementById("entriesModal").classList.add("hidden"); }
@@ -1252,8 +1596,14 @@
       }));
 
       saveEntries(entries);
-      localStorage.setItem(STORAGE.disneyImage, document.getElementById("disneyImageInput").value.trim());
-      localStorage.setItem(STORAGE.starwarsImage, document.getElementById("starwarsImageInput").value.trim());
+      localStorage.setItem(
+        STORAGE.disneyImage,
+        document.getElementById("disneyImageInput").value.trim() || LOGO_DISNEY
+      );
+      localStorage.setItem(
+        STORAGE.starwarsImage,
+        document.getElementById("starwarsImageInput").value.trim() || LOGO_STARWARS
+      );
       setTheme(getTheme());
       buildLayout();
       closeEntriesModal();
@@ -1297,23 +1647,23 @@
         .replaceAll("'", "&#39;");
     }
 
-    function overlay_warmup() {
-      overlay_warmup = true;
-      restoreSoldState();
-      setTheme(getTheme());
-      document.getElementById("headerTitle").textContent = localStorage.getItem(STORAGE.titleMain) || "CUSTOM BREAKS";
-      document.getElementById("headerSub").textContent = localStorage.getItem(STORAGE.titleSub) || (getTheme() === "starwars" ? "STAR WARS CUSTOM BREAK BOARD" : "DISNEY CUSTOM BREAK BOARD");
-      setBreakNumber(localStorage.getItem(STORAGE.breakNumber) || "1");
-      const ticker = localStorage.getItem(STORAGE.tickerText) || "CUSTOM BREAKS • DISNEY + STAR WARS • CUSTOM SPOT ENTRY • AUTO FIT BOARD";
-      const speed = parseInt(localStorage.getItem(STORAGE.tickerDur) || "26", 10);
-      document.getElementById("tickerCopyA").textContent = ticker;
-      document.getElementById("tickerCopyB").textContent = ticker;
-      document.documentElement.style.setProperty("--tickerDur", `${speed}s`);
-      buildLayout();
-      connectSSE();
-    }
+function overlay_warmup() {
+  overlayWarmupComplete = true;
+  restoreSoldState();
+  setTheme(getTheme());
+  document.getElementById("headerTitle").textContent = localStorage.getItem(STORAGE.titleMain) || "DEATH STAR BREAKS";
+  document.getElementById("headerSub").textContent = localStorage.getItem(STORAGE.titleSub) || getDefaultSubtitle(getTheme());
+  setBreakNumber(localStorage.getItem(STORAGE.breakNumber) || "1");
+  const ticker = localStorage.getItem(STORAGE.tickerText) || "DEATH STAR BREAKS • DISNEY + STAR WARS • CUSTOM SPOT ENTRY • AUTO FIT BOARD";
+  const speed = parseInt(localStorage.getItem(STORAGE.tickerDur) || "26", 10);
+  document.getElementById("tickerCopyA").textContent = ticker;
+  document.getElementById("tickerCopyB").textContent = ticker;
+  document.documentElement.style.setProperty("--tickerDur", `${speed}s`);
+  buildLayout();
+  connectSSE();
+}
 
-    window.addEventListener("load", overlay_warmup);
+window.addEventListener("load", overlay_warmup);
   </script>
 </body>
 </html>
