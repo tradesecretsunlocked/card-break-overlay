@@ -844,6 +844,26 @@
     let soldTeamsList = [];
     const lastCodeByListingKey = new Map();
 
+// --- URL PARAM BRIDGE PATCH ---
+(function initBridgeFromURL() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+
+    const bridge = params.get("bridge");
+    const key = params.get("key");
+
+    if (bridge) {
+      localStorage.setItem("tsu.bridgeUrl", bridge);
+    }
+
+    if (key) {
+      localStorage.setItem("tsu.bridgeKey", key);
+    }
+  } catch (e) {
+    console.warn("URL bridge init failed", e);
+  }
+})();
+
     const tsu = {
       bridgeUrl: (localStorage.getItem("tsu.bridgeUrl") || "").replace(/\/(stream|events)$/, "").replace(/\/$/, "").trim(),
       bridgeKey: localStorage.getItem("tsu.bridgeKey") || "",
