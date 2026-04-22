@@ -2429,30 +2429,47 @@ function playSoldAnimation(code){
   const layer = document.getElementById("soldFxLayer");
   const tile = document.querySelector(`[data-team-code="${code}"]`);
   const entry = getEntryByCode(code);
+  const board = document.getElementById("board");
+  const ticker = document.querySelector(".footer-strip");
 
-  if (!layer || !tile || !entry) return;
+  if (!layer || !tile || !entry || !board) return;
 
   const rect = tile.getBoundingClientRect();
+  const boardRect = board.getBoundingClientRect();
+  const tickerRect = ticker?.getBoundingClientRect();
+
   const viewportW = window.innerWidth || document.documentElement.clientWidth || 1080;
-  const viewportH = window.innerHeight || document.documentElement.clientHeight || 840;
+
+  const visibleTop = boardRect.top + 10;
+  const visibleBottom = tickerRect ? (tickerRect.top - 12) : (boardRect.bottom - 10);
+  const visibleHeight = Math.max(180, visibleBottom - visibleTop);
 
   const cx = rect.left + rect.width / 2;
   const cy = rect.top + rect.height / 2;
 
-  const strikeLen = Math.max(260, Math.min(420, viewportW * 0.38));
+  const strikeLen = Math.max(220, Math.min(360, boardRect.width * 0.34));
   const strikeAngle = -14;
 
   const strike = document.createElement("div");
   strike.className = "sold-fx-strike";
-  strike.style.setProperty("--fx-strike-x", `${Math.max(24, cx - strikeLen * 0.18)}px`);
+  strike.style.setProperty("--fx-strike-x", `${Math.max(boardRect.left + 12, cx - strikeLen * 0.18)}px`);
   strike.style.setProperty("--fx-strike-y", `${cy - 5}px`);
   strike.style.setProperty("--fx-strike-len", `${strikeLen}px`);
   strike.style.setProperty("--fx-strike-angle", `${strikeAngle}deg`);
 
   const cardW = 420;
   const cardH = 250;
-  const endX = Math.max(20, Math.min(viewportW - cardW - 20, (viewportW - cardW) / 2));
-  const endY = Math.max(20, Math.min(viewportH - cardH - 20, (viewportH - cardH) / 2));
+
+  const endX = Math.max(
+    boardRect.left + 12,
+    Math.min(boardRect.right - cardW - 12, boardRect.left + (boardRect.width - cardW) / 2)
+  );
+
+  const endY = Math.max(
+    visibleTop,
+    Math.min(visibleBottom - cardH, visibleTop + (visibleHeight - cardH) / 2)
+  );
+
   const startX = cx - cardW / 2;
   const startY = cy - cardH / 2;
   const midX = startX + (endX - startX) * 0.45;

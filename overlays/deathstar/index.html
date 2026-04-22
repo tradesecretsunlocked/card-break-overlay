@@ -1139,9 +1139,9 @@ function setTheme(theme) {
   const disneyImg = (localStorage.getItem(STORAGE.disneyImage) || "").trim() || LOGO_DISNEY;
   const starwarsImg = (localStorage.getItem(STORAGE.starwarsImage) || "").trim() || LOGO_STARWARS;
 
-  const floatingLogo = document.getElementById("floatingLogo");
+   const floatingLogo = document.getElementById("floatingLogo");
   if (floatingLogo) {
-    floatingLogo.src = theme === "starwars" ? starwarsImg : starwarsImg;
+    floatingLogo.src = theme === "starwars" ? starwarsImg : disneyImg;
   }
 
   const savedSub = (localStorage.getItem(STORAGE.titleSub) || "").trim();
@@ -1414,9 +1414,16 @@ function breakIdMatches(payload) {
 
     if (type === "set_title") {
       const nextTitle = String(data.title || data.value || "").trim();
+      const nextSub = String(data.subtitle || data.sub || "").trim();
+
       if (nextTitle) {
         document.getElementById("headerTitle").textContent = nextTitle;
         localStorage.setItem(STORAGE.titleMain, nextTitle);
+      }
+
+      if (nextSub) {
+        document.getElementById("headerSub").textContent = nextSub;
+        localStorage.setItem(STORAGE.titleSub, nextSub);
       }
       return;
     }
@@ -1438,10 +1445,11 @@ function breakIdMatches(payload) {
       return;
     }
 
-    if (type === "set_sport") {
+   if (type === "set_sport") {
       const nextTheme = String(data.sport || data.breakType || "").toLowerCase().trim();
       if (nextTheme === "disney" || nextTheme === "starwars") {
         setTheme(nextTheme);
+        localStorage.setItem(STORAGE.theme, nextTheme);
         buildLayout();
       }
       return;
@@ -1486,7 +1494,7 @@ function breakIdMatches(payload) {
         } catch {}
       };
 
-      ["team_sold","team_unsold","sale","sold","purchase","whatnot_purchase","buyer","buyer_update","reset","set_break","set_title"].forEach(evt => {
+            ["team_sold","team_unsold","sale","sold","purchase","whatnot_purchase","buyer","buyer_update","reset","set_break","set_title","set_ticker","set_sport","next_break","overlay_warmup"].forEach(evt => {
         eventSource.addEventListener(evt, (e) => {
           try {
             const payload = JSON.parse(e.data);
@@ -1517,12 +1525,6 @@ function nextBreak() {
   resetAll();
   setBreakNumber(current + 1);
 }
-
-    function nextBreak() {
-      const current = parseInt(localStorage.getItem(STORAGE.breakNumber) || "1", 10) || 1;
-      resetAll();
-      setBreakNumber(current + 1);
-    }
 
     function setBreakNumber(value) {
       const safe = Math.max(1, parseInt(value, 10) || 1);
