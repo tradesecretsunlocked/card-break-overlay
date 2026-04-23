@@ -190,10 +190,9 @@
 .board-shell{
   position:relative;
   z-index:2;
-  flex:1 1 auto;
-  min-height:0;
+  flex:0 0 auto;
   display:grid;
-  grid-template-rows:1fr auto auto;
+  grid-template-rows:auto auto auto;
   gap:8px;
   padding:0 8px 8px;
   background:
@@ -204,8 +203,6 @@
 }
 
 .board{
-  flex:1 1 auto;
-  min-height:0;
   padding:2px;
   border-radius:16px;
   background:linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
@@ -241,13 +238,7 @@
   flex:0 0 auto;
 }
 
-.custom-scroll{
-  flex:0 0 auto;
-  min-height:0;
-  overflow:visible;
-  border-radius:14px;
-  padding-right:0;
-}
+
 
 .custom-grid{
   display:grid;
@@ -1137,6 +1128,63 @@
   min-width:0;
 }
 
+.combo-tabs{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.combo-tab-btn{
+  flex:1;
+  min-width:140px;
+  height:42px;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:900;
+  font-size:13px;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:#fff6ef;
+  background:linear-gradient(180deg, #243c62, #132746 55%, #0d1624 100%);
+  border:2px solid rgba(127,200,255,.35);
+}
+
+.combo-tab-btn.active{
+  color:#0d1624;
+  background:linear-gradient(180deg, var(--gold2), var(--gold) 55%, #d7a53f 100%);
+  border:2px solid rgba(255,241,205,.55);
+}
+
+.combo-tab-panel{
+  display:none;
+  flex-direction:column;
+  gap:10px;
+}
+
+.combo-tab-panel.active{
+  display:flex;
+}
+
+.combo-chaser-team-grid{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:10px;
+  max-height:300px;
+  overflow:auto;
+  padding-right:4px;
+}
+
+.combo-split-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+
+.combo-split-grid .modal-textarea{
+  min-height:180px;
+}
+
 .prize-spot-grid{
   display:grid;
   grid-template-columns:repeat(4, 1fr);
@@ -1188,6 +1236,68 @@
   line-height:1.1;
   color:#fff8ea;
   text-transform:uppercase;
+}
+
+.team.combo-chaser{
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255,217,120,.22), transparent 55%),
+    linear-gradient(180deg, rgba(34,18,6,.98), rgba(12,10,18,.98));
+  border-color:rgba(255,217,120,.95);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    0 0 16px rgba(243,196,90,.34),
+    0 0 28px rgba(240,141,45,.18);
+}
+
+.team.combo-chaser img{
+  opacity:.08;
+  filter:grayscale(1) brightness(.25);
+}
+
+.team.combo-chaser::after{
+  content:"CHASER";
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff6d9;
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+  text-shadow:
+    0 2px 8px rgba(0,0,0,.85),
+    0 0 10px rgba(243,196,90,.28);
+  z-index:3;
+}
+
+.team.combo-custom-item{
+  background:
+    linear-gradient(180deg, rgba(14,34,58,.98), rgba(7,16,28,.98));
+  border-color:rgba(127,200,255,.82);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    0 0 16px rgba(127,199,255,.20);
+}
+
+.team.combo-custom-item::after{
+  content:attr(data-custom-label);
+  position:absolute;
+  inset:4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  color:#fff8ea;
+  font-size:14px;
+  line-height:1.05;
+  font-weight:900;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  text-shadow:0 2px 8px rgba(0,0,0,.85);
+  z-index:3;
+  padding:4px 6px;
 }
 
 .chase-color-grid{
@@ -1719,6 +1829,7 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
   <button class="tool-btn" onclick="openCustomEntriesModal()">Custom Entries</button>
   <button class="tool-btn" onclick="openPrizeSpotSelectorModal()">Select Prize Spots</button>
 <button class="tool-btn" onclick="openChaseModal()">Chase Manager</button>
+<button class="tool-btn" onclick="openComboChaserModal()">Combo Chasers</button>
 <button class="tool-btn" onclick="toggleChaseBuyersPanel()">Chase Buyers</button>
 <button class="tool-btn" onclick="openExportSoldModal()">Export Sold</button>
 <button class="tool-btn" onclick="toggleLayoutMode()">Toggle Layout</button>
@@ -1878,7 +1989,49 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
     </div>
   </div>
 </div>
+<div class="modal-mask hidden" id="comboChaserModal">
+  <div class="modal-card">
+    <div class="modal-title">Combo Chaser Manager</div>
 
+    <div class="combo-tabs">
+      <button class="combo-tab-btn active" type="button" data-tab="teams" onclick="setComboChaserTab('teams')">Teams</button>
+      <button class="combo-tab-btn" type="button" data-tab="extras" onclick="setComboChaserTab('extras')">Extra Spots</button>
+    </div>
+
+    <div class="combo-tab-panel active" id="comboTabTeams">
+      <div class="modal-label">Select MLB / NFL Teams to Convert to Chasers</div>
+      <div class="modal-help">Selected team tiles will display as CHASER spots on the combo board.</div>
+      <div id="comboChaserTeamGrid" class="combo-chaser-team-grid"></div>
+    </div>
+
+    <div class="combo-tab-panel" id="comboTabExtras">
+      <div class="combo-split-grid">
+        <div>
+          <div class="modal-label">Extra Chaser Spots (up to 12)</div>
+          <textarea
+            id="comboExtraChasersInput"
+            class="modal-textarea"
+            placeholder="One extra chaser spot per line"
+          ></textarea>
+        </div>
+
+        <div>
+          <div class="modal-label">Custom Non-Chaser Items (up to 12)</div>
+          <textarea
+            id="comboExtraItemsInput"
+            class="modal-textarea"
+            placeholder="One custom item per line"
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-btn primary" onclick="applyComboChaserModal()">Apply</button>
+      <button class="modal-btn secondary" onclick="closeComboChaserModal()">Cancel</button>
+    </div>
+  </div>
+</div>
   <script>
 const BASE = (() => {
   const isGhPages = location.hostname.endsWith("github.io");
@@ -1913,9 +2066,12 @@ const STORAGE = {
 
   chaseBuyersOpen: "jtb.combo.chaseBuyersOpen",
   chaseBuyersActive: "jtb.combo.chaseBuyersActive",
-  chaseBuyersRemoved: "jtb.combo.chaseBuyersRemoved"
-};
+  chaseBuyersRemoved: "jtb.combo.chaseBuyersRemoved",
 
+  comboChaserTeams: "jtb.combo.comboChaserTeams",
+  comboExtraChasers: "jtb.combo.comboExtraChasers",
+  comboExtraItems: "jtb.combo.comboExtraItems"
+};
     const MLB_TEAMS = [
       { code:"ARI", name:"Diamondbacks", image:imgPathMLB("diamondbacks.png") },
       { code:"ATL", name:"Braves", image:imgPathMLB("braves.png") },
@@ -1999,6 +2155,10 @@ let layoutMode = localStorage.getItem(STORAGE.layoutMode) || "combo";
 let customEntries = [];
 let customChaseMap = new Map();
 let selectedPrizeSpotCodes = new Set();
+
+let comboChaserTeams = new Set();
+let comboExtraChasers = [];
+let comboExtraItems = [];
 
 const lastCodeByListingKey = new Map();
 const SCORES_BY_SPORT = { mlb:"", nfl:"" };
@@ -2107,6 +2267,87 @@ function saveSelectedPrizeSpotCodes(){
     STORAGE.selectedPrizeSpotCodes,
     JSON.stringify(Array.from(selectedPrizeSpotCodes))
   );
+}
+
+function loadComboChaserTeams(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORAGE.comboChaserTeams) || "[]");
+    return new Set(Array.isArray(raw) ? raw : []);
+  }catch(_){
+    return new Set();
+  }
+}
+
+function saveComboChaserTeams(){
+  localStorage.setItem(STORAGE.comboChaserTeams, JSON.stringify(Array.from(comboChaserTeams)));
+}
+
+function loadComboExtraChasers(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORAGE.comboExtraChasers) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  }catch(_){
+    return [];
+  }
+}
+
+function saveComboExtraChasers(){
+  localStorage.setItem(STORAGE.comboExtraChasers, JSON.stringify(comboExtraChasers));
+}
+
+function loadComboExtraItems(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORAGE.comboExtraItems) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  }catch(_){
+    return [];
+  }
+}
+
+function saveComboExtraItems(){
+  localStorage.setItem(STORAGE.comboExtraItems, JSON.stringify(comboExtraItems));
+}
+
+function saveComboChaserState(){
+  saveComboChaserTeams();
+  saveComboExtraChasers();
+  saveComboExtraItems();
+}
+
+function isComboTeamChaser(code){
+  return layoutMode === "combo" && comboChaserTeams.has(code);
+}
+
+function getComboExtraChaserCode(index){
+  return `COMBO_CHASER_${String(index + 1).padStart(2, "0")}`;
+}
+
+function getComboExtraItemCode(index){
+  return `COMBO_ITEM_${String(index + 1).padStart(2, "0")}`;
+}
+
+function getComboSupplementalEntries(){
+  const chasers = comboExtraChasers.map((name, index) => ({
+    key: getComboExtraChaserCode(index),
+    code: getComboExtraChaserCode(index),
+    name: String(name || "").trim() || `Chaser ${index + 1}`,
+    image: "",
+    meta: "",
+    sport: "",
+    comboType: "extra_chaser"
+  }));
+
+  const items = comboExtraItems.map((name, index) => ({
+    key: getComboExtraItemCode(index),
+    code: getComboExtraItemCode(index),
+    name: String(name || "").trim() || `Item ${index + 1}`,
+    image: "",
+    meta: "",
+    sport: "",
+    comboType: "extra_item"
+  }));
+
+  return [...chasers, ...items];
 }
 
 function getCustomEnvelopePath(){
@@ -2519,14 +2760,6 @@ function inferTeamCodeFromTitle(title, sportHint=""){
   const raw = String(title || "").toLowerCase().trim();
   if (!raw) return "";
 
-  const numeric = raw.match(/^#?\s*(\d{1,3})\s*$/);
-  if (layoutMode === "custom" && numeric){
-    const n = parseInt(numeric[1], 10);
-    if (Number.isFinite(n) && n > 0){
-      return `CUSTOM_${String(n).padStart(3, "0")}`;
-    }
-  }
-
   if (layoutMode === "custom"){
     for (const entry of customEntries){
       const name = String(entry.name || "").toLowerCase().trim();
@@ -2559,11 +2792,9 @@ function inferTeamCodeFromTitle(title, sportHint=""){
 
   return "";
 }
-function getCodeFromPayload(p){
-  const raw = String(
-    p?.code || p?.teamCode || p?.customCode || p?.team || p?.abbr || ""
-  ).trim().toUpperCase();
 
+function getCodeFromPayload(p){
+  const raw = String(p?.code || p?.teamCode || p?.team || p?.abbr || "").trim().toUpperCase();
   const sport = String(p?.sport || p?.league || "").trim().toLowerCase();
 
   if (!raw) return "";
@@ -2593,16 +2824,6 @@ function getDisplayEntryName(entry){
   return entry.sport ? `${entry.sport} ${entry.name}` : (entry.name || entry.code || entry.key || "");
 }
 
-function compareSoldEntries(a, b){
-  const av = String(a?.name || a?.code || "");
-  const bv = String(b?.name || b?.code || "");
-
-  return av.localeCompare(bv, undefined, {
-    numeric: true,
-    sensitivity: "base"
-  });
-}
-
 function getAllTeams(){
   return [
     ...MLB_TEAMS.map(t => ({ ...t, key:`MLB_${t.code}`, sport:"MLB" })),
@@ -2612,7 +2833,7 @@ function getAllTeams(){
 
 function getAllEntries(){
   if (layoutMode === "custom") return customEntries;
-  return getAllTeams();
+  return [...getAllTeams(), ...getComboSupplementalEntries()];
 }
 
 function getEntryByCode(code){
@@ -2631,13 +2852,6 @@ function splitByCounts(arr, counts){
   return out;
 }
 
-function getCustomLayoutMetrics(count){
-  if (count <= 90)  return { cols: 12, tileH: 36 };
-  if (count <= 120) return { cols: 13, tileH: 33 };
-  if (count <= 150) return { cols: 14, tileH: 29 };
-  return { cols: 15, tileH: 26 };
-}
-
 function makeHiddenCell(){
   const spacer = document.createElement("div");
   spacer.className = "hidden";
@@ -2650,7 +2864,11 @@ function makeTeamTile(team){
   el.dataset.teamCode = team.key;
   el.onclick = () => toggleTeam(team);
 
-  if (team.image){
+  const isExtraChaser = team.comboType === "extra_chaser";
+  const isExtraItem = team.comboType === "extra_item";
+  const isMarkedTeamChaser = isComboTeamChaser(team.key);
+
+  if (team.image && !isExtraChaser && !isExtraItem){
     const img = document.createElement("img");
     img.src = team.image;
     img.alt = team.name || team.key || "";
@@ -2662,72 +2880,17 @@ function makeTeamTile(team){
     el.innerHTML = `<div class="fallback">${team.code || team.key || "?"}</div>`;
   }
 
+  if (isExtraChaser || isMarkedTeamChaser){
+    el.classList.add("combo-chaser");
+  }
+
+  if (isExtraItem){
+    el.classList.add("combo-custom-item");
+    el.dataset.customLabel = String(team.name || "").toUpperCase();
+  }
+
   if (soldTeams.has(team.key)) el.classList.add("sold");
   return el;
-}
-
-function hexToRgba(hex, alpha){
-  const clean = String(hex || "").replace("#", "").trim();
-  if (!/^[0-9a-fA-F]{6}$/.test(clean)) return `rgba(255,255,255,${alpha})`;
-
-  const r = parseInt(clean.slice(0, 2), 16);
-  const g = parseInt(clean.slice(2, 4), 16);
-  const b = parseInt(clean.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-function getChaseCategoryForCode(code){
-  const cfg = customChaseMap.get(code);
-  return String(cfg?.category || "").toLowerCase().replace(/\s+/g, "");
-}
-
-function getChaseColorForCode(code){
-  const category = getChaseCategoryForCode(code);
-  if (!category) return "";
-  return chaseCategoryColors?.[category] || CHASE_CATEGORY_CONFIG?.[category]?.defaultColor || "";
-}
-
-function applySoldChaseTileStyle(el, code){
-  if (!el || !code || !soldTeams.has(code)) return;
-
-  const color = getChaseColorForCode(code);
-  if (!color) return;
-
-  el.style.borderColor = color;
-  el.style.background = `
-    linear-gradient(
-      180deg,
-      ${hexToRgba(color, .68)} 0%,
-      ${hexToRgba(color, .42)} 38%,
-      rgba(8,14,22,.96) 100%
-    )
-  `;
-  el.style.boxShadow = `
-    inset 0 0 0 1px rgba(255,255,255,.08),
-    0 0 18px ${hexToRgba(color, .55)},
-    0 0 30px ${hexToRgba(color, .28)}
-  `;
-
-  el.style.setProperty("--soldXBg", hexToRgba(color, .22));
-  el.style.setProperty("--soldXBorder", color);
-  el.style.setProperty("--soldXColor", color);
-  el.style.setProperty("--soldXGlow", hexToRgba(color, .85));
-  el.style.setProperty("--soldXGlowSoft", hexToRgba(color, .35));
-}
-
-function makeLogoSlot(){
-  const slot = document.createElement("div");
-  slot.className = "logo-slot";
-
-  const img = document.createElement("img");
-  img.src = LOGO_PRIMARY;
-  img.alt = "Jim & Tabby's Breaks Logo";
-  img.onerror = () => {
-    slot.innerHTML = `<div class="fallback">LOGO</div>`;
-  };
-
-  slot.appendChild(img);
-  return slot;
 }
 function makeCustomTile(entry){
   const el = document.createElement("div");
@@ -2753,20 +2916,22 @@ function makeCustomTile(entry){
 
   el.appendChild(label);
 
-  if (soldTeams.has(entry.key)){
-    el.classList.add("sold");
-
-    if (isChaseSpotCode(entry.key)) {
-      const chaseCfg = customChaseMap.get(entry.key) || {};
-      el.classList.add("chase-sold");
-      el.dataset.chaseLabel = String(chaseCfg.label || "CHASE").toUpperCase();
-    }
-
-    applySoldChaseTileStyle(el, entry.key);
-  }
-
+  if (soldTeams.has(entry.key)) el.classList.add("sold");
   return el;
 }
+
+function makeLogoSlot(){
+  const slot = document.createElement("div");
+  slot.className = "logo-slot";
+
+  const img = document.createElement("img");
+  img.src = LOGO_PRIMARY;
+  img.alt = "Jim & Tabby's Breaks Logo";
+  slot.appendChild(img);
+
+  return slot;
+}
+
 function makeControl(label, value = "", kind = "btn"){
   const el = document.createElement("div");
   el.className = `bottom-control ${kind}`;
@@ -2793,33 +2958,25 @@ function buildBoard(){
     const wrap = document.createElement("div");
     wrap.className = "custom-board-wrap";
 
-const metrics = getCustomLayoutMetrics(customEntries.length);
-document.documentElement.style.setProperty("--customCols", String(metrics.cols));
-document.documentElement.style.setProperty("--customTileH", `${metrics.tileH}px`);
+    const topRow = document.createElement("div");
+    topRow.className = "custom-top-row";
 
-const topRow = document.createElement("div");
-topRow.className = "custom-top-row";
+    const topEntries = customEntries.slice(0, 12);
+    const remainingEntries = customEntries.slice(12);
 
-const topRowTileCount = Math.max(2, metrics.cols - 2);
-const leftCount = Math.floor(topRowTileCount / 2);
-const rightCount = topRowTileCount - leftCount;
+    topEntries.slice(0, 6).forEach(entry => {
+      topRow.appendChild(makeCustomTile(entry));
+    });
 
-const topEntries = customEntries.slice(0, topRowTileCount);
-const remainingEntries = customEntries.slice(topRowTileCount);
+    topRow.appendChild(makeLogoSlot());
 
- topEntries.slice(0, leftCount).forEach(entry => {
-  topRow.appendChild(makeCustomTile(entry));
-});
+    topEntries.slice(6, 12).forEach(entry => {
+      topRow.appendChild(makeCustomTile(entry));
+    });
 
-topRow.appendChild(makeLogoSlot());
-
-topEntries.slice(leftCount, leftCount + rightCount).forEach(entry => {
-  topRow.appendChild(makeCustomTile(entry));
-});
-
-while (topRow.children.length < metrics.cols){
-  topRow.appendChild(makeHiddenCell());
-}
+    while (topRow.children.length < 14){
+      topRow.appendChild(makeHiddenCell());
+    }
 
     wrap.appendChild(topRow);
 
@@ -2848,7 +3005,10 @@ while (topRow.children.length < metrics.cols){
     soldStat.id = "soldStatBottom";
     controlsRow.appendChild(soldStat);
 
-    controlsRow.appendChild(makeTotalChaseCounter());
+    controlsRow.appendChild(makeChaseCounter("pack"));
+    controlsRow.appendChild(makeChaseCounter("team"));
+    controlsRow.appendChild(makeChaseCounter("chaser"));
+    controlsRow.appendChild(makeChaseCounter("prizepack"));
 
     const remainStat = makeControl("Remaining", getRemainingCount(), "stat");
     remainStat.id = "remainStatBottom";
@@ -2908,12 +3068,33 @@ while (topRow.children.length < metrics.cols){
     board.appendChild(row);
   }
 
+    const comboSupplemental = getComboSupplementalEntries();
+  const comboSupplementalRows = splitByCounts(comboSupplemental, [12, 2]);
+
+  if (comboSupplementalRows[0] && comboSupplementalRows[0].length){
+    const row = document.createElement("div");
+    row.className = "board-row";
+
+    comboSupplementalRows[0].forEach(t => row.appendChild(makeTeamTile(t)));
+
+    while (row.children.length < 12){
+      row.appendChild(makeHiddenCell());
+    }
+
+    board.appendChild(row);
+  }
+
   {
     const row = document.createElement("div");
     row.className = "board-row board-row-controls";
     row.style.gridTemplateColumns = "1fr 1fr 1.35fr 1.45fr 1.45fr 1.35fr 1fr 1fr";
 
-    mlbRows[5].forEach(t => row.appendChild(makeTeamTile(t)));
+    const bottomLeft = comboSupplementalRows[1] || [];
+    bottomLeft.forEach(t => row.appendChild(makeTeamTile(t)));
+
+    while (row.children.length < 2){
+      row.appendChild(makeHiddenCell());
+    }
 
     const resetBtn = makeControl("Reset", "", "btn red");
     resetBtn.onclick = resetAll;
@@ -2936,12 +3117,10 @@ while (topRow.children.length < metrics.cols){
 
     board.appendChild(row);
   }
-
   updateStats();
   renderSoldPanel();
   updateTicker();
 }
-
 function getRemainingCount(){
   return getAllEntries().length - soldTeams.size;
 }
@@ -3646,7 +3825,89 @@ function closeChaseModal(){
   document.getElementById("chaseModal")?.classList.add("hidden");
 }
 
+function setComboChaserTab(tab){
+  const tabMap = {
+    teams: "comboTabTeams",
+    extras: "comboTabExtras"
+  };
 
+  Object.entries(tabMap).forEach(([key, id]) => {
+    document.getElementById(id)?.classList.toggle("active", key === tab);
+  });
+
+  document.querySelectorAll('#comboChaserModal .combo-tab-btn').forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.tab === tab);
+  });
+}
+
+function openComboChaserModal(){
+  const modal = document.getElementById("comboChaserModal");
+  const grid = document.getElementById("comboChaserTeamGrid");
+  const extraChasersInput = document.getElementById("comboExtraChasersInput");
+  const extraItemsInput = document.getElementById("comboExtraItemsInput");
+
+  if (grid){
+    grid.innerHTML = "";
+    getAllTeams().forEach(team => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `prize-spot-chip${comboChaserTeams.has(team.key) ? " selected" : ""}`;
+      btn.dataset.code = team.key;
+      btn.innerHTML = `
+        <div class="spot-code">${team.key}</div>
+        <div class="spot-name">${team.sport} ${team.name}</div>
+      `;
+      btn.onclick = () => btn.classList.toggle("selected");
+      grid.appendChild(btn);
+    });
+  }
+
+  if (extraChasersInput){
+    extraChasersInput.value = comboExtraChasers.join("\n");
+  }
+
+  if (extraItemsInput){
+    extraItemsInput.value = comboExtraItems.join("\n");
+  }
+
+  setComboChaserTab("teams");
+
+  modal?.classList.remove("hidden");
+}
+
+function closeComboChaserModal(){
+  document.getElementById("comboChaserModal")?.classList.add("hidden");
+}
+
+function applyComboChaserModal(){
+  const grid = document.getElementById("comboChaserTeamGrid");
+  const extraChasersInput = document.getElementById("comboExtraChasersInput");
+  const extraItemsInput = document.getElementById("comboExtraItemsInput");
+
+  if (grid){
+    comboChaserTeams = new Set(
+      Array.from(grid.querySelectorAll(".prize-spot-chip.selected"))
+        .map(el => String(el.dataset.code || "").trim())
+        .filter(Boolean)
+    );
+  }
+
+  comboExtraChasers = String(extraChasersInput?.value || "")
+    .split("\n")
+    .map(v => v.trim())
+    .filter(Boolean)
+    .slice(0, 12);
+
+  comboExtraItems = String(extraItemsInput?.value || "")
+    .split("\n")
+    .map(v => v.trim())
+    .filter(Boolean)
+    .slice(0, 12);
+
+  saveComboChaserState();
+  closeComboChaserModal();
+  buildBoard();
+}
 
 function toggleLayoutMode(){
   layoutMode = layoutMode === "combo" ? "custom" : "combo";
@@ -3727,7 +3988,7 @@ function handleSportsEvent(_data){
 }
 
 document.addEventListener("click", (e) => {
-  ["tickerModal","customEntriesModal","prizeSpotSelectorModal","chaseModal","exportSoldModal"].forEach(id => {
+  ["tickerModal","customEntriesModal","prizeSpotSelectorModal","chaseModal","comboChaserModal","exportSoldModal"].forEach(id => {
     const modal = document.getElementById(id);
     if (modal && !modal.classList.contains("hidden") && e.target === modal){
       modal.classList.add("hidden");
@@ -3737,7 +3998,7 @@ document.addEventListener("click", (e) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  ["tickerModal","customEntriesModal","prizeSpotSelectorModal","chaseModal","exportSoldModal"].forEach(id => {
+  ["tickerModal","customEntriesModal","prizeSpotSelectorModal","chaseModal","comboChaserModal","exportSoldModal"].forEach(id => {
     document.getElementById(id)?.classList.add("hidden");
   });
 });
@@ -3946,6 +4207,10 @@ function boot(){
   customChaseMap = loadCustomChaseMap();
   selectedPrizeSpotCodes = loadSelectedPrizeSpotCodes();
   chaseCategoryColors = loadChaseCategoryColors();
+
+  comboChaserTeams = loadComboChaserTeams();
+  comboExtraChasers = loadComboExtraChasers();
+  comboExtraItems = loadComboExtraItems();
   layoutMode = localStorage.getItem(STORAGE.layoutMode) || "combo";
   TICKER_LINES = loadTickerLines();
   setBreakNumber(loadBreakNumber());
