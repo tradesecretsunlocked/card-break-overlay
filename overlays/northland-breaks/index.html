@@ -1012,25 +1012,23 @@ min-height:95px;
   height: 60px;
   object-fit: contain;
   opacity: 0;
+  visibility: hidden;
   pointer-events:none;
   z-index: 99991;
   transform-origin: center center;
-  transform: scale(1);
-
+  will-change: transform, opacity;
 }
 
 .sold-fx-shatter.play{
-  animation: soldFxShatterIn 620ms ease forwards;
+  opacity: 1;
+  visibility: visible;
+  animation: soldFxShatterIn 220ms ease forwards;
 }
 
 @keyframes soldFxShatterIn{
   0%{
     opacity: 0;
     transform: scale(0.78);
-  }
-  18%{
-    opacity: 1;
-    transform: scale(1);
   }
   100%{
     opacity: 1;
@@ -1330,13 +1328,18 @@ min-height:95px;
   <!-- Optional dark overlay so the UI pops more -->
   <div class="bg-dim"></div>
 <div id="soldFxLayer" class="sold-fx-layer">
-  <video
+  <img
     id="soldFxShatter"
     class="sold-fx-shatter"
-    playsinline
+    src=""
+    alt=""
+  />
+
+  <audio
+    id="soldFxShatterAudio"
     preload="auto"
-    src="../../images/fx/glass-shatter_1.webm"
-  ></video>
+    src="../../images/fx/glass-shatter.mp3"
+  ></audio>
 </div>
  
 
@@ -2736,6 +2739,62 @@ function inferTeamCodeFromSaleTitle(title, breakType){
   }
   return "";
 }
+function playShatterSound(){
+  const audio = document.getElementById("soldFxShatterAudio");
+  if (!audio) return;
+
+  try{
+    audio.pause();
+    audio.currentTime = 0;
+    audio.volume = 1;
+
+    const p = audio.play();
+    if (p && typeof p.catch === "function"){
+      p.catch(err => {
+        console.warn("[shatter audio blocked]", err);
+      });
+    }
+  }catch(err){
+    console.warn("[shatter audio error]", err);
+  }
+}
+
+function playShatterGif(x, y, w, h){
+  const shatter = document.getElementById("soldFxShatter");
+  if (!shatter) return;
+
+  const pad = 6;
+  const gifSrc = `${BASE}images/fx/glass-shatter_1.gif`;
+
+  shatter.style.left = `${x - pad}px`;
+  shatter.style.top = `${y - pad}px`;
+  shatter.style.width = `${w + (pad * 2)}px`;
+  shatter.style.height = `${h + (pad * 2)}px`;
+  shatter.style.opacity = "1";
+  shatter.style.visibility = "visible";
+  shatter.classList.remove("play");
+
+  // Restart GIF by clearing and reassigning src
+  shatter.src = "";
+  void shatter.offsetWidth;
+  shatter.src = gifSrc;
+
+  void shatter.offsetWidth;
+  shatter.classList.add("play");
+}
+
+function verifyShatterAssets(){
+  const shatter = document.getElementById("soldFxShatter");
+  const audio = document.getElementById("soldFxShatterAudio");
+
+  if (shatter){
+    shatter.onerror = () => console.warn("[shatter gif missing or failed]");
+  }
+  if (audio){
+    audio.onerror = () => console.warn("[shatter audio missing or failed]");
+  }
+}
+
 
 function playTileVideoFx(tile, selector, duration = 950){
   if (!tile) return;
@@ -2812,35 +2871,15 @@ function playSoldAnimation(code){
 // STEP 1: TILE-BASED SHATTER (NOT CENTERED)
 if (shatter){
   try{
-const tileRect = tile.getBoundingClientRect();
-
-const x = tileRect.left;
-const y = tileRect.top;
+    const tileRect = tile.getBoundingClientRect();
+    const x = tileRect.left;
+    const y = tileRect.top;
 
     tile.classList.add("sell-pop");
-setTimeout(() => tile.classList.remove("sell-pop"), 420);
+    setTimeout(() => tile.classList.remove("sell-pop"), 420);
 
-const pad = 6;
-shatter.style.left = `${x - pad}px`;
-shatter.style.top = `${y - pad}px`;
-shatter.style.width = `${tileRect.width + (pad * 2)}px`;
-shatter.style.height = `${tileRect.height + (pad * 2)}px`;
-
-shatter.pause();
-shatter.currentTime = 0;
-shatter.style.transform = "scale(1)";
-
-shatter.classList.remove("play");
-void shatter.offsetWidth;
-
-    shatter.classList.add("play");
-
-    shatter.muted = false;
-    shatter.volume = 1;
-
-    const vp = shatter.play();
-    if (vp && typeof vp.catch === "function") vp.catch(() => {});
-
+    playShatterGif(x, y, tileRect.width, tileRect.height);
+    playShatterSound();
   }catch(_){}
 }
 
@@ -2892,18 +2931,17 @@ void shatter.offsetWidth;
       strike.remove();
       card.remove();
     }, 2100);
-  }, 900);
+  }, 1100);
 
   // STEP 3: clean up shatter after it has had time to show
-  setTimeout(() => {
-    if (shatter){
-      try{
-        shatter.pause();
-        shatter.classList.remove("play");
-        shatter.currentTime = 0;
-      }catch(_){}
-    }
-  }, 900);
+setTimeout(() => {
+  if (shatter){
+    shatter.classList.remove("play");
+    shatter.style.opacity = "0";
+    shatter.style.visibility = "hidden";
+    shatter.src = "";
+  }
+}, 1800);
 }
 
   function handleSSEEvent(data){
@@ -3135,20 +3173,21 @@ function buildExportTSV(){
     if (qSport && breakTypes[qSport]) currentBreakType = qSport;
 
     setBreakNumber(loadBreakNumber());
-    buildLayout();
-    initPromoBar();
-    
+buildLayout();
+initPromoBar();
+verifyShatterAssets();
+
 document.body.addEventListener("click", () => {
-  document.querySelectorAll("video").forEach(v => {
-    try {
-      v.muted = false;
-      v.volume = 1;
-      v.play().then(() => {
-        v.pause();
-        v.currentTime = 0;
-      }).catch(()=>{});
-    } catch(e){}
-  });
+  const audio = document.getElementById("soldFxShatterAudio");
+  if (!audio) return;
+
+  try{
+    audio.volume = 1;
+    audio.play().then(() => {
+      audio.pause();
+      audio.currentTime = 0;
+    }).catch(()=>{});
+  }catch(_){}
 }, { once: true });
 
     const ti = document.getElementById("tickerInput");
