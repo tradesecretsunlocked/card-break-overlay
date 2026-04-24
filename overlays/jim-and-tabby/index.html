@@ -3056,28 +3056,64 @@ function inferTeamCodeFromTitle(title, sportHint=""){
     if (raw.includes(plainName)) return t.key;
   }
 
-  if (sportHint === "mlb" || sportHint === "nfl"){
-    for (const t of list){
-      const shortCode = String(t.code || "").toLowerCase();
-      if (shortCode && new RegExp(`\\b${shortCode}\\b`).test(raw)) return t.key;
-    }
+if (sportHint === "mlb" || sportHint === "nfl"){
+  for (const t of list){
+    const shortCode = String(t.code || "").toLowerCase();
+    if (shortCode && new RegExp(`\\b${shortCode}\\b`).test(raw)) return t.key;
   }
+
+  // extension may send WAS while overlay uses WSH
+  if (/\bwas\b/.test(raw)){
+    return sportHint === "nfl" ? "NFL_WSH" : "MLB_WSH";
+  }
+}
 
   return "";
 }
 
 function getCodeFromPayload(p){
-  const raw = String(p?.code || p?.teamCode || p?.team || p?.abbr || "").trim().toUpperCase();
+  let raw = String(p?.code || p?.teamCode || p?.team || p?.abbr || "").trim().toUpperCase();
   const sport = String(p?.sport || p?.league || "").trim().toLowerCase();
+  const title = String(p?.title || p?.itemTitle || p?.listingTitle || p?.name || "").trim();
 
   if (!raw) return "";
 
-  if (raw.startsWith("MLB_") || raw.startsWith("NFL_") || raw.startsWith("CUSTOM_")) return raw;
+  // already normalized overlay keys
+  if (raw.startsWith("MLB_") || raw.startsWith("NFL_") || raw.startsWith("COMBO_CHASER_") || raw.startsWith("COMBO_ITEM_")) {
+    return raw;
+  }
+
+  // IMPORTANT:
+  // Extension may emit CUSTOM_002 for a numbered Whatnot listing, but in combo mode
+  // that visible tile may actually live on the board as COMBO_CHASER_02 / COMBO_ITEM_02.
+  if (raw.startsWith("CUSTOM_") && layoutMode === "combo") {
+    const m = raw.match(/^CUSTOM_(\d+)$/);
+    if (m) {
+      const idx = Math.max(0, parseInt(m[1], 10) - 1);
+
+      // First try exact titled combo match if title exists
+      if (title) {
+        const inferred = inferTeamCodeFromTitle(title, sport);
+        if (inferred) return inferred;
+      }
+
+      // Then map by visible combo supplemental order
+      if (comboExtraChasers[idx]) return getComboExtraChaserCode(idx);
+      if (comboExtraItems[idx]) return getComboExtraItemCode(idx);
+    }
+
+    return raw;
+  }
+
+  // overlay uses WSH for Commanders/Nationals, extension may send WAS
+  if (raw === "WAS" && (sport === "nfl" || sport === "mlb")) {
+    raw = "WSH";
+  }
 
   if (sport === "mlb") return `MLB_${raw}`;
   if (sport === "nfl") return `NFL_${raw}`;
 
-  return "";
+  return raw;
 }
 
 function getCustomEntryCode(index){
@@ -4759,7 +4795,26 @@ function handleMainEvent(payload){
     if (!code) code = inferTeamCodeFromTitle(data.title || "", sportHint);
 
     const listingKey = String(data.saleId || data.id || data.listingId || "").trim();
-    if (code) sseMarkUnsold(code);
+   if (!code || !getEntryByCode(code)) {
+  const fallbackTitle = data.title || data.itemTitle || data.listingTitle || data.name || "";
+  const fallbackSport = String(data.sport || data.league || "").trim().toLowerCase();
+  const inferred = inferTeamCodeFromTitle(fallbackTitle, fallbackSport);
+
+  if (inferred && getEntryByCode(inferred)) {
+    code = inferred;
+  }
+}
+
+if (code && getEntryByCode(code)) {
+  sseMarkUnsold(code);
+} else if (code) {
+  console.warn("[Overlay] unsold ignored: code not on active board", {
+    code,
+    title: data.title || "",
+    sport: data.sport || data.league || "",
+    layoutMode
+  });
+}
     if (listingKey) lastCodeByListingKey.delete(listingKey);
     return;
   }
@@ -4779,7 +4834,30 @@ function handleMainEvent(payload){
     const buyer = getBuyerFromPayload(data);
     const listingKey = String(data.saleId || data.id || data.listingId || "").trim();
 
-    if (!code) return;
+if (!code || !getEntryByCode(code)) {
+  const fallbackTitle = data.title || data.itemTitle || data.listingTitle || data.name || "";
+  const fallbackSport = String(data.sport || data.league || "").trim().toLowerCase();
+  const inferred = inferTeamCodeFromTitle(fallbackTitle, fallbackSport);
+
+  if (inferred && getEntryByCode(inferred)) {
+    code = inferred;
+  }
+}
+
+if (!code) {
+  console.warn("[Overlay] sale ignored: no code resolved", data);
+  return;
+}
+
+if (!getEntryByCode(code)) {
+  console.warn("[Overlay] sale ignored: code not on active board", {
+    code,
+    title: data.title || "",
+    sport: data.sport || data.league || "",
+    layoutMode
+  });
+  return;
+}
 
     if (listingKey){
       const prevCode = lastCodeByListingKey.get(listingKey);
