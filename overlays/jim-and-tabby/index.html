@@ -2876,7 +2876,44 @@ function escapeHtml(v){
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+function getComboDisplayVisual(entry){
+  if (!entry){
+    return {
+      image: getCustomEnvelopePath(),
+      name: ""
+    };
+  }
 
+  const isExtraChaser = entry.comboType === "extra_chaser";
+  const isExtraItem = entry.comboType === "extra_item";
+  const isMarkedTeamChaser = isComboTeamChaser(entry.key);
+
+  if (isMarkedTeamChaser){
+    return {
+      image: getCustomEnvelopePath(),
+      name: getComboChaserLabel(entry.key)
+    };
+  }
+
+  if (isExtraChaser){
+    return {
+      image: getCustomEnvelopePath(),
+      name: String(entry.name || "Chaser").trim() || "Chaser"
+    };
+  }
+
+  if (isExtraItem){
+    return {
+      image: getCustomEnvelopePath(),
+      name: String(entry.name || "Item").trim() || "Item"
+    };
+  }
+
+  return {
+    image: entry.image || getCustomEnvelopePath(),
+    name: getDisplayEntryName(entry) || entry.code || entry.key || ""
+  };
+}
 function playSoldAnimation(code){
   const layer = document.getElementById("soldFxLayer");
   const tile = document.querySelector(`[data-team-code="${code}"]`);
@@ -2936,8 +2973,9 @@ function playSoldAnimation(code){
   card.style.setProperty("--fx-end-x", `${endX}px`);
   card.style.setProperty("--fx-end-y", `${endY}px`);
 
-  const imageSrc = entry.image || getCustomEnvelopePath();
-  const displayName = getDisplayEntryName(entry) || code;
+const visual = getComboDisplayVisual(entry);
+const imageSrc = visual.image || getCustomEnvelopePath();
+const displayName = visual.name || code;
 
   card.innerHTML = `
     <div class="sold-fx-spin">
@@ -2971,11 +3009,35 @@ function inferTeamCodeFromTitle(title, sportHint=""){
   const raw = String(title || "").toLowerCase().trim();
   if (!raw) return "";
 
+  // Custom layout exact/contains match
   if (layoutMode === "custom"){
     for (const entry of customEntries){
       const name = String(entry.name || "").toLowerCase().trim();
       if (name && raw === name) return entry.key;
       if (name && raw.includes(name)) return entry.key;
+    }
+  }
+
+  // Combo mode: exact/contains match for marked team chaser labels
+  if (layoutMode === "combo"){
+    for (const code of comboChaserTeams){
+      const label = String(getComboChaserLabel(code) || "").toLowerCase().trim();
+      if (label && raw === label) return code;
+      if (label && raw.includes(label)) return code;
+    }
+
+    // Combo mode: extra chaser names
+    for (let i = 0; i < comboExtraChasers.length; i++){
+      const name = String(comboExtraChasers[i] || "").toLowerCase().trim();
+      if (!name) continue;
+      if (raw === name || raw.includes(name)) return getComboExtraChaserCode(i);
+    }
+
+    // Combo mode: extra custom item names
+    for (let i = 0; i < comboExtraItems.length; i++){
+      const name = String(comboExtraItems[i] || "").toLowerCase().trim();
+      if (!name) continue;
+      if (raw === name || raw.includes(name)) return getComboExtraItemCode(i);
     }
   }
 
@@ -3082,7 +3144,9 @@ function makeTeamTile(team){
   const isExtraItem = team.comboType === "extra_item";
   const isMarkedTeamChaser = isComboTeamChaser(team.key);
 
-  if (team.image && !isExtraChaser && !isExtraItem){
+  const shouldShowImage = !!team.image && !isExtraChaser && !isExtraItem && !isMarkedTeamChaser;
+
+  if (shouldShowImage){
     const img = document.createElement("img");
     img.src = team.image;
     img.alt = team.name || team.key || "";
@@ -3098,12 +3162,12 @@ function makeTeamTile(team){
     el.classList.add("combo-chaser");
     el.dataset.chaserLabel = isMarkedTeamChaser
       ? getComboChaserLabel(team.key)
-      : String(team.name || "Chaser").toUpperCase();
+      : String(team.name || "Chaser").trim() || "Chaser";
   }
 
   if (isExtraItem){
     el.classList.add("combo-custom-item");
-    el.dataset.customLabel = String(team.name || "").toUpperCase();
+    el.dataset.customLabel = String(team.name || "").trim().toUpperCase();
   }
 
   const soldX = document.createElement("span");
@@ -3398,13 +3462,15 @@ function sseMarkSold(code, buyer=""){
     soldTeams.add(code);
 
     if (!soldTeamsList.some(x => x.code === code)){
-      soldTeamsList.push({
-        code,
-        name: getDisplayEntryName(team),
-        buyer: buyer || "",
-        image: team.image || getCustomEnvelopePath()
-      });
-    }
+  const visual = getComboDisplayVisual(team);
+
+  soldTeamsList.push({
+    code,
+    name: visual.name || getDisplayEntryName(team),
+    buyer: buyer || "",
+    image: visual.image || getCustomEnvelopePath()
+  });
+}
 
     const tile = document.querySelector(`[data-team-code="${code}"]`);
     if (tile){
@@ -3539,7 +3605,7 @@ const DEFAULT_COMBO_BULK_IMPORT = [
   "Silver Prize Pack",
   "Pink Shock Prize Pack #1",
   "Pink Shock Prize Pack #2"
-]
+].join("\n");
 
 function loadTickerLines(){
   try{
