@@ -4878,23 +4878,40 @@ function handleSSEEvent(payload){
 function connectEventSource(channel, onEvent){
   const bridgeUrl = getBridgeBase();
   const bridgeKey = getBridgeKey();
-  const es = new EventSource(buildSSEUrl(bridgeUrl, channel, bridgeKey));
+  const url = buildSSEUrl(bridgeUrl, channel, bridgeKey);
+
+  console.log("[Overlay] opening SSE:", { channel, url });
+
+  const es = new EventSource(url);
+
+  es.onopen = () => {
+    console.log("[Overlay] SSE open:", channel);
+    if (channel === getMainChannel()){
+      mainState = "connected";
+      setSSEStatus();
+    }
+  };
+
+  es.onerror = (err) => {
+    console.warn("[Overlay] SSE error:", channel, err);
+    if (channel === getMainChannel()){
+      mainState = "error";
+      setSSEStatus();
+    }
+  };
 
   const ingest = (event) => {
     try{
       const data = JSON.parse(event.data);
       if (data?.type === "hello") return;
       onEvent(data);
-    }catch(_){}
+    }catch(err){
+      console.warn("[Overlay] SSE parse failed:", err, event?.data);
+    }
   };
 
   es.onmessage = ingest;
-  [
-    "team_sold","team_unsold","sale","sold","purchase","whatnot_purchase",
-    "buyer","buyer_update","reset","set_break","scores"
-  ].forEach(evt => {
-    es.addEventListener(evt, ingest);
-  });
+  es.addEventListener("message", ingest);
 
   return es;
 }

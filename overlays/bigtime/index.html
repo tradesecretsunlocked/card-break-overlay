@@ -214,10 +214,10 @@
     .status-box.error .value{ color:#ff7e7e; }
 
     .main{
-      margin-top:8px;
+     
       display:flex;
       flex-direction:column;
-      gap:8px;
+      
     }
 
     .teams-section{
@@ -602,7 +602,7 @@ body.team-board-mode #soldPanel{
       left:6px; right:6px; bottom:4px;
       z-index:6;
       text-align:center;
-      font-size:10px;
+      font-size:20px;
       font-weight:900;
       letter-spacing:.6px;
       text-transform:uppercase;
@@ -797,24 +797,62 @@ body.team-board-mode #soldPanel{
       color:rgba(255,255,255,0.94);
     }
 
-    .ticker{
-      width:100%;
-      overflow:hidden;
-      height:42px;
-      border-radius:12px;
-      background: linear-gradient(90deg, rgba(254,222,38,0.16), rgba(0,0,0,0.72), rgba(255,152,0,0.18));
-      border:1px solid rgba(255,255,255,0.12);
-      display:flex;
-      align-items:center;
-    }
-    .ticker-track{
-      display:inline-flex;
-      align-items:center;
-      white-space:nowrap;
-      will-change:transform;
-      animation:tickerMarquee linear infinite;
-      animation-duration:var(--tickerDur);
-    }
+.ticker{
+  width:100%;
+  overflow:visible;
+  height:42px;
+  border-radius:12px;
+  background: linear-gradient(90deg, rgba(254,222,38,0.16), rgba(0,0,0,0.72), rgba(255,152,0,0.18));
+  border:1px solid rgba(255,255,255,0.12);
+  display:flex;
+  align-items:center;
+  position:relative;
+  padding:0 72px;
+}
+.ticker-track{
+  display:inline-flex;
+  align-items:center;
+  white-space:nowrap;
+  will-change:transform;
+  animation:tickerMarquee linear infinite;
+  animation-duration:var(--tickerDur);
+  flex:0 0 auto;
+  min-width:max-content;
+  position:relative;
+  overflow:visible;
+  z-index:2;
+}
+
+.ticker-side-art{
+  position:absolute;
+  top:55%;
+  transform:translateY(-50%);
+  width:140px;
+  height:110px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:44;
+  pointer-events:none;
+}
+
+.ticker-side-art.left{
+  left: -35px;
+}
+
+.ticker-side-art.right{
+  right: -35px;
+}
+
+.ticker-side-art img{
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  display:block;
+  filter:
+    drop-shadow(0 6px 12px rgba(0,0,0,0.55))
+    drop-shadow(0 0 8px rgba(254,222,38,0.18));
+}
     .ticker-text{
       display:inline-block;
       padding-right:48px;
@@ -1249,7 +1287,7 @@ body.team-board-mode .team-label{
 </head>
 <body data-sport="NFL">
   <div class="overlay">
-       
+       <div class="header ">
       <div class="brand">
         <div class="brand-title" id="brandTitle">BIG TIME</div>
         <div class="brand-slogan" id="brandSlogan">LIVE BREAKS • SPORTS CARDS • MEMORABILIA</div>
@@ -1273,13 +1311,13 @@ body.team-board-mode .team-label{
     </div>
 
     <div class="main">
-            
+            <div class="teams-section " id="teamsSection">
         <div id="conferenceLeft" class="conference"></div>
 
         <div class="control-bar">
 
           <div class="brand-logo">
-        <img id="brandLogo" alt="BIG TIME" src="../../images/logos/big-time-logo.png">
+        <img id="brandLogo" alt="BIG TIME" src="../../images/logos/big-time-logo-short.png">
       </div>
           <button class="btn" onclick="resetAll()">Reset</button>
 
@@ -1299,20 +1337,29 @@ body.team-board-mode .team-label{
         <div id="conferenceRight" class="conference"></div>
       </div>
 
-      <div class="ticker">
-        <div id="tickerTrack" class="ticker-track">
-          <span id="tickerA" class="ticker-text"></span>
-          <span id="tickerB" class="ticker-text"></span>
-        </div>
-      </div>
+<div class="ticker wick">
+  <div class="ticker-side-art left">
+    <img id="bigLuckLeft" alt="Big Luck" />
+  </div>
+
+  <div id="tickerTrack" class="ticker-track">
+    <span id="tickerA" class="ticker-text"></span>
+    <span id="tickerB" class="ticker-text"></span>
+  </div>
+
+  <div class="ticker-side-art right">
+    <img id="bigLuckRight" alt="Big Luck" />
+  </div>
+</div>
+      
 
       <div id="floatingListWrap" class="floating-list-wrap hidden">
-       
+        <div class="list-panel ">
           <div class="list-panel-title">Chaser Teams</div>
           <div class="chaser-strip" id="chaserListFloating"></div>
         </div>
 
-       
+        <div class="list-panel wick">
           <div class="list-panel-title">Player List</div>
           <div class="player-list" id="playerListFloating"></div>
         </div>
@@ -1528,12 +1575,31 @@ const BASE = (() => {
 })();
 
 const LOGO_PATH = `${BASE}images/logos/big-time-logo.png`;
+const BIG_LUCK_PATH = `${BASE}images/logos/big-luck.png`;
 
 const brandLogoEl = document.getElementById('brandLogo');
 if (brandLogoEl){
   brandLogoEl.src = LOGO_PATH;
   brandLogoEl.onerror = () => {
     console.warn('[Big Time] Logo not found:', LOGO_PATH);
+  };
+}
+
+const bigLuckLeftEl = document.getElementById('bigLuckLeft');
+if (bigLuckLeftEl){
+  bigLuckLeftEl.src = BIG_LUCK_PATH;
+  bigLuckLeftEl.onerror = () => {
+    console.warn('[Big Time] Big Luck graphic not found:', BIG_LUCK_PATH);
+    bigLuckLeftEl.style.display = 'none';
+  };
+}
+
+const bigLuckRightEl = document.getElementById('bigLuckRight');
+if (bigLuckRightEl){
+  bigLuckRightEl.src = BIG_LUCK_PATH;
+  bigLuckRightEl.onerror = () => {
+    console.warn('[Big Time] Big Luck graphic not found:', BIG_LUCK_PATH);
+    bigLuckRightEl.style.display = 'none';
   };
 }
 
