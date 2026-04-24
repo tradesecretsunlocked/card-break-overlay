@@ -1996,10 +1996,10 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
     <div class="modal-help">Copy and paste directly into Excel or Google Sheets.</div>
     <div class="modal-shortcut-help">Shortcuts: <kbd>Ctrl</kbd> + <kbd>C</kbd> on Windows • <kbd>⌘</kbd> + <kbd>C</kbd> on Mac.</div>
 
-    <div class="modal-actions">
-      <button class="modal-btn secondary" onclick="copyExportSoldOutput()">Copy</button>
-      <button class="modal-btn primary" onclick="closeExportSoldModal()">Close</button>
-    </div>
+<div class="modal-actions">
+  <button class="modal-btn secondary" onclick="copyExportSoldOutput()">Copy</button>
+  <button class="modal-btn primary" onclick="closeExportSoldModal()">Close</button>
+</div>
   </div>
 </div>
   
@@ -2157,10 +2157,18 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
           Paste a full Whatnot tile list, then click Parse Bulk List.
         </div>
 
-        <div class="modal-actions">
-          <button class="modal-btn secondary" type="button" onclick="parseComboBulkImportToFields()">Parse Bulk List</button>
-          <button class="modal-btn secondary" type="button" onclick="clearComboBulkImport()">Clear Bulk Box</button>
-        </div>
+     <div class="modal-actions">
+  <button class="modal-btn secondary" type="button" onclick="triggerComboBulkImport()">Import CSV/TXT</button>
+  <button class="modal-btn secondary" type="button" onclick="parseComboBulkImportToFields()">Parse Bulk List</button>
+  <button class="modal-btn secondary" type="button" onclick="clearComboBulkImport()">Clear Bulk Box</button>
+</div>
+
+<input
+  id="comboBulkImportFileInput"
+  type="file"
+  accept=".txt,.csv"
+  style="display:none"
+/>
       </div>
     </div>
 
@@ -3253,26 +3261,7 @@ function buildBoard(){
     comboSupplementalRows.push(comboSupplemental.slice(i, i + 12));
   }
 
-  let nextSupplementalRow = 0;
-
-  function appendSupplementalRowIfAvailable(){
-    const supplementalRow = comboSupplementalRows[nextSupplementalRow];
-    if (!supplementalRow || !supplementalRow.length) return false;
-
-    nextSupplementalRow++;
-
-    const row = document.createElement("div");
-    row.className = "board-row combo-supplemental-row";
-
-    supplementalRow.forEach(t => row.appendChild(makeTeamTile(t)));
-
-    while (row.children.length < 12){
-      row.appendChild(makeHiddenCell());
-    }
-
-    board.appendChild(row);
-    return true;
-  }
+  
 
   {
     const row = document.createElement("div");
@@ -3287,7 +3276,7 @@ function buildBoard(){
 
   // Keep chaser/pack rows close to the main grid instead of stacking every
   // supplemental spot at the bottom.
-  appendSupplementalRowIfAvailable();
+  
 
   for (let r = 1; r <= 3; r++){
     const row = document.createElement("div");
@@ -3298,9 +3287,7 @@ function buildBoard(){
 
     board.appendChild(row);
 
-    if (r === 1 || r === 3){
-      appendSupplementalRowIfAvailable();
-    }
+  
   }
 
   {
@@ -3317,9 +3304,22 @@ function buildBoard(){
     board.appendChild(row);
   }
 
+  comboSupplementalRows.forEach((supplementalRow) => {
+  const row = document.createElement("div");
+  row.className = "board-row combo-supplemental-row";
+
+  supplementalRow.forEach(t => row.appendChild(makeTeamTile(t)));
+
+  while (row.children.length < 12){
+    row.appendChild(makeHiddenCell());
+  }
+
+  board.appendChild(row);
+});
+
   // Any remaining supplemental rows still render, but only after being
   // interleaved through the board first.
-  while (appendSupplementalRowIfAvailable()){}
+  
 
   {
     const row = document.createElement("div");
@@ -3458,6 +3458,88 @@ const DEFAULT_TICKER_LINES = [
   "MLB + NFL COMBO BREAK",
   "LIVE BREAKS • FAST SHIPPING • GREAT HITS"
 ];
+
+const DEFAULT_COMBO_BULK_IMPORT = [
+  "Arizona Diamondbacks",
+  "Atlanta Braves",
+  "Baltimore Orioles",
+  "Boston Red Sox",
+  "Chicago Cubs",
+  "Chicago White Sox",
+  "Cincinnati Reds",
+  "Cleveland Guardians",
+  "Colorado Rockies",
+  "Detroit Tigers",
+  "Houston Astros",
+  "Kansas City Royals",
+  "Los Angeles Angels",
+  "Miami Marlins",
+  "Milwaukee Brewers",
+  "Minnesota Twins",
+  "New York Mets",
+  "Oakland Athletics",
+  "Philadelphia Phillies",
+  "Pittsburgh Pirates",
+  "San Diego Padres",
+  "San Francisco Giants",
+  "Seattle Mariners",
+  "New York Giants",
+  "St. Louis Cardinals",
+  "Tampa Bay Rays",
+  "Texas Rangers",
+  "Toronto Blue Jays",
+  "Washington Nationals",
+  "Arizona Cardinals",
+  "Atlanta Falcons",
+  "Buffalo Bills",
+  "Carolina Panthers",
+  "Chicago Bears",
+  "Cincinnati Bengals",
+  "Dallas Cowboys",
+  "Denver Broncos",
+  "Detroit Lions",
+  "Houston Texans",
+  "Indianapolis Colts",
+  "Los Angeles Chargers",
+  "Los Angeles Rams",
+  "Miami Dolphins",
+  "Minnesota Vikings",
+  "New England Patriots",
+  "New York Jets",
+  "Philadelphia Eagles",
+  "Pittsburgh Steelers",
+  "San Francisco 49ers",
+  "Seattle Seahawks",
+  "Tampa Bay Buccaneers",
+  "Washington Commanders",
+  "Chaser 1",
+  "Chaser 2",
+  "Chaser 3",
+  "Chaser 4",
+  "Chaser 5",
+  "Chaser 6",
+  "Chaser 7",
+  "Chaser 8",
+  "Chaser 9",
+  "Chaser 10",
+  "Chaser 11",
+  "Chaser 12",
+  "Chaser 13",
+  "Chaser 14",
+  "Chaser 15",
+  "Chaser 16",
+  "Chaser 17",
+  "Pack 1",
+  "Pack 2",
+  "Pack 3",
+  "Pack 4",
+  "Pack 5",
+  "NBA Prize Pack",
+  "Deadpool Prize Pack",
+  "Silver Prize Pack",
+  "Pink Shock Prize Pack #1",
+  "Pink Shock Prize Pack #2"
+]
 
 function loadTickerLines(){
   try{
@@ -4319,7 +4401,43 @@ function clearComboBulkImport(){
   if (summary) summary.textContent = "Paste a full Whatnot tile list, then click Parse Bulk List.";
 }
 
+function triggerComboBulkImport(){
+  document.getElementById("comboBulkImportFileInput")?.click();
+}
 
+function initComboBulkImportFile(){
+  const input = document.getElementById("comboBulkImportFileInput");
+  if (!input) return;
+
+  input.addEventListener("change", async () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    try{
+      const text = await file.text();
+      const bulkInput = document.getElementById("comboBulkImportInput");
+      if (bulkInput){
+        bulkInput.value = String(text || "").replace(/\r/g, "");
+      }
+    }catch(err){
+      console.warn("[combo bulk import failed]", err);
+    }
+
+    input.value = "";
+  });
+}
+
+function initComboBulkImportPaste(){
+  const area = document.getElementById("comboBulkImportInput");
+  if (!area) return;
+
+  area.addEventListener("paste", (e) => {
+    const text = e.clipboardData?.getData("text") || window.clipboardData?.getData("Text") || "";
+    if (!text) return;
+    e.preventDefault();
+    area.value = String(text).replace(/\r/g, "");
+  });
+}
 function setComboChaserTab(tab){
   const tabMap = {
     teams: "comboTabTeams",
@@ -4382,9 +4500,9 @@ function openComboChaserModal(){
     extraItemsInput.value = comboExtraItems.join("\n");
   }
 
-  if (bulkInput){
-    bulkInput.value = "";
-  }
+if (bulkInput){
+  bulkInput.value = String(bulkInput.value || "").trim() || DEFAULT_COMBO_BULK_IMPORT;
+}
 
   if (bulkSummary){
     bulkSummary.textContent = "Paste a full Whatnot tile list, then click Parse Bulk List.";
@@ -4814,8 +4932,10 @@ renderChaseBuyersPanel();
 
 initCustomEntriesImport();
 initCustomEntriesPaste();
-initModalKeyboardShortcuts();
+initComboBulkImportFile();
+initComboBulkImportPaste();
 initChaseBuyersPopupInteractions();
+
 
   const speedSlider = document.getElementById("tickerSpeedSlider");
   const speedValue = document.getElementById("tickerSpeedValue");
