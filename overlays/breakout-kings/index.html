@@ -1806,7 +1806,10 @@ function inferTeamCodeFromSaleTitle(title, sport){
       .trim();
 
     if (code && new RegExp(`\\b${code.toLowerCase()}\\b`).test(t)) return code;
-    if (name && t.includes(name)) return code;
+   if (name && t.includes(name)) return code;
+
+const singular = name.replace(/s$/, "");
+if (singular && singular.length > 3 && t.includes(singular)) return code;
   }
 
   return "";
@@ -1828,6 +1831,7 @@ function getEventBreakId(data){
 
 
 
+let sse = null;
 let sseMain = null;
 let sseScores = null;
 
@@ -1846,60 +1850,70 @@ function setSSEStatus(state, msg){
 function connectBridgeSSE(){
   const base = getBridgeBase();
   if (!base){
-    setSSEStatus("error","OFF");
+    setSSEStatus("error", "OFF");
     return;
   }
 
-  const channel = getChannel();
-  const url = `${base}/stream?channel=${encodeURIComponent(channel)}`;
+  const channel = (new URLSearchParams(location.search).get("channel") || "main").toLowerCase();
+  const key = getBridgeKey();
+  const url = `${base}/stream?channel=${encodeURIComponent(channel)}${key ? `&key=${encodeURIComponent(key)}` : ""}`;
 
-  if (sseMain){
-    try { sseMain.close(); } catch(_){}
-    sseMain = null;
-  }
+  if (sse) try{ sse.close(); }catch(_){}
 
-  setSSEStatus("connecting","CONNECTING");
+  setSSEStatus("connecting", "CONNECTING");
+  console.log("[Overlay] Connecting SSE:", url);
 
-  let es;
-  try{
-    es = new EventSource(url);
-  }catch(_){
-    setSSEStatus("error","FAILED");
-    return;
-  }
+  sse = new EventSource(url);
 
-  const ingest = (e) => {
+  const ingest = (evt) => {
     try{
-      const raw = JSON.parse(e.data);
-      if (raw?.type === "hello") return;
-      const data = unwrapPayload(raw);
-      handleSSEEvent(data);
+      const payload = JSON.parse(evt.data);
+      if (payload?.type === "hello") return;
+
+      if (!payload.type && evt.type && evt.type !== "message"){
+        payload.type = evt.type;
+      }
+
+      console.log("[Overlay] SSE IN:", payload);
+      handleSSEEvent(payload);
     }catch(err){
-      console.warn("[SSE parse error]", err, e?.data);
+      console.warn("[Overlay] SSE parse failed:", err, evt.data);
     }
   };
 
-  es.onopen = () => setSSEStatus("connected","ON");
-  es.onmessage = ingest;
+  sse.onopen = () => {
+  console.log("[Overlay] SSE CONNECTED");
+  setSSEStatus("connected", "ON");
+};
 
-  [
-    "team_sold","team_unsold",
-    "sale","sold","purchase","whatnot_purchase",
-    "buyer","buyer_update",
-    "reset","set_break","set_sport","set_title","set_ticker","next_break",
-    "stream_stats","overlay_warmup"
-  ].forEach(type => {
-    try { es.addEventListener(type, ingest); } catch(_){}
-  });
-
-  es.onerror = () => {
-    setSSEStatus("error","RETRY");
-    try { es.close(); } catch(_){}
-    sseMain = null;
-    setTimeout(() => connectBridgeSSE(), 2500);
+  sse.onerror = () => {
+    setSSEStatus("error", "RETRY");
+    try{ sse.close(); }catch(_){}
+    sse = null;
+    setTimeout(connectBridgeSSE, 2500);
   };
 
-  sseMain = es;
+  sse.onmessage = ingest;
+
+  [
+    "team_sold",
+    "team_unsold",
+    "sale",
+    "sold",
+    "purchase",
+    "whatnot_purchase",
+    "buyer",
+    "buyer_update",
+    "reset",
+    "set_break",
+    "set_sport",
+    "set_title",
+    "set_ticker",
+    "stream_stats",
+    "overlay_warmup"
+  ].forEach(name => {
+    sse.addEventListener(name, ingest);
+  });
 }
 
 function connectScoresSSE(){
@@ -1986,9 +2000,17 @@ function handleSSEEvent(payload){
   const type = String(data?.type || "").toLowerCase();
   if (!type || type === "hello") return;
 
-  const incomingBreakId = getEventBreakId(data);
-  const myBreakId = computeBreakId();
-  if (incomingBreakId && incomingBreakId !== myBreakId) return;
+const incomingBreakId = getEventBreakId(data);
+const myBreakId = computeBreakId();
+
+if (incomingBreakId && incomingBreakId !== myBreakId){
+  console.warn("[Overlay] Ignoring event (breakId mismatch)", {
+    incoming: incomingBreakId,
+    local: myBreakId,
+    data
+  });
+  return;
+}
 
 
 
@@ -2058,7 +2080,10 @@ function handleSSEEvent(payload){
       code = inferTeamCodeFromSaleTitle(title, currentSport);
     }
 
-    if (!code) return;
+    if (!code){
+  console.warn("[Overlay] Sale received but no team matched:", data);
+  return;
+}
 
     // DO NOT use productId here
     const listingKey = data.saleId || data.id || data.listingId || null;
