@@ -1424,8 +1424,10 @@ const LS = {
   TITLE_MAIN: 'dhb.title.main',
   TITLE_SUB: 'dhb.title.sub',
 
-  NFL_CHASE_ENABLED: 'dhb.nfl.chase.enabled',
-  NFL_CHASE_ITEMS: 'dhb.nfl.chase.items'
+BREAK_TYPE: 'dhb.breakType',
+
+NFL_CHASE_ENABLED: 'dhb.nfl.chase.enabled',
+NFL_CHASE_ITEMS: 'dhb.nfl.chase.items'
 };
 
     /* =========================
@@ -2097,11 +2099,23 @@ function applyTilePreset(sportKey){
     /* =========================
        State
     ========================== */
-    let currentBreakType = 'nfl';
-    const soldTeams = new Set();
-    let soldTeamsList = [];
-    let soldPanelVisible = false;
-    let soldControlsVisible = true;
+function loadBreakType(){
+  const saved = String(localStorage.getItem(LS.BREAK_TYPE) || '').toLowerCase();
+  if (saved && breakTypes[saved] && ACTIVE_BREAK_TYPES.includes(saved)) return saved;
+  return 'nfl';
+}
+
+function saveBreakType(t){
+  if (breakTypes[t] && ACTIVE_BREAK_TYPES.includes(t)){
+    localStorage.setItem(LS.BREAK_TYPE, t);
+  }
+}
+
+let currentBreakType = loadBreakType();
+const soldTeams = new Set();
+let soldTeamsList = [];
+let soldPanelVisible = false;
+let soldControlsVisible = true;
 const lastCodeByListingKey = new Map();
     /* =========================
        Sold persistence per breakType + break#
@@ -2264,12 +2278,13 @@ if (chaseBtn){
       });
     }
 
-    function setBreakType(t){
-      if (!breakTypes[t] || !ACTIVE_BREAK_TYPES.includes(t)) return;
-      currentBreakType = t;
-      loadSoldState();
-      renderTeams();
-    }
+function setBreakType(t){
+  if (!breakTypes[t] || !ACTIVE_BREAK_TYPES.includes(t)) return;
+  currentBreakType = t;
+  saveBreakType(t);
+  loadSoldState();
+  renderTeams();
+}
 
     function initializeGrid(){
       renderTeams();
@@ -2287,6 +2302,51 @@ if (chaseBtn){
       const key = `${confName} ${divName}`;
       return breakTypes['nfl-divisions']?.divisionCodes?.[key] || key.toUpperCase();
     }
+
+    function getNFLTeamDivisionCode(teamCode){
+  const code = String(teamCode || '').trim().toUpperCase();
+  if (!code) return '';
+
+  const cfg = breakTypes.nfl;
+  if (!cfg) return '';
+
+  for (const confName of cfg.conferences || []){
+    const divisions = cfg.divisions?.[confName] || {};
+
+    for (const divName of Object.keys(divisions)){
+      const teams = divisions[divName] || [];
+      const found = teams.find(t => String(t.code || '').toUpperCase() === code);
+
+      if (found){
+        return getDivisionCode(confName, divName);
+      }
+    }
+  }
+
+  return '';
+}
+
+function normalizeCodeForCurrentBreak(code, sportHint){
+  let c = String(code || '').trim().toUpperCase();
+  const sport = String(sportHint || '').trim().toLowerCase();
+
+  if (!c) return '';
+
+  if (currentBreakType === 'nfl-divisions'){
+    const validDivisionCodes = new Set(Object.values(NFL_DIVISION_CODES).map(v => String(v).toUpperCase()));
+
+    if (validDivisionCodes.has(c)) return c;
+
+    const mappedDivision = getNFLTeamDivisionCode(c);
+    if (mappedDivision) return mappedDivision;
+
+    if (sport === 'nfl'){
+      return '';
+    }
+  }
+
+  return c;
+}
 
     function makeDivisionGroup(confName, divName, teams, side){
       const code = getDivisionCode(confName, divName);
@@ -2483,26 +2543,34 @@ if (chaseBtn){
     }
 
     function toggleTeam(code){
-      const sel = `[data-team-code="${cssEscape(code)}"]`;
-      const teamDiv = document.querySelector(sel);
-      if (!teamDiv) return;
+  code = normalizeCodeForCurrentBreak(code, currentBreakType);
+  if (!code) return;
 
-      const existingIndex = soldTeamsList.findIndex(entry => entry.code === code);
+  const sel = `[data-team-code="${cssEscape(code)}"]`;
+  const teamDiv = document.querySelector(sel);
+  if (!teamDiv) return;
 
-      if (soldTeams.has(code)){
-        soldTeams.delete(code);
-        teamDiv.classList.remove('sold');
-        if (existingIndex !== -1) soldTeamsList.splice(existingIndex, 1);
-      } else {
-        soldTeams.add(code);
-        teamDiv.classList.add('sold');
-        if (existingIndex === -1) soldTeamsList.push({ code: code, buyer: '' });
-      }
+  const existingIndex = soldTeamsList.findIndex(entry => entry.code === code);
 
-      updateStats();
-      renderSoldPanel();
-      saveSoldState();
-    }
+  if (soldTeams.has(code)){
+    soldTeams.delete(code);
+    teamDiv.classList.remove('sold');
+    if (existingIndex !== -1) soldTeamsList.splice(existingIndex, 1);
+  } else {
+    soldTeams.add(code);
+    teamDiv.classList.add('sold');
+    if (existingIndex === -1) soldTeamsList.push({ code: code, buyer: '' });
+  }
+
+  if (isNFLDivisionMode()){
+    renderTeams();
+  } else {
+    updateStats();
+    renderSoldPanel();
+  }
+
+  saveSoldState();
+}
 
     function updateStats(){
       const cfg = getCurrentConfig();
@@ -2960,12 +3028,15 @@ if (type === 'scores'){
       }
 if (type === 'team_unsold'){
   let code = String(data?.code || '').trim().toUpperCase();
+  const sportHint = String(data?.sport || currentBreakType || '').toLowerCase();
 
   if (!code){
     const unsoldTitleRaw = String(data?.title || '');
     const unsoldTitle = stripPrefixTitle(unsoldTitleRaw);
-    code = inferCodeFromTitle(unsoldTitle, String(data?.sport || currentBreakType || '').toLowerCase());
+    code = inferCodeFromTitle(unsoldTitle, sportHint);
   }
+
+  code = normalizeCodeForCurrentBreak(code, sportHint);
 
   if (!code) return;
 
@@ -2989,20 +3060,27 @@ if (type === 'team_unsold'){
   saveSoldState();
   return;
 }
-if (type === 'team_sold'){
+if (['team_sold','sale','sold','purchase','whatnot_purchase'].includes(type)){
   const sport = String(data?.sport || '').toLowerCase();
-  const buyer = String(data?.buyer || '').trim();
+  const buyer = String(data?.buyer || data?.username || data?.buyerName || '').trim();
 
-  const incomingTitleRaw = String(data?.title || '');
+  const incomingTitleRaw = String(data?.title || data?.itemTitle || data?.listingTitle || '');
   const incomingTitle = stripPrefixTitle(incomingTitleRaw);
 
-  if (sport && breakTypes[sport] && ACTIVE_BREAK_TYPES.includes(sport) && sport !== currentBreakType){
+  const shouldSwitchSport =
+    sport &&
+    breakTypes[sport] &&
+    ACTIVE_BREAK_TYPES.includes(sport) &&
+    sport !== currentBreakType &&
+    !(currentBreakType === 'nfl-divisions' && sport === 'nfl');
+
+  if (shouldSwitchSport){
     currentBreakType = sport;
     loadSoldState();
     renderTeams();
   }
 
-  let code = String(data?.code || '').trim().toUpperCase();
+  let code = String(data?.code || data?.team || data?.teamCode || '').trim().toUpperCase();
 
   if ((sport || currentBreakType) === 'nil'){
     code = inferCodeFromTitle(incomingTitle, 'nil');
@@ -3011,7 +3089,9 @@ if (type === 'team_sold'){
       return;
     }
   } else {
-    if (!code) code = inferCodeFromTitle(stripPrefixTitle(incomingTitleRaw), sport || currentBreakType);
+    if (!code) code = inferCodeFromTitle(incomingTitle, sport || currentBreakType);
+    code = normalizeCodeForCurrentBreak(code, sport || currentBreakType);
+
     if (!code){
       console.warn("[overlay] could not infer code from title:", incomingTitleRaw, "sportHint:", sport || currentBreakType);
       return;
@@ -3022,8 +3102,10 @@ if (type === 'team_sold'){
 
   if (listingKey && code){
     const prevCode = lastCodeByListingKey.get(listingKey);
+
     if (prevCode && prevCode !== code){
       soldTeams.delete(prevCode);
+
       const prevEl = document.querySelector(`[data-team-code="${cssEscape(prevCode)}"]`);
       if (prevEl) prevEl.classList.remove('sold');
 
@@ -3036,32 +3118,43 @@ if (type === 'team_sold'){
 
   if (!soldTeams.has(code)){
     soldTeams.add(code);
-    const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
-    if (el) el.classList.add('sold');
     soldTeamsList.push({ code, buyer: buyer || '' });
   } else if (buyer) {
     const idx = soldTeamsList.findIndex(e => e.code === code);
     if (idx !== -1) soldTeamsList[idx].buyer = buyer;
   }
 
+  renderTeams();
   updateStats();
   renderSoldPanel();
   saveSoldState();
   return;
 }
 
-      if (type === 'buyer'){
-        const code = String(data?.code || '').trim();
-        const buyer = String(data?.buyer || '').trim();
-        if (!code) return;
+      if (type === 'buyer' || type === 'buyer_update'){
+  const sportHint = String(data?.sport || currentBreakType || '').toLowerCase();
+  let code = String(data?.code || data?.team || data?.teamCode || '').trim().toUpperCase();
+  const buyer = String(data?.buyer || data?.username || data?.buyerName || '').trim();
 
-        const idx = soldTeamsList.findIndex(e => e.code === code);
-        if (idx !== -1){
-          soldTeamsList[idx].buyer = buyer;
-          renderSoldPanel();
-          saveSoldState();
-        }
-      }
+  if (!code){
+    const title = stripPrefixTitle(String(data?.title || data?.itemTitle || data?.listingTitle || ''));
+    code = inferCodeFromTitle(title, sportHint);
+  }
+
+  code = normalizeCodeForCurrentBreak(code, sportHint);
+
+  if (!code) return;
+
+  const idx = soldTeamsList.findIndex(e => e.code === code);
+  if (idx !== -1){
+    soldTeamsList[idx].buyer = buyer;
+    renderTeams();
+    renderSoldPanel();
+    saveSoldState();
+  }
+
+  return;
+}
     }
 
     /* =========================
@@ -3207,10 +3300,16 @@ if (type === 'team_sold'){
 
 applyTickerMarquee();
 
-      const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
-      if (qSport && breakTypes[qSport] && ACTIVE_BREAK_TYPES.includes(qSport)) currentBreakType = qSport;
+const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
 
-      applyTilePreset(currentBreakType);
+if (qSport && breakTypes[qSport] && ACTIVE_BREAK_TYPES.includes(qSport)) {
+  currentBreakType = qSport;
+  saveBreakType(qSport);
+} else {
+  currentBreakType = loadBreakType();
+}
+
+applyTilePreset(currentBreakType);
 
       loadSoldState();
       initializeGrid();
