@@ -2951,11 +2951,36 @@ function escapeHtml(v){
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 }
+
+function hexToRgba(hex, alpha = 1){
+  const raw = String(hex || "").trim();
+  const m = raw.match(/^#?([0-9a-fA-F]{6})$/);
+  if (!m) return `rgba(255,255,255,${alpha})`;
+
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 function getComboDisplayVisual(entry){
   if (!entry){
     return {
       image: getCustomEnvelopePath(),
       name: ""
+    };
+  }
+
+  if (layoutMode === "custom"){
+    const chase = customChaseMap.get(entry.key);
+    const chaseLabel = getChaseLabelForCode(entry.key);
+    const spot = getDisplayEntryName(entry) || entry.code || entry.key || "";
+
+    return {
+      image: entry.image || getCustomEnvelopePath(),
+      name: chase ? `${spot} • ${chaseLabel || "CHASE"}` : spot
     };
   }
 
@@ -3295,17 +3320,28 @@ function makeCustomTile(entry){
   el.dataset.teamCode = entry.key;
   el.onclick = () => toggleTeam(entry);
 
+  const chase = customChaseMap.get(entry.key);
+  const chaseColor = getChaseColorForCode(entry.key);
+  const chaseLabel = getChaseLabelForCode(entry.key);
+
+  if (chase){
+    el.classList.add("chase-spot");
+    el.dataset.chaseLabel = chaseLabel || "CHASE";
+  }
+
   const img = document.createElement("img");
   img.src = entry.image || getCustomEnvelopePath();
   img.alt = getCustomSpotNumber(entry) || entry.key || "";
-img.onerror = () => {
-  img.remove();
 
-  const fallback = document.createElement("div");
-  fallback.className = "fallback";
-  fallback.textContent = getCustomSpotNumber(entry) || "?";
-  el.insertBefore(fallback, el.firstChild);
-};
+  img.onerror = () => {
+    img.remove();
+
+    const fallback = document.createElement("div");
+    fallback.className = "fallback";
+    fallback.textContent = getCustomSpotNumber(entry) || "?";
+    el.insertBefore(fallback, el.firstChild);
+  };
+
   el.appendChild(img);
 
   const label = document.createElement("div");
@@ -3318,7 +3354,25 @@ img.onerror = () => {
 
   el.appendChild(label);
 
-  if (soldTeams.has(entry.key)) el.classList.add("sold");
+  if (soldTeams.has(entry.key)){
+    el.classList.add("sold");
+
+    if (chase){
+      el.classList.add("chase-sold");
+      el.dataset.chaseLabel = chaseLabel || "CHASE";
+    }
+
+    if (chaseColor){
+      el.style.setProperty("--soldXBg", chaseColor);
+      el.style.setProperty("--soldXBorder", chaseColor);
+      el.style.setProperty("--soldXColor", "#ffffff");
+      el.style.setProperty("--soldXGlow", hexToRgba(chaseColor, .80));
+      el.style.setProperty("--soldXGlowSoft", hexToRgba(chaseColor, .32));
+      el.style.borderColor = chaseColor;
+      el.style.boxShadow = `0 0 14px ${hexToRgba(chaseColor, .35)}, inset 0 0 0 1px rgba(255,255,255,.08)`;
+    }
+  }
+
   return el;
 }
 
@@ -3362,6 +3416,8 @@ function buildBoard(){
       saveCustomEntries();
     }
 
+    ensureDefaultEnvelopeChases();
+
     const wrap = document.createElement("div");
     wrap.className = "custom-board-wrap";
 
@@ -3403,19 +3459,19 @@ function buildBoard(){
     resetBtn.onclick = resetAll;
     controlsRow.appendChild(resetBtn);
 
-    const soldStat = makeControl("Sold", soldTeams.size, "stat");
-    soldStat.onclick = toggleSoldPanel;
-    soldStat.id = "soldStatBottom";
-    controlsRow.appendChild(soldStat);
+ const soldStat = makeControl("Chase Sold", getSoldChaseCount(), "stat");
+soldStat.onclick = toggleSoldPanel;
+soldStat.id = "soldStatBottom";
+controlsRow.appendChild(soldStat);
 
     controlsRow.appendChild(makeChaseCounter("pack"));
     controlsRow.appendChild(makeChaseCounter("team"));
     controlsRow.appendChild(makeChaseCounter("chaser"));
     controlsRow.appendChild(makeChaseCounter("prizepack"));
 
-    const remainStat = makeControl("Remaining", getRemainingCount(), "stat");
-    remainStat.id = "remainStatBottom";
-    controlsRow.appendChild(remainStat);
+const remainStat = makeControl("Chases Left", getRemainingChaseCount(), "stat");
+remainStat.id = "remainStatBottom";
+controlsRow.appendChild(remainStat);
 
     const newBreakBtn = makeControl("New Break", "", "btn");
     newBreakBtn.onclick = newBreak;
@@ -3423,6 +3479,9 @@ function buildBoard(){
 
     wrap.appendChild(controlsRow);
     board.appendChild(wrap);
+
+    const soldTitle = document.querySelector(".sold-title");
+    if (soldTitle) soldTitle.textContent = "Sold Chases";
 
     updateStats();
     renderSoldPanel();
@@ -3524,10 +3583,15 @@ function buildBoard(){
     board.appendChild(row);
   }
 
+   const soldTitle = document.querySelector(".sold-title");
+  if (soldTitle) soldTitle.textContent = "Sold Teams";
+
   updateStats();
   renderSoldPanel();
   updateTicker();
-}function buildLayout(){
+}
+
+function buildLayout(){
   return buildBoard();
 }
 
@@ -3535,17 +3599,34 @@ function getRemainingCount(){
   return getAllEntries().length - soldTeams.size;
 }
 
-    function updateStats(){
-      const soldBox = document.getElementById("soldStatBottom");
-      const remainBox = document.getElementById("remainStatBottom");
+function updateStats(){
+  const soldBox = document.getElementById("soldStatBottom");
+  const remainBox = document.getElementById("remainStatBottom");
 
-      if (soldBox){
-        soldBox.querySelector(".value").textContent = String(soldTeams.size);
-      }
-      if (remainBox){
-        remainBox.querySelector(".value").textContent = String(getRemainingCount());
-      }
+  if (layoutMode === "custom"){
+    if (soldBox){
+      soldBox.querySelector(".value").textContent = String(getSoldChaseCount());
+      const label = soldBox.querySelector(".label");
+      if (label) label.textContent = "Chase Sold";
     }
+
+    if (remainBox){
+      remainBox.querySelector(".value").textContent = String(getRemainingChaseCount());
+      const label = remainBox.querySelector(".label");
+      if (label) label.textContent = "Chases Left";
+    }
+
+    return;
+  }
+
+  if (soldBox){
+    soldBox.querySelector(".value").textContent = String(soldTeams.size);
+  }
+
+  if (remainBox){
+    remainBox.querySelector(".value").textContent = String(getRemainingCount());
+  }
+}
 
 function toggleTeam(team){
   if (soldTeams.has(team.key)){
@@ -3904,6 +3985,94 @@ function applyCustomEntriesModal(){
 }
 function isChaseSpotCode(code){
   return customChaseMap.has(code);
+}
+
+function getSoldChaseCount(){
+  let count = 0;
+
+  for (const code of soldTeams){
+    if (isChaseSpotCode(code)) count++;
+  }
+
+  return count;
+}
+
+function getRemainingChaseCount(){
+  let count = 0;
+
+  for (const entry of customEntries){
+    if (!isChaseSpotCode(entry.key)) continue;
+    if (!soldTeams.has(entry.key)) count++;
+  }
+
+  return count;
+}
+
+function getTotalChaseCount(){
+  let count = 0;
+
+  for (const entry of customEntries){
+    if (isChaseSpotCode(entry.key)) count++;
+  }
+
+  return count;
+}
+
+function getChaseColorForCode(code){
+  const chase = customChaseMap.get(code);
+  if (!chase) return "";
+
+  const category = String(chase.category || "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
+
+  return chaseCategoryColors?.[category]
+    || CHASE_CATEGORY_CONFIG?.[category]?.defaultColor
+    || "";
+}
+
+function getChaseLabelForCode(code){
+  const chase = customChaseMap.get(code);
+  if (!chase) return "";
+
+  return String(chase.label || chase.category || "CHASE").trim().toUpperCase();
+}
+
+function ensureDefaultEnvelopeChases(){
+  if (layoutMode !== "custom") return;
+  if (!Array.isArray(customEntries) || !customEntries.length) return;
+  if (customChaseMap && customChaseMap.size) return;
+
+  const nextMap = new Map();
+  const nextSelected = new Set();
+
+  customEntries.forEach((entry, index) => {
+    const n = index + 1;
+    let category = "";
+    let label = "";
+
+    if (n <= 17){
+      category = "chaser";
+      label = `Chaser ${n}`;
+    } else if (n <= 22){
+      category = "pack";
+      label = `Pack ${n - 17}`;
+    } else if (n <= 27){
+      category = "prizepack";
+      label = `Prize Pack ${n - 22}`;
+    }
+
+    if (category){
+      nextSelected.add(entry.key);
+      nextMap.set(entry.key, { category, label });
+    }
+  });
+
+  selectedPrizeSpotCodes = nextSelected;
+  customChaseMap = nextMap;
+
+  saveSelectedPrizeSpotCodes();
+  saveCustomChaseMap();
 }
 
 function upsertChaseBuyer(code, buyer){
@@ -4764,8 +4933,10 @@ function resetAll(){
       renderSoldPanel();
     }
 
-   function renderSoldPanel(){
+  function renderSoldPanel(){
   const panel = document.getElementById("soldPanel");
+  if (!panel) return;
+
   panel.innerHTML = "";
 
   if (!soldPanelOpen){
@@ -4775,16 +4946,50 @@ function resetAll(){
 
   panel.classList.remove("hidden");
 
-  const sortedSold = [...soldTeamsList].sort(compareSoldEntries);
+  const sourceList = Array.isArray(soldTeamsList) ? soldTeamsList : [];
+
+  const visibleSold = layoutMode === "custom"
+    ? sourceList.filter(entry => isChaseSpotCode(entry.code))
+    : sourceList;
+
+  const sortedSold = [...visibleSold].sort((a, b) => {
+    const an = String(a.name || a.code || "");
+    const bn = String(b.name || b.code || "");
+    return an.localeCompare(bn, undefined, { numeric:true, sensitivity:"base" });
+  });
 
   sortedSold.forEach(entry => {
-    const item = document.createElement("div");
-    item.className = "sold-item";
+    const row = document.createElement("div");
+    row.className = "sold-item";
+
+    const boardEntry = getEntryByCode(entry.code);
+    const chase = customChaseMap.get(entry.code);
+    const chaseColor = getChaseColorForCode(entry.code);
+    const chaseLabel = getChaseLabelForCode(entry.code);
+
+    const spotName = boardEntry
+      ? getDisplayEntryName(boardEntry)
+      : (entry.name || entry.code || "");
+
+    const displayName = chase
+      ? `${spotName} • ${chaseLabel || "CHASE"}`
+      : (entry.name || spotName || entry.code || "");
+
+    if (chaseColor){
+      row.style.borderColor = hexToRgba(chaseColor, .55);
+      row.style.boxShadow = `0 0 12px ${hexToRgba(chaseColor, .24)}`;
+    }
 
     const name = document.createElement("div");
     name.className = "sold-name";
-    name.textContent = entry.name || entry.code || "";
-    item.appendChild(name);
+    name.textContent = displayName;
+
+    if (chaseColor){
+      name.style.borderColor = hexToRgba(chaseColor, .50);
+      name.style.boxShadow = `inset 0 0 0 1px ${hexToRgba(chaseColor, .22)}`;
+    }
+
+    row.appendChild(name);
 
     const meta = document.createElement("div");
     meta.className = "sold-meta";
@@ -4794,6 +4999,7 @@ function resetAll(){
     input.type = "text";
     input.placeholder = "Buyer";
     input.value = entry.buyer || "";
+
     input.oninput = (e) => {
       entry.buyer = e.target.value || "";
       syncChaseBuyerName(entry.code, entry.buyer);
@@ -4801,8 +5007,8 @@ function resetAll(){
     };
 
     meta.appendChild(input);
-    item.appendChild(meta);
-    panel.appendChild(item);
+    row.appendChild(meta);
+    panel.appendChild(row);
   });
 
   renderChaseBuyersPanel();
