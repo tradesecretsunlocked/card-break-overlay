@@ -226,64 +226,37 @@
   display:flex;
   flex-direction:column;
   gap:4px;
-  overflow:hidden;
+  overflow:visible;
   z-index:10;
-}
-
-/* REQUIRED: custom envelope grid containment */
-.custom-scroll{
-  flex:0 1 auto;
-  max-height:420px;
-  min-height:0;
-  overflow-y:auto;
-  overflow-x:hidden;
-  padding-right:2px;
-  overscroll-behavior:contain;
-}
-
-.custom-scroll::-webkit-scrollbar{
-  width:6px;
-}
-
-.custom-scroll::-webkit-scrollbar-thumb{
-  background:rgba(127,200,255,.45);
-  border-radius:999px;
 }
 
 .custom-top-row{
   display:grid;
-  grid-template-columns:repeat(14, minmax(0, 1fr));
+  grid-template-columns:repeat(var(--customCols, 14), 1fr);
   gap:var(--gap);
   height:var(--customTileH);
   flex:0 0 auto;
-  min-width:0;
-  overflow:visible;
 }
+
+
 
 .custom-grid{
   display:grid;
-  grid-template-columns:repeat(var(--customCols, 14), minmax(0, 1fr));
+  grid-template-columns:repeat(var(--customCols, 14), 1fr);
   gap:var(--gap);
   grid-auto-rows:var(--customTileH);
-  min-width:0;
 }
 
-/* JS adds 8 children, so define 8 columns */
 .custom-controls-row{
   display:grid;
   grid-template-columns:
-    minmax(78px, .9fr)
-    minmax(82px, .9fr)
-    minmax(105px, 1.15fr)
-    minmax(105px, 1.15fr)
-    minmax(105px, 1.15fr)
-    minmax(120px, 1.25fr)
-    minmax(92px, .95fr)
-    minmax(92px, .95fr);
+    1.35fr
+    1.15fr
+    1.15fr
+    1.35fr
+    1.25fr;
   gap:4px;
   height:var(--tileH);
-  flex:0 0 auto;
-  min-width:0;
 }
 
 .chase-counter{
@@ -536,18 +509,17 @@
 
 
 
-.custom-top-row .logo-slot{
+.logo-slot{
   grid-column:span 2;
   z-index:30;
   height:var(--customTileH);
   position:relative;
   overflow:visible;
-  min-width:0;
 }
 
-.custom-top-row .logo-slot img{
+.logo-slot img{
   position:absolute;
-  left:50%;
+  left:13%;
   top:-105px;
   transform:translateX(-50%);
   width:115px;
@@ -2400,36 +2372,14 @@ function saveChaseBuyersState(){
     localStorage.setItem("jtb.combo.chasePopup.height", popup.style.height || "290px");
   }
 }
-const DEFAULT_CUSTOM_ENTRY_COUNT = 84;
-
-function makeDefaultCustomEntries(count = DEFAULT_CUSTOM_ENTRY_COUNT){
-  return Array.from({ length: count }, (_, index) => ({
-    key: getCustomEntryCode(index),
-    code: getCustomEntryCode(index),
-    name: `Envelope ${index + 1}`,
-    image: getCustomEnvelopePath(),
-    meta: "",
-    sport: ""
-  }));
-}
 
 function loadCustomEntries(){
   try{
     const raw = JSON.parse(localStorage.getItem(STORAGE.customEntries) || "[]");
-
-    if (Array.isArray(raw) && raw.length){
-      return raw.map((entry, index) => ({
-        key: entry.key || getCustomEntryCode(index),
-        code: entry.code || entry.key || getCustomEntryCode(index),
-        name: entry.name || `Envelope ${index + 1}`,
-        image: entry.image || getCustomEnvelopePath(),
-        meta: entry.meta || "",
-        sport: entry.sport || ""
-      }));
-    }
-  }catch(_){}
-
-  return makeDefaultCustomEntries();
+    return Array.isArray(raw) ? raw : [];
+  }catch(_){
+    return [];
+  }
 }
 
 function saveCustomEntries(){
@@ -2686,31 +2636,6 @@ function makeTotalChaseCounter(){
     <div class="count">${getChaseRemainingCount("chaser")}</div>
     <div class="mini-label">Chasers</div>
   `;
-
-  return div;
-}
-
-function makeChaseCounter(category){
-  const cfg = CHASE_CATEGORY_CONFIG[category] || CHASE_CATEGORY_CONFIG.pack;
-
-  const div = document.createElement("div");
-  div.className = `chase-counter ${cfg.className || ""}`;
-
-  const count = getChaseRemainingCount(category);
-  const imgSrc = cfg.image || getCustomEnvelopePath();
-
-  div.innerHTML = `
-    <img src="${imgSrc}" alt="${escapeHtml(cfg.label || category)}" />
-    <div class="count">${count}</div>
-    <div class="mini-label">${escapeHtml(cfg.label || category)}</div>
-  `;
-
-  const img = div.querySelector("img");
-  if (img){
-    img.onerror = () => {
-      img.src = getCustomEnvelopePath();
-    };
-  }
 
   return div;
 }
@@ -3298,14 +3223,9 @@ function makeCustomTile(entry){
   const img = document.createElement("img");
   img.src = entry.image || getCustomEnvelopePath();
   img.alt = getCustomSpotNumber(entry) || entry.key || "";
-img.onerror = () => {
-  img.remove();
-
-  const fallback = document.createElement("div");
-  fallback.className = "fallback";
-  fallback.textContent = getCustomSpotNumber(entry) || "?";
-  el.insertBefore(fallback, el.firstChild);
-};
+  img.onerror = () => {
+    el.innerHTML = `<div class="fallback">${getCustomSpotNumber(entry) || "?"}</div>`;
+  };
   el.appendChild(img);
 
   const label = document.createElement("div");
@@ -3357,11 +3277,6 @@ function buildBoard(){
   board.innerHTML = "";
 
   if (layoutMode === "custom"){
-    if (!Array.isArray(customEntries) || !customEntries.length){
-      customEntries = makeDefaultCustomEntries();
-      saveCustomEntries();
-    }
-
     const wrap = document.createElement("div");
     wrap.className = "custom-board-wrap";
 
@@ -3380,6 +3295,10 @@ function buildBoard(){
     topEntries.slice(6, 12).forEach(entry => {
       topRow.appendChild(makeCustomTile(entry));
     });
+
+    while (topRow.children.length < 14){
+      topRow.appendChild(makeHiddenCell());
+    }
 
     wrap.appendChild(topRow);
 
@@ -3438,10 +3357,11 @@ function buildBoard(){
 
   const comboSupplemental = getComboSupplementalEntries();
   const comboSupplementalRows = [];
-
   for (let i = 0; i < comboSupplemental.length; i += 12){
     comboSupplementalRows.push(comboSupplemental.slice(i, i + 12));
   }
+
+  
 
   {
     const row = document.createElement("div");
@@ -3454,6 +3374,10 @@ function buildBoard(){
     board.appendChild(row);
   }
 
+  // Keep chaser/pack rows close to the main grid instead of stacking every
+  // supplemental spot at the bottom.
+  
+
   for (let r = 1; r <= 3; r++){
     const row = document.createElement("div");
     row.className = "board-row";
@@ -3462,6 +3386,8 @@ function buildBoard(){
     nflRows[r].forEach(t => row.appendChild(makeTeamTile(t)));
 
     board.appendChild(row);
+
+  
   }
 
   {
@@ -3479,17 +3405,21 @@ function buildBoard(){
   }
 
   comboSupplementalRows.forEach((supplementalRow) => {
-    const row = document.createElement("div");
-    row.className = "board-row combo-supplemental-row";
+  const row = document.createElement("div");
+  row.className = "board-row combo-supplemental-row";
 
-    supplementalRow.forEach(t => row.appendChild(makeTeamTile(t)));
+  supplementalRow.forEach(t => row.appendChild(makeTeamTile(t)));
 
-    while (row.children.length < 12){
-      row.appendChild(makeHiddenCell());
-    }
+  while (row.children.length < 12){
+    row.appendChild(makeHiddenCell());
+  }
 
-    board.appendChild(row);
-  });
+  board.appendChild(row);
+});
+
+  // Any remaining supplemental rows still render, but only after being
+  // interleaved through the board first.
+  
 
   {
     const row = document.createElement("div");
@@ -3523,11 +3453,12 @@ function buildBoard(){
 
     board.appendChild(row);
   }
-
   updateStats();
   renderSoldPanel();
   updateTicker();
-}function buildLayout(){
+}
+
+function buildLayout(){
   return buildBoard();
 }
 
