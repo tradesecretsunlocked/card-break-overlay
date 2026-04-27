@@ -3076,19 +3076,25 @@ if (data.type === "team_sold") {
     // Common shapes:
     // {type:"whatnot_purchase", sport:"nba", code:"LAL", buyer:"Mike"}
     // {type:"purchase", sport:"nfl", team:"DAL", buyerName:"Mike"}
-    if (data.type === "whatnot_purchase" || data.type === "purchase"){
-      const sport = getSportFromPayload(data);
-      if (sport && sport !== currentBreakType) return;
+if (data.type === "whatnot_purchase" || data.type === "purchase"){
+  const sport = getSportFromPayload(data);
 
-      const code = getCodeFromPayload(data);
-      const buyer = getBuyerFromPayload(data);
+  if (sport && sport !== currentBreakType && breakTypes[sport]) {
+    setSport(sport);
+  }
 
-      if (code){
-        // purchases should mark sold + set buyer
-        sseMarkSold(code, buyer);
-      }
-      return;
-    }
+  let code = getCodeFromPayload(data);
+  const buyer = getBuyerFromPayload(data);
+
+  if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
+
+  if (code){
+    sseMarkSold(code, buyer);
+  } else {
+    console.warn("[TSU automation] no team code inferred", data);
+  }
+  return;
+}
 
     // stream_stats etc can be ignored safely
   }
@@ -3109,7 +3115,7 @@ if (!soldTeamsList.some(x => x.code === code)) {
         setTimeout(() => {
           tile.classList.add("sold", "flash");
           setTimeout(() => tile.classList.remove("flash"), 280);
-        }, 420);
+        }, 110);
       }
     } else if (buyer){
       // already sold; just update buyer if provided
@@ -3162,7 +3168,29 @@ function buildExportTSV(){
 
   return tsv;
 }
+window.tsuTestSold = function(code = "LAL", buyer = "TEST BUYER"){
+  handleSSEEvent({
+    type: "team_sold",
+    sport: currentBreakType,
+    code,
+    buyer,
+    saleId: `test-${Date.now()}`
+  });
+};
 
+window.tsuTestTitle = function(title = "Los Angeles Lakers", buyer = "TITLE TEST"){
+  handleSSEEvent({
+    type: "team_sold",
+    sport: currentBreakType,
+    title,
+    buyer,
+    saleId: `title-test-${Date.now()}`
+  });
+};
+
+window.tsuTestReset = function(){
+  handleSSEEvent({ type: "reset" });
+};
 
   /******************************************************************
    * INIT
