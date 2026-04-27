@@ -533,8 +533,43 @@
   }
 }
 
+/* ===== COMBO LOGO SLOT ONLY ===== */
+body.combo-mode .board-row .logo-slot{
+  grid-column:span 2;
+  position:relative;
+  height:var(--tileH);
+  min-width:0;
+  overflow:visible;
+  z-index:4;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,217,120,.16), transparent 58%),
+    linear-gradient(180deg, rgba(10,18,31,.96), rgba(4,10,18,.98));
+  border:2px solid rgba(127,200,255,.75);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.05),
+    0 0 14px rgba(243,196,90,.12);
+}
 
-
+body.combo-mode .board-row .logo-slot img{
+  display:block;
+  position:absolute;
+  width:auto;
+  height:200px;;
+top:-107px;
+  object-fit:cover;
+  pointer-events:none;
+  transform:none;
+  filter:
+    drop-shadow(0 5px 10px rgba(0,0,0,.65))
+    drop-shadow(0 0 10px rgba(243,196,90,.16));
+}
+body.combo-mode{
+  --tileH:48px;
+}
 .custom-top-row .logo-slot{
   grid-column:span 2;
   z-index:30;
@@ -690,22 +725,22 @@
     .sold-tools{
       display:flex;
       align-items:center;
-      gap:8px;
+      gap:2px;
       flex-wrap:wrap;
     }
 
     .tool-btn{
-      padding:7px 10px;
+      padding:2px 2px;
       border:none;
       border-radius:10px;
       cursor:pointer;
-      font-size:11px;
+      font-size:14px;
       font-weight:900;
       letter-spacing:1px;
       text-transform:uppercase;
       color:#fff;
       background:linear-gradient(180deg, rgba(16,27,43,.96), rgba(8,14,22,.96));
-      border:1px solid rgba(255,240,195,.16);
+      border:1px solid rgb(255 217 120 / 86%);
     }
 
     .sse{
@@ -901,7 +936,7 @@
 }
 
 .chase-buyer-name{
-  font-size:12px;
+  font-size:18px;
   font-weight:900;
   color:#fff8ea;
   white-space:nowrap;
@@ -999,6 +1034,13 @@
   display:none !important;
 }
 
+.grid-spacer{
+  height:var(--tileH);
+  min-width:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+
 /* ===== TICKER ===== */
 .footer-strip{
   position:relative;
@@ -1021,6 +1063,27 @@
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,.03),
     0 0 16px rgba(243,196,90,.10);
+}
+
+body.combo-mode .board-shell > .footer-strip{
+  display:none !important;
+}
+
+.combo-ticker-row{
+  grid-template-columns:repeat(12, 1fr);
+}
+
+.combo-inline-ticker{
+  grid-column:span 8;
+  height:var(--tileH);
+  margin:0;
+  padding:0 12px;
+  border-radius:10px;
+}
+
+.combo-inline-ticker .ticker-copy{
+  font-size:18px;
+  line-height:var(--tileH);
 }
 
 .ticker-track{
@@ -1427,12 +1490,34 @@
   display:flex;
 }
 
-.team.combo-chaser.sold::after{
-  content:attr(data-chaser-label);
+.team.combo-chaser.sold .tile-sold-x,
+.team.combo-custom-item.sold .tile-sold-x{
+  display:none;
 }
 
+.team.combo-chaser.sold::after,
 .team.combo-custom-item.sold::after{
-  content:attr(data-custom-label);
+  content:attr(data-sold-type-label);
+  position:absolute;
+  inset:3px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  color:#fff6d9;
+  font-size:clamp(11px, 1.45vw, 16px);
+  line-height:1.02;
+  font-weight:900;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+  overflow:hidden;
+  text-wrap:balance;
+  word-break:normal;
+  text-shadow:
+    0 2px 8px rgba(0,0,0,.90),
+    0 0 10px rgba(243,196,90,.28);
+  z-index:3;
+  padding:2px 4px;
 }
 
 .chase-color-grid{
@@ -2022,8 +2107,10 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
     <div class="modal-shortcut-help">Shortcuts: <kbd>Ctrl</kbd> + <kbd>C</kbd> on Windows • <kbd>⌘</kbd> + <kbd>C</kbd> on Mac.</div>
 
 <div class="modal-actions">
-  <button class="modal-btn secondary" onclick="copyExportSoldOutput()">Copy</button>
-  <button class="modal-btn primary" onclick="closeExportSoldModal()">Close</button>
+  <button class="modal-btn secondary" type="button" onclick="clearComboChaserSetup()">Clear Chaser Setup</button>
+  <button class="modal-btn secondary" type="button" onclick="resetSoldComboChasers()">Reset Sold Chasers</button>
+  <button class="modal-btn primary" onclick="applyComboChaserModal()">Apply</button>
+  <button class="modal-btn secondary" onclick="closeComboChaserModal()">Cancel</button>
 </div>
   </div>
 </div>
@@ -2109,9 +2196,10 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
         placeholder="../../jim-tabby-envelope.png"
       />
 
-      <div class="modal-actions">
-        <button class="modal-btn secondary" type="button" onclick="triggerCustomEntriesImport()">Import CSV/TXT</button>
-      </div>
+    <div class="modal-actions">
+  <button class="modal-btn secondary" type="button" onclick="triggerCustomEntriesImport()">Import CSV/TXT</button>
+  <button class="modal-btn secondary" type="button" onclick="clearCustomEntriesInput()">Clear Current List</button>
+</div>
 
       <input
         id="customEntriesFileInput"
@@ -2570,6 +2658,45 @@ function saveComboChaserState(){
   saveComboExtraItems();
 }
 
+function clearComboChaserSetup(){
+  comboChaserTeams = new Set();
+  comboChaserLabels = new Map();
+  comboExtraChasers = [];
+
+  saveComboChaserTeams();
+  saveComboChaserLabels();
+  saveComboExtraChasers();
+
+  const extraChasersInput = document.getElementById("comboExtraChasersInput");
+  if (extraChasersInput) extraChasersInput.value = "";
+
+  const bulkSummary = document.getElementById("comboBulkImportSummary");
+  if (bulkSummary){
+    bulkSummary.textContent = "Chaser setup cleared. Click Apply to close, or keep editing.";
+  }
+
+  renderComboChaserModal?.();
+  buildBoard();
+}
+
+function resetSoldComboChasers(){
+  const chaserCodes = Array.from(soldTeams).filter(code => isComboChaserCode(code));
+
+  chaserCodes.forEach(code => {
+    soldTeams.delete(code);
+  });
+
+  soldTeamsList = soldTeamsList.filter(item => !chaserCodes.includes(item.code));
+
+  saveState();
+  buildBoard();
+
+  const bulkSummary = document.getElementById("comboBulkImportSummary");
+  if (bulkSummary){
+    bulkSummary.textContent = `Reset ${chaserCodes.length} sold chaser spot(s).`;
+  }
+}
+
 function isComboTeamChaser(code){
   return layoutMode === "combo" && comboChaserTeams.has(code);
 }
@@ -2824,39 +2951,41 @@ function buildTickerLine(){
 }
 
 function updateTicker(){
-  const track = document.getElementById("tickerTrack");
-  if (!track) return;
+  const tracks = Array.from(document.querySelectorAll(".ticker-track"));
+  if (!tracks.length) return;
 
-  const footer = track.closest(".footer-strip");
   const rawLine = String(buildTickerLine() || "").trim() || DEFAULT_TICKER_LINES.join("   •   ");
   const baseLine = ` ${rawLine} `;
   const pxPerSec = loadTickerSpeed();
 
-  // Rebuild the marquee every time so OBS/Chromium restarts the animation cleanly.
-  track.classList.add("restart");
-  track.innerHTML = `
-    <span class="ticker-copy">${escapeHtml(baseLine)}</span>
-    <span class="ticker-copy">${escapeHtml(baseLine)}</span>
-  `;
+  tracks.forEach(track => {
+    const footer = track.closest(".footer-strip");
 
-  requestAnimationFrame(() => {
-    const copies = track.querySelectorAll(".ticker-copy");
-    if (copies.length < 2) return;
-
-    const footerWidth = footer?.getBoundingClientRect().width || 1080;
-    let oneCopyWidth = copies[0].getBoundingClientRect().width || 1;
-    const repeats = Math.max(1, Math.ceil((footerWidth * 1.5) / oneCopyWidth));
-    const repeatedLine = Array.from({ length: repeats }, () => baseLine).join("   •   ");
-
-    copies.forEach(copy => {
-      copy.textContent = repeatedLine;
-    });
+    track.classList.add("restart");
+    track.innerHTML = `
+      <span class="ticker-copy">${escapeHtml(baseLine)}</span>
+      <span class="ticker-copy">${escapeHtml(baseLine)}</span>
+    `;
 
     requestAnimationFrame(() => {
-      oneCopyWidth = copies[0].getBoundingClientRect().width || footerWidth;
-      const dur = Math.max(14, Math.round(oneCopyWidth / pxPerSec));
-      document.documentElement.style.setProperty("--tickerDur", `${dur}s`);
-      track.classList.remove("restart");
+      const copies = track.querySelectorAll(".ticker-copy");
+      if (copies.length < 2) return;
+
+      const footerWidth = footer?.getBoundingClientRect().width || 1080;
+      let oneCopyWidth = copies[0].getBoundingClientRect().width || 1;
+      const repeats = Math.max(1, Math.ceil((footerWidth * 1.5) / oneCopyWidth));
+      const repeatedLine = Array.from({ length: repeats }, () => baseLine).join("   •   ");
+
+      copies.forEach(copy => {
+        copy.textContent = repeatedLine;
+      });
+
+      requestAnimationFrame(() => {
+        oneCopyWidth = copies[0].getBoundingClientRect().width || footerWidth;
+        const dur = Math.max(14, Math.round(oneCopyWidth / pxPerSec));
+        track.style.setProperty("--tickerDur", `${dur}s`);
+        track.classList.remove("restart");
+      });
     });
   });
 }
@@ -2915,9 +3044,17 @@ function setBreakNumber(n){
   if (el) el.textContent = String(safe);
 }
 
+function syncLayoutBodyClass(){
+  document.body.classList.toggle("custom-mode", layoutMode === "custom");
+  document.body.classList.toggle("combo-mode", layoutMode !== "custom");
+}
+
 function updateHeaderMode(){
+  syncLayoutBodyClass();
+
   const sub = document.querySelector(".header-sub");
   if (!sub) return;
+
   sub.textContent = layoutMode === "custom"
     ? "CUSTOM ENVELOPE BREAK BOARD"
     : "MLB + NFL COMBO BREAK BOARD";
@@ -2981,6 +3118,21 @@ function hexToRgba(hex, alpha = 1){
   const b = n & 255;
 
   return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function getComboCustomTypeLabel(entry){
+  if (!entry) return "";
+
+  if (entry.comboType === "extra_chaser") return "CHASER";
+
+  const name = String(entry.name || "").toLowerCase();
+
+  if (name.includes("prize pack")) return "PRIZE PACK";
+  if (name.includes("pack")) return "PACK";
+  if (name.includes("team")) return "TEAM";
+  if (name.includes("chaser")) return "CHASER";
+
+  return "ITEM";
 }
 
 function getComboDisplayVisual(entry){
@@ -3284,7 +3436,7 @@ function splitByCounts(arr, counts){
 
 function makeHiddenCell(){
   const spacer = document.createElement("div");
-  spacer.className = "hidden";
+  spacer.className = "grid-spacer";
   return spacer;
 }
 
@@ -3312,17 +3464,20 @@ function makeTeamTile(team){
     el.innerHTML = `<div class="fallback">${team.code || team.key || "?"}</div>`;
   }
 
-  if (isExtraChaser || isMarkedTeamChaser){
-    el.classList.add("combo-chaser");
-    el.dataset.chaserLabel = isMarkedTeamChaser
-      ? getComboChaserLabel(team.key)
-      : String(team.name || "Chaser").trim() || "Chaser";
-  }
+ if (isExtraChaser || isMarkedTeamChaser){
+  el.classList.add("combo-chaser");
+  el.dataset.chaserLabel = isMarkedTeamChaser
+    ? getComboChaserLabel(team.key)
+    : String(team.name || "Chaser").trim() || "Chaser";
 
-  if (isExtraItem){
-    el.classList.add("combo-custom-item");
-    el.dataset.customLabel = String(team.name || "").trim().toUpperCase();
-  }
+  el.dataset.soldTypeLabel = "CHASER";
+}
+
+if (isExtraItem){
+  el.classList.add("combo-custom-item");
+  el.dataset.customLabel = String(team.name || "").trim().toUpperCase();
+  el.dataset.soldTypeLabel = getComboCustomTypeLabel(team);
+}
 
   const soldX = document.createElement("span");
   soldX.className = "tile-sold-x";
@@ -3422,6 +3577,43 @@ function makeControl(label, value = "", kind = "btn"){
   return el;
 }
 
+function makeComboTickerRow(sideEntries = []){
+  const row = document.createElement("div");
+  row.className = "board-row combo-ticker-row";
+
+  const leftEntries = sideEntries.slice(0, 2);
+  const rightEntries = sideEntries.slice(2, 4);
+
+  leftEntries.forEach(entry => {
+    row.appendChild(makeTeamTile(entry));
+  });
+
+  while (row.children.length < 2){
+    row.appendChild(makeHiddenCell());
+  }
+
+  const ticker = document.createElement("div");
+  ticker.className = "footer-strip combo-inline-ticker";
+  ticker.innerHTML = `
+    <div class="ticker-track">
+      <span class="ticker-copy"></span>
+      <span class="ticker-copy"></span>
+    </div>
+  `;
+
+  row.appendChild(ticker);
+
+  rightEntries.forEach(entry => {
+    row.appendChild(makeTeamTile(entry));
+  });
+
+  while (row.children.length < 5){
+    row.appendChild(makeHiddenCell());
+  }
+
+  return row;
+}
+
 function buildBoard(){
   const board = document.getElementById("board");
   if (!board) return;
@@ -3474,29 +3666,29 @@ function buildBoard(){
     controlsRow.className = "custom-controls-row";
 
     const resetBtn = makeControl("Reset", "", "btn red");
-resetBtn.onclick = resetAll;
-controlsRow.appendChild(resetBtn);
+    resetBtn.onclick = resetAll;
+    controlsRow.appendChild(resetBtn);
 
-const envelopesSoldStat = makeControl("Envelopes Sold", getCustomEnvelopeSoldCount(), "stat");
-envelopesSoldStat.onclick = toggleSoldPanel;
-envelopesSoldStat.id = "customEnvelopesSoldStat";
-controlsRow.appendChild(envelopesSoldStat);
+    const envelopesSoldStat = makeControl("Envelopes Sold", getCustomEnvelopeSoldCount(), "stat");
+    envelopesSoldStat.onclick = toggleSoldPanel;
+    envelopesSoldStat.id = "customEnvelopesSoldStat";
+    controlsRow.appendChild(envelopesSoldStat);
 
-const chasersSoldStat = makeControl("Chasers Sold", getSoldChaseCount(), "stat");
-chasersSoldStat.id = "customChasersSoldStat";
-controlsRow.appendChild(chasersSoldStat);
+    const chasersSoldStat = makeControl("Chasers Sold", getSoldChaseCount(), "stat");
+    chasersSoldStat.id = "customChasersSoldStat";
+    controlsRow.appendChild(chasersSoldStat);
 
-const chasersLeftStat = makeControl("Chasers Left", getRemainingChaseCount(), "stat");
-chasersLeftStat.id = "customChasersLeftStat";
-controlsRow.appendChild(chasersLeftStat);
+    const chasersLeftStat = makeControl("Chasers Left", getRemainingChaseCount(), "stat");
+    chasersLeftStat.id = "customChasersLeftStat";
+    controlsRow.appendChild(chasersLeftStat);
 
-const envelopesLeftStat = makeControl("Envelopes Left", getCustomEnvelopeRemainingCount(), "stat");
-envelopesLeftStat.id = "customEnvelopesLeftStat";
-controlsRow.appendChild(envelopesLeftStat);
+    const envelopesLeftStat = makeControl("Envelopes Left", getCustomEnvelopeRemainingCount(), "stat");
+    envelopesLeftStat.id = "customEnvelopesLeftStat";
+    controlsRow.appendChild(envelopesLeftStat);
 
-const newBreakBtn = makeControl("New Break", "", "btn");
-newBreakBtn.onclick = newBreak;
-controlsRow.appendChild(newBreakBtn);
+    const newBreakBtn = makeControl("New Break", "", "btn");
+    newBreakBtn.onclick = newBreak;
+    controlsRow.appendChild(newBreakBtn);
 
     wrap.appendChild(controlsRow);
     board.appendChild(wrap);
@@ -3534,90 +3726,129 @@ controlsRow.appendChild(newBreakBtn);
     board.appendChild(row);
   }
 
-  for (let r = 1; r <= 3; r++){
-    const row = document.createElement("div");
-    row.className = "board-row";
+const comboFlowEntries = [
+  ...mlbRows.slice(1).flat(),
+  ...nflRows.slice(1).flat(),
+  ...comboSupplemental
+];
 
-    mlbRows[r].forEach(t => row.appendChild(makeTeamTile(t)));
-    nflRows[r].forEach(t => row.appendChild(makeTeamTile(t)));
+const tickerSideEntries = [];
+const finalRemainder = comboFlowEntries.length % 12;
 
-    board.appendChild(row);
-  }
+// If the final combo row would only have 1–4 tiles,
+// move those tiles into the ticker row instead.
+if (finalRemainder > 0 && finalRemainder <= 4){
+  tickerSideEntries.push(
+    ...comboFlowEntries.splice(comboFlowEntries.length - finalRemainder, finalRemainder)
+  );
+}
 
-  {
-    const row = document.createElement("div");
-    row.className = "board-row";
+for (let i = 0; i < comboFlowEntries.length; i += 12){
+  const rowEntries = comboFlowEntries.slice(i, i + 12);
+  const row = document.createElement("div");
 
-    mlbRows[4].forEach(t => row.appendChild(makeTeamTile(t)));
-    nflRows[4].forEach(t => row.appendChild(makeTeamTile(t)));
+  row.className = rowEntries.some(entry => entry.comboType)
+    ? "board-row combo-supplemental-row"
+    : "board-row";
 
-    while (row.children.length < 12){
-      row.appendChild(makeHiddenCell());
-    }
-
-    board.appendChild(row);
-  }
-
-  comboSupplementalRows.forEach((supplementalRow) => {
-    const row = document.createElement("div");
-    row.className = "board-row combo-supplemental-row";
-
-    supplementalRow.forEach(t => row.appendChild(makeTeamTile(t)));
-
-    while (row.children.length < 12){
-      row.appendChild(makeHiddenCell());
-    }
-
-    board.appendChild(row);
+  rowEntries.forEach(entry => {
+    row.appendChild(makeTeamTile(entry));
   });
 
+  while (row.children.length < 12){
+    row.appendChild(makeHiddenCell());
+  }
+
+  board.appendChild(row);
+}
+
+board.appendChild(makeComboTickerRow(tickerSideEntries));
+
   {
     const row = document.createElement("div");
-    row.className = "board-row board-row-controls";
-    row.style.gridTemplateColumns = "1fr 1fr 1.35fr 1.45fr 1.45fr 1.35fr 1fr 1fr";
-
-    mlbRows[5].forEach(t => row.appendChild(makeTeamTile(t)));
-
-    while (row.children.length < 2){
-      row.appendChild(makeHiddenCell());
-    }
+    row.className = "board-row board-row-controls combo-stats-row";
+    row.style.gridTemplateColumns = "1fr 1fr 1fr 1fr 1fr 1fr";
 
     const resetBtn = makeControl("Reset", "", "btn red");
     resetBtn.onclick = resetAll;
     row.appendChild(resetBtn);
 
-    const soldStat = makeControl("Sold", soldTeams.size, "stat");
+    const soldStat = makeControl("Total Sold", soldTeams.size, "stat");
     soldStat.onclick = toggleSoldPanel;
     soldStat.id = "soldStatBottom";
     row.appendChild(soldStat);
 
-    const remainStat = makeControl("Remaining", getRemainingCount(), "stat");
+    const chasersSoldStat = makeControl("Chasers Sold", getComboChaserSoldCount(), "stat");
+    chasersSoldStat.id = "comboChasersSoldStat";
+    row.appendChild(chasersSoldStat);
+
+    const remainStat = makeControl("Total Remaining", getRemainingCount(), "stat");
     remainStat.id = "remainStatBottom";
     row.appendChild(remainStat);
+
+    const chasersRemainStat = makeControl("Chasers Remaining", getComboChaserRemainingCount(), "stat");
+    chasersRemainStat.id = "comboChasersRemainStat";
+    row.appendChild(chasersRemainStat);
 
     const nextBtn = makeControl("New Break", "", "btn");
     nextBtn.onclick = newBreak;
     row.appendChild(nextBtn);
 
-    nflRows[5].forEach(t => row.appendChild(makeTeamTile(t)));
-
     board.appendChild(row);
   }
 
-   const soldTitle = document.querySelector(".sold-title");
+  const soldTitle = document.querySelector(".sold-title");
   if (soldTitle) soldTitle.textContent = "Sold Teams";
 
   updateStats();
   renderSoldPanel();
   updateTicker();
 }
-
 function buildLayout(){
   return buildBoard();
 }
 
 function getRemainingCount(){
   return getAllEntries().length - soldTeams.size;
+}
+
+function isComboChaserCode(code){
+  if (layoutMode !== "combo") return false;
+
+  const entry = getEntryByCode(code);
+  if (!entry) return false;
+
+  return comboChaserTeams.has(code) || entry.comboType === "extra_chaser";
+}
+
+function getComboChaserTotalCount(){
+  if (layoutMode !== "combo") return 0;
+
+  let count = 0;
+
+  getAllEntries().forEach(entry => {
+    if (comboChaserTeams.has(entry.key) || entry.comboType === "extra_chaser"){
+      count++;
+    }
+  });
+
+  return count;
+}
+
+function getComboChaserSoldCount(){
+  if (layoutMode !== "combo") return 0;
+
+  let count = 0;
+
+  soldTeams.forEach(code => {
+    if (isComboChaserCode(code)) count++;
+  });
+
+  return count;
+}
+
+function getComboChaserRemainingCount(){
+  return Math.max(0, getComboChaserTotalCount() - getComboChaserSoldCount());
 }
 
 function updateStats(){
@@ -3648,13 +3879,24 @@ if (layoutMode === "custom"){
 
   return;
 }
-  if (soldBox){
-    soldBox.querySelector(".value").textContent = String(soldTeams.size);
-  }
+if (soldBox){
+  soldBox.querySelector(".value").textContent = String(soldTeams.size);
+}
 
-  if (remainBox){
-    remainBox.querySelector(".value").textContent = String(getRemainingCount());
-  }
+if (remainBox){
+  remainBox.querySelector(".value").textContent = String(getRemainingCount());
+}
+
+const comboChasersSold = document.getElementById("comboChasersSoldStat");
+const comboChasersRemain = document.getElementById("comboChasersRemainStat");
+
+if (comboChasersSold){
+  comboChasersSold.querySelector(".value").textContent = String(getComboChaserSoldCount());
+}
+
+if (comboChasersRemain){
+  comboChasersRemain.querySelector(".value").textContent = String(getComboChaserRemainingCount());
+}
 }
 
 function toggleTeam(team){
@@ -3907,6 +4149,26 @@ function closeCustomEntriesModal(){
 
 function triggerCustomEntriesImport(){
   document.getElementById("customEntriesFileInput")?.click();
+}
+
+function clearCustomEntriesInput(){
+  const area = document.getElementById("customEntriesInput");
+  if (!area) return;
+
+  area.value = "";
+  area.focus();
+
+  // Visual feedback inside the modal instead of using confirm(),
+  // because OBS browser sources may not show confirm dialogs.
+  const help = document.querySelector("#envelopeTabEntries .modal-shortcut-help");
+  if (help){
+    const original = help.dataset.originalText || help.innerHTML;
+    help.dataset.originalText = original;
+    help.innerHTML = "Envelope list cleared. Click Apply All to save the empty list, or Cancel to discard.";
+    setTimeout(() => {
+      help.innerHTML = help.dataset.originalText || original;
+    }, 2500);
+  }
 }
 
 function parseImportedCustomEntries(text){
@@ -5491,9 +5753,10 @@ function boot(){
   layoutMode = localStorage.getItem(STORAGE.layoutMode) || "combo";
   TICKER_LINES = loadTickerLines();
   setBreakNumber(loadBreakNumber());
+  updateHeaderMode();
 buildBoard();
 updateTicker();
-updateHeaderMode();
+
 renderChaseBuyersPanel();
 
 initCustomEntriesImport();
