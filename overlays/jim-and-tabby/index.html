@@ -130,6 +130,7 @@
   padding:2px 14px;
   border-radius:18px;
   margin:3px;
+  overflow:hidden;
   background:
     linear-gradient(90deg,
       rgba(18,36,64,.96) 0%,
@@ -226,7 +227,7 @@
   display:flex;
   flex-direction:column;
   gap:4px;
-  overflow:hidden;
+  overflow:visible;
   z-index:10;
 }
 
@@ -273,12 +274,10 @@
   display:grid;
   grid-template-columns:
     minmax(78px, .9fr)
-    minmax(82px, .9fr)
-    minmax(105px, 1.15fr)
-    minmax(105px, 1.15fr)
-    minmax(105px, 1.15fr)
-    minmax(120px, 1.25fr)
-    minmax(92px, .95fr)
+    minmax(130px, 1.15fr)
+    minmax(120px, 1.05fr)
+    minmax(120px, 1.05fr)
+    minmax(140px, 1.15fr)
     minmax(92px, .95fr);
   gap:4px;
   height:var(--tileH);
@@ -547,10 +546,10 @@
 
 .custom-top-row .logo-slot img{
   position:absolute;
-  left:50%;
-  top:-105px;
+  left:9%;
+  top:-103px;
   transform:translateX(-50%);
-  width:115px;
+  width:113px;
   z-index:999;
   max-width:none;
   height:auto;
@@ -1962,10 +1961,8 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
 <div class="sold-tools">
   <button class="tool-btn" onclick="openBreakPrompt()">Set Break</button>
   <button class="tool-btn" onclick="openTickerModal()">Edit Ticker</button>
-  <button class="tool-btn" onclick="openCustomEntriesModal()">Custom Entries</button>
-  <button class="tool-btn" onclick="openPrizeSpotSelectorModal()">Select Prize Spots</button>
-<button class="tool-btn" onclick="openChaseModal()">Chase Manager</button>
-<button class="tool-btn" onclick="openComboChaserModal()">Combo Chasers</button>
+<button class="tool-btn" onclick="openEnvelopeManager()">Envelope Manager</button>
+<button class="tool-btn" onclick="openComboChaserModal()">NFL/MLB Combo Manager</button>
 <button class="tool-btn" onclick="toggleChaseBuyersPanel()">Chase Buyers</button>
 <button class="tool-btn" onclick="openExportSoldModal()">Export Sold</button>
 <button class="tool-btn" onclick="toggleLayoutMode()">Toggle Layout</button>
@@ -2057,80 +2054,101 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
     </div>
   </div>
 
-<div class="modal-mask hidden" id="customEntriesModal">
+<div class="modal-mask hidden" id="envelopeManagerModal">
   <div class="modal-card">
-    <div class="modal-title">Custom Entries</div>
+    <div class="modal-title">Envelope Manager</div>
 
-    <div class="modal-label">Entries</div>
-    <textarea
-      id="customEntriesInput"
-      class="modal-textarea"
-      placeholder="One entry per line&#10;These names are used internally for matching automation.&#10;The board itself will display only spot numbers."
-    ></textarea>
-    <div class="modal-shortcut-help">Shortcuts: <kbd>Ctrl</kbd> + <kbd>C</kbd>/<kbd>V</kbd> on Windows • <kbd>⌘</kbd> + <kbd>C</kbd>/<kbd>V</kbd> on Mac • <kbd>Ctrl/⌘</kbd> + <kbd>A</kbd> selects all.</div>
+    <div class="combo-tabs">
+      <button
+        class="combo-tab-btn active"
+        type="button"
+        data-envelope-tab="entries"
+        onclick="setEnvelopeManagerTab('entries')"
+      >
+        Envelope List
+      </button>
 
-    <div class="modal-label">Envelope Image Path</div>
-    <input
-      id="customEnvelopeInput"
-      class="modal-input"
-      type="text"
-      placeholder="../../jim-tabby-envelope.png"
-    />
+      <button
+        class="combo-tab-btn"
+        type="button"
+        data-envelope-tab="prizes"
+        onclick="setEnvelopeManagerTab('prizes')"
+      >
+        Prize Spots
+      </button>
 
-<div class="modal-actions">
-  <button class="modal-btn secondary" onclick="triggerCustomEntriesImport()">Import CSV/TXT</button>
-  <button class="modal-btn primary" onclick="applyCustomEntriesModal()">Apply</button>
-  <button class="modal-btn secondary" onclick="closeCustomEntriesModal()">Cancel</button>
-</div>
-
-<input
-  id="customEntriesFileInput"
-  type="file"
-  accept=".txt,.csv"
-  style="display:none"
-/>
-  </div>
-</div>
-
-<div class="modal-mask hidden" id="prizeSpotSelectorModal">
-  <div class="modal-card">
-    <div class="modal-title">Select Prize Spots</div>
-
-    <div class="modal-label">Click the custom spots that should be prize entries</div>
-    <div class="modal-help">Only selected spots will appear in Chase Manager.</div>
-
-    <div id="prizeSpotSelectorGrid" class="prize-spot-grid"></div>
-
-    <div class="modal-actions">
-      <button class="modal-btn primary" onclick="applyPrizeSpotSelectorModal()">Apply</button>
-      <button class="modal-btn secondary" onclick="closePrizeSpotSelectorModal()">Cancel</button>
+      <button
+        class="combo-tab-btn"
+        type="button"
+        data-envelope-tab="categories"
+        onclick="setEnvelopeManagerTab('categories')"
+      >
+        Categories / Colors
+      </button>
     </div>
-  </div>
-</div>
 
-<div class="modal-mask hidden" id="chaseModal">
-  <div class="modal-card">
-    <div class="modal-title">Chase Manager</div>
+    <div class="combo-tab-panel active" id="envelopeTabEntries">
+      <div class="modal-label">Entries</div>
+      <textarea
+        id="customEntriesInput"
+        class="modal-textarea"
+        placeholder="One entry per line&#10;These names are used internally for matching automation.&#10;The board itself will display only spot numbers."
+      ></textarea>
 
-<div class="modal-label">Category Colors</div>
-<div class="modal-help">Choose the sold-tile color for each category.</div>
+      <div class="modal-shortcut-help">
+        Shortcuts: <kbd>Ctrl</kbd> + <kbd>C</kbd>/<kbd>V</kbd> on Windows •
+        <kbd>⌘</kbd> + <kbd>C</kbd>/<kbd>V</kbd> on Mac •
+        <kbd>Ctrl/⌘</kbd> + <kbd>A</kbd> selects all.
+      </div>
 
-<div id="chaseColorConfig" class="chase-color-grid"></div>
+      <div class="modal-label">Envelope Image Path</div>
+      <input
+        id="customEnvelopeInput"
+        class="modal-input"
+        type="text"
+        placeholder="../../jim-tabby-envelope.png"
+      />
 
-<div class="modal-label">Selected Prize Spots</div>
-<div class="modal-help">Assign a category and label for each selected prize spot.</div>
+      <div class="modal-actions">
+        <button class="modal-btn secondary" type="button" onclick="triggerCustomEntriesImport()">Import CSV/TXT</button>
+      </div>
 
-<div id="chaseManagerList" class="chase-manager-list"></div>
+      <input
+        id="customEntriesFileInput"
+        type="file"
+        accept=".txt,.csv"
+        style="display:none"
+      />
+    </div>
+
+    <div class="combo-tab-panel" id="envelopeTabPrizes">
+      <div class="modal-label">Click the custom spots that should be prize entries</div>
+      <div class="modal-help">Only selected spots will appear in Categories / Colors.</div>
+
+      <div id="prizeSpotSelectorGrid" class="prize-spot-grid"></div>
+    </div>
+
+    <div class="combo-tab-panel" id="envelopeTabCategories">
+      <div class="modal-label">Category Colors</div>
+      <div class="modal-help">Choose the sold-tile color for each category.</div>
+
+      <div id="chaseColorConfig" class="chase-color-grid"></div>
+
+      <div class="modal-label">Selected Prize Spots</div>
+      <div class="modal-help">Assign a category and label for each selected prize spot.</div>
+
+      <div id="chaseManagerList" class="chase-manager-list"></div>
+    </div>
 
     <div class="modal-actions">
-      <button class="modal-btn primary" onclick="applyChaseModal()">Apply</button>
-      <button class="modal-btn secondary" onclick="closeChaseModal()">Cancel</button>
+      <button class="modal-btn primary" type="button" onclick="applyEnvelopeManager()">Apply All</button>
+      <button class="modal-btn secondary" type="button" onclick="closeEnvelopeManager()">Cancel</button>
     </div>
   </div>
 </div>
 <div class="modal-mask hidden" id="comboChaserModal">
   <div class="modal-card">
-    <div class="modal-title">Combo Chaser Manager</div>
+    <div class="modal-title">NFL/MLB Combo Manager</div>
 
     <div class="combo-tabs">
       <button class="combo-tab-btn active" type="button" data-tab="teams" onclick="setComboChaserTab('teams')">Teams</button>
@@ -3456,26 +3474,29 @@ function buildBoard(){
     controlsRow.className = "custom-controls-row";
 
     const resetBtn = makeControl("Reset", "", "btn red");
-    resetBtn.onclick = resetAll;
-    controlsRow.appendChild(resetBtn);
+resetBtn.onclick = resetAll;
+controlsRow.appendChild(resetBtn);
 
- const soldStat = makeControl("Chase Sold", getSoldChaseCount(), "stat");
-soldStat.onclick = toggleSoldPanel;
-soldStat.id = "soldStatBottom";
-controlsRow.appendChild(soldStat);
+const envelopesSoldStat = makeControl("Envelopes Sold", getCustomEnvelopeSoldCount(), "stat");
+envelopesSoldStat.onclick = toggleSoldPanel;
+envelopesSoldStat.id = "customEnvelopesSoldStat";
+controlsRow.appendChild(envelopesSoldStat);
 
-    controlsRow.appendChild(makeChaseCounter("pack"));
-    controlsRow.appendChild(makeChaseCounter("team"));
-    controlsRow.appendChild(makeChaseCounter("chaser"));
-    controlsRow.appendChild(makeChaseCounter("prizepack"));
+const chasersSoldStat = makeControl("Chasers Sold", getSoldChaseCount(), "stat");
+chasersSoldStat.id = "customChasersSoldStat";
+controlsRow.appendChild(chasersSoldStat);
 
-const remainStat = makeControl("Chases Left", getRemainingChaseCount(), "stat");
-remainStat.id = "remainStatBottom";
-controlsRow.appendChild(remainStat);
+const chasersLeftStat = makeControl("Chasers Left", getRemainingChaseCount(), "stat");
+chasersLeftStat.id = "customChasersLeftStat";
+controlsRow.appendChild(chasersLeftStat);
 
-    const newBreakBtn = makeControl("New Break", "", "btn");
-    newBreakBtn.onclick = newBreak;
-    controlsRow.appendChild(newBreakBtn);
+const envelopesLeftStat = makeControl("Envelopes Left", getCustomEnvelopeRemainingCount(), "stat");
+envelopesLeftStat.id = "customEnvelopesLeftStat";
+controlsRow.appendChild(envelopesLeftStat);
+
+const newBreakBtn = makeControl("New Break", "", "btn");
+newBreakBtn.onclick = newBreak;
+controlsRow.appendChild(newBreakBtn);
 
     wrap.appendChild(controlsRow);
     board.appendChild(wrap);
@@ -3603,22 +3624,30 @@ function updateStats(){
   const soldBox = document.getElementById("soldStatBottom");
   const remainBox = document.getElementById("remainStatBottom");
 
-  if (layoutMode === "custom"){
-    if (soldBox){
-      soldBox.querySelector(".value").textContent = String(getSoldChaseCount());
-      const label = soldBox.querySelector(".label");
-      if (label) label.textContent = "Chase Sold";
-    }
+if (layoutMode === "custom"){
+  const envelopesSold = document.getElementById("customEnvelopesSoldStat");
+  const chasersSold = document.getElementById("customChasersSoldStat");
+  const chasersLeft = document.getElementById("customChasersLeftStat");
+  const envelopesLeft = document.getElementById("customEnvelopesLeftStat");
 
-    if (remainBox){
-      remainBox.querySelector(".value").textContent = String(getRemainingChaseCount());
-      const label = remainBox.querySelector(".label");
-      if (label) label.textContent = "Chases Left";
-    }
-
-    return;
+  if (envelopesSold){
+    envelopesSold.querySelector(".value").textContent = String(getCustomEnvelopeSoldCount());
   }
 
+  if (chasersSold){
+    chasersSold.querySelector(".value").textContent = String(getSoldChaseCount());
+  }
+
+  if (chasersLeft){
+    chasersLeft.querySelector(".value").textContent = String(getRemainingChaseCount());
+  }
+
+  if (envelopesLeft){
+    envelopesLeft.querySelector(".value").textContent = String(getCustomEnvelopeRemainingCount());
+  }
+
+  return;
+}
   if (soldBox){
     soldBox.querySelector(".value").textContent = String(soldTeams.size);
   }
@@ -3868,22 +3897,12 @@ function applyTickerModal(){
 }
 
 function openCustomEntriesModal(){
-  const modal = document.getElementById("customEntriesModal");
-  const input = document.getElementById("customEntriesInput");
-  const env = document.getElementById("customEnvelopeInput");
-
-  if (input){
-    input.value = customEntries.map(e => e.name || "").join("\n");
-  }
-  if (env){
-    env.value = getCustomEnvelopePath();
-  }
-
-  modal?.classList.remove("hidden");
+  openEnvelopeManager();
+  setEnvelopeManagerTab("entries");
 }
 
 function closeCustomEntriesModal(){
-  document.getElementById("customEntriesModal")?.classList.add("hidden");
+  closeEnvelopeManager();
 }
 
 function triggerCustomEntriesImport(){
@@ -3906,6 +3925,19 @@ function parseImportedCustomEntries(text){
   return lines;
 }
 
+function appendEntriesToTextarea(area, entries){
+  if (!area || !Array.isArray(entries) || !entries.length) return;
+
+  const existing = String(area.value || "").trim();
+  const incoming = entries.map(v => String(v || "").trim()).filter(Boolean);
+
+  if (!incoming.length) return;
+
+  area.value = existing
+    ? `${existing}\n${incoming.join("\n")}`
+    : incoming.join("\n");
+}
+
 function initCustomEntriesPaste(){
   const area = document.getElementById("customEntriesInput");
   if (!area) return;
@@ -3918,7 +3950,7 @@ function initCustomEntriesPaste(){
     if (!entries.length) return;
 
     e.preventDefault();
-    area.value = entries.join("\n");
+    appendEntriesToTextarea(area, entries);
   });
 }
 
@@ -3935,9 +3967,9 @@ function initCustomEntriesImport(){
       const entries = parseImportedCustomEntries(text);
 
       const area = document.getElementById("customEntriesInput");
-      if (area){
-        area.value = entries.join("\n");
-      }
+     if (area){
+  appendEntriesToTextarea(area, entries);
+}
     }catch(err){
       console.warn("[custom import failed]", err);
     }
@@ -3946,7 +3978,7 @@ function initCustomEntriesImport(){
   });
 }
 
-function applyCustomEntriesModal(){
+function applyCustomEntriesModal(shouldClose = true){
   const raw = document.getElementById("customEntriesInput")?.value || "";
   const envRaw = document.getElementById("customEnvelopeInput")?.value || "";
   const env = String(envRaw).trim() || CUSTOM_ENVELOPE;
@@ -3980,18 +4012,30 @@ function applyCustomEntriesModal(){
   layoutMode = "custom";
   saveLayoutMode();
   updateHeaderMode();
-  closeCustomEntriesModal();
-  resetAll();
+
+  if (shouldClose){
+    closeEnvelopeManager();
+    resetAll();
+  }
 }
 function isChaseSpotCode(code){
   return customChaseMap.has(code);
+}
+
+function isTrueChaserSpotCode(code){
+  const chase = customChaseMap.get(code);
+  if (!chase) return false;
+
+  return String(chase.category || "")
+    .toLowerCase()
+    .replace(/\s+/g, "") === "chaser";
 }
 
 function getSoldChaseCount(){
   let count = 0;
 
   for (const code of soldTeams){
-    if (isChaseSpotCode(code)) count++;
+    if (isTrueChaserSpotCode(code)) count++;
   }
 
   return count;
@@ -4001,18 +4045,31 @@ function getRemainingChaseCount(){
   let count = 0;
 
   for (const entry of customEntries){
-    if (!isChaseSpotCode(entry.key)) continue;
+    if (!isTrueChaserSpotCode(entry.key)) continue;
     if (!soldTeams.has(entry.key)) count++;
   }
 
   return count;
 }
 
+function getCustomEnvelopeSoldCount(){
+  if (!Array.isArray(customEntries)) return 0;
+
+  return customEntries.reduce((count, entry) => {
+    return count + (soldTeams.has(entry.key) ? 1 : 0);
+  }, 0);
+}
+
+function getCustomEnvelopeRemainingCount(){
+  if (!Array.isArray(customEntries)) return 0;
+  return Math.max(0, customEntries.length - getCustomEnvelopeSoldCount());
+}
+
 function getTotalChaseCount(){
   let count = 0;
 
   for (const entry of customEntries){
-    if (isChaseSpotCode(entry.key)) count++;
+    if (isTrueChaserSpotCode(entry.key)) count++;
   }
 
   return count;
@@ -4035,44 +4092,20 @@ function getChaseLabelForCode(code){
   const chase = customChaseMap.get(code);
   if (!chase) return "";
 
-  return String(chase.label || chase.category || "CHASE").trim().toUpperCase();
+  const category = String(chase.category || "")
+    .toLowerCase()
+    .replace(/\s+/g, "");
+
+  return CHASE_CATEGORY_CONFIG?.[category]?.label?.toUpperCase()
+    || category.toUpperCase()
+    || "CHASE";
 }
 
 function ensureDefaultEnvelopeChases(){
-  if (layoutMode !== "custom") return;
-  if (!Array.isArray(customEntries) || !customEntries.length) return;
-  if (customChaseMap && customChaseMap.size) return;
-
-  const nextMap = new Map();
-  const nextSelected = new Set();
-
-  customEntries.forEach((entry, index) => {
-    const n = index + 1;
-    let category = "";
-    let label = "";
-
-    if (n <= 17){
-      category = "chaser";
-      label = `Chaser ${n}`;
-    } else if (n <= 22){
-      category = "pack";
-      label = `Pack ${n - 17}`;
-    } else if (n <= 27){
-      category = "prizepack";
-      label = `Prize Pack ${n - 22}`;
-    }
-
-    if (category){
-      nextSelected.add(entry.key);
-      nextMap.set(entry.key, { category, label });
-    }
-  });
-
-  selectedPrizeSpotCodes = nextSelected;
-  customChaseMap = nextMap;
-
-  saveSelectedPrizeSpotCodes();
-  saveCustomChaseMap();
+  // Manual-only by requirement.
+  // Prize spots must be selected by the operator/client in Envelope Manager.
+  // Do not auto-assign first 17 / 22 / 27 spots.
+  return;
 }
 
 function upsertChaseBuyer(code, buyer){
@@ -4083,6 +4116,10 @@ function upsertChaseBuyer(code, buyer){
 
   const cfg = customChaseMap.get(code) || {};
   const category = String(cfg.category || "").toLowerCase().replace(/\s+/g, "");
+
+  // Requirement: only true "chaser" category winners go into the chaser buyers list.
+  if (category !== "chaser") return;
+
   const color = getChaseColorForCode(code) || "";
 
   const item = {
@@ -4318,15 +4355,15 @@ function renderPrizeSpotSelectorModal(){
 }
 
 function openPrizeSpotSelectorModal(){
-  renderPrizeSpotSelectorModal();
-  document.getElementById("prizeSpotSelectorModal")?.classList.remove("hidden");
+  openEnvelopeManager();
+  setEnvelopeManagerTab("prizes");
 }
 
 function closePrizeSpotSelectorModal(){
-  document.getElementById("prizeSpotSelectorModal")?.classList.add("hidden");
+  closeEnvelopeManager();
 }
 
-function applyPrizeSpotSelectorModal(){
+function applyPrizeSpotSelectorModal(shouldClose = true){
   const grid = document.getElementById("prizeSpotSelectorGrid");
   if (!grid) return;
 
@@ -4340,22 +4377,97 @@ function applyPrizeSpotSelectorModal(){
   saveSelectedPrizeSpotCodes();
 
   const nextMap = new Map();
+
   selectedPrizeSpotCodes.forEach(code => {
     const existing = customChaseMap.get(code);
-    nextMap.set(code, {
-      label: existing?.label || "CHASE",
-      category: existing?.category || "pack"
-    });
+const category = existing?.category || "pack";
+
+nextMap.set(code, {
+  category,
+  label: CHASE_CATEGORY_CONFIG?.[category]?.label || category
+});
   });
 
   customChaseMap = nextMap;
   saveCustomChaseMap();
 
-  closePrizeSpotSelectorModal();
+  if (shouldClose){
+    closeEnvelopeManager();
+    buildBoard();
+  }
+}
+function renderChaseColorConfig(){
+  renderChaseManagerModal();
+}
+
+function renderChaseManagerList(){
+  renderChaseManagerModal();
+}
+function openEnvelopeManager(){
+  const modal = document.getElementById("envelopeManagerModal");
+  const input = document.getElementById("customEntriesInput");
+  const env = document.getElementById("customEnvelopeInput");
+
+  if (!modal){
+    console.warn("[Envelope Manager] envelopeManagerModal not found");
+    return;
+  }
+
+  if (input){
+    input.value = customEntries.map(e => e.name || "").join("\n");
+  }
+
+  if (env){
+    env.value = getCustomEnvelopePath();
+  }
+
+  modal.classList.remove("hidden");
+  setEnvelopeManagerTab("entries");
+
+  renderPrizeSpotSelectorModal();
+  renderChaseManagerModal();
+}
+
+function openNflMlbComboManager(){
+  openComboChaserModal();
+}
+
+function closeEnvelopeManager(){
+  document.getElementById("envelopeManagerModal")?.classList.add("hidden");
+}
+
+function setEnvelopeManagerTab(tab){
+  document.querySelectorAll("[data-envelope-tab]").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.envelopeTab === tab);
+  });
+
+  document.getElementById("envelopeTabEntries")?.classList.toggle("active", tab === "entries");
+  document.getElementById("envelopeTabPrizes")?.classList.toggle("active", tab === "prizes");
+  document.getElementById("envelopeTabCategories")?.classList.toggle("active", tab === "categories");
+
+  if (tab === "prizes"){
+    renderPrizeSpotSelectorModal();
+  }
+
+if (tab === "categories"){
+  applyPrizeSpotSelectorModal(false);
+  renderChaseManagerModal();
+}
+}
+
+function applyEnvelopeManager(){
+  applyCustomEntriesModal(false);
+  applyPrizeSpotSelectorModal(false);
+  applyChaseModal(false);
+
+  closeEnvelopeManager();
+  layoutMode = "custom";
+  saveLayoutMode();
+  updateHeaderMode();
   buildBoard();
 }
 
-function applyChaseModal(){
+function applyChaseModal(shouldClose = true){
   const colorGrid = document.getElementById("chaseColorConfig");
   const list = document.getElementById("chaseManagerList");
   if (!list) return;
@@ -4385,19 +4497,22 @@ function applyChaseModal(){
       .toLowerCase()
       .replace(/\s+/g, "");
 
-    const label = String(row.querySelector(".chase-label-input")?.value || "CHASE").trim() || "CHASE";
-
-    next.set(code, {
-      label,
-      category
-    });
+next.set(code, {
+  category,
+  label: CHASE_CATEGORY_CONFIG?.[category]?.label || category
+});
   });
 
   customChaseMap = next;
   saveCustomChaseMap();
-  closeChaseModal();
-  buildBoard();
+
+  if (shouldClose){
+    closeEnvelopeManager();
+    buildBoard();
+  }
 }
+
+
 
 function renderChaseManagerModal(){
   const colorGrid = document.getElementById("chaseColorConfig");
@@ -4453,39 +4568,54 @@ function renderChaseManagerModal(){
     row.className = "chase-row";
     row.dataset.code = entry.key;
 
-    row.innerHTML = `
-      <div class="chase-row-info">
-        <div class="chase-row-code">${entry.key}</div>
-        <div class="chase-row-name">${entry.name || entry.key}</div>
-      </div>
+const safeCategory = String(cfg.category || "pack")
+  .toLowerCase()
+  .replace(/\s+/g, "");
 
-      <button class="chase-category-btn" type="button" data-category="${cfg.category || "pack"}">
-        ${(CHASE_CATEGORY_CONFIG[cfg.category || "pack"] || CHASE_CATEGORY_CONFIG.pack).label}
-      </button>
+const safeLabel = CHASE_CATEGORY_CONFIG?.[safeCategory]?.label || safeCategory;
 
-      <input class="chase-label-input" type="text" value="${cfg.label || "CHASE"}" placeholder="Label" />
-    `;
+row.innerHTML = `
+  <div class="chase-row-info">
+    <div class="chase-row-code">${entry.key}</div>
+    <div class="chase-row-name">${entry.name || entry.key}</div>
+  </div>
 
-    const btn = row.querySelector(".chase-category-btn");
-    btn?.addEventListener("click", () => {
-      const current = String(btn.dataset.category || "pack");
-      const idx = CATEGORY_ORDER.indexOf(current);
-      const next = CATEGORY_ORDER[(idx + 1) % CATEGORY_ORDER.length];
-      btn.dataset.category = next;
-      btn.textContent = CHASE_CATEGORY_CONFIG[next].label;
-    });
+  <button class="chase-category-btn" type="button" data-category="${safeCategory}">
+    ${escapeHtml(safeLabel)}
+  </button>
+
+  <div class="chase-row-name" data-category-label>
+    ${escapeHtml(safeLabel)}
+  </div>
+`;
+
+const btn = row.querySelector(".chase-category-btn");
+const labelBox = row.querySelector("[data-category-label]");
+
+btn?.addEventListener("click", () => {
+  const current = String(btn.dataset.category || "pack");
+  const idx = CATEGORY_ORDER.indexOf(current);
+  const next = CATEGORY_ORDER[(idx + 1) % CATEGORY_ORDER.length];
+
+  btn.dataset.category = next;
+  btn.textContent = CHASE_CATEGORY_CONFIG[next].label;
+
+  if (labelBox){
+    labelBox.textContent = CHASE_CATEGORY_CONFIG[next].label;
+  }
+});
 
     list.appendChild(row);
   });
 }
 
 function openChaseModal(){
-  renderChaseManagerModal();
-  document.getElementById("chaseModal")?.classList.remove("hidden");
+  openEnvelopeManager();
+  setEnvelopeManagerTab("categories");
 }
 
 function closeChaseModal(){
-  document.getElementById("chaseModal")?.classList.add("hidden");
+  closeEnvelopeManager();
 }
 
 
