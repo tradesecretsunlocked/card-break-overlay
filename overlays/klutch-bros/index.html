@@ -937,8 +937,15 @@ const breakTypes = {
 };
 
 let currentSport = "nba";
-let soldSet = new Set();          // team codes
-let soldList = [];                // {code, buyer}
+
+// Canonical TSU sold-state layers
+const soldTeams = new Set();
+let soldTeamsList = [];
+const lastCodeByListingKey = new Map();
+
+// Backward-compatible local aliases used by this layout
+let soldSet = soldTeams;          // team codes
+let soldList = soldTeamsList;     // {code, buyer}           // {code, buyer}
 
 
 
@@ -1200,11 +1207,20 @@ function updateSoldList(){
 }
 
 function resetAll(){
-  soldSet.clear();
-  soldList = [];
+  soldTeams.clear();
+  soldTeamsList.length = 0;
+  lastCodeByListingKey.clear();
+
+  soldSet = soldTeams;
+  soldList = soldTeamsList;
+
   document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
   updateStats();
   updateSoldList();
+}
+
+function resetSoldState(){
+  resetAll();
 }
 
 /* =========================
@@ -1235,7 +1251,9 @@ function setSport(s){
    - POST /events warmup
    - breakId match
 ========================= */
-const BRIDGE_LS = { URL: "overlay.bridge.url", KEY: "overlay.bridge.key" };
+const BRIDGE_LS = { URL: "tsu.bridgeUrl", KEY: "tsu.bridgeKey" };
+const DEFAULT_BRIDGE_URL = "https://tsu-bridge-klutch.onrender.com";
+
 
 function getParam(name){
   return new URLSearchParams(location.search).get(name);
@@ -1247,8 +1265,7 @@ function getBridgeBase(){
     localStorage.setItem(BRIDGE_LS.URL, cleaned);
     return cleaned;
   }
-  return (localStorage.getItem(BRIDGE_LS.URL) || "").replace(/\/$/, "");
-}
+return (localStorage.getItem(BRIDGE_LS.URL) || DEFAULT_BRIDGE_URL).replace(/\/$/, "");}
 function getBridgeKey(){
   const q = getParam("key");
   if (q){
@@ -1309,7 +1326,24 @@ function connectBridgeSSE({ onEvent, onStatus }){
     sse.onopen = () => onStatus?.("connected","connected");
     sse.onmessage = ingest;
 
-    ["team_sold","buyer","reset","set_break","set_sport","scores","stream_stats","overlay_warmup"].forEach(t => {
+    [
+  "team_sold",
+  "team_unsold",
+  "sale",
+  "sold",
+  "purchase",
+  "whatnot_purchase",
+  "buyer",
+  "buyer_update",
+  "reset",
+  "set_break",
+  "set_sport",
+  "set_title",
+  "next_break",
+  "scores",
+  "stream_stats",
+  "overlay_warmup"
+].forEach(t => {
       try{ sse.addEventListener(t, ingest); }catch(_){}
     });
 
@@ -1370,13 +1404,100 @@ function getEventBreakId(data){
   return String(data?.breakId || "").trim();
 }
 
+function breakIdMatches(data){
+  const incomingBreakId = getEventBreakId(data);
+  if (!incomingBreakId) return true;
+  return incomingBreakId === computeBreakId();
+}
+
+function getSaleKeyFromPayload(data){
+  return String(
+    data?.saleId ||
+    data?.id ||
+    data?.purchaseId ||
+    data?.orderId ||
+    data?.listingId ||
+    ""
+  ).trim();
+}
+
+function sseMarkSold(data){
+  const s = normalizeSport(data);
+  if (s && s !== currentSport) return;
+
+  const code = normalizeTeamCode(data);
+  const buyer = normalizeBuyer(data);
+  if (!code) return;
+
+  const saleKey = getSaleKeyFromPayload(data);
+  if (saleKey) {
+    const prevCode = lastCodeByListingKey.get(saleKey);
+    if (prevCode && prevCode !== code) {
+      sseMarkUnsold({ code: prevCode });
+    }
+    lastCodeByListingKey.set(saleKey, code);
+  }
+
+  if (soldSet.has(code)) {
+    const entry = soldList.find(x => x.code === code);
+    if (entry && buyer) entry.buyer = buyer;
+
+    const active = document.activeElement;
+    if (!active || !active.classList || !active.classList.contains("buyerInput")) {
+      updateSoldList();
+    }
+    return;
+  }
+
+  soldSet.add(code);
+  soldList.push({ code, buyer });
+
+  const tile = document.querySelector(`.team[data-team-code="${CSS.escape(code)}"]`);
+  if (tile){
+    tile.classList.add("sold","flash");
+    setTimeout(()=>tile.classList.remove("flash"), 280);
+  }
+
+  updateStats();
+  updateSoldList();
+}
+
+function sseMarkUnsold(data){
+  const code = normalizeTeamCode(data);
+  if (!code) return;
+
+  soldSet.delete(code);
+  soldList = soldList.filter(x => x.code !== code);
+  soldTeamsList.length = 0;
+  soldTeamsList.push(...soldList);
+
+  const tile = document.querySelector(`.team[data-team-code="${CSS.escape(code)}"]`);
+  if (tile) tile.classList.remove("sold");
+
+  updateStats();
+  updateSoldList();
+}
+
+function sseUpdateBuyer(data){
+  const code = normalizeTeamCode(data);
+  const buyer = normalizeBuyer(data);
+  const entry = soldList.find(x => x.code === code);
+
+  if (entry){
+    entry.buyer = buyer;
+
+    const active = document.activeElement;
+    if (!active || !active.classList || !active.classList.contains("buyerInput")) {
+      updateSoldList();
+    }
+  }
+}
+
 function handleSSEEvent(data){
+  data = (data && data.data && typeof data.data === "object") ? data.data : data;
   const type = String(data?.type || "").toLowerCase();
 
-  // breakId matching (ignore if present and doesn't match)
-  const incomingBreakId = getEventBreakId(data);
-  const myBreakId = computeBreakId();
-  if (incomingBreakId && incomingBreakId !== myBreakId) return;
+  if (!breakIdMatches(data)) return;
 
   if (type === "reset"){
     resetAll();
@@ -1387,9 +1508,24 @@ function handleSSEEvent(data){
     const v = String(data?.value ?? "").trim();
     if (v){
       saveManualBreakNumber(v);
-      document.getElementById("breakNumDisplay").textContent = v;
-   
+      const el = document.getElementById("breakNumDisplay");
+      if (el) el.textContent = v;
     }
+    return;
+  }
+
+  if (type === "set_title"){
+    const t = String(data?.value || data?.title || "").trim();
+    if (t){
+      saveTitle(t);
+      const el = document.getElementById("titleText");
+      if (el) el.textContent = loadTitle();
+    }
+    return;
+  }
+
+  if (type === "next_break"){
+    newBreak();
     return;
   }
 
@@ -1399,63 +1535,28 @@ function handleSSEEvent(data){
     return;
   }
 
-  if (type === "team_sold" || type === "sale" || type === "sold"){
-    const s = normalizeSport(data);
-    if (s && s !== currentSport) return;
-
-    const code = normalizeTeamCode(data);
-    const buyer = normalizeBuyer(data);
-
-    if (!code) return;
-    if (soldSet.has(code)) {
-      // still allow buyer update
-      const entry = soldList.find(x => x.code === code);
-      if (entry && buyer) entry.buyer = buyer;
-      updateSoldList();
-      return;
-    }
-
-    soldSet.add(code);
-    soldList.push({ code, buyer });
-
-    const tile = document.querySelector(`.team[data-team-code="${CSS.escape(code)}"]`);
-    if (tile){
-      tile.classList.add("sold","flash");
-      setTimeout(()=>tile.classList.remove("flash"), 280);
-    }
-
-    updateStats();
-    updateSoldList();
+  if (
+    type === "team_sold" ||
+    type === "sale" ||
+    type === "sold" ||
+    type === "purchase" ||
+    type === "whatnot_purchase"
+  ){
+    sseMarkSold(data);
     return;
   }
 
   if (type === "buyer" || type === "buyer_update"){
-    const code = normalizeTeamCode(data);
-    const buyer = normalizeBuyer(data);
-    const entry = soldList.find(x => x.code === code);
-    if (entry){
-      entry.buyer = buyer;
-      updateSoldList();
-    }
+    sseUpdateBuyer(data);
     return;
   }
 
   if (type === "team_unsold" || type === "unsold"){
-    const code = normalizeTeamCode(data);
-    if (!code) return;
-
-    soldSet.delete(code);
-    soldList = soldList.filter(x => x.code !== code);
-
-    const tile = document.querySelector(`.team[data-team-code="${CSS.escape(code)}"]`);
-    if (tile) tile.classList.remove("sold");
-
-    updateStats();
-    updateSoldList();
+    sseMarkUnsold(data);
     return;
   }
-}
 
+}
 /* =========================
    MODAL STATE + FUNCTIONS
 ========================= */

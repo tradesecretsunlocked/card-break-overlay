@@ -514,8 +514,8 @@
     .sold-item{
       display:flex;
       align-items:center;
-      gap:3px;
-      padding: 3px 5px;
+      gap:8px;
+      padding: 6px 8px;
       border-radius: 999px;
       background: rgba(255,255,255,0.12);
       box-shadow: inset 0 0 0 2px rgba(255,255,255,0.12);
@@ -538,7 +538,7 @@
       color:#ffffff;
       width:100%;
       border-radius: 999px;
-      padding: 2px 2px;
+      padding: 8px 10px;
     }
 
     .export-popup{
@@ -1178,7 +1178,12 @@ function sseUpdateBuyer(code, buyerName = '', sport = currentBreakType){
     return;
   }
 
-  if (sport === currentBreakType) renderSoldPanel();
+  if (sport === currentBreakType) {
+    const active = document.activeElement;
+    if (!active || !active.classList || !active.classList.contains('buyer')) {
+      renderSoldPanel();
+    }
+  }
 }
 
   function markSold(code, buyerName = ''){
@@ -1252,8 +1257,7 @@ if (soldList.length === 0) {
       buyerInput.placeholder = 'Buyer';
       buyerInput.value = entry.buyer || '';
 
-      buyerInput.addEventListener('input', e => {
-        entry.buyer = e.target.value;
+      function sendBuyerUpdate(){
         bridgePostSafe({
           type: 'buyer_update',
           teamCode: entry.code,
@@ -1262,11 +1266,29 @@ if (soldList.length === 0) {
           breakId: computeBreakId(),
           ts: Date.now()
         });
+      }
+
+      buyerInput.addEventListener('input', e => {
+        // Local-only while typing. Posting on every keystroke causes the bridge echo
+        // to re-render this panel and leaves the operator typing one character at a time.
+        entry.buyer = e.target.value;
+      });
+
+      buyerInput.addEventListener('change', () => {
+        entry.buyer = buyerInput.value;
+        sendBuyerUpdate();
+      });
+
+      buyerInput.addEventListener('blur', () => {
+        entry.buyer = buyerInput.value;
+        sendBuyerUpdate();
       });
 
       buyerInput.addEventListener('keydown', e => {
         if (e.key === 'Enter') {
           e.preventDefault();
+          entry.buyer = buyerInput.value;
+          sendBuyerUpdate();
           e.target.blur();
         }
       });
