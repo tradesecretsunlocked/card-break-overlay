@@ -1391,7 +1391,9 @@ function bridgeWarmup(extra = {}){
    - {type:"set_sport", sport}
 ========================= */
 function normalizeTeamCode(data){
-  return String(data?.teamCode || data?.code || data?.team || "").trim().toUpperCase();
+  const direct = String(data?.teamCode || data?.code || data?.team || "").trim().toUpperCase();
+  if (direct) return direct;
+  return inferTeamCodeFromTitle(data?.title || data?.listingTitle || data?.name || "");
 }
 function normalizeBuyer(data){
   return String(data?.buyerName || data?.buyer || data?.username || "").trim();
@@ -1400,6 +1402,44 @@ function normalizeSport(data){
   const s = String(data?.breakType || data?.sport || "").trim().toLowerCase();
   return breakTypes[s] ? s : "";
 }
+
+function inferTeamCodeFromTitle(title){
+  const s = String(title || "").toLowerCase();
+
+  const map = [
+    ["diamondbacks", "ARI"], ["arizona", "ARI"],
+    ["braves", "ATL"], ["orioles", "BAL"], ["red sox", "BOS"], ["redsox", "BOS"],
+    ["cubs", "CHC"], ["white sox", "CHW"], ["whitesox", "CHW"],
+    ["reds", "CIN"], ["guardians", "CLE"], ["rockies", "COL"],
+    ["tigers", "DET"], ["astros", "HOU"], ["royals", "KC"],
+    ["angels", "LAA"], ["dodgers", "LAD"], ["marlins", "MIA"],
+    ["brewers", "MIL"], ["twins", "MIN"], ["mets", "NYM"],
+    ["yankees", "NYY"], ["athletics", "OAK"], ["phillies", "PHI"],
+    ["pirates", "PIT"], ["padres", "SD"], ["giants", "SF"],
+    ["mariners", "SEA"], ["cardinals", "STL"], ["rays", "TB"],
+    ["rangers", "TEX"], ["blue jays", "TOR"], ["bluejays", "TOR"],
+    ["nationals", "WSH"],
+
+    ["hawks", "ATL"], ["celtics", "BOS"], ["nets", "BKN"], ["hornets", "CHA"],
+    ["bulls", "CHI"], ["cavaliers", "CLE"], ["mavericks", "DAL"],
+    ["nuggets", "DEN"], ["pistons", "DET"], ["warriors", "GSW"],
+    ["rockets", "HOU"], ["pacers", "IND"], ["clippers", "LAC"],
+    ["lakers", "LAL"], ["grizzlies", "MEM"], ["heat", "MIA"],
+    ["bucks", "MIL"], ["timberwolves", "MIN"], ["pelicans", "NOP"],
+    ["knicks", "NYK"], ["thunder", "OKC"], ["magic", "ORL"],
+    ["76ers", "PHI"], ["sixers", "PHI"], ["suns", "PHX"],
+    ["blazers", "POR"], ["kings", "SAC"], ["spurs", "SAS"],
+    ["raptors", "TOR"], ["jazz", "UTA"], ["wizards", "WAS"]
+  ];
+
+  for (const [needle, code] of map){
+    if (s.includes(needle)) return code;
+  }
+
+  const explicit = String(title || "").match(/\b([A-Z]{2,4})\b/);
+  return explicit ? explicit[1] : "";
+}
+
 function getEventBreakId(data){
   return String(data?.breakId || "").trim();
 }
