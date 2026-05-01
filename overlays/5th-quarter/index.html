@@ -1150,17 +1150,32 @@ function toggleTeam(code){
 }
 
 function sseMarkSold(code, buyerName = '', sport = currentBreakType){
-  if (!code) return;
-  getSoldSetForSport(sport).add(code);
-  setBuyerForCode(code, buyerName, sport);
-  if (sport === currentBreakType) syncSoldClasses();
+  const key = normalizeSportKey(sport) || currentBreakType;
+  const cleanCode = String(code || '').toUpperCase().trim();
+
+  if (!cleanCode) return;
+
+  if (!isValidTeamCodeForSport(cleanCode, key)){
+    console.warn('[5Q] Ignoring invalid sold code:', cleanCode, 'sport:', key);
+    return;
+  }
+
+  getSoldSetForSport(key).add(cleanCode);
+  setBuyerForCode(cleanCode, buyerName, key);
+
+  if (key === currentBreakType) syncSoldClasses();
 }
 
 function sseMarkUnsold(code, sport = currentBreakType){
-  if (!code) return;
-  getSoldSetForSport(sport).delete(code);
-  removeSoldEntry(code, sport);
-  if (sport === currentBreakType) syncSoldClasses();
+  const key = normalizeSportKey(sport) || currentBreakType;
+  const cleanCode = String(code || '').toUpperCase().trim();
+
+  if (!cleanCode) return;
+
+  getSoldSetForSport(key).delete(cleanCode);
+  removeSoldEntry(cleanCode, key);
+
+  if (key === currentBreakType) syncSoldClasses();
 }
 
 function sseUpdateBuyer(code, buyerName = '', sport = currentBreakType){
@@ -1461,6 +1476,15 @@ function ensureLookup(sportKey){
   return SPORT_LOOKUP[sportKey];
 }
 
+function isValidTeamCodeForSport(code, sport = currentBreakType){
+  const key = normalizeSportKey(sport);
+  const c = String(code || '').toUpperCase().trim();
+  if (!key || !c) return false;
+
+  const map = ensureLookup(key);
+  return map.has(normTeamText(c));
+}
+
 function inferCodeFromText(text, sportHint = ''){
   const raw = String(text || '').trim();
   if (!raw) return '';
@@ -1509,6 +1533,8 @@ function inferCodeFromText(text, sportHint = ''){
 }
 
 function resolveTeamCode(payload){
+  const sportHint = getEventSport(payload);
+
   const direct = String(
     payload?.teamCode ||
     payload?.code ||
@@ -1518,9 +1544,10 @@ function resolveTeamCode(payload){
     ''
   ).toUpperCase().trim();
 
-  if (direct) return direct;
+  if (direct && isValidTeamCodeForSport(direct, sportHint)){
+    return direct;
+  }
 
-  const sportHint = getEventSport(payload);
   return inferCodeFromText(
     payload?.title ||
     payload?.listingTitle ||
@@ -1530,7 +1557,6 @@ function resolveTeamCode(payload){
     sportHint
   );
 }
-
 function applySoldEvent(payload){
   const sport = getEventSport(payload);
   const code = resolveTeamCode(payload);
