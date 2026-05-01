@@ -673,7 +673,7 @@ body.team-board-mode #soldPanel{
     .division-grid{
       display:grid;
       gap:4px;
-      grid-template-columns:repeat(4, 1fr);
+      grid-template-columns:repeat(5, 1fr);
     }
     .division-group.sold .team img,
     .division-group.sold .fallback-code{
@@ -974,14 +974,14 @@ body.team-board-mode #soldPanel{
     }
     .breaktype-buttons{
       display:grid;
-      grid-template-columns:repeat(6, minmax(92px, auto));
+      grid-template-columns:repeat(7, minmax(92px, auto));
       gap:6px;
       align-items:center;
     }
      .breaktype-btn{
       min-height:40px;
-      padding:0 12px;
-      font-size:13px;
+      padding:0 36px;
+      font-size:15px;
       line-height:1;
       white-space:nowrap;
       background:linear-gradient(180deg, rgb(254 125 38 / 95%), rgba(194, 136, 3, 0.96));
@@ -2001,6 +2001,7 @@ body.division-board-mode .division-grid .team.sold::after{
           <label>NBA</label>
           <input id="tileHeightNBAInput" type="number" min="36" max="140" step="1" />
         </div>
+        
         <div>
           <label>MLB</label>
           <input id="tileHeightMLBInput" type="number" min="36" max="140" step="1" />
@@ -2016,14 +2017,21 @@ body.division-board-mode .division-grid .team.sold::after{
           <label>Custom</label>
           <input id="tileHeightCUSTOMInput" type="number" min="36" max="140" step="1" />
         </div>
-      </div>
-
+   
+  </div>
+  <div class="row2">
+   <div>
+      <label>NBA Divisions</label>
+      <input id="tileHeightNBADivInput" type="number" min="36" max="140" step="1" />
+    </div>
+     
       <div class="popup-actions">
         <button onclick="closePopup('tileHeightPopupMask')">Cancel</button>
         <button onclick="applyTileHeightEdit()">Apply</button>
       </div>
     </div>
   </div>
+
 
   <div class="popup-mask" id="chaserPopupMask">
     <div class="popup">
@@ -2289,7 +2297,7 @@ function yyyymmddLocal(d = new Date()){
 }
 function normalizeSport(v){
   const x = String(v || '').toLowerCase().trim();
-  return ['nfl','nfl-divisions','nba','mlb','nhl','custom'].includes(x) ? x : '';
+  return ['nfl','nfl-divisions','nba','nba-divisions','mlb','nhl','custom'].includes(x) ? x : '';
 }
 function getSportFamily(v = currentBreakType){
   return String(v || '').toLowerCase().startsWith('nfl') ? 'nfl' : String(v || '').toLowerCase().trim();
@@ -2297,6 +2305,8 @@ function getSportFamily(v = currentBreakType){
 function getSportLabel(v = currentBreakType){
   if (v === 'nfl') return 'NFL TEAMS';
   if (v === 'nfl-divisions') return 'NFL DIVS';
+  if (v === 'nba') return 'NBA TEAMS';
+  if (v === 'nba-divisions') return 'NBA DIVS';
   return String(v || '').toUpperCase();
 }
 function uniqueCodes(arr){
@@ -2323,6 +2333,7 @@ function loadSportTileHeights(){
       nfl: Number(raw.nfl) || 58,
       'nfl-divisions': Number(raw['nfl-divisions']) || 58,
       nba: Number(raw.nba) || 58,
+      'nba-divisions': Number(raw['nba-divisions']) || 58,
       mlb: Number(raw.mlb) || 58,
       nhl: Number(raw.nhl) || 58,
       custom: Number(raw.custom) || 58
@@ -2332,6 +2343,7 @@ function loadSportTileHeights(){
       nfl: 58,
       'nfl-divisions': 58,
       nba: 58,
+      'nba-divisions': 58,
       mlb: 58,
       nhl: 58,
       custom: 58
@@ -2901,6 +2913,32 @@ BREAK_TYPES.nba.divisions = convertMapToTeams(BREAK_TYPES.nba.divisions, 'nba');
 BREAK_TYPES.mlb.divisions = convertMapToTeams(BREAK_TYPES.mlb.divisions, 'mlb');
 BREAK_TYPES.nhl.divisions = convertMapToTeams(BREAK_TYPES.nhl.divisions, 'nhl');
 
+/* ===== TSU PATCH: NBA division layout mirrors NFL division setup ===== */
+BREAK_TYPES['nba-divisions'] = {
+  label:'NBA DIVS',
+  mode:'divisions',
+  conferences:['EASTERN','WESTERN'],
+  divisionCodes:{
+    'EASTERN ATLANTIC':'EATL',
+    'EASTERN CENTRAL':'ECEN',
+    'EASTERN SOUTHEAST':'ESE',
+    'WESTERN NORTHWEST':'WNW',
+    'WESTERN PACIFIC':'WPAC',
+    'WESTERN SOUTHWEST':'WSW'
+  },
+  divisions: BREAK_TYPES.nba.divisions
+};
+
+const NBA_TEAM_TO_DIVISION = {};
+Object.entries(BREAK_TYPES['nba-divisions'].divisions).forEach(([conf, groups]) => {
+  Object.entries(groups).forEach(([div, teams]) => {
+    const divCode = BREAK_TYPES['nba-divisions'].divisionCodes[`${conf} ${div}`];
+    teams.forEach(team => {
+      NBA_TEAM_TO_DIVISION[String(team.code || '').toUpperCase()] = divCode;
+    });
+  });
+});
+
 const DEFAULT_CUSTOM_LAYOUT = {
   leftTitle: 'LEFT BOARD',
   rightTitle: 'RIGHT BOARD',
@@ -3328,7 +3366,7 @@ function buildCustomBoard(){
     });
 }
 function isDivisionBreakMode(){
-  return currentBreakType === 'nfl-divisions';
+  return currentBreakType === 'nfl-divisions' || currentBreakType === 'nba-divisions';
 }
 
 function getBuyerForCode(code){
@@ -3845,6 +3883,7 @@ function openTileHeightPopup(){
   document.getElementById('tileHeightNFLInput').value = String(heights.nfl || 58);
   document.getElementById('tileHeightNFLDivInput').value = String(heights['nfl-divisions'] || 58);
   document.getElementById('tileHeightNBAInput').value = String(heights.nba || 65);
+  document.getElementById('tileHeightNBADivInput').value = String(heights['nba-divisions'] || 65);
   document.getElementById('tileHeightMLBInput').value = String(heights.mlb || 65);
   document.getElementById('tileHeightNHLInput').value = String(heights.nhl || 65);
   document.getElementById('tileHeightCUSTOMInput').value = String(heights.custom || 65);
@@ -3856,6 +3895,7 @@ function applyTileHeightEdit(){
     nfl: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightNFLInput').value || '58', 10) || 58)),
     'nfl-divisions': Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightNFLDivInput').value || '58', 10) || 58)),
     nba: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightNBAInput').value || '58', 10) || 58)),
+    'nba-divisions': Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightNBADivInput').value || '58', 10) || 58)),
     mlb: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightMLBInput').value || '58', 10) || 58)),
     nhl: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightNHLInput').value || '58', 10) || 58)),
     custom: Math.max(36, Math.min(140, parseInt(document.getElementById('tileHeightCUSTOMInput').value || '58', 10) || 58))
@@ -3873,14 +3913,15 @@ function renderBreakTypeButtons(){
   const wrap = document.getElementById('breakTypeButtons');
   wrap.innerHTML = '';
 
-  const buttons = [
-    ['nfl', 'NFL TEAMS'],
-    ['nfl-divisions', 'NFL DIVS'],
-    ['nba', 'NBA'],
-    ['mlb', 'MLB'],
-    ['nhl', 'NHL'],
-    ['custom', 'CUSTOM']
-  ];
+const buttons = [
+  ['nfl', 'NFL TEAMS'],
+  ['nfl-divisions', 'NFL DIVS'],
+  ['nba', 'NBA'],
+  ['nba-divisions', 'NBA DIVS'],
+  ['mlb', 'MLB'],
+  ['nhl', 'NHL'],
+  ['custom', 'CUSTOM']
+];
 
   buttons.forEach(([type, label]) => {
     const btn = document.createElement('button');
@@ -3908,7 +3949,7 @@ function setBreakType(type){
   bridgeWarmupSafe();
 }
 function cycleSport(){
-  const order = ['nfl','nfl-divisions','nba','mlb','nhl','custom'];
+  const order = ['nfl','nfl-divisions','nba','nba-divisions','mlb','nhl','custom'];
   const idx = order.indexOf(currentBreakType);
   setBreakType(order[(idx + 1 + order.length) % order.length]);
 }
@@ -3933,11 +3974,12 @@ function startNewBreakCycle(){
 function inferTeamCodeFromTitle(title, sport){
   const raw = String(title || '');
   const direct = raw.match(/\b([A-Z]{2,4})\b/);
-  if (direct?.[1]){
-    const code = direct[1].toUpperCase();
-    if (sport === 'nfl-divisions') return NFL_TEAM_TO_DIVISION[code] || code;
-    return code;
-  }
+if (direct?.[1]){
+  const code = direct[1].toUpperCase();
+  if (sport === 'nfl-divisions') return NFL_TEAM_TO_DIVISION[code] || code;
+  if (sport === 'nba-divisions') return NBA_TEAM_TO_DIVISION[code] || code;
+  return code;
+}
 
   const text = raw.toLowerCase();
   const entries = allEntriesForCurrentSport();
@@ -4172,9 +4214,13 @@ function handleSSEEvent(data){
 
   if (type === 'buyer' || type === 'buyer_update'){
     let code = String(payload.code || payload.teamCode || '').toUpperCase().trim();
-    if (currentBreakType === 'nfl-divisions' && code && !boardState[code]){
-      code = NFL_TEAM_TO_DIVISION[code] || code;
-    }
+ if (currentBreakType === 'nfl-divisions' && code && !boardState[code]){
+  code = NFL_TEAM_TO_DIVISION[code] || code;
+}
+
+if (currentBreakType === 'nba-divisions' && code && !boardState[code]){
+  code = NBA_TEAM_TO_DIVISION[code] || code;
+}
     if (code) sseUpdateBuyer(code, payload.buyer || payload.buyerName || '');
     return;
   }
@@ -4185,9 +4231,13 @@ function handleSSEEvent(data){
     if (getSportFamily(sport) !== getSportFamily(currentBreakType)) return;
 
     let code = String(payload.code || payload.teamCode || '').toUpperCase().trim();
-    if (currentBreakType === 'nfl-divisions' && code && !boardState[code]){
-      code = NFL_TEAM_TO_DIVISION[code] || code;
-    }
+  if (currentBreakType === 'nfl-divisions' && code && !boardState[code]){
+  code = NFL_TEAM_TO_DIVISION[code] || code;
+}
+
+if (currentBreakType === 'nba-divisions' && code && !boardState[code]){
+  code = NBA_TEAM_TO_DIVISION[code] || code;
+}
     if (!code){
       const title = payload.title || payload.itemTitle || payload.listingTitle || payload.name || '';
       code = inferTeamCodeFromTitle(title, currentBreakType);
@@ -4206,9 +4256,13 @@ function handleSSEEvent(data){
 
   if (type === 'team_unsold'){
     let code = String(payload.code || payload.teamCode || '').toUpperCase().trim();
-    if (currentBreakType === 'nfl-divisions' && code && !boardState[code]){
-      code = NFL_TEAM_TO_DIVISION[code] || code;
-    }
+ if (currentBreakType === 'nfl-divisions' && code && !boardState[code]){
+  code = NFL_TEAM_TO_DIVISION[code] || code;
+}
+
+if (currentBreakType === 'nba-divisions' && code && !boardState[code]){
+  code = NBA_TEAM_TO_DIVISION[code] || code;
+}
     if (!code){
       const title = payload.title || payload.itemTitle || payload.listingTitle || '';
       code = inferTeamCodeFromTitle(title, currentBreakType);
