@@ -1366,6 +1366,7 @@ function normalizeCodeAliases(code, sportKey){
   if (s === 'mlb' && c === 'WAS') return 'WSH';
   if (s === 'mlb' && c === 'OAK') return 'ATH';
   if (s === 'nfl' && c === 'JAC') return 'JAX';
+  if (s === 'mlb' && c === 'CHW') return 'CWS';
   return c;
 }
 function isValidCodeForSport(code, sportKey){
@@ -1609,8 +1610,12 @@ function sseUpdateBuyer(code, buyerName = ''){
   boardState[key].buyer = safeBuyer(buyerName || '');
   const item = soldEntry(key);
   if (item) item.buyer = boardState[key].buyer;
-  persistSoldState();
+ persistSoldState();
+
+const active = document.activeElement;
+if (!active || active.tagName !== 'INPUT') {
   buildLayout();
+}
 }
 function resetSoldState(){
   Object.keys(boardState).forEach(code => {
@@ -1661,11 +1666,27 @@ function renderSoldPanel(){
     input.value = entry.buyer || '';
     input.placeholder = entry.code;
     input.addEventListener('input', e => {
-      entry.buyer = e.target.value;
-      if (boardState[entry.code]) boardState[entry.code].buyer = e.target.value;
-      persistSoldState();
-      buildLayout();
-    });
+  entry.buyer = e.target.value;
+  if (boardState[entry.code]) {
+    boardState[entry.code].buyer = e.target.value;
+  }
+  persistSoldState();
+
+  const tile = document.querySelector(`.tile[data-team-code="${CSS.escape(entry.code)}"] .tile-buyer`);
+  if (tile) tile.textContent = safeBuyer(e.target.value);
+});
+
+input.addEventListener('change', () => {
+  persistSoldState();
+});
+
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    input.blur();
+    persistSoldState();
+  }
+});
     row.appendChild(input);
     soldGrid.appendChild(row);
   });

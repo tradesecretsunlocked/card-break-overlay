@@ -370,6 +370,165 @@
       transition: opacity .14s ease, transform .14s ease;
     }
     .team.sold .sold-x{ opacity: 1; transform: scale(1); }
+    /* ===== HIT TILE SPIN / POPOUT ANIMATION ===== */
+/* ===== CENTER SCREEN HIT REVEAL ANIMATION ===== */
+.hit-reveal-clone{
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 999999;
+  width: 180px;
+  height: 130px;
+  border-radius: 18px;
+  overflow: hidden;
+  pointer-events: none;
+  background: rgba(0,0,0,0.92);
+  border: 4px solid rgba(244,53,47,0.95);
+  box-shadow:
+    0 0 0 5px rgba(242,238,230,0.22),
+    0 0 34px rgba(244,53,47,0.95),
+    0 28px 70px rgba(0,0,0,0.92);
+  transform-style: preserve-3d;
+  animation: hitRevealFlyCenter 3.15s cubic-bezier(.17,.86,.25,1) forwards;
+}
+
+.hit-reveal-clone img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.95;
+  filter: brightness(1.08) contrast(1.14) saturate(1.18);
+}
+
+.hit-reveal-clone .team-label{
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  text-align: center;
+  font-size: 30px !important;
+  line-height: 1.02;
+  font-weight: 1000;
+  letter-spacing: 1px;
+  color: #fff;
+  text-transform: uppercase;
+  text-shadow:
+    0 0 12px rgba(244,53,47,0.95),
+    0 5px 18px rgba(0,0,0,0.95);
+  background: linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.72));
+}
+
+.hit-reveal-clone .sold-x{
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 96px;
+  font-weight: 1000;
+  color: rgba(244,53,47,0.32);
+  text-shadow: 0 0 20px rgba(244,53,47,0.75);
+}
+
+.hit-reveal-badge{
+  position: fixed;
+  left: 50%;
+  top: calc(50% + 94px);
+  transform: translateX(-50%);
+  z-index: 1000000;
+  max-width: 720px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.94);
+  border: 3px solid rgba(242,238,230,0.34);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 1000;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow:
+    0 0 24px rgba(244,53,47,0.55),
+    0 18px 44px rgba(0,0,0,0.82);
+  pointer-events: none;
+  animation: hitRevealBadge 3.15s ease forwards;
+}
+
+@keyframes hitRevealFlyCenter{
+  0%{
+    transform:
+      translate(var(--from-x), var(--from-y))
+      scale(.55)
+      rotateY(0deg)
+      rotateZ(-4deg);
+    opacity: 0;
+  }
+
+  10%{
+    opacity: 1;
+  }
+
+  36%{
+    transform:
+      translate(var(--center-x), var(--center-y))
+      scale(1.85)
+      rotateY(540deg)
+      rotateZ(2deg);
+    opacity: 1;
+  }
+
+  68%{
+    transform:
+      translate(var(--center-x), var(--center-y))
+      scale(1.85)
+      rotateY(720deg)
+      rotateZ(0deg);
+    opacity: 1;
+  }
+
+  100%{
+    transform:
+      translate(var(--center-x), var(--center-y))
+      scale(.7)
+      rotateY(900deg)
+      rotateZ(0deg);
+    opacity: 0;
+  }
+}
+
+@keyframes hitRevealBadge{
+  0%{
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(.85);
+  }
+
+  30%{
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px) scale(.85);
+  }
+
+  42%{
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+
+  72%{
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+
+  100%{
+    opacity: 0;
+    transform: translateX(-50%) translateY(-18px) scale(.92);
+  }
+
+}
 
     /* ===== Center control bar ===== */
     .control-bar{
@@ -1067,17 +1226,18 @@
     /* =========================
        LocalStorage namespace
     ========================== */
-    const LS = {
-      BREAK_NUMBER: 'wizards.breakNumber',
-      TICKER: 'wizards.tickerLines',
-      NIL_ENTRIES: 'wizards.nil.entries',
-      SOLD_STATE: 'wizards.soldState',
-      TITLES_OFF: 'wizards.titlesOff',
-      BRIDGE: 'wizards.bridge',
-      KEY: 'wizards.key',
-      TITLE_MAIN: 'wizards.title.main',
-      TITLE_SUB: 'wizards.title.sub'
-    };
+  const LS = {
+  BREAK_NUMBER: 'wizards.breakNumber',
+  TICKER: 'wizards.tickerLines',
+  NIL_ENTRIES: 'wizards.nil.entries',
+  SOLD_STATE: 'wizards.soldState',
+  SALE_KEY_MAP: 'wizards.saleKeyMap',
+  TITLES_OFF: 'wizards.titlesOff',
+  BRIDGE: 'wizards.bridge',
+  KEY: 'wizards.key',
+  TITLE_MAIN: 'wizards.title.main',
+  TITLE_SUB: 'wizards.title.sub'
+};
 
     /* =========================
        Title persistence
@@ -1225,14 +1385,15 @@ function refreshTicker(){
       localStorage.setItem(LS.BREAK_NUMBER, String(n));
     }
 
-    function setBreakNumber(n){
-      const safe = Number.isFinite(n) && n > 0 ? n : 1;
-      document.getElementById('breakIdDisplay').textContent = String(safe);
-      saveBreakNumber(safe);
-      loadSoldState();
-      updateStats();
-      renderSoldPanel();
-    }
+function setBreakNumber(n){
+  const safe = Number.isFinite(n) && n > 0 ? n : 1;
+  document.getElementById('breakIdDisplay').textContent = String(safe);
+  saveBreakNumber(safe);
+  loadSoldState();
+  loadSaleKeyMap();
+  updateStats();
+  renderSoldPanel();
+}
 
     function computeBreakId(){
       const d = new Date();
@@ -1611,8 +1772,12 @@ const entries = lines
     ========================== */
     let currentBreakType = 'nfl';
     const soldTeams = new Set();
-    let soldTeamsList = []; // { code, buyer }
-    let soldPanelVisible = false;
+let soldTeamsList = []; // { code, buyer }
+
+// saleId/id/listingId -> last resolved tile code
+const lastCodeByListingKey = new Map();
+
+let soldPanelVisible = false;
 
     /* =========================
        Sold persistence per breakType + break#
@@ -1621,7 +1786,42 @@ const entries = lines
       const n = loadBreakNumber();
       return `${LS.SOLD_STATE}:${currentBreakType}:${n}`;
     }
+function saleKeyMapKey(){
+  const n = loadBreakNumber();
+  return `${LS.SALE_KEY_MAP}:${currentBreakType}:${n}`;
+}
 
+function saveSaleKeyMap(){
+  try{
+    localStorage.setItem(
+      saleKeyMapKey(),
+      JSON.stringify(Array.from(lastCodeByListingKey.entries()))
+    );
+  }catch(_){}
+}
+
+function loadSaleKeyMap(){
+  lastCodeByListingKey.clear();
+
+  try{
+    const raw = localStorage.getItem(saleKeyMapKey());
+    if (!raw) return;
+
+    const entries = JSON.parse(raw);
+    if (!Array.isArray(entries)) return;
+
+    entries.forEach(pair => {
+      const k = String(pair?.[0] || '').trim();
+      const v = String(pair?.[1] || '').trim();
+      if (k && v) lastCodeByListingKey.set(k, v);
+    });
+  }catch(_){}
+}
+
+function clearSaleKeyMap(){
+  lastCodeByListingKey.clear();
+  try{ localStorage.removeItem(saleKeyMapKey()); }catch(_){}
+}
     function saveSoldState(){
       try{
         const payload = { sold: Array.from(soldTeams), list: soldTeamsList };
@@ -1687,12 +1887,13 @@ function queueSoldStateSave(){
       });
     }
 
-    function setBreakType(t){
-      if (!breakTypes[t]) return;
-      currentBreakType = t;
-      loadSoldState();
-      renderTeams();
-    }
+  function setBreakType(t){
+  if (!breakTypes[t]) return;
+  currentBreakType = t;
+  loadSoldState();
+  loadSaleKeyMap();
+  renderTeams();
+}
 
     function cycleSport(){
       const types = Object.keys(breakTypes);
@@ -1832,14 +2033,16 @@ teamDiv.appendChild(label);
         soldTeams.delete(code);
         teamDiv.classList.remove('sold');
         if (existingIndex !== -1) soldTeamsList.splice(existingIndex, 1);
-      } else {
-        soldTeams.add(code);
-        teamDiv.classList.add('sold');
-        if (existingIndex === -1) soldTeamsList.push({ code: code, buyer: '' });
-      }
+   } else {
+  soldTeams.add(code);
+  teamDiv.classList.add('sold');
+  if (existingIndex === -1) soldTeamsList.push({ code: code, buyer: '' });
+
+  animateTileHit(code, '');
+}
 
       updateStats();
-      renderSoldPanel();
+      renderSoldPanelSafe();
      queueSoldStateSave();
     }
 
@@ -1907,7 +2110,18 @@ function renderSoldPanel(){
     panel.appendChild(row);
   });
 }
+function renderSoldPanelSafe(){
+  const active = document.activeElement;
+  if (
+    active &&
+    active.classList &&
+    active.classList.contains('buyer-input')
+  ) {
+    return;
+  }
 
+  renderSoldPanel();
+}
     function findTeamByCode(code){
       const cfg = breakTypes[currentBreakType];
       if (!cfg) return null;
@@ -1925,15 +2139,20 @@ function renderSoldPanel(){
     /* =========================
        Reset
     ========================== */
-    function resetAll(){
-      soldTeams.clear();
-      soldTeamsList = [];
-      document.querySelectorAll('.team').forEach(t => t.classList.remove('sold'));
-      updateStats();
-      renderSoldPanel();
-      queueSoldStateSave();
-    }
+   function resetAll(){
+  soldTeams.clear();
+  soldTeamsList = [];
+clearSaleKeyMap();
 
+  document.querySelectorAll('.team').forEach(t => {
+    t.classList.remove('sold');
+    t.classList.remove('hit-popout');
+  });
+
+  updateStats();
+  renderSoldPanel();
+  queueSoldStateSave();
+}
     /* =========================
        Titles toggle
     ========================== */
@@ -2112,12 +2331,26 @@ function connectSSE(url){
     sse.onmessage = ingest;
 
     // Named SSE events (server sends: event: team_sold)
-    sse.addEventListener('team_sold', ingest);
-    sse.addEventListener('team_unsold', ingest);
-    sse.addEventListener('stream_stats', ingest);
-    sse.addEventListener('scores', ingest);
-    sse.addEventListener('reset', ingest);
-    sse.addEventListener('set_break', ingest);
+[
+  'team_sold',
+  'team_unsold',
+  'sale',
+  'sold',
+  'purchase',
+  'whatnot_purchase',
+  'buyer',
+  'buyer_update',
+  'stream_stats',
+  'scores',
+  'reset',
+  'set_break',
+  'set_sport',
+  'set_title',
+  'next_break',
+  'overlay_warmup'
+].forEach(type => {
+  try { sse.addEventListener(type, ingest); } catch(_) {}
+});
 
     sse.onerror = () => {
       setSSEStatus('error','reconnecting');
@@ -2198,6 +2431,51 @@ function startSSE(){
   }catch(_){}
 }
 
+function getSaleKeyFromPayload(payload){
+  return String(
+    payload?.saleId ||
+    payload?.id ||
+    payload?.purchaseId ||
+    payload?.orderId ||
+    payload?.listingId ||
+    ""
+  ).trim();
+}
+
+function markSoldLocal(code, buyer = '', animate = true){
+  if (!code) return;
+
+  if (!soldTeams.has(code)){
+    soldTeams.add(code);
+
+    const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+    if (el) el.classList.add('sold');
+
+    soldTeamsList.push({ code, buyer: buyer || '' });
+
+    if (animate) animateTileHit(code, buyer || '');
+  } else if (buyer) {
+    const idx = soldTeamsList.findIndex(e => e.code === code);
+    if (idx !== -1) soldTeamsList[idx].buyer = buyer;
+  }
+}
+
+function markUnsoldLocal(code){
+  if (!code) return;
+
+  if (soldTeams.has(code)){
+    soldTeams.delete(code);
+
+    const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+    if (el) {
+      el.classList.remove('sold');
+      el.classList.remove('hit-popout');
+    }
+
+    const idx = soldTeamsList.findIndex(e => e.code === code);
+    if (idx !== -1) soldTeamsList.splice(idx, 1);
+  }
+}
 
 function handleSSEEvent(data){
   const payload =
@@ -2246,25 +2524,28 @@ if (type === 'set_break'){
   if (Number.isFinite(n) && n > 0) setBreakNumber(n);
   return;
 }
+if (
+  type === 'team_sold' ||
+  type === 'sale' ||
+  type === 'sold' ||
+  type === 'purchase' ||
+  type === 'whatnot_purchase'
+){
+  const sport = String(payload?.sport || payload?.breakType || '').toLowerCase();
+  const buyer = String(payload?.buyer || payload?.buyerName || '').trim();
 
-if (type === 'team_sold'){
-const sport = String(payload?.sport || '').toLowerCase();
-const buyer = String(payload?.buyer || '').trim();
-
-  // Always normalize the incoming title
-  const incomingTitleRaw = String(data?.title || '');
+  const incomingTitleRaw = String(payload?.title || payload?.itemTitle || payload?.listingTitle || '');
   const incomingTitle = stripPrefixTitle(incomingTitleRaw);
 
-  // If event tells us sport, switch (optional — keeps automations consistent)
-  if (sport && breakTypes[sport] && sport !== currentBreakType){
-    currentBreakType = sport;
-    loadSoldState();
-    renderTeams();
-  }
+if (sport && breakTypes[sport] && sport !== currentBreakType){
+  currentBreakType = sport;
+  loadSoldState();
+  loadSaleKeyMap();
+  renderTeams();
+}
 
-  let code = String(data?.code || '').trim().toUpperCase();
+  let code = String(payload?.code || payload?.teamCode || '').trim().toUpperCase();
 
-  // ✅ NIL: ignore code entirely and match by title text
   if ((sport || currentBreakType) === 'nil'){
     code = inferCodeFromTitle(incomingTitle, 'nil');
     if (!code){
@@ -2272,8 +2553,7 @@ const buyer = String(payload?.buyer || '').trim();
       return;
     }
   } else {
-    // ✅ Non-NIL: normal path (use code if present, otherwise infer)
-   if (!code) code = inferCodeFromTitle(stripPrefixTitle(incomingTitleRaw), sport || currentBreakType);
+    if (!code) code = inferCodeFromTitle(incomingTitle, sport || currentBreakType);
 
     if (!code){
       console.warn("[overlay] could not infer code from title:", incomingTitleRaw, "sportHint:", sport || currentBreakType);
@@ -2282,74 +2562,95 @@ const buyer = String(payload?.buyer || '').trim();
   }
 
   const sportKey = (sport || currentBreakType || '').toLowerCase();
-const checked = requireValidCodeOrBail(code, sportKey, incomingTitleRaw);
-if (!checked) return;
-code = checked;
+  const checked = requireValidCodeOrBail(code, sportKey, incomingTitleRaw);
+  if (!checked) return;
+  code = checked;
 
-  if (!soldTeams.has(code)){
-    soldTeams.add(code);
-    const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
-    if (el) el.classList.add('sold');
-    soldTeamsList.push({ code, buyer: buyer || '' });
-  } else if (buyer) {
-    const idx = soldTeamsList.findIndex(e => e.code === code);
-    if (idx !== -1) soldTeamsList[idx].buyer = buyer;
+  const saleKey = getSaleKeyFromPayload(payload);
+
+  // CRITICAL REASSIGN LOGIC:
+  // If the same sale/purchase key previously marked a different tile,
+  // unsell the old tile before selling the new one.
+if (saleKey){
+  const previousCode = lastCodeByListingKey.get(saleKey);
+  if (previousCode && previousCode !== code){
+    markUnsoldLocal(previousCode);
   }
+  lastCodeByListingKey.set(saleKey, code);
+  saveSaleKeyMap();
+}
+
+  markSoldLocal(code, buyer || '', true);
 
   updateStats();
-  renderSoldPanel();
+ renderSoldPanelSafe();
   queueSoldStateSave();
   return;
 }
+if (type === 'team_unsold' || type === 'unsold'){
+  const sport = String(payload?.sport || payload?.breakType || '').toLowerCase();
 
-if (type === 'team_unsold'){
-  const sport = String(data?.sport || '').toLowerCase();
+if (sport && breakTypes[sport] && sport !== currentBreakType){
+  currentBreakType = sport;
+  loadSoldState();
+  loadSaleKeyMap();
+  renderTeams();
+}
 
-  // If event tells us sport, switch
-  if (sport && breakTypes[sport] && sport !== currentBreakType){
-    currentBreakType = sport;
-    loadSoldState();
-    renderTeams();
-  }
-
-  const incomingTitleRaw = String(data?.title || '');
+  const saleKey = getSaleKeyFromPayload(payload);
+  const incomingTitleRaw = String(payload?.title || payload?.itemTitle || payload?.listingTitle || '');
   const incomingTitle = stripPrefixTitle(incomingTitleRaw);
 
-  let code = String(data?.code || '').trim().toUpperCase();
+  let code = String(payload?.code || payload?.teamCode || '').trim().toUpperCase();
 
-  if ((sport || currentBreakType) === 'nil'){
-    code = inferCodeFromTitle(incomingTitle, 'nil');
-  } else {
-    if (!code) code = inferCodeFromTitle(incomingTitle, sport || currentBreakType);
+  // strongest fallback: if saleId is known, use previous mapped code
+  if (!code && saleKey){
+    code = String(lastCodeByListingKey.get(saleKey) || '').trim().toUpperCase();
+  }
+
+  if (!code){
+    if ((sport || currentBreakType) === 'nil'){
+      code = inferCodeFromTitle(incomingTitle, 'nil');
+    } else {
+      code = inferCodeFromTitle(incomingTitle, sport || currentBreakType);
+    }
   }
 
   if (!code) return;
 
-  if (soldTeams.has(code)){
-    soldTeams.delete(code);
-    const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
-    if (el) el.classList.remove('sold');
+  const sportKey = (sport || currentBreakType || '').toLowerCase();
+  const checked = requireValidCodeOrBail(code, sportKey, incomingTitleRaw);
+  if (!checked) return;
 
-    const idx = soldTeamsList.findIndex(e => e.code === code);
-    if (idx !== -1) soldTeamsList.splice(idx, 1);
+  markUnsoldLocal(checked);
 
-    updateStats();
-    renderSoldPanel();
-   queueSoldStateSave();
+if (saleKey){
+  const cur = lastCodeByListingKey.get(saleKey);
+  if (!cur || cur === checked) {
+    lastCodeByListingKey.delete(saleKey);
+    saveSaleKeyMap();
   }
-
-  return;
 }
 
-  if (type === 'buyer'){
-    const code = String(data?.code || '').trim();
-    const buyer = String(data?.buyer || '').trim();
+  updateStats();
+ renderSoldPanelSafe();
+  queueSoldStateSave();
+  return;
+}
+if (type === 'buyer' || type === 'buyer_update'){
+  let code = String(payload?.code || payload?.teamCode || '').trim().toUpperCase();
+  const buyer = String(payload?.buyer || payload?.buyerName || '').trim();
+
+  if (!code){
+    const title = payload?.title || payload?.itemTitle || payload?.listingTitle || '';
+    code = inferCodeFromTitle(stripPrefixTitle(title), currentBreakType);
+  }
     if (!code) return;
 
     const idx = soldTeamsList.findIndex(e => e.code === code);
     if (idx !== -1){
       soldTeamsList[idx].buyer = buyer;
-      renderSoldPanel();
+      renderSoldPanelSafe();
       saveSoldState();
     }
   }
@@ -2487,6 +2788,55 @@ function requireValidCodeOrBail(code, sportKey, titleRaw){
       return String(s || '').replace(/"/g,'\\"');
     }
 
+    function animateTileHit(code, buyerName = ''){
+  const source = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+  if (!source) return;
+
+  // Remove any previous reveal still on screen.
+  document.querySelectorAll('.hit-reveal-clone, .hit-reveal-badge').forEach(el => el.remove());
+
+  const rect = source.getBoundingClientRect();
+
+  const clone = source.cloneNode(true);
+  clone.classList.remove('hit-popout');
+  clone.classList.add('hit-reveal-clone');
+
+  // Keep the real tile sold on the board, but animate a clone to center screen.
+  const cloneW = 180;
+  const cloneH = 130;
+
+  const fromX = rect.left + (rect.width / 2) - (cloneW / 2);
+  const fromY = rect.top + (rect.height / 2) - (cloneH / 2);
+
+  const centerX = (window.innerWidth / 2) - (cloneW / 2);
+  const centerY = (window.innerHeight / 2) - (cloneH / 2) - 20;
+
+  clone.style.setProperty('--from-x', `${fromX}px`);
+  clone.style.setProperty('--from-y', `${fromY}px`);
+  clone.style.setProperty('--center-x', `${centerX}px`);
+  clone.style.setProperty('--center-y', `${centerY}px`);
+
+  const teamObj = findTeamByCode(code);
+  const teamName = teamObj?.title || teamObj?.name || code;
+  const buyer = String(buyerName || '').trim();
+
+  const badge = document.createElement('div');
+  badge.className = 'hit-reveal-badge';
+  badge.textContent = buyer ? `${teamName} HIT • ${buyer}` : `${teamName} HIT`;
+
+  document.body.appendChild(clone);
+  document.body.appendChild(badge);
+
+  setTimeout(() => {
+    clone.remove();
+    badge.remove();
+
+    if (currentBreakType === 'nil') {
+      requestAnimationFrame(refitAllNilTitles);
+    }
+  }, 3250);
+}
+
 function fitTextToWidth(el, maxPx, minPx){
   if (!el) return;
   const parent = el.parentElement;
@@ -2545,8 +2895,9 @@ function refitAllNilTitles(){
       const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
       if (qSport && breakTypes[qSport]) currentBreakType = qSport;
 
-      loadSoldState();
-      initializeGrid();
+   loadSoldState();
+loadSaleKeyMap();
+initializeGrid();
 
       if (automationEnabled()) startSSE();
       else setSSEStatus('error','missing bridge');
