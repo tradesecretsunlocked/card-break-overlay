@@ -1268,23 +1268,32 @@ if (soldList.length === 0) {
       buyerInput.value = entry.buyer || '';
 
       buyerInput.addEventListener('input', e => {
-        entry.buyer = e.target.value;
-        bridgePostSafe({
-          type: 'buyer_update',
-          teamCode: entry.code,
-          buyerName: entry.buyer,
-          breakType: currentBreakType,
-          breakId: computeBreakId(),
-          ts: Date.now()
-        });
-      });
+  // Keep typing local so the sold panel does not re-render on every key.
+  entry.buyer = e.target.value;
+});
 
-      buyerInput.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          e.target.blur();
-        }
-      });
+function commitBuyerInput(){
+  entry.buyer = buyerInput.value;
+
+  bridgePostSafe({
+    type: 'buyer_update',
+    teamCode: entry.code,
+    buyerName: entry.buyer,
+    breakType: currentBreakType,
+    breakId: computeBreakId(),
+    ts: Date.now()
+  });
+}
+
+buyerInput.addEventListener('change', commitBuyerInput);
+buyerInput.addEventListener('blur', commitBuyerInput);
+
+buyerInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    e.target.blur();
+  }
+});
 
       item.appendChild(buyerInput);
       panel.appendChild(item);
