@@ -25,7 +25,7 @@
       --tickerDur:20s;
       --division-cols:4;
       --team-height:58px;
-      --board-height:408px;
+      --board-height:342px;
     }
     *{ box-sizing:border-box; }
     html,body{
@@ -123,9 +123,9 @@
   grid-template-columns: 1fr auto;
   gap:10px;
   align-items:center;
-  min-height:72px;
+  min-height:60px;
   border-radius:16px;
-  padding:8px 12px;
+  padding:2px 12px;
   background:
     linear-gradient(90deg,
       rgba(254,222,38,0.18),
@@ -224,9 +224,9 @@
       position:relative;
       display:grid;
       grid-template-columns: 1fr 148px 1fr;
-      gap:8px;
+      gap:1px;
       border-radius:16px;
-      padding:5px;
+      padding:1px;
       height:var(--board-height);
       background:
         linear-gradient(90deg,
@@ -242,7 +242,7 @@
       overflow-y:auto;
       overflow-x:hidden;
       border-radius:14px;
-      padding:4px;
+      padding:1px;
       background:rgba(0,0,0,0.42);
       border:1px solid rgba(255,255,255,0.10);
       box-shadow: inset 0 0 0 1px rgba(254,222,38,0.04);
@@ -250,14 +250,14 @@
     .conference::-webkit-scrollbar{ display:none; }
     .conference-title{
       text-align:center;
-      font-size:15px;
+      font-size:12px;
       font-weight:1000;
       text-transform:uppercase;
       letter-spacing:1px;
       color:var(--cream);
-      padding:2px 0 4px;
+      padding:1px 0 0px;
       border-bottom:1px solid rgba(255,255,255,0.10);
-      margin-bottom:4px;
+      margin-bottom:0px;
     }
 
     /* team-mode (wizards style) */
@@ -620,10 +620,10 @@ body.team-board-mode #soldPanel{
 
     /* division-mode (MCM style for NFL only) */
     .division-group{
-      margin-top:4px;
+      margin-top:2px;
       border:1px solid rgba(255,255,255,0.12);
       border-radius:14px;
-      padding:2px;
+      padding:1px;
       background:rgba(0,0,0,0.24);
       position:relative;
       overflow:hidden;
@@ -640,9 +640,9 @@ body.team-board-mode #soldPanel{
       justify-content:space-between;
       gap:8px;
       min-height:24px;
-      padding:0 4px 2px;
+      padding:0 4px 0px;
       border-bottom:1px solid rgba(255,255,255,0.12);
-      margin-bottom:2px;
+      margin-bottom:0px;
     }
     .division-head.right{ flex-direction:row-reverse; }
     .division-code{
@@ -768,7 +768,7 @@ body.team-board-mode #soldPanel{
       border:1px solid rgba(255,255,255,0.14);
     }
     .control-bar .btn{
-      min-height:46px;
+      min-height:40px;
       font-size:16px;
     }
     .stat-box{
@@ -776,7 +776,7 @@ body.team-board-mode #soldPanel{
       flex-direction:column;
       align-items:center;
       justify-content:center;
-      min-height:70px;
+      min-height:55px;
       border-radius:12px;
       background:rgba(0,0,0,0.55);
       border:2px solid rgba(255,255,255,0.18);
@@ -1278,6 +1278,358 @@ body.team-board-mode .team-label{
   justify-content:flex-start !important;
 }
 
+
+/* ===== TSU PATCH 2026-05-01: Big Time split team board + sold team board ===== */
+.teams-section.split-team-mode,
+.teams-section.division-board-mode{
+  grid-template-columns: 1fr 148px 1fr;
+}
+
+.teams-section.split-team-mode #conferenceRight,
+.teams-section.division-board-mode #conferenceRight{
+  display:flex !important;
+  flex-direction:column;
+}
+
+.teams-section.split-team-mode #conferenceLeft,
+.teams-section.split-team-mode #conferenceRight{
+  width:auto;
+}
+
+.split-team-grid{
+  display:grid;
+  grid-template-columns: repeat(var(--division-cols), 1fr);
+  gap:4px;
+}
+
+.teams-section.split-team-mode .conference{
+  overflow-y:auto;
+}
+
+.teams-section.split-team-mode .division{
+  margin-top:0;
+}
+
+.teams-section.split-team-mode .division-name{
+  display:none !important;
+}
+
+.teams-section.split-team-mode .team{
+  height:var(--team-height);
+}
+
+body.split-team-mode #soldList{
+  display:grid !important;
+}
+
+.sold-list.sold-team-style{
+  grid-template-columns: repeat(4, 1fr);
+  gap:4px;
+  max-height:184px;
+  padding:4px;
+  border-radius:14px;
+  background:rgba(0,0,0,0.34);
+  border:1px solid rgba(255,255,255,0.10);
+}
+
+.sold-list.sold-team-style .sold-empty{
+  grid-column:1 / -1;
+  min-height:42px;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:1000;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.74);
+  background:rgba(0,0,0,0.42);
+  border:1px solid rgba(255,255,255,0.10);
+}
+
+.sold-list.sold-team-style .team{
+  height:42px;
+  display:grid;
+  grid-template-columns:40px 1fr;
+  align-items:center;
+  gap:6px;
+  padding:3px 8px 3px 3px;
+  border-radius:4px;
+  background:linear-gradient(90deg, rgba(0,0,0,.92), rgba(48,38,12,.82));
+  border:1px solid rgba(255,255,255,.45);
+}
+
+.sold-list.sold-team-style .team img{
+  display:block !important;
+  width:34px !important;
+  height:34px !important;
+  object-fit:contain !important;
+  flex:0 0 34px !important;
+  opacity:.72 !important;
+  filter:grayscale(.35) brightness(.72) !important;
+}
+
+.sold-list.sold-team-style .team .fallback-code{
+  position:relative;
+  inset:auto;
+  width:34px;
+  height:34px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+}
+
+.sold-list.sold-team-style .team-label{
+  position:relative;
+  inset:auto;
+  justify-content:flex-start;
+  padding:0;
+  font-size:12px;
+  line-height:1;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  text-align:left !important;
+  color:var(--gold) !important;
+  opacity:1 !important;
+  filter:none !important;
+}
+
+.sold-list.sold-team-style .team.sold::after,
+.sold-list.sold-team-style .team.sold .sold-x,
+.sold-list.sold-team-style .team .team-buyer{
+  display:none !important;
+  content:none !important;
+}
+
+.sold-list.sold-team-style .team:hover{
+  transform:translateY(-1px);
+  border-color:rgba(254,222,38,0.92);
+}
+
+
+/* ===== TSU PATCH 2026-05-01 B: Full sold-board + logo-safe sold state ===== */
+.teams-section.split-team-mode .team.sold img,
+.sold-list.sold-team-style .team img{
+  opacity:1 !important;
+  filter:drop-shadow(0 8px 12px rgba(0,0,0,0.45)) !important;
+}
+
+.teams-section.split-team-mode .team.sold .team-label,
+.teams-section.split-team-mode .team.sold .fallback-code{
+  opacity:1 !important;
+  filter:none !important;
+}
+
+.teams-section.split-team-mode .team.sold::after{
+  content:"" !important;
+  position:absolute;
+  inset:0;
+  display:block !important;
+  background:rgba(0,0,0,0.42);
+  z-index:3;
+  pointer-events:none;
+}
+
+.teams-section.split-team-mode .team-label{
+  position:absolute;
+  left:6px;
+  top:5px;
+  right:auto;
+  bottom:auto;
+  inset:auto;
+  z-index:5;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:30px;
+  max-width:58px;
+  height:18px;
+  padding:0 6px;
+  border-radius:999px;
+  background:rgba(0,0,0,0.72);
+  border:1px solid rgba(255,255,255,0.20);
+  color:var(--gold);
+  font-size:11px;
+  line-height:1;
+  letter-spacing:.7px;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  text-shadow:0 2px 6px rgba(0,0,0,0.85);
+}
+
+.teams-section.split-team-mode .team-buyer{
+  left:8px;
+  right:8px;
+  bottom:5px;
+  z-index:6;
+  display:none;
+  font-size:14px;
+  color:#fff;
+  background:rgba(0,0,0,0.78);
+  border:1px solid rgba(254,222,38,0.42);
+  box-shadow:0 0 10px rgba(0,0,0,0.45);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.teams-section.split-team-mode .team.sold .team-buyer{
+  display:block;
+}
+
+.sold-list.sold-team-style{
+  grid-template-columns:repeat(4, minmax(0, 1fr));
+  gap:4px;
+  max-height:220px;
+  padding:4px;
+  border-radius:14px;
+  background:rgba(0,0,0,0.34);
+  border:1px solid rgba(255,255,255,0.10);
+}
+
+.sold-list.sold-team-style .team{
+  height:42px;
+  display:grid;
+  grid-template-columns:40px 1fr;
+  align-items:center;
+  gap:6px;
+  padding:3px 6px 3px 3px;
+  border-radius:4px;
+  background:linear-gradient(90deg, rgba(0,0,0,.88), rgba(18,18,38,.78));
+  border:1px solid rgba(255,255,255,.45);
+}
+
+.sold-list.sold-team-style .team.sold{
+  background:linear-gradient(90deg, rgba(0,0,0,.94), rgba(48,38,12,.86));
+  border-color:rgba(254,222,38,.56);
+}
+
+.sold-list.sold-team-style .team.sold::after{
+  content:"" !important;
+  position:absolute;
+  inset:0;
+  display:block !important;
+  background:rgba(0,0,0,0.30);
+  z-index:3;
+  pointer-events:none;
+}
+
+.sold-list.sold-team-style .team img{
+  width:34px !important;
+  height:34px !important;
+  object-fit:contain !important;
+  flex:0 0 34px !important;
+  z-index:2;
+}
+
+.sold-list.sold-team-style .team .fallback-code{
+  position:relative;
+  inset:auto;
+  width:34px;
+  height:34px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  z-index:2;
+}
+
+.sold-list.sold-team-style .team-label{
+  display:none !important;
+}
+
+.sold-list.sold-team-style .team .team-buyer{
+  display:none !important;
+}
+
+.sold-buyer-input{
+  position:relative;
+  z-index:6;
+  width:100%;
+  min-width:0;
+  height:28px;
+  border-radius:5px;
+  border:1px solid rgba(255,255,255,0.18);
+  background:rgba(0,0,0,0.68);
+  color:#fff;
+  font-size:12px;
+  font-weight:1000;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+  padding:0 6px;
+  outline:none;
+}
+
+.sold-buyer-input::placeholder{
+  color:rgba(255,255,255,0.62);
+  opacity:1;
+}
+
+.sold-list.sold-team-style .team.sold .sold-buyer-input{
+  color:var(--gold);
+  border-color:rgba(254,222,38,0.56);
+  background:rgba(0,0,0,0.76);
+}
+
+
+
+/* ===== TSU PATCH 2026-05-01 F: Control-bar logo locked between Sold + Remaining ===== */
+.control-bar{
+  justify-content:flex-start !important;
+  gap:15px !important;
+}
+
+.control-bar .control-logo{
+  position:relative !important;
+  left:auto !important;
+  top:auto !important;
+  transform:none !important;
+  pointer-events:none;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  height:74px;
+  min-height:74px;
+  margin:0;
+  padding:0;
+  flex:0 0 74px;
+  order:1;
+}
+
+.control-bar .control-logo img{
+  position:static !important;
+  top:auto !important;
+  left:auto !important;
+  transform:none !important;
+  height: 75px;
+  max-height:75px;
+  width:auto;
+  max-width:132px;
+  object-fit:contain;
+  display:block;
+  filter:
+    drop-shadow(0 8px 14px rgba(0,0,0,0.72))
+    drop-shadow(0 0 10px rgba(254,222,38,0.22));
+}
+
+.control-bar .btn,
+.control-bar .stat-box{
+  position:relative;
+  z-index:3;
+}
+
+.control-bar .btn:nth-of-type(1){ order:0; }
+.control-bar .stat-box:nth-of-type(1){ order:2; }
+.control-bar .stat-box:nth-of-type(2){ order:4; }
+.control-bar .btn:nth-of-type(2){ order:5; }
+
+
     .hidden{ display:none !important; }
 
 
@@ -1315,15 +1667,15 @@ body.team-board-mode .team-label{
         <div id="conferenceLeft" class="conference"></div>
 
         <div class="control-bar">
-
-          <div class="brand-logo">
-        <img id="brandLogo" alt="BIG TIME" src="../../images/logos/big-time-logo-short.png">
-      </div>
           <button class="btn" onclick="resetAll()">Reset</button>
 
           <div class="stat-box" onclick="toggleSoldControls()">
             <div class="value" id="teamsSold">0</div>
             <div class="label">Sold</div>
+          </div>
+
+          <div class="control-logo">
+            <img id="controlLogo" alt="BIG TIME" src="../../images/logos/big-time-logo-short.png">
           </div>
 
           <div class="stat-box">
@@ -1782,6 +2134,10 @@ function uniqueCodes(arr){
 }
 function safeBuyer(v){
   return String(v || '').replace(/\s+/g, ' ').trim();
+}
+
+function buyerAbbrev(v){
+  return safeBuyer(v).toUpperCase();
 }
 
 function loadSportTileHeights(){
@@ -2515,7 +2871,7 @@ function teamTile(teamObj, state, soldCode){
 
   const buyer = document.createElement('div');
   buyer.className = 'team-buyer';
-  buyer.textContent = safeBuyer(state?.buyer || '');
+  buyer.textContent = buyerAbbrev(state?.buyer || '');
   el.appendChild(buyer);
 
   return el;
@@ -2615,6 +2971,116 @@ function buildTeamConference(container, confName, divisions){
   });
 }
 
+
+function buildFlatTeamConference(container, confName, divisions){
+  container.innerHTML = '';
+
+  const ttl = document.createElement('div');
+  ttl.className = 'conference-title';
+  ttl.textContent = confName;
+  container.appendChild(ttl);
+
+  const divWrap = document.createElement('div');
+  divWrap.className = 'division split-team-division';
+
+  const grid = document.createElement('div');
+  grid.className = 'division-teams split-team-grid';
+
+  const teams = [];
+  Object.keys(divisions || {}).forEach(divName => {
+    (divisions[divName] || []).forEach(team => teams.push(team));
+  });
+
+  teams.forEach(team => {
+    const code = String(team.code || '').toUpperCase();
+    const state = boardState[code] || { sold:false, buyer:'' };
+    const tile = teamTile(team, state, code);
+
+    const label = document.createElement('div');
+    label.className = 'team-label';
+    label.textContent = code;
+    tile.appendChild(label);
+
+    tile.onclick = () => toggleSoldNoModal(code);
+    grid.appendChild(tile);
+  });
+
+  divWrap.appendChild(grid);
+  container.appendChild(divWrap);
+}
+
+function buildSplitCustomBoard(){
+  const left = document.getElementById('conferenceLeft');
+  const right = document.getElementById('conferenceRight');
+  left.innerHTML = '';
+  right.innerHTML = '';
+
+  const entries = customLayout.entries.map(x => ({
+    code:String(x.code || x.name || '').toUpperCase(),
+    name:String(x.name || x.code || '')
+  })).filter(x => x.code);
+
+  const midpoint = Math.ceil(entries.length / 2);
+  const sides = [
+    [left, customLayout.leftTitle || 'LEFT BOARD', entries.slice(0, midpoint)],
+    [right, customLayout.rightTitle || 'RIGHT BOARD', entries.slice(midpoint)]
+  ];
+
+  sides.forEach(([container, title, items]) => {
+    const ttl = document.createElement('div');
+    ttl.className = 'conference-title';
+    ttl.textContent = title;
+    container.appendChild(ttl);
+
+    const divWrap = document.createElement('div');
+    divWrap.className = 'division split-team-division';
+
+    const grid = document.createElement('div');
+    grid.className = 'division-teams split-team-grid';
+    grid.style.gridTemplateColumns = `repeat(${Math.max(2, Math.min(8, Number(customLayout.cols) || 5))}, 1fr)`;
+
+    items.forEach(item => {
+      const code = String(item.code || '').toUpperCase();
+      const state = boardState[code] || { sold:false, buyer:'' };
+      const tile = teamTile({ code, name:item.name }, state, code);
+
+      const label = document.createElement('div');
+      label.className = 'team-label';
+      label.textContent = code;
+      tile.appendChild(label);
+
+      tile.onclick = () => toggleSoldNoModal(code);
+      grid.appendChild(tile);
+    });
+
+    divWrap.appendChild(grid);
+    container.appendChild(divWrap);
+  });
+}
+
+function findActiveTeamByCode(code){
+  const key = String(code || '').toUpperCase().trim();
+  if (!key) return null;
+
+  const cfg = BREAK_TYPES[currentBreakType];
+  if (!cfg) return null;
+
+  if (cfg.mode === 'custom'){
+    const found = (customLayout.entries || []).find(x => String(x.code || x.name || '').toUpperCase() === key);
+    return found ? { code:key, name:String(found.name || found.code || key), image:'' } : { code:key, name:key, image:'' };
+  }
+
+  for (const conf of (cfg.conferences || [])){
+    const groups = cfg.divisions?.[conf] || {};
+    for (const divName of Object.keys(groups)){
+      const found = (groups[divName] || []).find(t => String(t.code || '').toUpperCase() === key);
+      if (found) return found;
+    }
+  }
+
+  return { code:key, name:key, image:'' };
+}
+
 function buildCustomBoard(){
   const left = document.getElementById('conferenceLeft');
   const right = document.getElementById('conferenceRight');
@@ -2645,7 +3111,7 @@ function buildCustomBoard(){
         const tile = teamTile({ code, name:item.name }, state, code);
         const label = document.createElement('div');
         label.className = 'team-label';
-        label.textContent = item.name || code;
+        label.textContent = code;
         tile.appendChild(label);
         tile.onclick = () => {
           if (soldTeams.has(code)) sseMarkUnsold(code);
@@ -2724,6 +3190,17 @@ function applyBuyerEdit(){
   closePopup("buyerPopupMask");
 }
 
+function toggleSoldNoModal(code){
+  const key = String(code || "").toUpperCase().trim();
+  if (!key || !boardState[key]) return;
+
+  if (soldTeams.has(key)){
+    sseMarkUnsold(key);
+  } else {
+    sseMarkSold(key, safeBuyer(boardState[key]?.buyer || ""));
+  }
+}
+
 function buildSingleTeamBoard(container){
   container.innerHTML = "";
 
@@ -2745,7 +3222,7 @@ function buildSingleTeamBoard(container){
     tile.appendChild(label);
 
     tile.onclick = () => {
-  openBuyerPopup(code);
+  toggleSoldNoModal(code);
 };
 
     board.appendChild(tile);
@@ -2756,15 +3233,18 @@ function buildSingleTeamBoard(container){
 
 function buildLayout(){
   const cfg = BREAK_TYPES[currentBreakType];
-  const teamMode = !isDivisionBreakMode();
+  const splitTeamMode = cfg && cfg.mode !== 'divisions';
+  const divisionMode = cfg && cfg.mode === 'divisions';
 
-  document.body.classList.toggle("team-board-mode", teamMode);
-  document.body.classList.toggle("division-board-mode", !teamMode);
+  document.body.classList.toggle("team-board-mode", false);
+  document.body.classList.toggle("split-team-mode", !!splitTeamMode);
+  document.body.classList.toggle("division-board-mode", !!divisionMode);
 
   const section = document.getElementById("teamsSection");
   if (section){
-    section.classList.toggle("team-board-mode", teamMode);
-    section.classList.toggle("division-board-mode", !teamMode);
+    section.classList.toggle("team-board-mode", false);
+    section.classList.toggle("split-team-mode", !!splitTeamMode);
+    section.classList.toggle("division-board-mode", !!divisionMode);
   }
 
   applySportTileHeight();
@@ -2772,10 +3252,13 @@ function buildLayout(){
   const leftEl = document.getElementById("conferenceLeft");
   const rightEl = document.getElementById("conferenceRight");
 
-  if (teamMode){
+  if (cfg?.mode === 'custom'){
+    document.documentElement.style.setProperty('--division-cols', String(Math.max(2, Math.min(8, Number(customLayout.cols) || 5))));
+    buildSplitCustomBoard();
+  } else if (splitTeamMode){
     document.documentElement.style.setProperty('--division-cols', String(cfg.divisionCols || 4));
-    buildSingleTeamBoard(leftEl);
-    if (rightEl) rightEl.innerHTML = "";
+    buildFlatTeamConference(leftEl, cfg.conferences?.[0] || "LEFT", cfg.divisions?.[cfg.conferences?.[0]] || {});
+    buildFlatTeamConference(rightEl, cfg.conferences?.[1] || "RIGHT", cfg.divisions?.[cfg.conferences?.[1]] || {});
   } else {
     const leftRows = [];
     const rightRows = [];
@@ -2873,20 +3356,77 @@ function updateStats(){
   document.getElementById('teamsSold').textContent = String(soldTeams.size);
   document.getElementById('teamsLeft').textContent = String(Math.max(0, total - soldTeams.size));
 }
+function commitSoldPanelBuyer(code, value){
+  const key = String(code || '').toUpperCase().trim();
+  if (!key || !boardState[key]) return;
+
+  const next = safeBuyer(value || '');
+  const wasSold = !!boardState[key].sold;
+
+  if (next){
+    if (wasSold) sseUpdateBuyer(key, next);
+    else sseMarkSold(key, next);
+    return;
+  }
+
+  if (wasSold){
+    sseUpdateBuyer(key, '');
+  }
+}
+
 function renderSoldPanel(){
   const list = document.getElementById('soldList');
   if (!list) return;
 
+  list.classList.add('sold-team-style');
   list.innerHTML = '';
-  soldTeamsList
-    .slice()
-    .sort((a,b) => String(a.code).localeCompare(String(b.code)))
-    .forEach(entry => {
-      const item = document.createElement('div');
-      item.className = 'sold-item';
-      item.innerHTML = `<div class="code">${entry.code}</div><div class="buyer">${safeBuyer(entry.buyer || 'SOLD')}</div>`;
-      list.appendChild(item);
+
+  const entries = allEntriesForCurrentSport()
+    .map(entry => ({
+      code: String(entry.code || '').toUpperCase().trim(),
+      name: String(entry.name || entry.code || '').trim(),
+      image: entry.image || ''
+    }))
+    .filter(entry => entry.code);
+
+  if (!entries.length){
+    const empty = document.createElement('div');
+    empty.className = 'sold-empty';
+    empty.textContent = 'No Teams Loaded';
+    list.appendChild(empty);
+  } else {
+    entries.forEach(entry => {
+      const code = entry.code;
+      const teamObj = findActiveTeamByCode(code) || entry;
+      const state = boardState[code] || { sold:false, buyer:'' };
+      const tile = teamTile(teamObj, state, code);
+
+      const input = document.createElement('input');
+      input.className = 'sold-buyer-input';
+      input.type = 'text';
+      input.value = safeBuyer(state.buyer || '');
+      input.placeholder = entry.name || code;
+      input.title = `${code} • ${entry.name || code}`;
+      input.autocomplete = 'off';
+      input.spellcheck = false;
+
+      input.addEventListener('click', (e) => e.stopPropagation());
+      input.addEventListener('mousedown', (e) => e.stopPropagation());
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter'){
+          e.preventDefault();
+          input.blur();
+        }
+      });
+      input.addEventListener('change', () => commitSoldPanelBuyer(code, input.value));
+      input.addEventListener('blur', () => commitSoldPanelBuyer(code, input.value));
+
+      tile.title = `${code} ${entry.name || ''}`.trim();
+      tile.onclick = () => input.focus();
+      tile.appendChild(input);
+      list.appendChild(tile);
     });
+  }
 
   const controls = document.getElementById('soldControlsWrap');
   if (controls) controls.classList.toggle('active', soldPanelEnabled && isMainView());
