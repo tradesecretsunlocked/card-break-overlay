@@ -4130,7 +4130,8 @@ function startNewBreakCycle(){
 ========================= */
 function inferTeamCodeFromTitle(title, sport){
   const raw = String(title || '');
-  const text = raw.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const compactText = raw.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const searchText = raw.toLowerCase();
 
   // ===== TSU PATCH: exact division title aliases before uppercase-token fallback =====
   const divisionTitleMap = {
@@ -4151,26 +4152,25 @@ function inferTeamCodeFromTitle(title, sport){
     'western southwest': 'WSW'
   };
 
-  if ((sport === 'nfl-divisions' || sport === 'nba-divisions') && divisionTitleMap[text]){
-    return divisionTitleMap[text];
+  if ((sport === 'nfl-divisions' || sport === 'nba-divisions') && divisionTitleMap[compactText]){
+    return divisionTitleMap[compactText];
   }
 
   const direct = raw.match(/\b([A-Z]{2,4})\b/);
-if (direct?.[1]){
-  const code = direct[1].toUpperCase();
-  if (sport === 'nfl-divisions') return NFL_TEAM_TO_DIVISION[code] || code;
-  if (sport === 'nba-divisions') return NBA_TEAM_TO_DIVISION[code] || code;
-  return code;
-}
+  if (direct?.[1]){
+    const code = direct[1].toUpperCase();
+    if (sport === 'nfl-divisions') return NFL_TEAM_TO_DIVISION[code] || code;
+    if (sport === 'nba-divisions') return NBA_TEAM_TO_DIVISION[code] || code;
+    return code;
+  }
 
-  const text = raw.toLowerCase();
   const entries = allEntriesForCurrentSport();
   for (const entry of entries){
-    if (String(entry.name || '').toLowerCase() && text.includes(String(entry.name).toLowerCase())) {
+    const entryName = String(entry.name || '').toLowerCase();
+    if (entryName && searchText.includes(entryName)) {
       return String(entry.code || '').toUpperCase();
     }
   }
-
   const nflMap = [
     ['cowboys','DAL'],['49ers','SF'],['chiefs','KC'],['packers','GB'],
     ['raiders','LV'],['chargers','LAC'],['rams','LAR'],['jets','NYJ'],['giants','NYG'],
