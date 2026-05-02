@@ -1798,6 +1798,119 @@ body.view-list .player-list::-webkit-scrollbar{
   opacity:1;
 }
 
+/* ===== TSU PATCH: lock team-break columns by sport ===== */
+body[data-sport="NFL"] .teams-section.split-team-mode .split-team-grid{
+  grid-template-columns:repeat(4, 1fr) !important;
+}
+
+body[data-sport="NBA"] .teams-section.split-team-mode .split-team-grid,
+body[data-sport="MLB"] .teams-section.split-team-mode .split-team-grid{
+  grid-template-columns:repeat(5, 1fr) !important;
+}
+
+body[data-sport="NHL"] .teams-section.split-team-mode .split-team-grid{
+  grid-template-columns:repeat(4, 1fr) !important;
+}
+
+/* ===== TSU PATCH: OBS-safe player edit modal in list view ===== */
+body.view-list .popup-mask{
+  position:fixed !important;
+  inset:0 !important;
+  z-index:2147483647 !important;
+  align-items:center !important;
+  justify-content:center !important;
+  padding:10px !important;
+  background:rgba(0,0,0,0.72) !important;
+}
+
+body.view-list .popup-mask.show{
+  display:flex !important;
+}
+
+body.view-list .popup{
+  width:min(460px, calc(100vw - 20px)) !important;
+  min-width:0 !important;
+  max-width:calc(100vw - 20px) !important;
+  max-height:calc(100vh - 20px) !important;
+  overflow:auto !important;
+  resize:none !important;
+}
+
+body.view-list #playerListPopupMask textarea{
+  min-height:240px !important;
+}
+
+/* ===== TSU PATCH: make Edit Player clickable in OBS list view ===== */
+body.view-list .player-import-actions{
+  position:relative !important;
+  z-index:100000 !important;
+  pointer-events:auto !important;
+}
+
+body.view-list #editPlayerListBtn{
+  position:relative !important;
+  z-index:100001 !important;
+  pointer-events:auto !important;
+  cursor:pointer !important;
+}
+
+body.view-list .list-panel.wick::after{
+  pointer-events:none !important;
+}
+
+body.view-list .overlay::before{
+  pointer-events:none !important;
+}
+
+/* ===== TSU PATCH: OBS-safe Player List modal bottom buttons ===== */
+body.view-list #playerListPopupMask{
+  pointer-events:auto !important;
+}
+
+body.view-list #playerListPopupMask .popup{
+  position:relative !important;
+  z-index:2147483647 !important;
+  pointer-events:auto !important;
+}
+
+body.view-list #playerListPopupMask .popup-actions,
+body.view-list #playerListPopupMask .player-list-modal-actions{
+  position:relative !important;
+  z-index:2147483647 !important;
+  pointer-events:auto !important;
+}
+
+body.view-list #playerListPopupMask .popup-actions button,
+body.view-list #playerListPopupMask .player-list-modal-actions button{
+  position:relative !important;
+  z-index:2147483647 !important;
+  pointer-events:auto !important;
+  cursor:pointer !important;
+}
+
+/* ===== TSU PATCH: OBS-safe main popup layer ===== */
+/* ===== TSU PATCH: safe popup layer without disturbing buyer/list panel ===== */
+body:not(.view-list) .popup-mask.show{
+  display:flex !important;
+  position:fixed !important;
+  inset:0 !important;
+  z-index:999999 !important;
+  pointer-events:auto !important;
+}
+
+body:not(.view-list) .popup-mask.show .popup{
+  position:relative !important;
+  z-index:1000000 !important;
+  pointer-events:auto !important;
+}
+
+body:not(.view-list) .popup-mask.show .popup-actions,
+body:not(.view-list) .popup-mask.show .popup-actions button{
+  position:relative !important;
+  z-index:1000001 !important;
+  pointer-events:auto !important;
+}
+
     .hidden{ display:none !important; }
 
 
@@ -1888,7 +2001,7 @@ body.division-board-mode .division-grid .team.sold::after{
         <div class="list-panel wick">
           <div class="list-panel-title">Player List</div>
           <div class="player-import-actions">
-            <button type="button" onclick="openPlayerListPopup()">Edit Player</button>
+           <button type="button" id="editPlayerListBtn">Edit Player</button>
           </div>
           <div class="player-list" id="playerListFloating"></div>
         </div>
@@ -1901,8 +2014,8 @@ body.division-board-mode .division-grid .team.sold::after{
           <button class="btn" onclick="openTickerPopup()">Set Ticker</button>
           <button class="btn" onclick="openBreakPopup()">Set Break</button>
           <button class="btn" onclick="cycleSport()">Next Sport</button>
-          <button class="btn" onclick="copyExportTSV()">Export TSV</button>
-          <button class="btn" onclick="openChaserPopup()">Chasers</button>
+         <button class="btn" type="button" id="exportTSVBtn">Export TSV</button>
+<button class="btn" type="button" id="chaserPopupBtn">Chasers</button>
           <button class="btn" onclick="openCustomImportPopup()">Import Custom</button>
           <button class="btn" onclick="openTileHeightPopup()">Tile Heights</button>
         </div>
@@ -1982,94 +2095,93 @@ body.division-board-mode .division-grid .team.sold::after{
     </div>
   </div>
     <div class="popup-mask" id="tileHeightPopupMask">
-    <div class="popup">
-      <h2>Tile Heights</h2>
+  <div class="popup">
+    <h2>Tile Heights</h2>
 
-      <div class="row2">
-        <div>
-          <label>NFL Teams</label>
-          <input id="tileHeightNFLInput" type="number" min="36" max="140" step="1" />
-        </div>
-        <div>
-          <label>NFL Divisions</label>
-          <input id="tileHeightNFLDivInput" type="number" min="36" max="140" step="1" />
-        </div>
+    <div class="row2">
+      <div>
+        <label>NFL Teams</label>
+        <input id="tileHeightNFLInput" type="number" min="36" max="140" step="1" />
       </div>
-
-      <div class="row2">
-        <div>
-          <label>NBA</label>
-          <input id="tileHeightNBAInput" type="number" min="36" max="140" step="1" />
-        </div>
-        
-        <div>
-          <label>MLB</label>
-          <input id="tileHeightMLBInput" type="number" min="36" max="140" step="1" />
-        </div>
-      </div>
-
-      <div class="row2">
-        <div>
-          <label>NHL</label>
-          <input id="tileHeightNHLInput" type="number" min="36" max="140" step="1" />
-        </div>
-        <div>
-          <label>Custom</label>
-          <input id="tileHeightCUSTOMInput" type="number" min="36" max="140" step="1" />
-        </div>
-   
-  </div>
-  <div class="row2">
-   <div>
-      <label>NBA Divisions</label>
-      <input id="tileHeightNBADivInput" type="number" min="36" max="140" step="1" />
-    </div>
-     
-      <div class="popup-actions">
-        <button onclick="closePopup('tileHeightPopupMask')">Cancel</button>
-        <button onclick="applyTileHeightEdit()">Apply</button>
+      <div>
+        <label>NFL Divisions</label>
+        <input id="tileHeightNFLDivInput" type="number" min="36" max="140" step="1" />
       </div>
     </div>
-  </div>
 
-
-  <div class="popup-mask" id="chaserPopupMask">
-    <div class="popup">
-      <h2>Choose Chaser Teams</h2>
-      <div class="popup-subnote" id="chaserPopupSportLabel">Current Sport</div>
-
-      <div id="chaserSelectorGrid" class="chaser-grid"></div>
-
-      <div class="popup-actions">
-        <button onclick="clearChasersForCurrentSport()">Clear</button>
-        <button onclick="closePopup('chaserPopupMask')">Cancel</button>
-        <button onclick="applyChaserSelection()">Apply</button>
+    <div class="row2">
+      <div>
+        <label>NBA</label>
+        <input id="tileHeightNBAInput" type="number" min="36" max="140" step="1" />
+      </div>
+      <div>
+        <label>MLB</label>
+        <input id="tileHeightMLBInput" type="number" min="36" max="140" step="1" />
       </div>
     </div>
-  </div>
 
-  <div class="popup-mask" id="playerListPopupMask">
-    <div class="popup">
-      <h2 class="popup-header-draggable">Player List</h2>
-      <div class="popup-subnote">Enter one player per line or import a CSV/text file. Click entries in list view to highlight them.</div>
-
-      <div class="player-import-actions">
-        <button type="button" onclick="triggerPlayerListFileInput()">Import File</button>
-        <button type="button" onclick="clearPlayerListInput()">Clear Input</button>
+    <div class="row2">
+      <div>
+        <label>NHL</label>
+        <input id="tileHeightNHLInput" type="number" min="36" max="140" step="1" />
       </div>
-
-      <input id="playerListFileInput" type="file" accept=".csv,.txt,text/csv,text/plain" class="hidden" />
-
-      <label>Entries</label>
-      <textarea id="playerListInput" placeholder="Player One&#10;Player Two&#10;Player Three"></textarea>
-
-      <div class="popup-actions">
-        <button onclick="clearPlayerListAll()">Clear Saved</button>
-        <button onclick="closePopup('playerListPopupMask')">Cancel</button>
-        <button onclick="applyPlayerListEdit()">Apply</button>
+      <div>
+        <label>Custom</label>
+        <input id="tileHeightCUSTOMInput" type="number" min="36" max="140" step="1" />
       </div>
     </div>
+
+    <div class="row2">
+      <div>
+        <label>NBA Divisions</label>
+        <input id="tileHeightNBADivInput" type="number" min="36" max="140" step="1" />
+      </div>
+    </div>
+
+    <div class="popup-actions">
+      <button onclick="closePopup('tileHeightPopupMask')">Cancel</button>
+      <button onclick="applyTileHeightEdit()">Apply</button>
+    </div>
   </div>
+</div>
+
+<div class="popup-mask" id="chaserPopupMask">
+  <div class="popup">
+    <h2>Choose Chaser Teams</h2>
+    <div class="popup-subnote" id="chaserPopupSportLabel">Current Sport</div>
+
+    <div id="chaserSelectorGrid" class="chaser-grid"></div>
+
+    <div class="popup-actions">
+      <button onclick="clearChasersForCurrentSport()">Clear</button>
+      <button onclick="closePopup('chaserPopupMask')">Cancel</button>
+      <button onclick="applyChaserSelection()">Apply</button>
+    </div>
+  </div>
+</div>
+
+<div class="popup-mask" id="playerListPopupMask">
+  <div class="popup">
+    <h2 class="popup-header-draggable">Player List</h2>
+    <div class="popup-subnote">Enter one player per line or import a CSV/text file. Click entries in list view to mark them sold.</div>
+
+    <div class="player-import-actions">
+      <button type="button" onclick="triggerPlayerListFileInput()">Import File</button>
+      <button type="button" onclick="clearPlayerListInput()">Clear Input</button>
+    </div>
+
+    <input id="playerListFileInput" type="file" accept=".csv,.txt,text/csv,text/plain" class="hidden" />
+
+    <label>Entries</label>
+    <textarea id="playerListInput" placeholder="Player One&#10;Player Two&#10;Player Three"></textarea>
+
+  <div class="popup-actions player-list-modal-actions">
+  <button type="button" id="playerListClearSavedBtn">Clear Saved</button>
+  <button type="button" id="playerListCancelBtn">Cancel</button>
+  <button type="button" id="playerListApplyBtn">Apply</button>
+</div>
+  </div>
+</div>
 
 <div class="popup-mask" id="buyerPopupMask">
   <div class="popup">
@@ -2085,17 +2197,16 @@ body.division-board-mode .division-grid .team.sold::after{
   </div>
 </div>
 
-  <div class="popup-mask" id="exportPopupMask">
-    <div class="popup">
-      <h2>Export TSV</h2>
-      <textarea id="exportOutput" readonly></textarea>
-      <div class="popup-actions">
-        <button onclick="closePopup('exportPopupMask')">Close</button>
-        <button onclick="copyExportFromPopup()">Copy</button>
-      </div>
+<div class="popup-mask" id="exportPopupMask">
+  <div class="popup">
+    <h2>Export TSV</h2>
+    <textarea id="exportOutput" readonly></textarea>
+    <div class="popup-actions">
+      <button onclick="closePopup('exportPopupMask')">Close</button>
+      <button onclick="copyExportFromPopup()">Copy</button>
     </div>
   </div>
-
+</div>
 <script>
 /* =========================
    Paths (standard BASE)
@@ -2327,27 +2438,30 @@ function buyerAbbrev(v){
 }
 
 function loadSportTileHeights(){
+  const defaults = {
+    nfl: 65,
+    'nfl-divisions': 55,
+    nba: 100,
+    'nba-divisions': 80,
+    mlb: 95,
+    nhl: 65,
+    custom: 65
+  };
+
   try{
     const raw = JSON.parse(localStorage.getItem(LS.SPORT_TILE_HEIGHTS) || '{}');
+
     return {
-      nfl: Number(raw.nfl) || 58,
-      'nfl-divisions': Number(raw['nfl-divisions']) || 58,
-      nba: Number(raw.nba) || 58,
-      'nba-divisions': Number(raw['nba-divisions']) || 58,
-      mlb: Number(raw.mlb) || 58,
-      nhl: Number(raw.nhl) || 58,
-      custom: Number(raw.custom) || 58
+      nfl: Number(raw.nfl) || defaults.nfl,
+      'nfl-divisions': Number(raw['nfl-divisions']) || defaults['nfl-divisions'],
+      nba: Number(raw.nba) || defaults.nba,
+      'nba-divisions': Number(raw['nba-divisions']) || defaults['nba-divisions'],
+      mlb: Number(raw.mlb) || defaults.mlb,
+      nhl: Number(raw.nhl) || defaults.nhl,
+      custom: Number(raw.custom) || defaults.custom
     };
   }catch(_){
-    return {
-      nfl: 58,
-      'nfl-divisions': 58,
-      nba: 58,
-      'nba-divisions': 58,
-      mlb: 58,
-      nhl: 58,
-      custom: 58
-    };
+    return defaults;
   }
 }
 
@@ -2560,8 +2674,25 @@ function clearChasersForCurrentSport(){
 }
 
 function openPlayerListPopup(){
-  document.getElementById('playerListInput').value = getActivePlayerList(currentBreakType).join('\n');
-  openPopup('playerListPopupMask');
+  const input = document.getElementById('playerListInput');
+  const mask = document.getElementById('playerListPopupMask');
+
+  if (!input || !mask) {
+    console.warn('[Big Time] Player list popup missing DOM nodes.');
+    return;
+  }
+
+  input.value = getActivePlayerList(currentBreakType).join('\n');
+
+  mask.classList.add('show');
+  mask.classList.remove('hidden');
+  mask.style.display = 'flex';
+  mask.style.pointerEvents = 'auto';
+  mask.style.zIndex = '2147483647';
+
+  setTimeout(() => {
+    input.focus();
+  }, 50);
 }
 
 function triggerPlayerListFileInput(){
@@ -3496,11 +3627,20 @@ function buildLayout(){
   if (cfg?.mode === 'custom'){
     document.documentElement.style.setProperty('--division-cols', String(Math.max(2, Math.min(8, Number(customLayout.cols) || 5))));
     buildSplitCustomBoard();
-  } else if (splitTeamMode){
-    document.documentElement.style.setProperty('--division-cols', String(cfg.divisionCols || 4));
-    buildFlatTeamConference(leftEl, cfg.conferences?.[0] || "LEFT", cfg.divisions?.[cfg.conferences?.[0]] || {});
-    buildFlatTeamConference(rightEl, cfg.conferences?.[1] || "RIGHT", cfg.divisions?.[cfg.conferences?.[1]] || {});
-  } else {
+} else if (splitTeamMode){
+  const teamColsBySport = {
+    nfl: 4,
+    nba: 5,
+    mlb: 5,
+    nhl: 4
+  };
+
+  const teamCols = teamColsBySport[currentBreakType] || Number(cfg.divisionCols) || 4;
+  document.documentElement.style.setProperty('--division-cols', String(teamCols));
+
+  buildFlatTeamConference(leftEl, cfg.conferences?.[0] || "LEFT", cfg.divisions?.[cfg.conferences?.[0]] || {});
+  buildFlatTeamConference(rightEl, cfg.conferences?.[1] || "RIGHT", cfg.divisions?.[cfg.conferences?.[1]] || {});
+} else {
     const leftRows = [];
     const rightRows = [];
 
@@ -3753,11 +3893,28 @@ function renderScores(){
    Popups
 ========================= */
 function openPopup(id){
-  document.getElementById(id).classList.add('show');
+  const el = document.getElementById(id);
+  if (!el) {
+    console.warn('[Big Time] Missing popup:', id);
+    return;
+  }
+
+  el.classList.remove('hidden');
+  el.classList.add('show');
+  el.style.display = 'flex';
+  el.style.pointerEvents = 'auto';
+  el.style.zIndex = '2147483647';
 }
 function closePopup(id){
-  document.getElementById(id).classList.remove('show');
+  const el = document.getElementById(id);
+  if (!el) return;
+
+  el.classList.remove('show');
+  el.style.display = 'none';
+  el.style.pointerEvents = '';
+  el.style.zIndex = '';
 }
+
 function openTitlePopup(){
   const titles = loadTitles();
   document.getElementById('titleMainInput').value = titles.main;
@@ -4419,12 +4576,106 @@ function bindBuyerListCustomResize(){
   document.addEventListener('touchend', stopResize);
 }
 
+/* ===== TSU PATCH: OBS-safe Edit Player button binding ===== */
+function bindEditPlayerListButton(){
+  const btn = document.getElementById('editPlayerListBtn');
+  if (!btn) return;
+
+  btn.onclick = null;
+
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openPlayerListPopup();
+  }, true);
+
+  btn.addEventListener('mousedown', (e) => {
+    e.stopPropagation();
+  }, true);
+
+  btn.addEventListener('touchstart', (e) => {
+    e.stopPropagation();
+  }, { passive:true, capture:true });
+}
+
 bindBuyerListCustomResize();
+
+
+/* ===== TSU PATCH: OBS-safe Player List modal action bindings ===== */
+function closePlayerListPopupSafe(){
+  const mask = document.getElementById('playerListPopupMask');
+  if (!mask) return;
+
+  mask.classList.remove('show');
+  mask.classList.add('hidden');
+  mask.style.display = 'none';
+}
+
+function bindPlayerListModalActionButtons(){
+  const clearBtn = document.getElementById('playerListClearSavedBtn');
+  const cancelBtn = document.getElementById('playerListCancelBtn');
+  const applyBtn = document.getElementById('playerListApplyBtn');
+
+  if (clearBtn){
+    clearBtn.onclick = null;
+    clearBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      clearPlayerListAll();
+    }, true);
+  }
+
+  if (cancelBtn){
+    cancelBtn.onclick = null;
+    cancelBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closePlayerListPopupSafe();
+    }, true);
+  }
+
+  if (applyBtn){
+    applyBtn.onclick = null;
+    applyBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      applyPlayerListEdit();
+    }, true);
+  }
+}
+
+/* ===== TSU PATCH: OBS-safe main control bindings for Chasers + Export TSV ===== */
+function bindMainControlActionButtons(){
+  const chaserBtn = document.getElementById('chaserPopupBtn');
+  const exportBtn = document.getElementById('exportTSVBtn');
+
+  if (chaserBtn){
+    chaserBtn.onclick = null;
+    chaserBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openChaserPopup();
+    }, true);
+  }
+
+  if (exportBtn){
+    exportBtn.onclick = null;
+    exportBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      copyExportTSV();
+    }, true);
+  }
+}
+
 /* =========================
    Init
 ========================= */
 (function init(){
   applyViewModeUI();
+  bindEditPlayerListButton();
+  bindPlayerListModalActionButtons();
+  bindMainControlActionButtons();
 
   const titles = loadTitles();
   applyTitles(titles.main, titles.sub);
@@ -4438,6 +4689,25 @@ bindBuyerListCustomResize();
   startTickerRotation();
   initSSE();
 })();
+
+
+/* ===== TSU PATCH: reliable main control clicks for Export TSV + Chasers ===== */
+document.addEventListener('click', function(e){
+  const exportBtn = e.target.closest('#exportTSVBtn');
+  if (exportBtn){
+    e.preventDefault();
+    e.stopPropagation();
+    copyExportTSV();
+    return;
+  }
+
+  const chaserBtn = e.target.closest('#chaserPopupBtn');
+  if (chaserBtn){
+    e.preventDefault();
+    e.stopPropagation();
+    openChaserPopup();
+  }
+}, true);
 </script>
 </body>
 </html>
