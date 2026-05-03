@@ -2844,8 +2844,8 @@ function getComboSupplementalEntries(){
   const chasers = comboExtraChasers.map((name, index) => ({
     key: getComboExtraChaserCode(index),
     code: getComboExtraChaserCode(index),
-    name: `Chaser ${comboChaserTeams.size + index + 1}`,
-    matchName: normalizeComboEntryLabel(name, "Chaser", comboChaserTeams.size + index),
+    name: getNumberedCategoryLabel("chaser", index),
+    matchName: normalizeComboEntryLabel(name, "Chaser", index),
     image: "",
     meta: "",
     sport: "",
@@ -3452,7 +3452,7 @@ function inferTeamCodeFromTitle(title, sportHint=""){
 // Combo mode: extra chaser names
 for (let i = 0; i < comboExtraChasers.length; i++){
   const exactName = String(comboExtraChasers[i] || "").toLowerCase().trim();
-  const numberedName = `chaser ${comboChaserTeams.size + i + 1}`;
+  const numberedName = `chaser ${i + 1}`;
 
   if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraChaserCode(i);
   if (raw === numberedName || raw.includes(numberedName)) return getComboExtraChaserCode(i);
@@ -3533,11 +3533,16 @@ if (
     if (m) {
       const idx = Math.max(0, parseInt(m[1], 10) - 1);
 
-      // Try title inference first; positional mapping removed (unreliable)
+      // First try exact titled combo match if title exists
       if (title) {
         const inferred = inferTeamCodeFromTitle(title, sport);
         if (inferred) return inferred;
       }
+
+      // Then map by visible combo supplemental order
+      if (comboExtraChasers[idx]) return getComboExtraChaserCode(idx);
+      if (comboExtraItems[idx]) return getComboExtraItemCode(idx);
+if (comboExtraPrizePacks[idx]) return getComboExtraPrizePackCode(idx);
     }
 
     return raw;
@@ -3645,23 +3650,21 @@ if (isExtraChaser || isMarkedTeamChaser){
     : String(team.name || "Chaser").trim() || "Chaser";
 
   el.dataset.matchLabel = String(team.matchName || team.name || "").trim().toUpperCase();
-  el.dataset.soldTypeLabel = isMarkedTeamChaser
-    ? getComboChaserLabel(team.key).toUpperCase()
-    : String(team.name || "Chaser").trim().toUpperCase();
+  el.dataset.soldTypeLabel = "CHASER";
 }
 
 if (isExtraItem){
   el.classList.add("combo-custom-item");
   el.dataset.customLabel = String(team.name || "").trim().toUpperCase();
   el.dataset.matchLabel = String(team.matchName || team.name || "").trim().toUpperCase();
-  el.dataset.soldTypeLabel = String(team.name || "Pack").trim().toUpperCase();
+  el.dataset.soldTypeLabel = "PACK";
 }
 
 if (isExtraPrizePack){
   el.classList.add("combo-prizepack");
   el.dataset.customLabel = String(team.name || "").trim().toUpperCase();
   el.dataset.matchLabel = String(team.matchName || team.name || "").trim().toUpperCase();
-  el.dataset.soldTypeLabel = String(team.name || "Prize Pack").trim().toUpperCase();
+  el.dataset.soldTypeLabel = "PRIZE PACK";
 }
 
   const soldX = document.createElement("span");
@@ -4144,7 +4147,7 @@ function sseMarkSold(code, buyer=""){
   }
 
   saveState();
-  setTimeout(() => buildBoard(), 350);
+  buildBoard();
 }
 function sseMarkUnsold(code){
   if (!code) return;
@@ -5469,6 +5472,10 @@ function applyComboChaserModal(){
   const extraItemsInput = document.getElementById("comboExtraItemsInput");
   const prizePacksInput = document.getElementById("comboPrizePacksInput");
   const bulkInput = document.getElementById("comboBulkImportInput");
+
+  if (bulkInput && String(bulkInput.value || "").trim()){
+    parseComboBulkImportToFields();
+  }
 
   if (grid){
     const selectedButtons = Array.from(grid.querySelectorAll(".prize-spot-chip.selected"));
