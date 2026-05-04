@@ -289,11 +289,11 @@
     .sold-list-title{ font-size:16px; font-weight:900; color:#fff; letter-spacing:1px; text-align:left; padding-left:2px; text-transform:uppercase; }
     .sold-controls{ display:flex; gap:6px; align-items:center; justify-content:flex-end; flex-wrap:wrap; }
     .sold-controls.hidden{ display:none; }
-    .sold-list-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:4px 12px; }
+    .sold-list-grid{ display:grid; grid-template-columns:repeat(4, 1fr); gap:4px 12px; }
     .sold-row{ display:flex; align-items:center; gap:6px; margin-bottom:2px; background:rgba(0,0,0,.60); border-radius:7px; padding:2px 4px; border:2px solid rgba(216,161,60,.35); }
     .sold-team-img{ width:24px; height:24px; object-fit:contain; border-radius:4px; border:1px solid rgba(255,255,255,.85); background:#000; }
     .sold-team-name{ font-weight:900; color:#f9fafb; min-width:60px; font-size:13px; opacity:.95; }
-    .sold-buyer-input{ font-size:13px; border:2px solid rgba(216,161,60,.24); border-radius:4px; font-weight:800; padding:2px 4px; width:100%; background:rgba(0,0,0,.35); color:#f9fafb; outline:none; }
+    .sold-buyer-input{ font-size:16px; border:2px solid rgba(216,161,60,.24); border-radius:4px; font-weight:800; padding:2px 4px; width:100%; background:rgba(0,0,0,.35); color:#f9fafb; outline:none; }
 
     .popup-mask{ position:fixed; inset:0; background:rgba(0,0,0,.78); z-index:99999; display:flex; align-items:center; justify-content:center; }
     .hidden{ display:none !important; }
@@ -305,6 +305,9 @@
     .slider-wrap{ margin-top:8px; display:flex; align-items:center; gap:10px; }
     .slider-wrap input[type="range"]{ width:100%; }
     .slider-pill{ padding:8px 10px; border-radius:999px; border:1px solid rgba(216,161,60,.45); background:rgba(0,0,0,.34); font-size:12px; font-weight:900; letter-spacing:1px; white-space:nowrap; min-width:90px; text-align:center; }
+    .audio-chip{ padding:8px 14px; border-radius:999px; border:2px solid rgba(216,161,60,.55); background:rgba(0,0,0,.38); color:var(--cream); font-weight:900; font-size:13px; cursor:pointer; transition:border-color .15s,background .15s; }
+    .audio-chip.active{ border-color:var(--gold2); background:rgba(216,161,60,.22); }
+    .audio-chip:hover{ border-color:var(--gold); }
   </style>
 </head>
 <body>
@@ -339,8 +342,10 @@
           <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openBreakPopup()">SET BREAK</button>
           <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="openTitlePopup()">SET TITLE</button>
           <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openTickerPopup()">EDIT TICKER</button>
+          <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="openAudioPopup()">AUDIO</button>
           <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openPromoPopup()">PROMOS</button>
           <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openExportPopup()">EXPORT TSV</button>
+          <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="openBridgePopup()">BRIDGE</button>
           <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="resetAll()">RESET</button>
         </div>
       </div>
@@ -354,7 +359,41 @@
   <div id="promoPopup" class="popup-mask hidden"><div class="popup-card"><h2 class="popup-title">Edit Promos</h2><textarea id="promoInput" class="popup-textarea"></textarea><div class="popup-buttons"><button class="btn" onclick="applyPromoPopup()">APPLY</button><button class="btn ghost" onclick="closePromoPopup()">CANCEL</button></div></div></div>
   <div id="exportPopup" class="popup-mask hidden"><div class="popup-card"><h2 class="popup-title">Export Sold Teams (TSV)</h2><textarea id="exportOutput" class="popup-textarea" readonly></textarea><div class="popup-buttons"><button class="btn" onclick="copyExportTSV()">COPY TSV</button><button class="btn ghost" onclick="closeExportPopup()">CLOSE</button></div></div></div>
 
-  <audio id="duckCallAudio" preload="auto" src="./duck-call.mp3"></audio>
+  <div id="audioPopup" class="popup-mask hidden"><div class="popup-card"><h2 class="popup-title">Sold Tile Audio</h2>
+    <div style="font-size:13px;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">PRESET SOUNDS</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="audio-chip" id="audioChipDuck" onclick="selectAudioPreset('duck-call')">🦆 Duck Call</button>
+      <button class="audio-chip" id="audioChipMute" onclick="selectAudioPreset('mute')">🔇 Mute</button>
+    </div>
+    <div style="font-size:13px;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">CUSTOM SOUND URL (mp3 / wav / ogg)</div>
+    <input id="audioUrlInput" class="popup-input" type="text" placeholder="https://example.com/sold.mp3" style="margin-bottom:4px" />
+    <div class="popup-buttons">
+      <button class="btn ghost" onclick="testCustomAudio()">▶ TEST</button>
+      <button class="btn" onclick="applyAudioPopup()">APPLY</button>
+      <button class="btn ghost" onclick="closeAudioPopup()">CANCEL</button>
+    </div>
+  </div></div>
+
+  <div id="bridgePopup" class="popup-mask hidden"><div class="popup-card"><h2 class="popup-title">Automation Bridge</h2>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <div style="font-size:13px;color:var(--muted);letter-spacing:.5px;margin-bottom:4px">BRIDGE URL</div>
+        <input id="bridgeUrlInput" class="popup-input" type="text" placeholder="https://your-bridge.onrender.com" />
+      </div>
+      <div>
+        <div style="font-size:13px;color:var(--muted);letter-spacing:.5px;margin-bottom:4px">BRIDGE KEY (optional)</div>
+        <input id="bridgeKeyInput" class="popup-input" type="text" placeholder="secret key" />
+      </div>
+      <div id="bridgeStatus" style="font-size:13px;font-weight:900;letter-spacing:.5px;color:var(--muted)">NOT CONNECTED</div>
+    </div>
+    <div class="popup-buttons" style="margin-top:12px">
+      <button class="btn" onclick="applyBridgePopup()">CONNECT</button>
+      <button class="btn ghost" onclick="disconnectBridge()">DISCONNECT</button>
+      <button class="btn ghost" onclick="closeBridgePopup()">CLOSE</button>
+    </div>
+  </div></div>
+
+  <audio id="soldAudioEl" preload="auto" src="./duck-call.mp3"></audio>
 
   <script>
     const BASE = (() => {
@@ -371,7 +410,8 @@
 
     const STORAGE = {
       title:"218cardsco.title", breakNumber:"218cardsco.breakNumber", ticker:"218cardsco.ticker", tickerSpeed:"218cardsco.tickerSpeed",
-      promos:"218cardsco.promos", sold:"218cardsco.sold", soldControlsVisible:"218cardsco.soldControlsVisible"
+      promos:"218cardsco.promos", sold:"218cardsco.sold", soldControlsVisible:"218cardsco.soldControlsVisible",
+      soldAudio:"218cardsco.soldAudio", bridgeUrl:"218cardsco.bridgeUrl", bridgeKey:"218cardsco.bridgeKey"
     };
 
     const DEFAULT_TITLE = "218 CARDS & CO. • NFL BREAK";
@@ -392,7 +432,11 @@
     let soldControlsVisible = loadBool(STORAGE.soldControlsVisible, true);
     let promoTimer = null;
     let promoIndex = 0;
+    const lastCodeByListingKey = new Map();
+    let sseConn = null;
+    let liveScoresText = "";
 
+    // ── Storage helpers ──────────────────────────────────────────────────────
     function saveText(key,v){ localStorage.setItem(key, String(v ?? "")); }
     function loadText(key,f){ const raw = localStorage.getItem(key); return raw === null ? f : raw; }
     function saveJson(key,v){ localStorage.setItem(key, JSON.stringify(v)); }
@@ -407,7 +451,62 @@
     function saveSoldState(){ saveJson(STORAGE.sold, soldTeamsList); }
     function loadSoldState(){ soldTeams.clear(); soldTeamsList = loadJson(STORAGE.sold, []); if (!Array.isArray(soldTeamsList)) soldTeamsList=[]; soldTeamsList = soldTeamsList.filter(e => e && e.code).map(e => ({ code:String(e.code), buyer:String(e.buyer || "") })); soldTeamsList.forEach(e => soldTeams.add(e.code)); }
     function findTeamByCode(code){ return breakTypes.nfl.teams.find(t => t.code === code) || null; }
+    function getBridgeBase(){ return (new URLSearchParams(location.search).get("bridge") || loadText(STORAGE.bridgeUrl, "")).replace(/\/$/,""); }
+    function getBridgeKey(){ return new URLSearchParams(location.search).get("key") || loadText(STORAGE.bridgeKey, ""); }
 
+    // ── Sold audio ───────────────────────────────────────────────────────────
+    function getSoldAudioSrc(){
+      const stored = loadText(STORAGE.soldAudio, "duck-call");
+      if (!stored || stored === "mute") return "";
+      if (stored === "duck-call") return "./duck-call.mp3";
+      return stored; // custom URL
+    }
+    function playSoldAudio(){
+      const src = getSoldAudioSrc();
+      if (!src) return;
+      const audio = document.getElementById("soldAudioEl");
+      if (!audio) return;
+      try{
+        if (audio.src !== src){ audio.src = src; audio.load(); }
+        audio.pause(); audio.currentTime = 0;
+        const p = audio.play();
+        if (p && typeof p.catch === "function") p.catch(() => {});
+      }catch(_){}
+    }
+
+    // ── Audio popup ──────────────────────────────────────────────────────────
+    function openAudioPopup(){
+      const stored = loadText(STORAGE.soldAudio, "duck-call");
+      document.getElementById("audioChipDuck").classList.toggle("active", stored === "duck-call");
+      document.getElementById("audioChipMute").classList.toggle("active", stored === "mute");
+      const isCustom = stored !== "duck-call" && stored !== "mute";
+      document.getElementById("audioUrlInput").value = isCustom ? stored : "";
+      openPopup("audioPopup");
+    }
+    function closeAudioPopup(){ closePopup("audioPopup"); }
+    function selectAudioPreset(preset){
+      document.getElementById("audioChipDuck").classList.toggle("active", preset === "duck-call");
+      document.getElementById("audioChipMute").classList.toggle("active", preset === "mute");
+      document.getElementById("audioUrlInput").value = "";
+      saveText(STORAGE.soldAudio, preset);
+      if (preset !== "mute") playSoldAudio();
+    }
+    function testCustomAudio(){
+      const url = document.getElementById("audioUrlInput").value.trim();
+      if (!url) return;
+      const audio = document.getElementById("soldAudioEl");
+      if (!audio) return;
+      try{ audio.src = url; audio.load(); const p = audio.play(); if (p && typeof p.catch === "function") p.catch(() => {}); }catch(_){}
+    }
+    function applyAudioPopup(){
+      const url = document.getElementById("audioUrlInput").value.trim();
+      if (url){
+        saveText(STORAGE.soldAudio, url);
+      }
+      closeAudioPopup();
+    }
+
+    // ── Team state ───────────────────────────────────────────────────────────
     function toggleTeam(code){ if (!code) return; soldTeams.has(code) ? markUnsold(code) : markSold(code, ""); }
     function markSold(code, buyer=""){
       const wasAlreadySold = soldTeams.has(code);
@@ -419,15 +518,15 @@
       if (!wasAlreadySold) playSoldTileAnimation(code);
     }
     function markUnsold(code){ soldTeams.delete(code); soldTeamsList = soldTeamsList.filter(e => e.code !== code); saveSoldState(); buildLayout(); renderSoldList(); updateStats(); }
-    function resetAll(){ soldTeams.clear(); soldTeamsList = []; saveSoldState(); buildLayout(); renderSoldList(); updateStats(); }
+    function resetAll(){ soldTeams.clear(); soldTeamsList = []; lastCodeByListingKey.clear(); saveSoldState(); buildLayout(); renderSoldList(); updateStats(); }
     function newBreak(){ setBreakNumber(getBreakNumber() + 1); resetAll(); }
 
+    // ── Tile building ────────────────────────────────────────────────────────
     function makeTeamDiv(team){
       const d = document.createElement("div");
       d.className = "team";
       d.dataset.teamCode = String(team.code || "");
       d.onclick = () => toggleTeam(team.code);
-
       if (team.image){
         const img = document.createElement("img");
         img.src = team.image;
@@ -442,7 +541,6 @@
       } else {
         d.innerHTML = `<div class='fallback-code'>${team.code || "?"}</div>`;
       }
-
       if (soldTeams.has(team.code)) d.classList.add("sold");
       appendTileFxBits(d);
       return d;
@@ -474,38 +572,22 @@
       const video = tile.querySelector(selector);
       if (!video) return;
       try{
-        video.pause();
-        video.currentTime = 0;
+        video.pause(); video.currentTime = 0;
         video.classList.add('on');
         const p = video.play();
         if (p && typeof p.catch === 'function') p.catch(() => {});
-        setTimeout(() => {
-          try{ video.pause(); }catch(_){ }
-          video.classList.remove('on');
-        }, duration);
-      }catch(_){ }
-    }
-
-    function playDuckCall(){
-      const audio = document.getElementById('duckCallAudio');
-      if (!audio) return;
-      try{
-        audio.pause();
-        audio.currentTime = 0;
-        const p = audio.play();
-        if (p && typeof p.catch === 'function') p.catch(() => {});
-      }catch(_){ }
+        setTimeout(() => { try{ video.pause(); }catch(_){} video.classList.remove('on'); }, duration);
+      }catch(_){}
     }
 
     function playSoldTileAnimation(code){
       const tile = document.querySelector(`.team[data-team-code="${code}"]`);
       if (!tile) return;
-      playDuckCall();
+      playSoldAudio();
       tile.classList.remove('sell-pop');
       const stamp = tile.querySelector('.team-sold-stamp');
       if (stamp) stamp.classList.remove('on');
       void tile.offsetWidth;
-
       const clone = createTilePopClone(tile);
       if (clone){
         document.body.appendChild(clone);
@@ -513,14 +595,10 @@
         setTimeout(() => clone.classList.add('stamp-ready'), 760);
         setTimeout(() => clone.remove(), 1380);
       }
-
       setTimeout(() => {
         tile.classList.add('sell-pop');
         playTileVideoFx(tile, '.sell-fx', 650);
-        if (stamp){
-          stamp.classList.add('on');
-          setTimeout(() => stamp.classList.remove('on'), 900);
-        }
+        if (stamp){ stamp.classList.add('on'); setTimeout(() => stamp.classList.remove('on'), 900); }
         setTimeout(() => tile.classList.remove('sell-pop'), 650);
       }, 220);
     }
@@ -530,30 +608,19 @@
         const rect = tile.getBoundingClientRect();
         const clone = document.createElement('div');
         clone.className = 'team-pop-clone';
-        clone.style.left = `${rect.left}px`;
-        clone.style.top = `${rect.top}px`;
-        clone.style.width = `${rect.width}px`;
-        clone.style.height = `${rect.height}px`;
-
+        clone.style.left = `${rect.left}px`; clone.style.top = `${rect.top}px`;
+        clone.style.width = `${rect.width}px`; clone.style.height = `${rect.height}px`;
         const img = tile.querySelector('img');
-        if (img){
-          const cimg = document.createElement('img');
-          cimg.src = img.currentSrc || img.src;
-          cimg.alt = img.alt || '';
-          cimg.className = img.className;
-          clone.appendChild(cimg);
-        } else {
-          const code = tile.dataset.teamCode || '';
-          clone.innerHTML = `<div class="fallback-code">${code}</div>`;
-        }
+        if (img){ const cimg = document.createElement('img'); cimg.src = img.currentSrc || img.src; cimg.alt = img.alt || ''; cimg.className = img.className; clone.appendChild(cimg); }
+        else { const code = tile.dataset.teamCode || ''; clone.innerHTML = `<div class="fallback-code">${code}</div>`; }
         return clone;
-      }catch(_){
-        return null;
-      }
+      }catch(_){ return null; }
     }
 
+    // ── Ticker / live scores ─────────────────────────────────────────────────
     function syncTickerTrack(){
-      const text = getTickerText().trim() || DEFAULT_TICKER;
+      let text = getTickerText().trim() || DEFAULT_TICKER;
+      if (liveScoresText) text = `${text} • ${liveScoresText}`;
       const copies = Array.from(document.querySelectorAll(".ticker-copy"));
       copies.forEach(copy => copy.textContent = `${text} • `);
       requestAnimationFrame(() => {
@@ -563,6 +630,38 @@
       });
     }
 
+    async function fetchNFLScores(){
+      try{
+        const res = await fetch("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard", { cache:"no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const games = (data.events || []).filter(e => {
+          const status = e?.status?.type?.state || "";
+          return status === "in" || status === "post";
+        });
+        if (!games.length){ liveScoresText = ""; syncTickerTrack(); return; }
+        const parts = games.map(e => {
+          const comps = e.competitions?.[0]?.competitors || [];
+          const home = comps.find(c => c.homeAway === "home");
+          const away = comps.find(c => c.homeAway === "away");
+          if (!home || !away) return null;
+          const state = e?.status?.type?.state;
+          const period = e?.status?.period || 0;
+          const clock = e?.status?.displayClock || "";
+          const label = state === "post" ? "FINAL" : (period ? `Q${period} ${clock}` : "");
+          return `${away.team?.abbreviation || "??"} ${away.score || 0} - ${home.score || 0} ${home.team?.abbreviation || "??"} ${label}`.trim();
+        }).filter(Boolean);
+        liveScoresText = parts.length ? "🏈 SCORES: " + parts.join(" • ") : "";
+        syncTickerTrack();
+      }catch(_){ liveScoresText = ""; }
+    }
+
+    function startScorePolling(){
+      fetchNFLScores();
+      setInterval(fetchNFLScores, 60000);
+    }
+
+    // ── Layout / render ──────────────────────────────────────────────────────
     function buildLayout(){
       const wrap=document.getElementById("teamsWrapper"); wrap.innerHTML=""; wrap.appendChild(makeFloatingLogo());
       const teams=breakTypes.nfl.teams.slice(); let idx=0;
@@ -593,6 +692,7 @@
     function syncHeader(){ document.getElementById("headerText").textContent=getCurrentTitle(); document.getElementById("breakNumberDisplay").textContent=String(getBreakNumber()); }
     function startPromoRotation(){ const promos=getPromos(); const promoText=document.getElementById("promoText"); promoIndex=0; promoText.textContent=promos[0] || "218 CARDS & CO."; if (promoTimer) clearInterval(promoTimer); promoTimer=setInterval(() => { const list=getPromos(); if (!list.length) return; promoIndex=(promoIndex + 1) % list.length; promoText.textContent=list[promoIndex]; }, 2600); }
 
+    // ── Popups ───────────────────────────────────────────────────────────────
     function openPopup(id){ document.getElementById(id).classList.remove("hidden"); }
     function closePopup(id){ document.getElementById(id).classList.add("hidden"); }
     function openBreakPopup(){ document.getElementById("breakInput").value=getBreakNumber(); openPopup("breakPopup"); }
@@ -615,15 +715,125 @@
     function toggleSoldControls(){ soldControlsVisible=!soldControlsVisible; saveBool(STORAGE.soldControlsVisible, soldControlsVisible); renderSoldList(); }
     function showNflOnlyNotice(){ resetAll(); }
 
+    // ── Bridge popup ─────────────────────────────────────────────────────────
+    function openBridgePopup(){
+      document.getElementById("bridgeUrlInput").value = loadText(STORAGE.bridgeUrl, "");
+      document.getElementById("bridgeKeyInput").value = loadText(STORAGE.bridgeKey, "");
+      updateBridgeStatusUI();
+      openPopup("bridgePopup");
+    }
+    function closeBridgePopup(){ closePopup("bridgePopup"); }
+    function applyBridgePopup(){
+      const url = document.getElementById("bridgeUrlInput").value.trim().replace(/\/$/,"");
+      const key = document.getElementById("bridgeKeyInput").value.trim();
+      saveText(STORAGE.bridgeUrl, url);
+      saveText(STORAGE.bridgeKey, key);
+      closeBridgePopup();
+      if (sseConn){ try{ sseConn.close(); }catch(_){} sseConn = null; }
+      if (url) connectBridgeSSE();
+    }
+    function disconnectBridge(){
+      if (sseConn){ try{ sseConn.close(); }catch(_){} sseConn = null; }
+      saveText(STORAGE.bridgeUrl, "");
+      saveText(STORAGE.bridgeKey, "");
+      document.getElementById("bridgeUrlInput").value = "";
+      document.getElementById("bridgeKeyInput").value = "";
+      updateBridgeStatusUI();
+    }
+    function updateBridgeStatusUI(){
+      const el = document.getElementById("bridgeStatus");
+      if (!el) return;
+      const url = loadText(STORAGE.bridgeUrl, "");
+      const connected = sseConn && sseConn.readyState === 1;
+      el.style.color = connected ? "#6fdb8a" : url ? "#f0a030" : "var(--muted)";
+      el.textContent = connected ? "● CONNECTED" : url ? "○ CONNECTING…" : "NOT CONNECTED";
+    }
+
+    // ── SSE bridge ───────────────────────────────────────────────────────────
+    function connectBridgeSSE(){
+      const base = getBridgeBase();
+      if (!base) return;
+      const key = getBridgeKey();
+      const url = key ? `${base}/stream?channel=main&key=${encodeURIComponent(key)}` : `${base}/stream?channel=main`;
+      console.log("[218] SSE connecting:", url);
+      updateBridgeStatusUI();
+      try{
+        sseConn = new EventSource(url);
+        sseConn.onopen = () => { console.log("[218] SSE connected"); updateBridgeStatusUI(); };
+        sseConn.onerror = () => { updateBridgeStatusUI(); try{ sseConn.close(); }catch(_){} sseConn = null; setTimeout(connectBridgeSSE, 2500); };
+        sseConn.onmessage = (e) => {
+          try{ handleBridgeEvent(JSON.parse(e.data)); }catch(_){}
+        };
+      }catch(_){ setTimeout(connectBridgeSSE, 2500); }
+    }
+
+    function normalizeIncomingCode(raw){
+      if (!raw) return "";
+      const s = String(raw).trim().toUpperCase();
+      // Strip sport prefix if present: NFL_MIA -> MIA
+      const m = s.match(/^(?:NFL|MLB|NBA)_(.+)$/);
+      return m ? m[1] : s;
+    }
+
+    function handleBridgeEvent(data){
+      if (!data || typeof data !== "object") return;
+      const type = String(data.type || "").toLowerCase().trim();
+      if (!type || type === "hello" || type === "stream_stats" || type === "overlay_warmup") return;
+
+      if (type === "reset"){ resetAll(); return; }
+      if (type === "set_break"){ const n = parseInt(String(data.value || data.break || ""), 10); if (Number.isFinite(n) && n > 0) setBreakNumber(n); return; }
+      if (type === "set_title"){ if (data.main) saveText(STORAGE.title, String(data.main)); syncHeader(); return; }
+      if (type === "set_ticker"){ if (data.text) saveText(STORAGE.ticker, String(data.text)); if (data.speedSec) saveText(STORAGE.tickerSpeed, String(data.speedSec)); syncTickerTrack(); return; }
+
+      if (type === "team_unsold" || type === "unsold"){
+        const code = normalizeIncomingCode(data.code || data.teamCode || "");
+        const listingKey = String(data.saleId || data.id || "").trim();
+        if (listingKey) lastCodeByListingKey.delete(listingKey);
+        if (code && findTeamByCode(code)) markUnsold(code);
+        return;
+      }
+
+      const isSale = type === "team_sold" || type === "sold" || type === "sale" || type === "purchase";
+      if (isSale){
+        let code = normalizeIncomingCode(data.code || data.teamCode || "");
+        if (!code){
+          // Fallback: infer from title
+          const title = String(data.title || "").toLowerCase();
+          const match = breakTypes.nfl.teams.find(t =>
+            title.includes(t.name.toLowerCase()) || title.includes(t.code.toLowerCase())
+          );
+          if (match) code = match.code;
+        }
+        if (!code || !findTeamByCode(code)){ console.warn("[218] sale ignored — unresolved code", data); return; }
+        const buyer = String(data.buyer || data.buyerName || "").trim();
+        const listingKey = String(data.saleId || data.id || "").trim();
+        if (listingKey){
+          const prev = lastCodeByListingKey.get(listingKey);
+          if (prev && prev !== code) markUnsold(prev);
+          lastCodeByListingKey.set(listingKey, code);
+        }
+        markSold(code, buyer);
+      }
+    }
+
+    // ── Event listeners ──────────────────────────────────────────────────────
     document.getElementById("tickerSpeedInput").addEventListener("input", (e) => { document.getElementById("tickerSpeedValue").textContent=`${e.target.value}s`; });
     document.addEventListener("keydown", (e) => { if (e.key === "Escape") document.querySelectorAll(".popup-mask").forEach(el => el.classList.add("hidden")); });
     document.querySelectorAll(".popup-mask").forEach(mask => mask.addEventListener("click", (e) => { if (e.target === mask) mask.classList.add("hidden"); }));
 
-    function init(){ loadSoldState(); syncHeader(); buildLayout(); renderSoldList(); updateStats(); startPromoRotation(); }
+    // ── Init ─────────────────────────────────────────────────────────────────
+    function init(){
+      loadSoldState(); syncHeader(); buildLayout(); renderSoldList(); updateStats(); startPromoRotation();
+      if (getBridgeBase()) connectBridgeSSE();
+      startScorePolling();
+    }
 
+    // ── Exports ──────────────────────────────────────────────────────────────
     window.newBreak=newBreak; window.resetAll=resetAll; window.openBreakPopup=openBreakPopup; window.closeBreakPopup=closeBreakPopup; window.applyBreakPopup=applyBreakPopup;
     window.openTitlePopup=openTitlePopup; window.closeTitlePopup=closeTitlePopup; window.applyTitlePopup=applyTitlePopup; window.openTickerPopup=openTickerPopup; window.closeTickerPopup=closeTickerPopup; window.applyTickerPopup=applyTickerPopup;
     window.openPromoPopup=openPromoPopup; window.closePromoPopup=closePromoPopup; window.applyPromoPopup=applyPromoPopup; window.openExportPopup=openExportPopup; window.closeExportPopup=closeExportPopup; window.copyExportTSV=copyExportTSV; window.toggleSoldControls=toggleSoldControls; window.showNflOnlyNotice=showNflOnlyNotice;
+    window.openAudioPopup=openAudioPopup; window.closeAudioPopup=closeAudioPopup; window.selectAudioPreset=selectAudioPreset; window.testCustomAudio=testCustomAudio; window.applyAudioPopup=applyAudioPopup;
+    window.openBridgePopup=openBridgePopup; window.closeBridgePopup=closeBridgePopup; window.applyBridgePopup=applyBridgePopup; window.disconnectBridge=disconnectBridge;
     init();
   </script>
 </body>
