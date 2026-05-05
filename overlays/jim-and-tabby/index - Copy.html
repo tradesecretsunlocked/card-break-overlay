@@ -3139,7 +3139,7 @@ function updateTicker(){
 
 function buildSSEUrl(base, channel, key){
   const clean = base.replace(/\/$/, "");
-  const url = new URL(`${clean}/events`, window.location.href);
+  const url = new URL(`${clean}/stream`, window.location.href);
   url.searchParams.set("channel", channel);
   if (key) url.searchParams.set("key", key);
   return url.toString();
@@ -3176,6 +3176,12 @@ function setSSEStatus(){
 
 function getTeamByKey(code){
   return getEntryByCode(code);
+}
+
+// NEW: Check if a code exists as a DOM tile (for overlays without JS entry data)
+function codeExistsOnBoard(code){
+  if (!code) return false;
+  return !!document.querySelector(`[data-team-code="${code}"]`);
 }
 
 function loadBreakNumber(){
@@ -4109,25 +4115,24 @@ function toggleTeam(team){
 function sseMarkSold(code, buyer=""){
   if (!code) return;
 
-  const team = getTeamByKey(code);
-  if (!team) return;
-
   const wasAlreadySold = soldTeams.has(code);
 
   if (!wasAlreadySold){
     soldTeams.add(code);
 
-    if (!soldTeamsList.some(x => x.code === code)){
-  const visual = getComboDisplayVisual(team);
+    // Try to get team data for display purposes, but don't require it
+    const team = getTeamByKey(code);
+    if (team && !soldTeamsList.some(x => x.code === code)){
+      const visual = getComboDisplayVisual(team);
+      soldTeamsList.push({
+        code,
+        name: visual.name || getDisplayEntryName(team),
+        buyer: buyer || "",
+        image: visual.image || getCustomEnvelopePath()
+      });
+    }
 
-  soldTeamsList.push({
-    code,
-    name: visual.name || getDisplayEntryName(team),
-    buyer: buyer || "",
-    image: visual.image || getCustomEnvelopePath()
-  });
-}
-
+    // Mark the DOM tile as sold regardless of whether team data exists
     const tile = document.querySelector(`[data-team-code="${code}"]`);
     if (tile){
       tile.classList.add("sold");
@@ -5821,17 +5826,17 @@ function handleMainEvent(payload){
     if (!code) code = inferTeamCodeFromTitle(data.title || "", sportHint);
 
     const listingKey = String(data.saleId || data.id || data.listingId || "").trim();
-   if (!code || !getEntryByCode(code)) {
+   if (!code || !codeExistsOnBoard(code)) {
   const fallbackTitle = data.title || data.itemTitle || data.listingTitle || data.name || "";
   const fallbackSport = String(data.sport || data.league || "").trim().toLowerCase();
   const inferred = inferTeamCodeFromTitle(fallbackTitle, fallbackSport);
 
-  if (inferred && getEntryByCode(inferred)) {
+  if (inferred && codeExistsOnBoard(inferred)) {
     code = inferred;
   }
 }
 
-if (code && getEntryByCode(code)) {
+if (code && codeExistsOnBoard(code)) {
   sseMarkUnsold(code);
 } else if (code) {
   console.warn("[Overlay] unsold ignored: code not on active board", {
@@ -5860,12 +5865,12 @@ if (code && getEntryByCode(code)) {
     const buyer = getBuyerFromPayload(data);
     const listingKey = String(data.saleId || data.id || data.listingId || "").trim();
 
-if (!code || !getEntryByCode(code)) {
+if (!code || !codeExistsOnBoard(code)) {
   const fallbackTitle = data.title || data.itemTitle || data.listingTitle || data.name || "";
   const fallbackSport = String(data.sport || data.league || "").trim().toLowerCase();
   const inferred = inferTeamCodeFromTitle(fallbackTitle, fallbackSport);
 
-  if (inferred && getEntryByCode(inferred)) {
+  if (inferred && codeExistsOnBoard(inferred)) {
     code = inferred;
   }
 }
@@ -5875,7 +5880,7 @@ if (!code) {
   return;
 }
 
-if (!getEntryByCode(code)) {
+if (!codeExistsOnBoard(code)) {
   console.warn("[Overlay] sale ignored: code not on active board", {
     code,
     title: data.title || "",

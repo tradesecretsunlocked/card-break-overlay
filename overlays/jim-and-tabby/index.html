@@ -3179,8 +3179,11 @@ function getTeamByKey(code){
 }
 
 // NEW: Check if a code exists as a DOM tile (for overlays without JS entry data)
+// Handles both combo and envelope layouts — doesn't require layoutMode to match
 function codeExistsOnBoard(code){
   if (!code) return false;
+  // Query DOM directly — works regardless of layoutMode
+  // (envelope tiles use CUSTOM_NNN, combo tiles use NFL_/MLB_/COMBO_*/etc)
   return !!document.querySelector(`[data-team-code="${code}"]`);
 }
 
@@ -3533,18 +3536,25 @@ if (
 }
 
   // IMPORTANT:
-  // Extension may emit CUSTOM_002 for a numbered Whatnot listing, but in combo mode
-  // that visible tile may actually live on the board as COMBO_CHASER_02 / COMBO_ITEM_02.
+  // Extension sends CUSTOM_NNN for envelope mode, or team codes + sport for combo mode.
+  // We don't need to convert CUSTOM→COMBO_ITEM because the DOM validation (codeExistsOnBoard)
+  // will work regardless of which layout the overlay is currently in.
+  // This handles layout mode mismatches gracefully.
   if (raw.startsWith("CUSTOM_") && layoutMode === "combo") {
     const m = raw.match(/^CUSTOM_(\d+)$/);
     if (m) {
-      const idx = Math.max(0, parseInt(m[1], 10) - 1);
+      const idx = parseInt(m[1], 10);
+      if (!Number.isFinite(idx) || idx < 1 || idx > 150) return "";
 
-      // Try title inference first; positional mapping removed (unreliable)
+      // Try title inference first (for regular teams mixed with envelope)
       if (title) {
         const inferred = inferTeamCodeFromTitle(title, sport);
-        if (inferred) return inferred;
+        if (inferred) return inferred;  // Returns NFL_LAA, MLB_COL, etc.
       }
+
+      // Return raw CUSTOM code and let DOM check validate it
+      // (overlay may be in envelope mode even though layoutMode says combo)
+      return raw;
     }
 
     return raw;
