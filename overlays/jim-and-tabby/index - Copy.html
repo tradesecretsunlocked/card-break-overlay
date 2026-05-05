@@ -54,6 +54,7 @@
 .modal-card input,
 .modal-card textarea,
 .modal-card button{
+  -webkit-user-select:text;
   user-select:text;
 }
 
@@ -1322,6 +1323,13 @@ body.combo-mode .board-shell > .footer-strip{
   grid-template-columns:1fr 1fr;
   gap:12px;
 }
+.combo-three-split-grid{
+  grid-template-columns:1fr 1fr 1fr;
+}
+
+.combo-three-split-grid .modal-textarea{
+  min-height:180px;
+}
 
 .combo-split-grid .modal-textarea{
   min-height:180px;
@@ -1434,6 +1442,73 @@ body.combo-mode .board-shell > .footer-strip{
     0 0 16px rgba(127,199,255,.20);
 }
 
+.team.combo-prizepack{
+  background:
+    linear-gradient(180deg, rgba(62,36,10,.98), rgba(18,10,5,.98));
+  border-color:rgba(255,171,77,.95);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    0 0 16px rgba(255,171,77,.24);
+}
+
+.team.combo-prizepack::before{
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,171,77,.22), transparent 54%),
+    linear-gradient(180deg, rgba(0,0,0,.38), rgba(0,0,0,.58));
+}
+
+.team.combo-prizepack::after{
+  content:attr(data-custom-label);
+  position:absolute;
+  inset:4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  color:#fff8ea;
+  font-size:14px;
+  line-height:1.05;
+  font-weight:900;
+  letter-spacing:.8px;
+  text-transform:uppercase;
+  text-shadow:0 2px 8px rgba(0,0,0,.85);
+  z-index:3;
+  padding:4px 6px;
+}
+
+.team.combo-prizepack img,
+.team.combo-prizepack .fallback{
+  display:none !important;
+}
+
+.team.combo-prizepack.sold .tile-sold-x{
+  display:none;
+}
+
+.team.combo-prizepack.sold::after{
+  content:attr(data-sold-type-label);
+  position:absolute;
+  inset:3px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  color:#fff6d9;
+  font-size:clamp(11px, 1.45vw, 16px);
+  line-height:1.02;
+  font-weight:900;
+  letter-spacing:.5px;
+  text-transform:uppercase;
+  overflow:hidden;
+  text-wrap:balance;
+  word-break:normal;
+  text-shadow:
+    0 2px 8px rgba(0,0,0,.90),
+    0 0 10px rgba(255,171,77,.28);
+  z-index:3;
+  padding:2px 4px;
+}
+
 .team.combo-custom-item::after{
   content:attr(data-custom-label);
   position:absolute;
@@ -1491,12 +1566,14 @@ body.combo-mode .board-shell > .footer-strip{
 }
 
 .team.combo-chaser.sold .tile-sold-x,
-.team.combo-custom-item.sold .tile-sold-x{
+.team.combo-custom-item.sold .tile-sold-x,
+.team.combo-prizepack.sold .tile-sold-x{
   display:none;
 }
 
 .team.combo-chaser.sold::after,
-.team.combo-custom-item.sold::after{
+.team.combo-custom-item.sold::after,
+.team.combo-prizepack.sold::after{
   content:attr(data-sold-type-label);
   position:absolute;
   inset:3px;
@@ -2051,7 +2128,8 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
 <button class="tool-btn" onclick="toggleChaseBuyersPanel()">Chase Buyers</button>
 <button class="tool-btn" onclick="openExportSoldModal()">Export Sold</button>
 <button class="tool-btn" onclick="toggleLayoutMode()">Toggle Layout</button>
-  <button class="tool-btn" onclick="toggleSoldPanel()">Toggle Sold Panel</button>
+<button class="tool-btn" onclick="clearCurrentLayoutStorage()">Clear Current Layout</button>
+<button class="tool-btn" onclick="toggleSoldPanel()">Toggle Sold Panel</button>
   <div class="sse">
     SSE <span class="dot"></span><span>OFF</span>
   </div>
@@ -2107,10 +2185,8 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
     <div class="modal-shortcut-help">Shortcuts: <kbd>Ctrl</kbd> + <kbd>C</kbd> on Windows • <kbd>⌘</kbd> + <kbd>C</kbd> on Mac.</div>
 
 <div class="modal-actions">
-  <button class="modal-btn secondary" type="button" onclick="clearComboChaserSetup()">Clear Chaser Setup</button>
-  <button class="modal-btn secondary" type="button" onclick="resetSoldComboChasers()">Reset Sold Chasers</button>
-  <button class="modal-btn primary" onclick="applyComboChaserModal()">Apply</button>
-  <button class="modal-btn secondary" onclick="closeComboChaserModal()">Cancel</button>
+  <button class="modal-btn primary" type="button" onclick="copyExportSoldOutput()">Copy Export</button>
+  <button class="modal-btn secondary" type="button" onclick="closeExportSoldModal()">Close</button>
 </div>
   </div>
 </div>
@@ -2228,10 +2304,11 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
       <div id="chaseManagerList" class="chase-manager-list"></div>
     </div>
 
-    <div class="modal-actions">
-      <button class="modal-btn primary" type="button" onclick="applyEnvelopeManager()">Apply All</button>
-      <button class="modal-btn secondary" type="button" onclick="closeEnvelopeManager()">Cancel</button>
-    </div>
+<div class="modal-actions">
+  <button class="modal-btn secondary" type="button" onclick="clearEnvelopeBoardAndStorage()">Clear Envelope Setup</button>
+  <button class="modal-btn primary" type="button" onclick="applyEnvelopeManager()">Apply All</button>
+  <button class="modal-btn secondary" type="button" onclick="closeEnvelopeManager()">Cancel</button>
+</div>
   </div>
 </div>
 <div class="modal-mask hidden" id="comboChaserModal">
@@ -2250,29 +2327,39 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
       <div id="comboChaserTeamGrid" class="combo-chaser-team-grid"></div>
     </div>
 
-    <div class="combo-tab-panel" id="comboTabExtras">
-      <div class="combo-split-grid">
-        <div>
-          <div class="modal-label">Extra Chaser Spots (up to 24)</div>
-          <textarea
-            id="comboExtraChasersInput"
-            class="modal-textarea"
-            placeholder="One extra chaser spot per line"
-          ></textarea>
-          <div class="modal-shortcut-help">Shortcuts: <kbd>Ctrl</kbd> + <kbd>C</kbd>/<kbd>V</kbd> on Windows • <kbd>⌘</kbd> + <kbd>C</kbd>/<kbd>V</kbd> on Mac.</div>
-        </div>
-
-        <div>
-          <div class="modal-label">Custom Non-Chaser Items (up to 24)</div>
-          <textarea
-            id="comboExtraItemsInput"
-            class="modal-textarea"
-            placeholder="One custom item per line"
-          ></textarea>
-          <div class="modal-shortcut-help">Shortcuts: <kbd>Ctrl</kbd> + <kbd>C</kbd>/<kbd>V</kbd> on Windows • <kbd>⌘</kbd> + <kbd>C</kbd>/<kbd>V</kbd> on Mac.</div>
-        </div>
-      </div>
+<div class="combo-tab-panel" id="comboTabExtras">
+  <div class="combo-split-grid combo-three-split-grid">
+    <div>
+      <div class="modal-label">Extra Chasers (up to 24)</div>
+      <textarea
+        id="comboExtraChasersInput"
+        class="modal-textarea"
+        placeholder="Chaser&#10;Chaser&#10;Chaser"
+      ></textarea>
+      <div class="modal-shortcut-help">Each line becomes the next CHASER tile.</div>
     </div>
+
+    <div>
+      <div class="modal-label">Packs (up to 24)</div>
+      <textarea
+        id="comboExtraItemsInput"
+        class="modal-textarea"
+        placeholder="Pack&#10;Pack&#10;Pack"
+      ></textarea>
+      <div class="modal-shortcut-help">Each line becomes the next PACK tile.</div>
+    </div>
+
+    <div>
+      <div class="modal-label">Prize Packs (up to 24)</div>
+      <textarea
+        id="comboPrizePacksInput"
+        class="modal-textarea"
+        placeholder="Prize Pack&#10;NBA Prize Pack&#10;Deadpool Prize Pack&#10;Pink Shock Prize Pack"
+      ></textarea>
+      <div class="modal-shortcut-help">Each line becomes the next PRIZE PACK tile.</div>
+    </div>
+  </div>
+</div>
 
     <div class="combo-tab-panel" id="comboTabBulk">
       <div class="combo-bulk-grid">
@@ -2292,7 +2379,7 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
         </div>
 
      <div class="modal-actions">
-  <button class="modal-btn secondary" type="button" onclick="triggerComboBulkImport()">Import CSV/TXT</button>
+  <label for="comboBulkImportFileInput" class="modal-btn secondary" style="cursor:pointer">Import CSV/TXT</label>
   <button class="modal-btn secondary" type="button" onclick="parseComboBulkImportToFields()">Parse Bulk List</button>
   <button class="modal-btn secondary" type="button" onclick="clearComboBulkImport()">Clear Bulk Box</button>
 </div>
@@ -2301,15 +2388,16 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
   id="comboBulkImportFileInput"
   type="file"
   accept=".txt,.csv"
-  style="display:none"
+  style="position:absolute;opacity:0;width:0;height:0;pointer-events:none"
 />
       </div>
     </div>
 
-    <div class="modal-actions">
-      <button class="modal-btn primary" onclick="applyComboChaserModal()">Apply</button>
-      <button class="modal-btn secondary" onclick="closeComboChaserModal()">Cancel</button>
-    </div>
+  <div class="modal-actions">
+  <button class="modal-btn secondary" type="button" onclick="clearComboBoardAndStorage()">Clear Combo / Chasers</button>
+  <button class="modal-btn primary" onclick="applyComboChaserModal()">Apply</button>
+  <button class="modal-btn secondary" onclick="closeComboChaserModal()">Cancel</button>
+</div>
   </div>
 </div>
   <script>
@@ -2350,8 +2438,9 @@ const STORAGE = {
 
   comboChaserTeams: "jtb.combo.comboChaserTeams",
   comboChaserLabels: "jtb.combo.comboChaserLabels",
-  comboExtraChasers: "jtb.combo.comboExtraChasers",
-  comboExtraItems: "jtb.combo.comboExtraItems"
+comboExtraChasers: "jtb.combo.comboExtraChasers",
+comboExtraItems: "jtb.combo.comboExtraItems",
+comboExtraPrizePacks: "jtb.combo.comboExtraPrizePacks"
 };
     const MLB_TEAMS = [
       { code:"ARI", name:"Diamondbacks", image:imgPathMLB("diamondbacks.png") },
@@ -2441,6 +2530,7 @@ let comboChaserTeams = new Set();
 let comboChaserLabels = new Map();
 let comboExtraChasers = [];
 let comboExtraItems = [];
+let comboExtraPrizePacks = [];
 
 const lastCodeByListingKey = new Map();
 const SCORES_BY_SPORT = { mlb:"", nfl:"" };
@@ -2651,28 +2741,51 @@ function saveComboExtraItems(){
   localStorage.setItem(STORAGE.comboExtraItems, JSON.stringify(comboExtraItems));
 }
 
+function loadComboExtraPrizePacks(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORAGE.comboExtraPrizePacks) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  }catch(_){
+    return [];
+  }
+}
+
+function saveComboExtraPrizePacks(){
+  localStorage.setItem(STORAGE.comboExtraPrizePacks, JSON.stringify(comboExtraPrizePacks));
+}
+
 function saveComboChaserState(){
   saveComboChaserTeams();
   saveComboChaserLabels();
   saveComboExtraChasers();
   saveComboExtraItems();
+  saveComboExtraPrizePacks();
 }
 
 function clearComboChaserSetup(){
   comboChaserTeams = new Set();
   comboChaserLabels = new Map();
   comboExtraChasers = [];
+  comboExtraItems = [];
 
-  saveComboChaserTeams();
-  saveComboChaserLabels();
-  saveComboExtraChasers();
+  if (typeof comboExtraPrizePacks !== "undefined"){
+    comboExtraPrizePacks = [];
+  }
 
-  const extraChasersInput = document.getElementById("comboExtraChasersInput");
+  saveComboChaserState();
+
+const extraChasersInput = document.getElementById("comboExtraChasersInput");
+const extraItemsInput = document.getElementById("comboExtraItemsInput");
+const prizePacksInput = document.getElementById("comboPrizePacksInput");
+const bulkInput = document.getElementById("comboBulkImportInput");
+
   if (extraChasersInput) extraChasersInput.value = "";
+  if (extraItemsInput) extraItemsInput.value = "";
+  if (prizePacksInput) prizePacksInput.value = "";
 
   const bulkSummary = document.getElementById("comboBulkImportSummary");
   if (bulkSummary){
-    bulkSummary.textContent = "Chaser setup cleared. Click Apply to close, or keep editing.";
+    bulkSummary.textContent = "Combo chasers, packs, and prize packs cleared. Envelope setup was not touched.";
   }
 
   renderComboChaserModal?.();
@@ -2705,6 +2818,25 @@ function getComboExtraChaserCode(index){
   return `COMBO_CHASER_${String(index + 1).padStart(2, "0")}`;
 }
 
+function getComboExtraPrizePackCode(index){
+  return `COMBO_PRIZEPACK_${String(index + 1).padStart(2, "0")}`;
+}
+
+function normalizeComboEntryLabel(name, fallbackBase, index){
+  const raw = String(name || "").trim();
+
+  // Keep custom names for matching, but visible category numbering stays clean.
+  return raw || `${fallbackBase} ${index + 1}`;
+}
+
+function getNumberedCategoryLabel(category, index){
+  if (category === "chaser") return `Chaser ${index + 1}`;
+  if (category === "pack") return `Pack ${index + 1}`;
+  if (category === "prizepack") return `Prize Pack ${index + 1}`;
+  return `Item ${index + 1}`;
+}
+
+
 function getComboExtraItemCode(index){
   return `COMBO_ITEM_${String(index + 1).padStart(2, "0")}`;
 }
@@ -2713,26 +2845,41 @@ function getComboSupplementalEntries(){
   const chasers = comboExtraChasers.map((name, index) => ({
     key: getComboExtraChaserCode(index),
     code: getComboExtraChaserCode(index),
-    name: String(name || "").trim() || `Chaser ${index + 1}`,
+    name: `Chaser ${comboChaserTeams.size + index + 1}`,
+    matchName: normalizeComboEntryLabel(name, "Chaser", comboChaserTeams.size + index),
     image: "",
     meta: "",
     sport: "",
-    comboType: "extra_chaser"
+    comboType: "extra_chaser",
+    categoryLabel: "CHASER"
   }));
 
-  const items = comboExtraItems.map((name, index) => ({
+  const packs = comboExtraItems.map((name, index) => ({
     key: getComboExtraItemCode(index),
     code: getComboExtraItemCode(index),
-    name: String(name || "").trim() || `Item ${index + 1}`,
+    name: getNumberedCategoryLabel("pack", index),
+    matchName: normalizeComboEntryLabel(name, "Pack", index),
     image: "",
     meta: "",
     sport: "",
-    comboType: "extra_item"
+    comboType: "extra_item",
+    categoryLabel: "PACK"
   }));
 
-  return [...chasers, ...items];
-}
+  const prizePacks = comboExtraPrizePacks.map((name, index) => ({
+    key: getComboExtraPrizePackCode(index),
+    code: getComboExtraPrizePackCode(index),
+    name: getNumberedCategoryLabel("prizepack", index),
+    matchName: normalizeComboEntryLabel(name, "Prize Pack", index),
+    image: "",
+    meta: "",
+    sport: "",
+    comboType: "extra_prizepack",
+    categoryLabel: "PRIZE PACK"
+  }));
 
+  return [...chasers, ...packs, ...prizePacks];
+}
 function getCustomEnvelopePath(){
   return localStorage.getItem(STORAGE.customEnvelopeImage) || CUSTOM_ENVELOPE;
 }
@@ -3154,9 +3301,10 @@ function getComboDisplayVisual(entry){
     };
   }
 
-  const isExtraChaser = entry.comboType === "extra_chaser";
-  const isExtraItem = entry.comboType === "extra_item";
-  const isMarkedTeamChaser = isComboTeamChaser(entry.key);
+const isExtraChaser = entry.comboType === "extra_chaser";
+const isExtraItem = entry.comboType === "extra_item";
+const isExtraPrizePack = entry.comboType === "extra_prizepack";
+const isMarkedTeamChaser = isComboTeamChaser(entry.key);
 
   if (isMarkedTeamChaser){
     return {
@@ -3178,7 +3326,12 @@ function getComboDisplayVisual(entry){
       name: String(entry.name || "Item").trim() || "Item"
     };
   }
-
+if (isExtraPrizePack){
+  return {
+    image: getCustomEnvelopePath(),
+    name: String(entry.name || "Prize Pack").trim() || "Prize Pack"
+  };
+}
   return {
     image: entry.image || getCustomEnvelopePath(),
     name: getDisplayEntryName(entry) || entry.code || entry.key || ""
@@ -3296,19 +3449,33 @@ function inferTeamCodeFromTitle(title, sportHint=""){
       if (label && raw.includes(label)) return code;
     }
 
-    // Combo mode: extra chaser names
-    for (let i = 0; i < comboExtraChasers.length; i++){
-      const name = String(comboExtraChasers[i] || "").toLowerCase().trim();
-      if (!name) continue;
-      if (raw === name || raw.includes(name)) return getComboExtraChaserCode(i);
-    }
 
-    // Combo mode: extra custom item names
-    for (let i = 0; i < comboExtraItems.length; i++){
-      const name = String(comboExtraItems[i] || "").toLowerCase().trim();
-      if (!name) continue;
-      if (raw === name || raw.includes(name)) return getComboExtraItemCode(i);
-    }
+// Combo mode: extra chaser names
+for (let i = 0; i < comboExtraChasers.length; i++){
+  const exactName = String(comboExtraChasers[i] || "").toLowerCase().trim();
+  const numberedName = `chaser ${comboChaserTeams.size + i + 1}`;
+
+  if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraChaserCode(i);
+  if (raw === numberedName || raw.includes(numberedName)) return getComboExtraChaserCode(i);
+}
+
+// Combo mode: pack names
+for (let i = 0; i < comboExtraItems.length; i++){
+  const exactName = String(comboExtraItems[i] || "").toLowerCase().trim();
+  const numberedName = `pack ${i + 1}`;
+
+  if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraItemCode(i);
+  if (raw === numberedName || raw.includes(numberedName)) return getComboExtraItemCode(i);
+}
+
+// Combo mode: prize pack names
+for (let i = 0; i < comboExtraPrizePacks.length; i++){
+  const exactName = String(comboExtraPrizePacks[i] || "").toLowerCase().trim();
+  const numberedName = `prize pack ${i + 1}`;
+
+  if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraPrizePackCode(i);
+  if (raw === numberedName || raw.includes(numberedName)) return getComboExtraPrizePackCode(i);
+}
   }
 
   const list =
@@ -3349,9 +3516,15 @@ function getCodeFromPayload(p){
   if (!raw) return "";
 
   // already normalized overlay keys
-  if (raw.startsWith("MLB_") || raw.startsWith("NFL_") || raw.startsWith("COMBO_CHASER_") || raw.startsWith("COMBO_ITEM_")) {
-    return raw;
-  }
+if (
+  raw.startsWith("MLB_") ||
+  raw.startsWith("NFL_") ||
+  raw.startsWith("COMBO_CHASER_") ||
+  raw.startsWith("COMBO_ITEM_") ||
+  raw.startsWith("COMBO_PRIZEPACK_")
+) {
+  return raw;
+}
 
   // IMPORTANT:
   // Extension may emit CUSTOM_002 for a numbered Whatnot listing, but in combo mode
@@ -3361,15 +3534,11 @@ function getCodeFromPayload(p){
     if (m) {
       const idx = Math.max(0, parseInt(m[1], 10) - 1);
 
-      // First try exact titled combo match if title exists
+      // Try title inference first; positional mapping removed (unreliable)
       if (title) {
         const inferred = inferTeamCodeFromTitle(title, sport);
         if (inferred) return inferred;
       }
-
-      // Then map by visible combo supplemental order
-      if (comboExtraChasers[idx]) return getComboExtraChaserCode(idx);
-      if (comboExtraItems[idx]) return getComboExtraItemCode(idx);
     }
 
     return raw;
@@ -3446,11 +3615,17 @@ function makeTeamTile(team){
   el.dataset.teamCode = team.key;
   el.onclick = () => toggleTeam(team);
 
-  const isExtraChaser = team.comboType === "extra_chaser";
-  const isExtraItem = team.comboType === "extra_item";
-  const isMarkedTeamChaser = isComboTeamChaser(team.key);
+const isExtraChaser = team.comboType === "extra_chaser";
+const isExtraItem = team.comboType === "extra_item";
+const isExtraPrizePack = team.comboType === "extra_prizepack";
+const isMarkedTeamChaser = isComboTeamChaser(team.key);
 
-  const shouldShowImage = !!team.image && !isExtraChaser && !isExtraItem && !isMarkedTeamChaser;
+const shouldShowImage =
+  !!team.image &&
+  !isExtraChaser &&
+  !isExtraItem &&
+  !isExtraPrizePack &&
+  !isMarkedTeamChaser;
 
   if (shouldShowImage){
     const img = document.createElement("img");
@@ -3464,19 +3639,30 @@ function makeTeamTile(team){
     el.innerHTML = `<div class="fallback">${team.code || team.key || "?"}</div>`;
   }
 
- if (isExtraChaser || isMarkedTeamChaser){
+if (isExtraChaser || isMarkedTeamChaser){
   el.classList.add("combo-chaser");
   el.dataset.chaserLabel = isMarkedTeamChaser
     ? getComboChaserLabel(team.key)
     : String(team.name || "Chaser").trim() || "Chaser";
 
-  el.dataset.soldTypeLabel = "CHASER";
+  el.dataset.matchLabel = String(team.matchName || team.name || "").trim().toUpperCase();
+  el.dataset.soldTypeLabel = isMarkedTeamChaser
+    ? getComboChaserLabel(team.key).toUpperCase()
+    : String(team.name || "Chaser").trim().toUpperCase();
 }
 
 if (isExtraItem){
   el.classList.add("combo-custom-item");
   el.dataset.customLabel = String(team.name || "").trim().toUpperCase();
-  el.dataset.soldTypeLabel = getComboCustomTypeLabel(team);
+  el.dataset.matchLabel = String(team.matchName || team.name || "").trim().toUpperCase();
+  el.dataset.soldTypeLabel = String(team.name || "Pack").trim().toUpperCase();
+}
+
+if (isExtraPrizePack){
+  el.classList.add("combo-prizepack");
+  el.dataset.customLabel = String(team.name || "").trim().toUpperCase();
+  el.dataset.matchLabel = String(team.matchName || team.name || "").trim().toUpperCase();
+  el.dataset.soldTypeLabel = String(team.name || "Prize Pack").trim().toUpperCase();
 }
 
   const soldX = document.createElement("span");
@@ -3708,48 +3894,63 @@ function buildBoard(){
   const mlbRows = splitByCounts(mlbTeams, [5, 6, 6, 6, 5, 2]);
   const nflRows = splitByCounts(nflTeams, [5, 6, 6, 6, 7, 2]);
 
-  const comboSupplemental = getComboSupplementalEntries();
-  const comboSupplementalRows = [];
+  // Sport-organized combo layout:
+// MLB stays on the left side, NFL stays on the right side.
+// Supplemental combo spots stay below the sports rows.
+{
+  const row = document.createElement("div");
+  row.className = "board-row sport-split-row sport-split-top-row";
 
-  for (let i = 0; i < comboSupplemental.length; i += 12){
-    comboSupplementalRows.push(comboSupplemental.slice(i, i + 12));
-  }
+  mlbRows[0].forEach(t => row.appendChild(makeTeamTile(t)));
+  row.appendChild(makeLogoSlot());
+  nflRows[0].forEach(t => row.appendChild(makeTeamTile(t)));
 
-  {
-    const row = document.createElement("div");
-    row.className = "board-row";
-
-    mlbRows[0].forEach(t => row.appendChild(makeTeamTile(t)));
-    row.appendChild(makeLogoSlot());
-    nflRows[0].forEach(t => row.appendChild(makeTeamTile(t)));
-
-    board.appendChild(row);
-  }
-
-const comboFlowEntries = [
-  ...mlbRows.slice(1).flat(),
-  ...nflRows.slice(1).flat(),
-  ...comboSupplemental
-];
-
-const tickerSideEntries = [];
-const finalRemainder = comboFlowEntries.length % 12;
-
-// If the final combo row would only have 1–4 tiles,
-// move those tiles into the ticker row instead.
-if (finalRemainder > 0 && finalRemainder <= 4){
-  tickerSideEntries.push(
-    ...comboFlowEntries.splice(comboFlowEntries.length - finalRemainder, finalRemainder)
-  );
+  board.appendChild(row);
 }
 
-for (let i = 0; i < comboFlowEntries.length; i += 12){
-  const rowEntries = comboFlowEntries.slice(i, i + 12);
+// Rows 1–4: keep baseball left and football right.
+for (let r = 1; r <= 4; r++){
   const row = document.createElement("div");
+  row.className = "board-row sport-split-row";
 
-  row.className = rowEntries.some(entry => entry.comboType)
-    ? "board-row combo-supplemental-row"
-    : "board-row";
+  const leftEntries = mlbRows[r] || [];
+  const rightEntries = nflRows[r] || [];
+
+  // Most rows are 6 MLB + 6 NFL.
+  // The NFL row that has 7 teams uses 5 MLB + 7 NFL.
+  const leftTarget = rightEntries.length > 6 ? 5 : 6;
+
+  leftEntries.forEach(entry => row.appendChild(makeTeamTile(entry)));
+
+  while (row.children.length < leftTarget){
+    row.appendChild(makeHiddenCell());
+  }
+
+  rightEntries.forEach(entry => row.appendChild(makeTeamTile(entry)));
+
+  while (row.children.length < 12){
+    row.appendChild(makeHiddenCell());
+  }
+
+  board.appendChild(row);
+}
+
+// Ticker row gets the last MLB/NFL side tiles.
+const tickerSideEntries = [
+  ...(mlbRows[5] || []),
+  ...(nflRows[5] || [])
+];
+
+board.appendChild(makeComboTickerRow(tickerSideEntries));
+
+// Supplemental rows go below sports:
+// Chasers, Packs, Prize Packs.
+const comboSupplemental = getComboSupplementalEntries();
+
+for (let i = 0; i < comboSupplemental.length; i += 12){
+  const rowEntries = comboSupplemental.slice(i, i + 12);
+  const row = document.createElement("div");
+  row.className = "board-row combo-supplemental-row";
 
   rowEntries.forEach(entry => {
     row.appendChild(makeTeamTile(entry));
@@ -3761,8 +3962,6 @@ for (let i = 0; i < comboFlowEntries.length; i += 12){
 
   board.appendChild(row);
 }
-
-board.appendChild(makeComboTickerRow(tickerSideEntries));
 
   {
     const row = document.createElement("div");
@@ -3946,7 +4145,7 @@ function sseMarkSold(code, buyer=""){
   }
 
   saveState();
-  buildBoard();
+  setTimeout(() => buildBoard(), 350);
 }
 function sseMarkUnsold(code){
   if (!code) return;
@@ -5000,13 +5199,14 @@ function getComboTeamLookup(){
 
   return lookup;
 }
-
 function parseComboBulkTileList(text){
   const lookup = getComboTeamLookup();
   const lines = splitBulkTileLines(text);
+
   const foundTeamCodes = [];
   const chasers = [];
   const packs = [];
+  const prizePacks = [];
   const unmatched = [];
 
   lines.forEach((line) => {
@@ -5017,6 +5217,12 @@ function parseComboBulkTileList(text){
     if (chaserMatch){
       const n = chaserMatch[1] ? parseInt(chaserMatch[1], 10) : (chasers.length + 1);
       chasers.push(`Chaser ${Number.isFinite(n) ? n : chasers.length + 1}`);
+      return;
+    }
+
+    // Prize pack must be detected before generic pack.
+    if (/\bprize\s*pack\b/i.test(normalized)){
+      prizePacks.push(String(line || "").trim() || `Prize Pack ${prizePacks.length + 1}`);
       return;
     }
 
@@ -5039,8 +5245,6 @@ function parseComboBulkTileList(text){
   const allDefaultTeamCodes = getAllTeams().map(team => team.key);
   const foundSet = new Set(foundTeamCodes);
 
-  // Safety rule: if no default teams are recognized, do NOT mark every team as a chaser.
-  // This prevents a bad paste/parse from converting the whole board.
   const missingTeamCodes = foundTeamCodes.length
     ? allDefaultTeamCodes.filter(key => !foundSet.has(key))
     : [];
@@ -5059,15 +5263,16 @@ function parseComboBulkTileList(text){
     chasers,
     remainingChasers,
     packs,
+    prizePacks,
     unmatched,
     allDefaultTeamCount: allDefaultTeamCodes.length
   };
 }
-
 function applyComboBulkResultToModal(result){
   const grid = document.getElementById("comboChaserTeamGrid");
   const extraChasersInput = document.getElementById("comboExtraChasersInput");
   const extraItemsInput = document.getElementById("comboExtraItemsInput");
+  const prizePacksInput = document.getElementById("comboPrizePacksInput");
   const summary = document.getElementById("comboBulkImportSummary");
 
   if (grid){
@@ -5102,23 +5307,28 @@ function applyComboBulkResultToModal(result){
     extraItemsInput.value = (result.packs || []).slice(0, 24).join("\n");
   }
 
+  if (prizePacksInput){
+    prizePacksInput.value = (result.prizePacks || []).slice(0, 24).join("\n");
+  }
+
   if (summary){
-    const unmatchedText = result.unmatched.length
-      ? ` Unmatched: ${result.unmatched.slice(0, 8).join(", ")}${result.unmatched.length > 8 ? "..." : ""}`
+    const unmatched = result.unmatched || [];
+    const unmatchedText = unmatched.length
+      ? ` Unmatched: ${unmatched.slice(0, 8).join(", ")}${unmatched.length > 8 ? "..." : ""}`
       : "";
-    if (!result.foundTeamCodes.length){
+
+    if (!(result.foundTeamCodes || []).length){
       summary.textContent =
         `No default MLB/NFL team names were recognized, so no team tiles were changed. ` +
         `Check the pasted list format.${unmatchedText}`;
     } else {
       summary.textContent =
-        `Found ${result.foundTeamCodes.length}/${result.allDefaultTeamCount || getAllTeams().length} default team(s). ` +
-        `Marked only ${result.missingTeamCodes.length} missing default team(s) as chaser spots. ` +
-        `Added ${(result.remainingChasers || []).length} extra chaser spot(s) and ${result.packs.length} pack/custom item(s).${unmatchedText}`;
+        `Found ${(result.foundTeamCodes || []).length}/${result.allDefaultTeamCount || getAllTeams().length} default team(s). ` +
+        `Marked only ${(result.missingTeamCodes || []).length} missing default team(s) as chaser spots. ` +
+        `Added ${(result.remainingChasers || []).length} extra chaser spot(s), ${(result.packs || []).length} pack(s), and ${(result.prizePacks || []).length} prize pack(s).${unmatchedText}`;
     }
   }
 }
-
 function parseComboBulkImportToFields(){
   const input = document.getElementById("comboBulkImportInput");
   const result = parseComboBulkTileList(input?.value || "");
@@ -5164,7 +5374,7 @@ function initComboBulkImportPaste(){
   if (!area) return;
 
   area.addEventListener("paste", (e) => {
-    const text = e.clipboardData?.getData("text") || window.clipboardData?.getData("Text") || "";
+    const text = e.clipboardData?.getData("text/plain") || e.clipboardData?.getData("text") || window.clipboardData?.getData("Text") || "";
     if (!text) return;
     e.preventDefault();
     area.value = String(text).replace(/\r/g, "");
@@ -5189,9 +5399,10 @@ function setComboChaserTab(tab){
 function openComboChaserModal(){
   const modal = document.getElementById("comboChaserModal");
   const grid = document.getElementById("comboChaserTeamGrid");
-  const extraChasersInput = document.getElementById("comboExtraChasersInput");
-  const extraItemsInput = document.getElementById("comboExtraItemsInput");
-  const bulkInput = document.getElementById("comboBulkImportInput");
+const extraChasersInput = document.getElementById("comboExtraChasersInput");
+const extraItemsInput = document.getElementById("comboExtraItemsInput");
+const prizePacksInput = document.getElementById("comboPrizePacksInput");
+const bulkInput = document.getElementById("comboBulkImportInput");
   const bulkSummary = document.getElementById("comboBulkImportSummary");
 
   if (grid){
@@ -5232,6 +5443,10 @@ function openComboChaserModal(){
     extraItemsInput.value = comboExtraItems.join("\n");
   }
 
+if (prizePacksInput){
+  prizePacksInput.value = comboExtraPrizePacks.join("\n");
+}
+
 if (bulkInput){
   bulkInput.value = String(bulkInput.value || "").trim() || DEFAULT_COMBO_BULK_IMPORT;
 }
@@ -5253,11 +5468,8 @@ function applyComboChaserModal(){
   const grid = document.getElementById("comboChaserTeamGrid");
   const extraChasersInput = document.getElementById("comboExtraChasersInput");
   const extraItemsInput = document.getElementById("comboExtraItemsInput");
+  const prizePacksInput = document.getElementById("comboPrizePacksInput");
   const bulkInput = document.getElementById("comboBulkImportInput");
-
-  if (bulkInput && String(bulkInput.value || "").trim()){
-    parseComboBulkImportToFields();
-  }
 
   if (grid){
     const selectedButtons = Array.from(grid.querySelectorAll(".prize-spot-chip.selected"));
@@ -5289,6 +5501,12 @@ function applyComboChaserModal(){
     .filter(Boolean)
     .slice(0, 24);
 
+  comboExtraPrizePacks = String(prizePacksInput?.value || "")
+    .split("\n")
+    .map(v => v.trim())
+    .filter(Boolean)
+    .slice(0, 24);
+
   saveComboChaserState();
   closeComboChaserModal();
   buildBoard();
@@ -5297,20 +5515,161 @@ function applyComboChaserModal(){
 function toggleLayoutMode(){
   layoutMode = layoutMode === "combo" ? "custom" : "combo";
   saveLayoutMode();
-  resetAll();
   updateHeaderMode();
   buildBoard();
 }
+function isComboBoardCode(code){
+  const s = String(code || "");
+  return (
+    s.startsWith("MLB_") ||
+    s.startsWith("NFL_") ||
+    s.startsWith("COMBO_CHASER_") ||
+    s.startsWith("COMBO_ITEM_") ||
+    s.startsWith("COMBO_PRIZEPACK_")
+  );
+}
 
+function isEnvelopeBoardCode(code){
+  return String(code || "").startsWith("CUSTOM_");
+}
 
-function resetAll(){
-  soldTeams.clear();
-  soldTeamsList = [];
-  lastCodeByListingKey.clear();
+function clearSoldCodesByPredicate(predicate){
+  const removeCodes = Array.from(soldTeams).filter(predicate);
+
+  removeCodes.forEach(code => soldTeams.delete(code));
+  soldTeamsList = soldTeamsList.filter(item => !predicate(item.code));
+
+  // Remove sale-key mappings that pointed to cleared codes.
+  for (const [saleKey, code] of lastCodeByListingKey.entries()){
+    if (predicate(code)) lastCodeByListingKey.delete(saleKey);
+  }
+
+  saveState();
+}
+
+function clearComboBoardAndStorage(){
+  const ok = window.confirm(
+    "Clear ONLY the NFL/MLB Combo + Chasers setup? This removes combo chaser assignments, packs, prize packs, combo sold state, and combo chase buyers. Envelope setup will NOT be cleared."
+  );
+  if (!ok) return;
+
+  // Clear combo setup only.
+  comboChaserTeams = new Set();
+  comboChaserLabels = new Map();
+  comboExtraChasers = [];
+  comboExtraItems = [];
+
+  if (typeof comboExtraPrizePacks !== "undefined"){
+    comboExtraPrizePacks = [];
+  }
+
+  try{ localStorage.removeItem(STORAGE.comboChaserTeams); }catch(_){}
+  try{ localStorage.removeItem(STORAGE.comboChaserLabels); }catch(_){}
+  try{ localStorage.removeItem(STORAGE.comboExtraChasers); }catch(_){}
+  try{ localStorage.removeItem(STORAGE.comboExtraItems); }catch(_){}
+
+  if (STORAGE.comboExtraPrizePacks){
+    try{ localStorage.removeItem(STORAGE.comboExtraPrizePacks); }catch(_){}
+  }
+
+  // Clear combo sold state only. Leave CUSTOM_ envelope sold state alone.
+  clearSoldCodesByPredicate(isComboBoardCode);
+
+  // Clear combo chase buyer panel only.
+  chaseBuyersOpen = false;
   chaseBuyersActive = [];
   chaseBuyersRemoved = [];
-  saveState();
+  try{ localStorage.removeItem(STORAGE.chaseBuyersOpen); }catch(_){}
+  try{ localStorage.removeItem(STORAGE.chaseBuyersActive); }catch(_){}
+  try{ localStorage.removeItem(STORAGE.chaseBuyersRemoved); }catch(_){}
+
+  saveComboChaserState();
   saveChaseBuyersState();
+
+  [
+    "comboExtraChasersInput",
+    "comboExtraItemsInput",
+    "comboPrizePacksInput",
+    "comboBulkImportInput"
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+
+  const bulkSummary = document.getElementById("comboBulkImportSummary");
+  if (bulkSummary){
+    bulkSummary.textContent = "Combo/chaser setup cleared. Envelope setup was not touched.";
+  }
+
+  layoutMode = "combo";
+  saveLayoutMode();
+  updateHeaderMode();
+  closeComboChaserModal?.();
+  buildBoard();
+}
+
+function clearEnvelopeBoardAndStorage(){
+  const ok = window.confirm(
+    "Clear ONLY the Envelope setup? This removes custom envelope imports, envelope chaser/prize assignments, envelope category colors, and envelope sold state. NFL/MLB combo setup will NOT be cleared."
+  );
+  if (!ok) return;
+
+  // Clear envelope setup only.
+  customEntries = makeDefaultCustomEntries();
+  customChaseMap = new Map();
+  selectedPrizeSpotCodes = new Set();
+  chaseCategoryColors = getDefaultChaseCategoryColors();
+
+  try{ localStorage.removeItem(STORAGE.customEntries); }catch(_){}
+  try{ localStorage.removeItem(STORAGE.customEnvelopeImage); }catch(_){}
+  try{ localStorage.removeItem(STORAGE.customChaseMap); }catch(_){}
+  try{ localStorage.removeItem(STORAGE.selectedPrizeSpotCodes); }catch(_){}
+  try{ localStorage.removeItem(STORAGE.chaseCategoryColors); }catch(_){}
+
+  // Clear envelope sold state only. Leave MLB_/NFL_/COMBO_ sold state alone.
+  clearSoldCodesByPredicate(isEnvelopeBoardCode);
+
+  saveCustomEntries();
+  saveCustomChaseMap();
+  saveSelectedPrizeSpotCodes();
+  saveChaseCategoryColors();
+
+  [
+    "customEntriesInput",
+    "customEnvelopeInput"
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+
+  layoutMode = "custom";
+  saveLayoutMode();
+  updateHeaderMode();
+  closeEnvelopeManager?.();
+  buildBoard();
+}
+
+function clearCurrentLayoutStorage(){
+  if (layoutMode === "custom"){
+    clearEnvelopeBoardAndStorage();
+    return;
+  }
+
+  clearComboBoardAndStorage();
+}
+function resetAll(){
+  const predicate = layoutMode === "custom"
+    ? isEnvelopeBoardCode
+    : isComboBoardCode;
+
+  clearSoldCodesByPredicate(predicate);
+
+  if (layoutMode === "combo"){
+    chaseBuyersActive = [];
+    chaseBuyersRemoved = [];
+    saveChaseBuyersState();
+  }
+
   buildBoard();
 }
 
@@ -5578,7 +5937,6 @@ function connectEventSource(channel, onEvent){
   };
 
   es.onmessage = ingest;
-  es.addEventListener("message", ingest);
 
   return es;
 }
@@ -5750,6 +6108,7 @@ function boot(){
   clearAccidentalAllTeamChasers();
   comboExtraChasers = loadComboExtraChasers();
   comboExtraItems = loadComboExtraItems();
+  comboExtraPrizePacks = loadComboExtraPrizePacks();
   layoutMode = localStorage.getItem(STORAGE.layoutMode) || "combo";
   TICKER_LINES = loadTickerLines();
   setBreakNumber(loadBreakNumber());
