@@ -17,7 +17,7 @@
     bridgeUrl: "https://tsu-bridge-jim-tabby.onrender.com",
 
     // Optional
-    bridgeKey: "",
+    bridgeKey: "e59c2eb7f6f534a6fd91c84d134bfbaa",
 
     // "nfl" | "nba" | "mlb" | "nil"
     // Use "nil" for combo overlays where sport should be inferred from title
@@ -210,7 +210,7 @@
     const t = String(title || "");
     const normalizedSport = String(sport || "").toLowerCase().trim();
 
-    // Best source: full title / alias match
+    // Best source: full title / alias match (team names checked FIRST)
     const match = inferTeamMatchFromTitle(title);
     if (match) {
       if (!normalizedSport || normalizedSport === "nil" || match.sport === normalizedSport) {
@@ -229,6 +229,17 @@
       );
 
       if (tokenMatch) return token;
+    }
+
+    // Last-resort: envelope/slot numeric titles → CUSTOM_NNN
+    // Only reached if no team name or abbreviation matched above.
+    // Handles "15", "#15", "Spot 15", "Slot 15", "Envelope 15" etc.
+    const customSpot = t.match(/^(?:#\s*)?(?:(?:envelope|env|spot|slot|number|no)\s*)?#?\s*(\d{1,3})\s*$/i);
+    if (customSpot) {
+      const n = parseInt(customSpot[1], 10);
+      if (Number.isFinite(n) && n >= 1 && n <= 150) {
+        return `CUSTOM_${String(n).padStart(3, "0")}`;
+      }
     }
 
     return "";
@@ -536,7 +547,15 @@
           const listingKey = eventPayload.listingId || eventPayload.productId || id;
           const prevCodeForListing = lastCodeByListing.get(listingKey);
 
-          if (prevCodeForListing && eventPayload.code && prevCodeForListing !== eventPayload.code) {
+          // Only fire team_unsold when BOTH codes are real resolved team codes.
+          // CUSTOM_ codes are provisional placeholders (title not yet resolved) —
+          // transitioning CUSTOM→team is a resolution, not a reassignment,
+          // so no unsold event should be sent. Sending it risks spuriously unmarking
+          // an envelope tile when the overlay is in custom/envelope layout mode.
+          const prevIsReal = prevCodeForListing && !prevCodeForListing.startsWith("CUSTOM_");
+          const newIsReal = eventPayload.code && !eventPayload.code.startsWith("CUSTOM_");
+
+          if (prevIsReal && newIsReal && prevCodeForListing !== eventPayload.code) {
             await sendEvent(cfg, {
               type: "team_unsold",
               code: prevCodeForListing,

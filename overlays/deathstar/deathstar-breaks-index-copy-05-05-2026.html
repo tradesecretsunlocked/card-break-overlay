@@ -1079,7 +1079,9 @@
     const soldTeams = new Set();
     let soldTeamsList = [];
     const lastCodeByListingKey = new Map();
-
+const tileByCode = new Map();
+const soldRowByCode = new Map();
+let lastCountsKey = "";
 // --- URL PARAM BRIDGE PATCH ---
 (function initBridgeFromURL() {
   try {
@@ -1198,8 +1200,10 @@ function applyBoardSizing(count) {
        function buildLayout() {
       const grid = document.getElementById("customGrid");
       const entries = getEntries();
+            const soldSnapshot = new Set(soldTeams);
       applyBoardSizing(entries.length);
       grid.innerHTML = "";
+      tileByCode.clear();
 
       const theme = getTheme();
       const imagePath = theme === "starwars"
@@ -1207,9 +1211,10 @@ function applyBoardSizing(count) {
         : ((localStorage.getItem(STORAGE.disneyImage) || "").trim() || LOGO_DISNEY);
 
       function makeSpotTile(entry) {
-        const tile = document.createElement("div");
+          const tile = document.createElement("div");
         tile.className = "tile";
         tile.dataset.code = entry.code;
+        tileByCode.set(entry.code, tile);
 
         tile.innerHTML = `
           ${imagePath ? `<img src="${escapeHtml(imagePath)}" alt="${escapeHtml(entry.title)}" />` : ""}
@@ -1228,7 +1233,7 @@ function applyBoardSizing(count) {
           }
         });
 
-        if (soldTeams.has(entry.code)) tile.classList.add("sold");
+              if (soldSnapshot.has(entry.code)) tile.classList.add("sold");
         return tile;
       }
 
@@ -1260,29 +1265,58 @@ function applyBoardSizing(count) {
       document.getElementById("soldCount").textContent = String(soldTeams.size);
       document.getElementById("remainingCount").textContent = String(Math.max(0, entries.length - soldTeams.size));
     }
+function makeSoldRow(row) {
+  const wrap = document.createElement("div");
+  wrap.className = "sold-row";
+  wrap.dataset.code = row.code;
+  wrap.innerHTML = `
+    <div class="sold-code">${escapeHtml(row.code)}</div>
+    <input class="sold-buyer" value="${escapeHtml(row.buyer || "")}" placeholder="Buyer" />
+  `;
 
-    function renderSoldPanel() {
-      const panel = document.getElementById("soldPanel");
-      panel.innerHTML = "";
+  const input = wrap.querySelector(".sold-buyer");
+  input.addEventListener("input", () => {
+    const item = soldTeamsList.find(x => x.code === row.code);
+    if (item) item.buyer = input.value;
+    persistSoldState();
+  });
 
-      soldTeamsList.forEach(row => {
-        const wrap = document.createElement("div");
-        wrap.className = "sold-row";
-        wrap.innerHTML = `
-          <div class="sold-code">${escapeHtml(row.code)}</div>
-          <input class="sold-buyer" value="${escapeHtml(row.buyer || "")}" placeholder="Buyer" />
-        `;
+  soldRowByCode.set(row.code, wrap);
+  return wrap;
+}
 
-        const input = wrap.querySelector(".sold-buyer");
-        input.addEventListener("input", () => {
-          const item = soldTeamsList.find(x => x.code === row.code);
-          if (item) item.buyer = input.value;
-          persistSoldState();
-        });
+function upsertSoldRow(code, buyer = "") {
+  const panel = document.getElementById("soldPanel");
+  let rowEl = soldRowByCode.get(code);
 
-        panel.appendChild(wrap);
-      });
-    }
+  if (!rowEl) {
+    rowEl = makeSoldRow({ code, buyer });
+    panel.appendChild(rowEl);
+    return;
+  }
+
+  const input = rowEl.querySelector(".sold-buyer");
+  if (input && input.value !== (buyer || "")) {
+    input.value = buyer || "";
+  }
+}
+
+function removeSoldRow(code) {
+  const rowEl = soldRowByCode.get(code);
+  if (rowEl && rowEl.parentNode) {
+    rowEl.parentNode.removeChild(rowEl);
+  }
+  soldRowByCode.delete(code);
+}
+   function renderSoldPanel() {
+  const panel = document.getElementById("soldPanel");
+  panel.innerHTML = "";
+  soldRowByCode.clear();
+
+  soldTeamsList.forEach(row => {
+    panel.appendChild(makeSoldRow(row));
+  });
+}
 
     function persistSoldState() {
       localStorage.setItem(STORAGE.soldTeams, JSON.stringify(Array.from(soldTeams)));
@@ -1305,43 +1339,49 @@ function applyBoardSizing(count) {
 function sseMarkSold(code, buyer = "") {
   if (!code) return;
 
+  const alreadySold = soldTeams.has(code);
   soldTeams.add(code);
 
   const existing = soldTeamsList.find(x => x.code === code);
   if (existing) {
-    if (buyer) existing.buyer = buyer;
+    if (buyer && existing.buyer !== buyer) existing.buyer = buyer;
   } else {
     soldTeamsList.push({ code, buyer: buyer || "" });
   }
 
-  const tile = document.querySelector(`.tile[data-code="${CSS.escape(code)}"]`);
-  if (tile) tile.classList.add("sold");
+  const tile = tileByCode.get(code) || document.querySelector(`.tile[data-code="${CSS.escape(code)}"]`);
+  if (tile && !tile.classList.contains("sold")) tile.classList.add("sold");
+
+  const currentBuyer = (soldTeamsList.find(x => x.code === code)?.buyer) || "";
+  upsertSoldRow(code, currentBuyer);
 
   persistSoldState();
-  renderSoldPanel();
-  renderCounts();
+  if (!alreadySold || buyer) renderCounts();
 }
 
-    function sseMarkUnsold(code) {
+        function sseMarkUnsold(code) {
       if (!code) return;
+      const hadCode = soldTeams.has(code);
+
       soldTeams.delete(code);
       soldTeamsList = soldTeamsList.filter(x => x.code !== code);
 
-      const tile = document.querySelector(`.tile[data-code="${CSS.escape(code)}"]`);
-      if (tile) tile.classList.remove("sold");
+      const tile = tileByCode.get(code) || document.querySelector(`.tile[data-code="${CSS.escape(code)}"]`);
+      if (tile && tile.classList.contains("sold")) tile.classList.remove("sold");
 
+      removeSoldRow(code);
       persistSoldState();
-      renderSoldPanel();
-      renderCounts();
+      if (hadCode) renderCounts();
     }
 
     function sseUpdateBuyer(code, buyer = "") {
       if (!code) return;
       const item = soldTeamsList.find(x => x.code === code);
       if (item) {
+        if (item.buyer === buyer) return;
         item.buyer = buyer;
+        upsertSoldRow(code, buyer);
         persistSoldState();
-        renderSoldPanel();
       }
     }
 function breakIdMatches(payload) {

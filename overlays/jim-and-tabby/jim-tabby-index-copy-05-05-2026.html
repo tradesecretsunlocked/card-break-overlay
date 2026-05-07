@@ -5521,6 +5521,7 @@ function toggleLayoutMode(){
   layoutMode = layoutMode === "combo" ? "custom" : "combo";
   saveLayoutMode();
   updateHeaderMode();
+  lastCodeByListingKey.clear();
   buildBoard();
 }
 function isComboBoardCode(code){
@@ -5892,7 +5893,7 @@ if (!codeExistsOnBoard(code)) {
 
     if (listingKey){
       const prevCode = lastCodeByListingKey.get(listingKey);
-      if (prevCode && prevCode !== code){
+      if (prevCode && prevCode !== code && codeExistsOnBoard(prevCode)){
         sseMarkUnsold(prevCode);
       }
       lastCodeByListingKey.set(listingKey, code);

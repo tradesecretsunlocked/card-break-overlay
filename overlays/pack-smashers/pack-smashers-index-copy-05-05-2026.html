@@ -5,28 +5,42 @@
   <meta name="viewport" content="width=920, initial-scale=1.0"/>
   <title>Pack Smashers – Box Break Overlay (Center Slot)</title>
   <style>
-    :root{
-      /* Pack Smashers vibe (black + blue + orange/gold) */
-      --bg0:#050506;
-      --bg1:#0c0c10;
+:root{
+  /* Pack Smashers pastel/neon palette */
+  --bg0:#05090f;
+  --bg1:#0b1420;
+--logo1-width: 415px;
+  --logo1-top: 86px;
+  --logo1-left: 50%;
+  --logo1-scale-active: 1;
 
-      --panel: rgba(0,0,0,0.55);
-      --panel2: rgba(255,255,255,0.06);
+  --logo2-width: 415px;
+  --logo2-top: 86px;
+  --logo2-left: 50%;
+  --logo2-scale-active: 1;
+  --panel: rgba(0,0,0,0.55);
+  --panel2: rgba(255,255,255,0.06);
 
-      --red:#ff9f1c;
-      --red2:#ff5a1f;
-      --white:#ffffff;
+  --accentA:#63f5d0;   /* neon aqua/green */
+  --accentB:#5fc7ff;   /* pastel blue */
+  --accentC:#ffb07a;   /* soft orange */
+  --accentD:#ffd84d;   /* warm yellow */
+  --accentE:#7bff8b;   /* green pop */
 
-      --border: rgba(255,255,255,0.22);
-      --border2: rgba(255,255,255,0.12);
+  --red: var(--accentC);
+  --red2: #ff8752;
+  --white:#ffffff;
 
-      --tileH: 65px;
-      --gap: 4px;
+  --border: rgba(255,255,255,0.22);
+  --border2: rgba(255,255,255,0.12);
 
-      --W: 1080px;
+  --tileH: 65px;
+  --gap: 4px;
 
-      --gridCols: 10;
-    }
+  --W: 1080px;
+
+  --gridCols: 10;
+}
 
     *{ box-sizing:border-box; }
 
@@ -39,33 +53,105 @@
       overflow:hidden;
       color: var(--white);
     }
+.wrap{
+  width: var(--W);
+  border-radius: 14px;
+  padding: 8px;
+  background:
+    radial-gradient(900px 420px at 18% 0%, rgba(95,199,255,0.18), transparent 60%),
+    radial-gradient(820px 420px at 82% 8%, rgba(99,245,208,0.16), transparent 58%),
+    radial-gradient(760px 360px at 50% 100%, rgba(255,176,122,0.12), transparent 60%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
+  border: 2px solid rgba(99,245,208,0.85);
+  box-shadow:
+    0 16px 40px rgba(0,0,0,0.65),
+    0 0 0 1px rgba(255,255,255,0.06),
+    0 0 28px rgba(95,199,255,0.10);
+  overflow:hidden;
+  position: relative;
+}
 
-    .wrap{
-      width: var(--W);
-      border-radius: 14px;
-      padding: 8px;
-      background:
-        radial-gradient(900px 420px at 30% 0%, rgba(255,159,28,0.14), transparent 60%),
-        radial-gradient(800px 400px at 85% 10%, rgba(255,255,255,0.06), transparent 60%),
-        linear-gradient(180deg, var(--bg0), var(--bg1));
-      border: 2px solid rgba(255,159,28,0.95);;
-      box-shadow: 0 16px 40px rgba(0,0,0,0.65);
-      overflow:hidden;
-    }
+.wrap::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  pointer-events:none;
+  z-index: 20;
+  background:
+    linear-gradient(90deg,
+      rgba(95,199,255,0.00) 0%,
+      rgba(95,199,255,0.42) 10%,
+      rgba(99,245,208,0.18) 22%,
+      rgba(255,255,255,0.05) 34%,
+      rgba(255,176,122,0.16) 50%,
+      rgba(99,245,208,0.14) 66%,
+      rgba(95,199,255,0.38) 84%,
+      rgba(95,199,255,0.00) 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 2px;
+  opacity: 0.85;
+}
+.wrap::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  pointer-events:none;
+  z-index: 20;
+  background:
+    linear-gradient(90deg,
+      rgba(95,199,255,0.00) 0%,
+      rgba(95,199,255,0.42) 10%,
+      rgba(99,245,208,0.18) 22%,
+      rgba(255,255,255,0.05) 34%,
+      rgba(255,176,122,0.16) 50%,
+      rgba(99,245,208,0.14) 66%,
+      rgba(95,199,255,0.38) 84%,
+      rgba(95,199,255,0.00) 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 2px;
+  opacity: 0.85;
+}
+
+.wrap::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  pointer-events:none;
+  z-index: 19;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.04),
+    inset 0 0 18px rgba(95,199,255,0.05),
+    inset 0 0 24px rgba(255,176,122,0.04);
+}
 
     /* ===== HEADER (TITLE | LOGO | BREAK#) ===== */
-    .header{
-      display:grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      align-items:center;
-      gap: 4px;
-      padding: 3px 10px;
-      height: 55px;
-      border-radius: 12px;
-      background: linear-gradient(90deg, rgba(6,22,48,0.98), rgba(255,179,58,0.96), rgba(6,22,48,0.98));
-      border:2px solid rgba(255,159,28,0.95);
-      position: relative;
-    }
+.header{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items:center;
+  gap: 4px;
+  padding: 3px 10px;
+  height: 55px;
+  border-radius: 12px;
+  background:
+linear-gradient(307deg, rgb(222 161 85), rgba(95, 199, 255, 0.22), rgb(95 199 255 / 95%), rgb(154 213 252 / 35%), rgb(242 119 42)), linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
+  border:2px solid rgba(95,199,255,0.70);
+  position: relative;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 0 18px rgba(95,199,255,0.08);
+}
 
     .titleBox{
       font-weight: 900;
@@ -79,24 +165,16 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
+.logoBox{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+}
 
-    .logoBox{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      pointer-events:none;
-    }
-    .logoBox img{
-      height: 185px;
-      width:auto;
-top:-60px;
-position:absolute;
-rotate:5deg;
-
-
-      object-fit:cover;
-      filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55));
-    }
+.logoBox img{
+  display:none;
+}
 
     .breakBox{
       display:flex;
@@ -131,37 +209,66 @@ rotate:5deg;
     }
 
     /* ===== BOARD ===== */
-    .board{
-      margin-top: 8px;
-      border-radius: 14px;
-      padding: 8px;
-      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0.35));
-      border: 2px solid rgba(255,159,28,0.95);
-    }
+.board{
+  margin-top: 8px;
+  border-radius: 14px;
+  padding: 8px;
+  background:
+radial-gradient(900px 340px at 50% 22%, rgba(95,199,255,0.10), transparent 48%),
+    radial-gradient(720px 280px at 50% 36%, rgba(29, 178, 236, 0.733), transparent 52%),
+    radial-gradient(640px 240px at 50% 58%, rgba(255,176,122,0.07), transparent 56%),
+    linear-gradient(180deg, rgba(8,16,28,0.92), rgba(4,8,14,0.94));
+  border: 2px solid rgba(95,199,255,0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -18px 32px rgba(0,0,0,0.22);
+  position: relative;
+  overflow: hidden;
+}
 
-    .grid{
-      display:grid;
-      grid-template-columns: repeat(var(--gridCols), 1fr);
-      gap: var(--gap);
-      align-items: stretch;
-    }
 
-    .cell{
-      height: var(--tileH);
-      border: 2px solid rgba(255, 255, 255, 0.85);
-      outline: 1px solid rgba(255,255,255,0.10);
-      border-radius: 0px;
-      background: rgba(255,255,255,0.03);
-      overflow:hidden;
-      position:relative;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-    }
+.board::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg, transparent 0%, rgba(95,199,255,0.05) 18%, transparent 34%, transparent 66%, rgba(255,176,122,0.04) 82%, transparent 100%),
+    linear-gradient(180deg, rgba(255,255,255,0.05), transparent 18%, transparent 82%, rgba(99,245,208,0.04));
+  mix-blend-mode: screen;
+  z-index: 0;
+}
+
+  .grid{
+  display:grid;
+  grid-template-columns: repeat(var(--gridCols), 1fr);
+  gap: var(--gap);
+  align-items: stretch;
+  position: relative;
+  isolation: isolate;
+}
+.grid > *{
+  position: relative;
+}
+
+.cell{
+  height: var(--tileH);
+  border: 2px solid rgb(255, 255, 255);
+  outline: 1px solid rgba(255,255,255,0.10);
+  border-radius: 0px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 1;
+}
 
  /* ===== TILE HOVER (lift + red shimmer) ===== */
 .team{
   position: relative;
+  z-index: 1;
   transform: translateZ(0);
   transition:
     transform 180ms cubic-bezier(.2,.9,.2,1),
@@ -199,10 +306,11 @@ z-index: 1;
     115deg,
     transparent 0%,
     rgba(255,255,255,0.00) 30%,
-    rgba(255,255,255,0.65) 45%,
-    rgba(255,159,28,0.88) 55%,
-    rgba(255,255,255,0.55) 62%,
-    transparent 78%
+    rgba(255,255,255,0.55) 44%,
+    rgba(95,199,255,0.72) 52%,
+    rgba(99,245,208,0.82) 58%,
+    rgba(255,176,122,0.68) 64%,
+    transparent 80%
   );
   filter: blur(0.4px);
   mix-blend-mode: screen;     /* keep */
@@ -241,16 +349,16 @@ z-index: 1;
 }
 
 .team:hover{
-  transform: translateY(-6px) scale(1.02);
-  border-color: rgba(255,159,28,0.88);
+   transform: translateY(-6px) scale(1.02);
+  z-index: 3;
+  border-color: rgba(99,245,208,0.88);
   box-shadow:
     0 18px 28px rgba(0,0,0,0.55),
-    0 0 0 2px rgba(255,159,28,0.25),
-    0 0 22px rgba(255,159,28,0.35);
-  filter: saturate(1.08) contrast(1.06);
-   animation: tilePop 220ms ease-out 1;
-   outline: 1px solid rgba(255,159,28,0.55);
-
+    0 0 0 2px rgba(95,199,255,0.22),
+    0 0 22px rgba(99,245,208,0.26);
+  filter: saturate(1.10) contrast(1.05);
+  animation: tilePop 220ms ease-out 1;
+  outline: 1px solid rgba(255,176,122,0.62);
 }
 
 
@@ -272,27 +380,28 @@ z-index: 1;
       opacity: 0.92;
       filter: grayscale(1) brightness(0.35);
     }
-    .team.sold::after{
-      content:"X";
-      opacity: 1; 
-      position:absolute;
-      left:50%;
-      top:50%;
-      transform: translate(-50%,-50%);
-      width: 34px;
-      height: 34px;
-      border-radius: 999px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight: 900;
-      font-size: 22px;
-      background: rgba(255,90,31,0.96);
-      border: 2px solid rgba(255,159,28,0.95);
-      text-shadow: 0 3px 10px rgba(0,0,0,0.65);
-      z-index: 5;
-      pointer-events:none;
-    }
+.team.sold::after{
+  content:"X";
+  opacity: 1; 
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform: translate(-50%,-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight: 900;
+  font-size: 22px;
+  background: rgba(255,176,122,0.96);
+  border: 2px solid rgba(99,245,208,0.88);
+  color: #08121d;
+  text-shadow: none;
+  z-index: 5;
+  pointer-events:none;
+}
 
     .team.flash{
       animation: flash 240ms ease;
@@ -304,44 +413,135 @@ z-index: 1;
     }
 
     /* ===== CENTER SLOT (opening) ===== */
-    .centerSlot{
-      background: #d7d7d7;
-      color:#111;
-      border: 2px solid rgba(255,159,28,0.95);
-      outline: 1px solid rgba(255,255,255,0.10);
-      display:none;
-      align-items:center;
-      justify-content:center;
-      position:relative;
-      overflow:hidden;
-    }
-    .centerSlot .centerMedia{
-      position:absolute;
-      inset:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      pointer-events:none;
-    }
-    .centerSlot img{
-      max-width: 92%;
-      max-height: 92%;
-      object-fit: contain;
-      filter: drop-shadow(0 10px 18px rgba(0,0,0,0.35));
-      
-    }
-    .centerSlot .placeholder{
-      font-weight: 900;
-      font-size: 48px;
-      letter-spacing: 2px;
-      opacity: 0.85;
-      text-transform: uppercase;
-      z-index: 2;
-      text-align:center;
-      padding: 8px;
-      display:none;
-    }
+.centerSlot{
+  background:
+    radial-gradient(circle at 50% 42%, rgba(95,199,255,0.16), transparent 30%),
+    radial-gradient(circle at 50% 60%, rgba(99,245,208,0.18), transparent 38%),
+    radial-gradient(circle at 50% 72%, rgba(255,176,122,0.15), transparent 44%);
+  color:#111;
+  border: none;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  overflow:visible;
+  perspective: 1200px;
+  z-index: 30;
+}
 
+.centerSlot .centerMedia{
+  position:absolute;
+  inset:-90px -90px -70px -90px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  z-index: 50;
+  overflow:visible;
+}
+
+/* shared rotating logo base */
+.centerSlot .rotatingLogo{
+  position:absolute;
+  opacity: 0;
+  transform: rotateY(90deg) scale(0.96);
+  backface-visibility: visible;
+  transition:
+    opacity 700ms ease,
+    transform 900ms cubic-bezier(.2,.8,.2,1),
+    filter 300ms ease;
+  z-index: 60;
+}
+
+/* logo 1: primary Pack Smashers logo */
+.centerSlot .logoPrimary{
+  width: var(--logo1-width);
+  height: auto;
+  top: var(--logo1-top);
+  left: var(--logo1-left);
+  object-fit: contain;
+  z-index: 70;
+  filter:
+    drop-shadow(0 16px 28px rgba(0,0,0,0.44))
+    drop-shadow(0 0 16px rgba(95,199,255,0.10));
+  transform-origin: center center;
+}
+
+/* logo 2: alt/circle logo */
+.centerSlot .logoAlt{
+  width: var(--logo2-width);
+  height: auto;
+  top: var(--logo2-top);
+  left: var(--logo2-left);
+  object-fit: contain;
+  z-index: 70;
+  filter:
+    drop-shadow(0 14px 24px rgba(0,0,0,0.38))
+    drop-shadow(0 0 14px rgba(99,245,208,0.09));
+  transform-origin: center center;
+}
+
+/* center the logos cleanly */
+.centerSlot .logoPrimary,
+.centerSlot .logoAlt{
+  translate: -50% 0;
+}
+
+.centerSlot .rotatingLogo.active{
+  opacity: 1;
+  transform: rotateY(0deg) scale(1);
+}
+
+.centerSlot .rotatingLogo.exiting{
+  opacity: 0;
+  transform: rotateY(-90deg) scale(0.96);
+}
+
+.centerSlot .placeholder{
+  font-weight: 900;
+  font-size: 48px;
+  letter-spacing: 2px;
+  opacity: 0.85;
+  text-transform: uppercase;
+  z-index: 2;
+  text-align:center;
+  padding: 8px;
+  display:none;
+}
+
+.centerSlot::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width: 420px;
+  height: 250px;
+  transform: translate(-50%,-50%);
+  pointer-events:none;
+  z-index: 2;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(95,199,255,0.18), transparent 34%),
+    radial-gradient(circle at 50% 55%, rgba(99,245,208,0.16), transparent 48%),
+    radial-gradient(circle at 50% 62%, rgba(255,176,122,0.14), transparent 64%);
+  filter: blur(10px);
+}
+
+.centerSlot::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:80%;
+  width: 200px;
+  height: 180px;
+  transform: translate(-50%,-50%);
+  pointer-events:none;
+  z-index: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(95,199,255,0.16);
+  box-shadow:
+    0 0 20px rgba(95,199,255,0.10),
+    0 0 34px rgba(99,245,208,0.07),
+    inset 0 0 24px rgba(255,176,122,0.05);
+}
     /* ===== SPORT CORNER LOGOS (NBA/MLB only) ===== */
     .sportCorner{
       background: rgba(0,0,0,0.10);
@@ -359,76 +559,109 @@ z-index: 1;
     }
 
     /* ===== TICKER (SOLD | TICKER | REMAIN) ===== */
-    .tickerBar{
-      margin-top: 8px;
-      border-radius: 12px;
-      background: linear-gradient(90deg, rgba(0,0,0,0.75), rgba(225,15,31,0.18), rgba(0,0,0,0.75));
-      border: 2px solid rgb(255, 255, 255);
-      display:grid;
-      grid-template-columns: 130px 1fr 130px;
-      gap: 8px;
-      padding: 8px;
-      align-items:center;
-    }
+.tickerBar{
+  margin-top: 8px;
+  border-radius: 12px;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,0.78), rgba(95,199,255,0.10), rgba(99,245,208,0.10), rgba(255,176,122,0.12), rgba(0,0,0,0.78)),
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  border: 2px solid rgba(95,199,255,0.66);
+  display:grid;
+  grid-template-columns: 130px 1fr 130px;
+  gap: 8px;
+  padding: 8px;
+  align-items:center;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 0 16px rgba(99,245,208,0.05);
+}
 
-    .statPill{
-      height: 48px;
-      border-radius: 10px;
-      background: rgba(255,255,255,0.06);
-      border: 4px solid rgba(255,159,28,0.55);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      font-size: 18px;
-      text-shadow: 0 3px 10px rgba(0,0,0,0.55);
-    }
+.statPill{
+  height: 48px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  border: 4px solid rgba(110,255,214,0.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 18px;
+  text-shadow: 0 3px 10px rgba(0,0,0,0.55);
+}
+
+.statPillToggle{
+  cursor:pointer;
+  user-select:none;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.statPillToggle:hover{
+  transform: translateY(-1px);
+  border-color: rgba(255,166,108,0.88);
+  box-shadow: 0 0 18px rgba(110,255,214,0.18);
+  background: rgba(255,255,255,0.10);
+}
 
     .tickerTrack{
       height: 48px;
       border-radius: 10px;
       background: rgba(0,0,0,0.35);
       border: 2px solid rgb(255, 255, 255);
-      overflow:hidden;
-      position:relative;
-      display:flex;
-      align-items:center;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
     }
 
-.tickerText{
-  display:inline-block;
-  white-space: nowrap;
-  padding-left: 100%;
-  animation: scroll var(--tickerDur, 22s) linear infinite;
-  font-weight: 900;
-  letter-spacing: 6px;
-  text-transform: uppercase;
-  font-size: 26px;
-  opacity: 0.95;
-  text-shadow: 0 4px 14px rgba(0,0,0,0.65);
-}
-
-    @keyframes scroll{
-      0%{ transform: translateX(0); }
-      100%{ transform: translateX(-100%); }
+    .ticker-track{
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      width: max-content;
+      min-width: max-content;
+      flex: 0 0 auto;
+      will-change: transform;
+      animation: ticker-marquee var(--tickerDur, 22s) linear infinite;
     }
+
+    .ticker-text{
+      display: inline-block;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      padding-right: 64px;
+      font-weight: 900;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      font-size: 26px;
+      opacity: 0.95;
+      color:#fff;
+      text-shadow: 0 4px 14px rgba(0,0,0,0.65);
+    }
+
+    @keyframes ticker-marquee{
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(calc(-50% - 32px)); }
+    }
+
+
 
     /* ===== SOLD PANEL (controls live here) ===== */
-    .soldPanel{
-      margin-top: 10px;
-      border-radius: 14px;
-      background: rgba(0,0,0,0.55);
-      border: 2px solid rgb(255, 255, 255);
-      padding: 10px;
-    }
+.soldPanel{
+  margin-top: 10px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.55);
+  border: 2px solid rgb(255 215 97);
+  padding: 10px;
+}
 
     .soldTop{
       display:flex;
       align-items:center;
-      justify-content: space-between;
-      gap: 10px;
+      justify-content: center;
+      gap: 50px;
       flex-wrap: wrap;
       margin-bottom: 10px;
     }
@@ -437,7 +670,7 @@ z-index: 1;
       font-weight: 900;
       letter-spacing: 2px;
       text-transform: uppercase;
-      font-size: 16px;
+      font-size: 18px;
       opacity: 0.95;
     }
 
@@ -470,22 +703,23 @@ z-index: 1;
     }
 
 
-    .btn{
-      height: 44px;
-      padding: 0 14px;
-      border-radius: 10px;
-      border: 4px solid rgb(237 49 42);
-      background: rgba(255,255,255,0.06);
-      color:#fff;
-      font-weight: 900;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      cursor:pointer;
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap: 8px;
-    }
+.btn{
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 2px solid rgba(255,176,122,0.85);
+  background: linear-gradient(180deg, rgba(95,199,255,0.14), rgba(99,245,208,0.08));
+  color:#fff;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap: 8px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+}
     .btn:active{ transform: translateY(1px); }
 
     .input{
@@ -526,15 +760,15 @@ z-index: 1;
 
     .soldGrid{
       display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px 12px;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px 2px;
     }
 
     .soldRow{
       display:flex;
       align-items:center;
-      gap: 8px;
-      padding: 6px 8px;
+      gap: 4px;
+      padding: 4px 2px;
       border-radius: 12px;
       border: 2px solid rgba(255,255,255,0.12);
       background: rgba(0,0,0,0.35);
@@ -550,10 +784,10 @@ z-index: 1;
     }
 
     .soldTeam{
-      min-width: 64px;
+      min-width: 35px;
       font-weight: 900;
       text-transform: uppercase;
-      font-size: 12px;
+      font-size: 13px;
       opacity: 0.95;
       white-space: nowrap;
       overflow:hidden;
@@ -562,15 +796,15 @@ z-index: 1;
 
     .buyerInput{
       flex:1;
-      height: 34px;
+      height: 32px;
       border-radius: 10px;
-      border: 2px solid rgba(255,255,255,0.12);
+      border: 2px solid rgba(255, 255, 255, 0.884);
       background: rgba(0,0,0,0.35);
       color:#fff;
       font-weight: 900;
-      padding: 0 10px;
+      width:60px;
       outline:none;
-      font-size: 13px;
+      font-size: 18px;
     }
 
 /* ===== POPUP MODAL (OBS FRIENDLY) ===== */
@@ -669,10 +903,13 @@ z-index: 1;
     <div class="board">
       <div class="grid" id="grid"></div>
       <div class="tickerBar">
-        <div class="statPill" id="soldLabel">SOLD</div>
-        <div class="tickerTrack">
-          <div class="tickerText" id="tickerText">T I C K E R</div>
-        </div>
+        <div class="statPill statPillToggle" id="soldLabel" title="Toggle sold controls">SOLD</div>
+<div class="tickerTrack">
+  <div id="tickerTrack" class="ticker-track">
+    <span id="tickerTextA" class="ticker-text"></span>
+    <span id="tickerTextB" class="ticker-text" aria-hidden="true"></span>
+  </div>
+</div>
         <div class="statPill" id="remainLabel">REMAIN</div>
       </div>
 
@@ -681,15 +918,14 @@ z-index: 1;
           <div class="soldTitle">SOLD TEAMS</div>
 
           <div class="controlsWrap">
-            <button class="btn" id="soldToggleBtn" onclick="toggleSoldControls()">SOLD</button>
-            <div class="controlsMain" id="soldControlsMain">
+         <div class="controlsMain" id="soldControlsMain">
 <button class="btn" onclick="resetAll()">RESET</button>
 <button class="btn" onclick="newBreak()">NEW BREAK</button>
 <button class="btn" onclick="cycleSport()">SPORT</button>
 <button class="btn" onclick="openBreakPopup()">BREAK #</button>
 <button class="btn" onclick="openTickerPopup()">TICKER</button>
 <button class="btn" onclick="openTitlePopup()">TITLE</button>
-            </div>
+</div>
 
             <div class="sseStatus" id="sseStatus">
               SSE <span class="dot"></span> <span id="sseText">OFF</span>
@@ -738,12 +974,10 @@ const imgMLB = (f) => ASSETS.mlb(f);
 ========================= */
 const TICKER_LS = "packsmashers.centerGrid.ticker";
 const TICKER_SPEED_LS = "packsmashers.centerGrid.tickerSpeedSec";
-const DEFAULT_TICKER = "T I C K E R";
+const DEFAULT_TICKER = "Stay connected with @PackSmashers on YouTube & ebay... Don't Miss the deals, bookmark upcoming shows";
 
 const TITLE_LS = "packsmashers.centerGrid.title";
 const DEFAULT_TITLE = "PACK SMASHERS";
-
-
 
 function loadTicker(){
   try{
@@ -755,11 +989,19 @@ function saveTicker(v){
   try{ localStorage.setItem(TICKER_LS, String(v||"")); }catch(_){}
 }
 function setTicker(v){
-  const safe = (String(v||"").trim() || DEFAULT_TICKER);
-  const el = document.getElementById("tickerText");
-  el.textContent = safe;
+  const safe = (String(v || "").trim() || DEFAULT_TICKER);
+  const text = ` ${safe} • ${safe} • ${safe} • ${safe} `;
+  const a = document.getElementById("tickerTextA");
+  const b = document.getElementById("tickerTextB");
+
+  if (a) a.textContent = text;
+  if (b) b.textContent = text;
+
   saveTicker(safe);
-  applyTickerSpeed();
+  requestAnimationFrame(() => {
+    syncTickerCopies();
+    applyTickerSpeed();
+  });
 }
 
 function applyTicker(){
@@ -768,22 +1010,31 @@ function applyTicker(){
 }
 
 function loadTickerSpeedSec(){
-  const raw = parseInt(localStorage.getItem(TICKER_SPEED_LS) || "22", 10);
-  return (Number.isFinite(raw) && raw >= 8 && raw <= 60) ? raw : 22;
+  const raw = parseInt(localStorage.getItem(TICKER_SPEED_LS) || "40", 10);
+  return (Number.isFinite(raw) && raw >= 10 && raw <= 140) ? raw : 22;
 }
 function saveTickerSpeedSec(sec){
-  const s = (Number.isFinite(sec) ? sec : 22);
-  const clamped = Math.max(8, Math.min(60, s));
+  const s = (Number.isFinite(sec) ? sec : 40);
+  const clamped = Math.max(10, Math.min(140, s));
   localStorage.setItem(TICKER_SPEED_LS, String(clamped));
 }
 function applyTickerSpeed(){
   const sec = loadTickerSpeedSec();
-  const el = document.getElementById("tickerText");
-  if (!el) return;
-  el.style.setProperty("--tickerDur", `${sec}s`);
-  el.style.animation = "none";
-  void el.offsetHeight;
-  el.style.animation = `scroll ${sec}s linear infinite`;
+  const track = document.getElementById("tickerTrack");
+  if (!track) return;
+
+  track.style.setProperty("--tickerDur", `${sec}s`);
+  track.style.animation = "none";
+  void track.offsetWidth;
+  track.style.animation = `ticker-marquee ${sec}s linear infinite`;
+}
+
+function syncTickerCopies(){
+  const a = document.getElementById("tickerTextA");
+  const b = document.getElementById("tickerTextB");
+  if (!a || !b) return;
+
+  b.style.minWidth = `${a.offsetWidth}px`;
 }
 
 function loadTitle(){
@@ -967,7 +1218,7 @@ const breakTypes = {
   }
 };
 
-let currentSport = "nba";
+let currentSport = "nfl";
 const soldTeams = new Set();
 let soldTeamsList = [];
 const lastCodeByListingKey = new Map();
@@ -991,9 +1242,7 @@ function setHeader(){
 
   const brandLogo = document.getElementById("brandLogo");
   if (brandLogo){
-    brandLogo.src = LOGO_BRAND;
-    brandLogo.alt = "Pack Smashers";
-    brandLogo.onerror = () => {};
+    brandLogo.removeAttribute("src");
   }
 
   document.getElementById("breakNumDisplay").textContent = getDisplayBreakNumber();
@@ -1051,20 +1300,71 @@ function makeCenterSlot(colStart, colEnd, rowStart, rowEnd){
   const media = document.createElement("div");
   media.className = "centerMedia";
 
-  const img = document.createElement("img");
-  img.src = LOGO_CENTER;
-  img.alt = "Pack Smashers Live";
-  img.onerror = () => {
-    const ph = document.createElement("div");
-    ph.className = "placeholder";
-    ph.style.display = "block";
-    ph.textContent = "PACK SMASHERS";
-    d.appendChild(ph);
+  const img1 = document.createElement("img");
+  img1.src = LOGO_BRAND;
+  img1.alt = "Pack Smashers";
+  img1.className = "rotatingLogo logoPrimary active";
+
+  const img2 = document.createElement("img");
+  img2.src = LOGO_CENTER;
+  img2.alt = "Pack Smashers Live";
+  img2.className = "rotatingLogo logoAlt";
+
+  let loadFailCount = 0;
+  const onErr = () => {
+    loadFailCount += 1;
+    if (loadFailCount >= 2){
+      const ph = document.createElement("div");
+      ph.className = "placeholder";
+      ph.style.display = "block";
+      ph.textContent = "PACK SMASHERS";
+      d.appendChild(ph);
+    }
   };
 
-  media.appendChild(img);
+  img1.onerror = onErr;
+  img2.onerror = onErr;
+
+  media.appendChild(img1);
+  media.appendChild(img2);
   d.appendChild(media);
   return d;
+}
+
+let centerLogoTimer = null;
+let centerLogoIndex = 0;
+
+function startCenterLogoRotation(){
+  if (centerLogoTimer){
+    clearInterval(centerLogoTimer);
+    centerLogoTimer = null;
+  }
+
+  const slot = document.getElementById("centerSlot");
+  if (!slot) return;
+
+    const imgs = Array.from(slot.querySelectorAll(".centerMedia .rotatingLogo"));
+  if (imgs.length < 2) return;
+
+  imgs.forEach((img, i) => {
+    img.classList.toggle("active", i === 0);
+    img.classList.toggle("exiting", false);
+  });
+  centerLogoIndex = 0;
+
+  centerLogoTimer = setInterval(() => {
+    const current = imgs[centerLogoIndex];
+    centerLogoIndex = (centerLogoIndex + 1) % imgs.length;
+    const next = imgs[centerLogoIndex];
+
+    current.classList.remove("active");
+    current.classList.add("exiting");
+
+    next.classList.remove("exiting");
+    next.classList.add("active");
+
+    setTimeout(() => current.classList.remove("exiting"), 950);
+  }, 4200);
 }
 
 function makeSportCorner(col, row){
@@ -1125,7 +1425,7 @@ function initializeGrid(){
     cell.style.gridRow = `${s.row} / ${s.row+1}`;
     grid.appendChild(cell);
   }
-
+  startCenterLogoRotation();
   updateStats();
   updateSoldList();
   setHeader();
@@ -1275,10 +1575,8 @@ function setSport(s){
 
 function toggleSoldControls(){
   const panel = document.querySelector(".soldPanel");
-  const btn = document.getElementById("soldToggleBtn");
   if (!panel) return;
   panel.classList.toggle("controls-collapsed");
-  if (btn) btn.textContent = panel.classList.contains("controls-collapsed") ? "SOLD +" : "SOLD";
 }
 /* =========================
    SSE BRIDGE (TSU STANDARD)
@@ -1631,7 +1929,7 @@ function saveModal(){
 
   if (modalMode === "ticker"){
     const text = (document.getElementById("modalTickerInput")?.value || "").trim();
-    const sec = parseInt(document.getElementById("modalSpeed")?.value || "22", 10);
+    const sec = parseInt(document.getElementById("modalSpeed")?.value || "40", 10);
     saveTickerSpeedSec(sec);
     setTicker(text || DEFAULT_TICKER);
   }
@@ -1663,12 +1961,15 @@ document.addEventListener("keydown", (e) => {
 document.addEventListener("DOMContentLoaded", () => {
   const bl = document.getElementById("brandLogo");
   if (bl){
-    bl.src = LOGO_BRAND;
-    bl.alt = "Pack Smashers";
+    bl.removeAttribute("src");
   }
 
   setTicker(loadTicker());
-  applyTickerSpeed();
+
+    const soldLabel = document.getElementById("soldLabel");
+  if (soldLabel){
+    soldLabel.addEventListener("click", toggleSoldControls);
+  }
 
   if (!localStorage.getItem(TITLE_LS)) saveTitle(DEFAULT_TITLE);
 
@@ -1682,6 +1983,11 @@ document.addEventListener("DOMContentLoaded", () => {
   initializeGrid();
   connectBridgeSSE();
   bridgeWarmup({ breakId: computeBreakId(), breakType: currentSport });
+});
+
+window.addEventListener("resize", () => {
+  syncTickerCopies();
+  applyTickerSpeed();
 });
 
 </script>
@@ -1707,9 +2013,9 @@ document.addEventListener("DOMContentLoaded", () => {
       <textarea class="modalTextArea" id="modalTickerInput" placeholder="Your ticker..."></textarea>
 
       <div class="modalLabel">Ticker Speed</div>
-      <input id="modalSpeed" type="range" min="8" max="60" step="1" />
+      <input id="modalSpeed" type="range" min="10" max="140" step="1" />
       <div style="font-weight:900; opacity:0.9; font-size:12px; letter-spacing:1px; text-transform:uppercase;">
-        Duration: <span id="modalSpeedVal">22</span>s
+        Duration: <span id="modalSpeedVal">75</span>s
       </div>
     </div>
 

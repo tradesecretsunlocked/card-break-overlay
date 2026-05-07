@@ -277,7 +277,7 @@
 .ticker-copy{
   flex:0 0 auto;
   display:inline-block;
-  padding-right:0;
+  padding-right:48px;
   font-weight:900;
   letter-spacing:0.8px;
   color:#f5fff4;
@@ -1282,38 +1282,89 @@ function breakIdMatches(payload){
       return (Date.now() - (SCORES_UPDATED_AT[sport] || 0)) < 1000 * 60 * 20;
     }
 
-    function getScoresAllSportsText(){
-      if (!ENABLE_SCORES) return "";
-      const order = ["mlb", "nfl"];
-      const parts = [];
-      for (const s of order){
-        const txt = (SCORES_BY_SPORT[s] || "").trim();
-        if (txt && isFreshSportScore(s)) parts.push(txt);
-      }
-      return parts.join(" • ");
-    }
+let tickerSequence = [];
+let tickerSequenceIndex = 0;
+let tickerRotationTimer = null;
 
-    function buildTickerLine(){
-      const a = loadTickerText();
-      const b = getScoresAllSportsText();
-      return b ? `${a} • ${b}` : a;
-    }
+function getCustomTickerMessages(){
+  return loadTickerText()
+    .split("•")
+    .map(s => s.trim())
+    .filter(Boolean);
+}
 
-    function updateTickerMarquee(){
-      const line = ` ${buildTickerLine()} `;
-      document.querySelectorAll(".ticker-track").forEach(track => {
-        const copies = track.querySelectorAll(".ticker-copy");
-        if (copies.length < 2) return;
-        copies[0].textContent = line;
-        copies[1].textContent = line;
-        requestAnimationFrame(() => {
-          const halfWidth = copies[0].getBoundingClientRect().width;
-          const pxPerSec = loadTickerSpeed();
-          const dur = Math.max(12, Math.round(halfWidth / pxPerSec));
-          document.documentElement.style.setProperty("--tickerDur", `${dur}s`);
-        });
-      });
-    }
+function getFreshScoreMessages(){
+  if (!ENABLE_SCORES) return [];
+
+  const order = ["mlb", "nfl"];
+  return order
+    .map(s => {
+      const txt = String(SCORES_BY_SPORT[s] || "").trim();
+      if (!txt || !isFreshSportScore(s)) return null;
+      return txt;
+    })
+    .filter(Boolean);
+}
+
+function rebuildTickerSequence(){
+  const custom = getCustomTickerMessages();
+  const sports = getFreshScoreMessages();
+
+  const seq = [];
+  const max = Math.max(custom.length, sports.length);
+
+  for (let i = 0; i < max; i++){
+    if (custom[i]) seq.push(custom[i]);
+    if (sports[i]) seq.push(sports[i]);
+  }
+
+  tickerSequence = seq.length ? seq : [DEFAULT_TICKER];
+  tickerSequenceIndex = Math.min(tickerSequenceIndex, tickerSequence.length - 1);
+}
+
+function setTickerMessage(text){
+  const line = ` ${String(text || DEFAULT_TICKER).trim()} `;
+
+  document.querySelectorAll(".ticker-track").forEach(track => {
+    const copies = track.querySelectorAll(".ticker-copy");
+    if (copies.length < 2) return;
+
+    copies.forEach(copy => {
+      copy.textContent = line;
+    });
+
+    requestAnimationFrame(() => {
+      const firstWidth = copies[0].getBoundingClientRect().width;
+      if (!firstWidth) return;
+
+      const pxPerSec = loadTickerSpeed();
+      const dur = Math.max(10, Math.round(firstWidth / pxPerSec));
+
+      track.style.animation = "none";
+      track.style.setProperty("--tickerShift", `${firstWidth}px`);
+      track.style.setProperty("--tickerDur", `${dur}s`);
+      void track.offsetWidth;
+      track.style.animation = `tickerMarquee ${dur}s linear infinite`;
+    });
+  });
+}
+
+function updateTickerMarquee(){
+  rebuildTickerSequence();
+  setTickerMessage(tickerSequence[tickerSequenceIndex]);
+}
+
+function startTickerRotation(){
+  if (tickerRotationTimer) clearInterval(tickerRotationTimer);
+
+  updateTickerMarquee();
+
+  tickerRotationTimer = setInterval(() => {
+    rebuildTickerSequence();
+    tickerSequenceIndex = (tickerSequenceIndex + 1) % tickerSequence.length;
+    setTickerMessage(tickerSequence[tickerSequenceIndex]);
+  }, 9000);
+}
 
 function handleSportsEvent(data){
   if (!data || typeof data !== "object") return;
@@ -1330,12 +1381,12 @@ function handleSportsEvent(data){
   if (!looksLikeScores) return;
   if (!sport || !txt) return;
 
-  SCORES_BY_SPORT[sport] = txt;
-  SCORES_UPDATED_AT[sport] = Date.now();
-  updateTickerMarquee();
+SCORES_BY_SPORT[sport] = txt;
+SCORES_UPDATED_AT[sport] = Date.now();
+updateTickerMarquee();
 }
 
-    function handleSSEEvent(payload){
+function handleSSEEvent(payload){
       const data = payload && typeof payload === "object" && payload.data && typeof payload.data === "object" ? payload.data : payload;
       if (!data || typeof data !== "object") return;
       if (!breakIdMatches(data)) return;
@@ -1678,11 +1729,12 @@ function handleSportsEvent(data){
       setBreakNumber(loadBreakNumber());
       restoreState();
       setHeader();
-      buildLayout();
-      updateStats();
-      updateSoldList();
-      startPromoRotation();
-      initSSE();
+ buildLayout();
+updateStats();
+updateSoldList();
+startPromoRotation();
+startTickerRotation();
+initSSE();
     }
 window.__TSU_DEBUG_SCORES = function(sport = "mlb"){
   handleSportsEvent({

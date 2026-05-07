@@ -1,0 +1,970 @@
+<!doctype html>
+<!--
+  TSU Custom Overlay — Quantum Breaks LLC
+  Client ID: CP-134 / Customer ID: 47777746 / TR-136
+  Layout family: split-board (NFL primary, NBA, MLB)
+  Runtime base : tsu-automation
+  Live scores  : enabled (channel "sports")
+  Branding     : black / white / gold + slight red accent
+  Tagline      : "Welcome to Quantum Breaks"
+  OBS Browser Source: 1920 x 1080, transparent background
+  Bridge URL pattern:
+    ?bridge=https://tsu-bridge-quantum.onrender.com
+    &channel=main&scores=1&scoresChannel=sports
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920,initial-scale=1">
+<title>Quantum Breaks — LIVE</title>
+<style>
+  /* ------------------------------------------------------------------
+     QUANTUM BREAKS — BRAND TOKENS
+     ------------------------------------------------------------------ */
+  :root{
+    --q-black:#0a0a0c;
+    --q-black-2:#141418;
+    --q-white:#ffffff;
+    --q-gold:#d4af37;
+    --q-gold-2:#f3d27a;
+    --q-red:#c92a2a;          /* slight red accent only */
+    --q-red-soft:rgba(201,42,42,.55);
+    --q-stroke:rgba(212,175,55,.55);
+    --q-shadow:0 8px 24px rgba(0,0,0,.55);
+    --q-glow: 0 0 18px rgba(212,175,55,.55);
+    --q-font: "Bebas Neue","Oswald","Arial Black",system-ui,sans-serif;
+    --q-mono: "JetBrains Mono","Courier New",monospace;
+  }
+
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:transparent;            /* OBS transparency */
+    color:var(--q-white);
+    font-family:var(--q-font);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+
+  /* ------------------------------------------------------------------
+     STAGE — fixed 1920x1080 frame, scaled to viewport
+     ------------------------------------------------------------------ */
+  #stage{
+    position:fixed;inset:0;
+    width:1920px;height:1080px;
+    transform-origin:top left;
+    transform:scale(var(--scale,1));
+  }
+
+  /* corner ornaments — subtle gold filigree */
+  .corner{
+    position:absolute;width:160px;height:160px;
+    border:2px solid var(--q-gold);
+    opacity:.55;pointer-events:none;
+  }
+  .corner.tl{top:14px;left:14px;border-right:none;border-bottom:none;}
+  .corner.tr{top:14px;right:14px;border-left:none;border-bottom:none;}
+  .corner.bl{bottom:14px;left:14px;border-right:none;border-top:none;}
+  .corner.br{bottom:14px;right:14px;border-left:none;border-top:none;}
+
+  /* ------------------------------------------------------------------
+     HEADER
+     ------------------------------------------------------------------ */
+  #header{
+    position:absolute;top:18px;left:50%;transform:translateX(-50%);
+    width:1300px;height:96px;
+    display:flex;align-items:center;justify-content:center;
+    gap:24px;
+    background:linear-gradient(180deg,#0a0a0c 0%, #1a1a1e 100%);
+    border:1.5px solid var(--q-gold);
+    border-radius:12px;
+    box-shadow:var(--q-shadow), inset 0 0 30px rgba(212,175,55,.12);
+  }
+  #header::before, #header::after{
+    content:"";flex:0 0 60px;height:2px;
+    background:linear-gradient(90deg,transparent,var(--q-gold),transparent);
+  }
+  #header .logo{
+    width:74px;height:74px;border-radius:50%;
+    background:#000 center/contain no-repeat;
+    border:2px solid var(--q-gold);
+    box-shadow:var(--q-glow);
+  }
+  #header .titles{display:flex;flex-direction:column;align-items:center;line-height:1;}
+  #header h1{
+    margin:0;font-size:46px;letter-spacing:.18em;
+    color:var(--q-white);
+  }
+  #header h1 .accent{color:var(--q-gold);}
+  #header h2{
+    margin:6px 0 0 0;font-size:18px;letter-spacing:.45em;
+    color:var(--q-gold-2);font-weight:400;
+  }
+  #header .badge{
+    position:absolute;top:-10px;right:24px;
+    background:var(--q-red);color:#fff;
+    font-size:14px;letter-spacing:.25em;padding:4px 12px;
+    border-radius:4px;box-shadow:0 4px 10px rgba(0,0,0,.5);
+    animation:pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{50%{filter:brightness(1.3);}}
+
+  /* ------------------------------------------------------------------
+     SPORT TABS
+     ------------------------------------------------------------------ */
+  #tabs{
+    position:absolute;top:128px;left:50%;transform:translateX(-50%);
+    display:flex;gap:10px;
+  }
+  .tab{
+    padding:8px 24px;font-size:18px;letter-spacing:.3em;
+    color:#bdbdbd;background:#101013;
+    border:1px solid #2a2a30;border-radius:6px;
+    cursor:default;user-select:none;
+  }
+  .tab.active{
+    color:var(--q-black);background:var(--q-gold);
+    border-color:var(--q-gold-2);
+    box-shadow:var(--q-glow);
+  }
+
+  /* ------------------------------------------------------------------
+     SPLIT BOARD — two conference panels side by side
+     ------------------------------------------------------------------ */
+  #board{
+    position:absolute;top:188px;left:60px;right:60px;height:740px;
+    display:grid;grid-template-columns:1fr 1fr;gap:36px;
+  }
+  .panel{
+    position:relative;
+    background:linear-gradient(180deg, rgba(20,20,24,.92), rgba(10,10,12,.92));
+    border:1.5px solid var(--q-gold);
+    border-radius:14px;
+    padding:14px 18px 18px;
+    box-shadow:var(--q-shadow), inset 0 0 60px rgba(212,175,55,.06);
+  }
+  .panel h3{
+    margin:0 0 10px 0;
+    font-size:30px;letter-spacing:.35em;
+    color:var(--q-gold);text-align:center;
+    border-bottom:1px solid var(--q-stroke);
+    padding-bottom:8px;
+  }
+  .grid{
+    display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;
+  }
+  /* tile = a team / sku */
+  .tile{
+    position:relative;
+    height:96px;border-radius:8px;
+    background:linear-gradient(145deg,#1a1a1f 0%,#0a0a0c 100%);
+    border:1px solid #2a2a30;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    overflow:hidden;
+    transition:transform .25s ease, border-color .25s ease, filter .25s ease;
+    transform-style:preserve-3d;
+  }
+  .tile .code{
+    font-size:26px;letter-spacing:.18em;color:var(--q-white);
+  }
+  .tile .name{
+    font-size:13px;letter-spacing:.18em;color:#9d9da6;margin-top:2px;
+  }
+  .tile .buyer{
+    position:absolute;left:6px;right:6px;bottom:4px;
+    font-family:var(--q-mono);font-size:11px;color:var(--q-gold-2);
+    text-align:center;text-transform:uppercase;
+    text-overflow:ellipsis;white-space:nowrap;overflow:hidden;
+    opacity:0;transform:translateY(8px);transition:all .25s ease;
+  }
+  .tile.sold{
+    border-color:var(--q-gold);
+    background:
+      linear-gradient(145deg, rgba(201,42,42,.18), rgba(212,175,55,.22)),
+      linear-gradient(145deg,#0a0a0c,#1a1a1f);
+    box-shadow:0 0 16px rgba(212,175,55,.5);
+  }
+  .tile.sold .code{color:var(--q-gold-2);}
+  .tile.sold .buyer{opacity:1;transform:translateY(0);}
+  .tile.sold::after{
+    content:"SOLD";
+    position:absolute;top:6px;right:6px;
+    font-size:11px;letter-spacing:.2em;color:#fff;
+    background:var(--q-red);padding:2px 6px;border-radius:3px;
+  }
+  /* tile-flip-on-sold animation — see extension.js for trigger,
+     keyframes inlined here so the overlay degrades gracefully if
+     the extension fails to load */
+  @keyframes tileFlipout{
+    0%   { transform: rotateY(0deg)   scale(1);   filter:brightness(1); }
+    35%  { transform: rotateY(90deg)  scale(1.08); filter:brightness(1.6); }
+    65%  { transform: rotateY(270deg) scale(1.08); filter:brightness(1.4); }
+    100% { transform: rotateY(360deg) scale(1);   filter:brightness(1); }
+  }
+  .tile.flipout{ animation:tileFlipout 900ms cubic-bezier(.4,.1,.2,1) both; }
+
+  /* ------------------------------------------------------------------
+     SOLD LIST RAIL — left edge
+     ------------------------------------------------------------------ */
+  #soldRail{
+    position:absolute;top:188px;left:60px;width:0;
+    /* hidden — split-board uses tile state for sold; rail kept for export hooks */
+    visibility:hidden;
+  }
+
+  /* ------------------------------------------------------------------
+     PROMO BANNER (flipping, UCS-style)
+     ------------------------------------------------------------------ */
+  #promo{
+    position:absolute;left:60px;right:60px;bottom:170px;height:80px;
+    display:flex;align-items:center;justify-content:center;
+    perspective:1200px;pointer-events:none;
+  }
+  #promo .face{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(90deg,#0a0a0c 0%, #1a1a1e 50%, #0a0a0c 100%);
+    border:1.5px solid var(--q-gold);
+    border-radius:10px;
+    color:var(--q-gold-2);
+    font-size:34px;letter-spacing:.32em;
+    box-shadow:var(--q-shadow), inset 0 0 30px rgba(212,175,55,.15);
+    backface-visibility:hidden;
+    transform-style:preserve-3d;
+    transition:transform .9s cubic-bezier(.4,.1,.2,1), opacity .3s ease;
+  }
+  #promo .face .pill{
+    background:var(--q-red);color:#fff;
+    font-size:18px;letter-spacing:.25em;padding:4px 10px;border-radius:4px;
+    margin-right:18px;
+  }
+
+  /* ------------------------------------------------------------------
+     SCORES TICKER — bottom strip
+     ------------------------------------------------------------------ */
+  #ticker{
+    position:absolute;left:0;right:0;bottom:60px;height:64px;
+    background:linear-gradient(180deg, #0a0a0c, #141418);
+    border-top:1.5px solid var(--q-gold);
+    border-bottom:1.5px solid var(--q-gold);
+    overflow:hidden;
+    box-shadow:var(--q-shadow);
+  }
+  #tickerTrack{
+    display:flex;gap:48px;align-items:center;height:100%;
+    white-space:nowrap;
+    animation:tickerScroll 60s linear infinite;
+    padding-left:100%;
+  }
+  @keyframes tickerScroll{
+    0%{transform:translateX(0);}
+    100%{transform:translateX(-100%);}
+  }
+  .scoreItem{
+    display:inline-flex;align-items:center;gap:10px;
+    color:var(--q-white);font-size:22px;letter-spacing:.12em;
+  }
+  .scoreItem .lg{
+    color:var(--q-black);background:var(--q-gold);
+    font-size:14px;letter-spacing:.2em;padding:2px 8px;border-radius:4px;
+  }
+  .scoreItem .vs{color:#7a7a85;font-size:16px;}
+  .scoreItem .live{color:var(--q-red);font-size:13px;letter-spacing:.25em;}
+
+  /* ------------------------------------------------------------------
+     TAGLINE STRIP — under ticker
+     ------------------------------------------------------------------ */
+  #tagline{
+    position:absolute;left:0;right:0;bottom:0;height:54px;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 80px;
+    background:linear-gradient(180deg,#141418,#0a0a0c);
+    color:var(--q-gold-2);
+    font-size:18px;letter-spacing:.32em;
+    border-top:1px solid var(--q-stroke);
+  }
+  #tagline .left{display:flex;align-items:center;gap:16px;}
+  #tagline .dot{width:10px;height:10px;border-radius:50%;background:var(--q-red);box-shadow:0 0 10px var(--q-red);animation:pulse 1.6s infinite;}
+  #tagline .center{color:var(--q-white);}
+
+  /* ------------------------------------------------------------------
+     STASH OR PASS overlay graphic (transparent BG, toggled on demand)
+     ------------------------------------------------------------------ */
+  #stashPass{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    pointer-events:none;opacity:0;transition:opacity .3s ease;
+    z-index:60;
+  }
+  #stashPass.show{opacity:1;}
+  #stashPass .card{
+    width:980px;height:560px;
+    background:linear-gradient(145deg, rgba(10,10,12,.86), rgba(20,20,24,.86));
+    border:2px solid var(--q-gold);
+    border-radius:18px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    box-shadow:0 0 80px rgba(212,175,55,.4);
+  }
+  #stashPass .card h2{
+    margin:0;font-size:120px;letter-spacing:.18em;color:var(--q-gold);
+    text-shadow:0 0 30px rgba(212,175,55,.6);
+  }
+  #stashPass .card h2 .or{color:var(--q-white);font-size:60px;margin:0 18px;}
+  #stashPass .card .pip{
+    margin-top:28px;font-size:24px;letter-spacing:.4em;color:#dfdfe6;
+  }
+
+  /* ------------------------------------------------------------------
+     BRIDGE STATUS dot (for the operator)
+     ------------------------------------------------------------------ */
+  #status{
+    position:absolute;top:18px;right:36px;z-index:80;
+    display:flex;align-items:center;gap:8px;
+    font-family:var(--q-mono);font-size:12px;color:#9d9da6;
+  }
+  #status .pip{width:10px;height:10px;border-radius:50%;background:#444;}
+  #status.on  .pip{background:#3ddc84;box-shadow:0 0 8px #3ddc84;}
+  #status.err .pip{background:#ff4d4f;box-shadow:0 0 8px #ff4d4f;}
+
+  /* ------------------------------------------------------------------
+     RESPONSIVE SCALER — keep 1920x1080 frame, fit in OBS source
+     ------------------------------------------------------------------ */
+  @media (max-width:1920px){ /* handled in JS via --scale */ }
+</style>
+</head>
+<body>
+
+<div id="stage" data-overlay-id="quantum-breaks">
+
+  <!-- ornaments -->
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+
+  <!-- bridge status pip (small, only visible to operator while testing) -->
+  <div id="status" title="bridge status"><span class="pip"></span><span id="statusText">connecting…</span></div>
+
+  <!-- header -->
+  <div id="header">
+    <span class="badge">LIVE</span>
+    <div class="logo" id="logo" style="background-image:url('logo.png');"></div>
+    <div class="titles">
+      <h1>QUANTUM <span class="accent">BREAKS</span></h1>
+      <h2>WELCOME TO QUANTUM BREAKS</h2>
+    </div>
+  </div>
+
+  <!-- sport tabs -->
+  <div id="tabs">
+    <div class="tab active" data-sport="nfl">NFL</div>
+    <div class="tab" data-sport="nba">NBA</div>
+    <div class="tab" data-sport="mlb">MLB</div>
+  </div>
+
+  <!-- split board: two conference panels populated dynamically -->
+  <div id="board">
+    <div class="panel" id="panelLeft">
+      <h3 id="panelLeftTitle">AFC</h3>
+      <div class="grid" id="gridLeft"></div>
+    </div>
+    <div class="panel" id="panelRight">
+      <h3 id="panelRightTitle">NFC</h3>
+      <div class="grid" id="gridRight"></div>
+    </div>
+  </div>
+
+  <!-- (hidden) sold list rail — kept for export TSV path -->
+  <div id="soldRail" aria-hidden="true"></div>
+
+  <!-- flipping promo banner (UCS-style); content rotated by extension -->
+  <div id="promo">
+    <div class="face" id="promoFace">
+      <span class="pill">QUANTUM</span>
+      <span id="promoText">SPIN 3 PICK 2 • TRADE 2 / 1 SPIN • STASH OR PASS</span>
+    </div>
+  </div>
+
+  <!-- live scores ticker -->
+  <div id="ticker"><div id="tickerTrack"></div></div>
+
+  <!-- tagline strip -->
+  <div id="tagline">
+    <div class="left">
+      <span class="dot"></span>
+      <span>QUANTUM BREAKS LLC</span>
+    </div>
+    <div class="center" id="taglineText">WELCOME TO QUANTUM BREAKS</div>
+    <div class="right" id="breakNum">BREAK #1</div>
+  </div>
+
+  <!-- stash or pass overlay (transparent BG, called on demand) -->
+  <div id="stashPass" aria-hidden="true">
+    <div class="card">
+      <h2>STASH<span class="or">OR</span>PASS</h2>
+      <div class="pip">QUANTUM BREAKS</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ====================================================================
+   TSU OVERLAY — QUANTUM BREAKS
+   --------------------------------------------------------------------
+   Implements the TSU bridge contract:
+     - canonical localStorage keys: tsu.bridgeUrl, tsu.bridgeKey
+       (with backwards-compat reads from tsu.key)
+     - URL params: bridge, channel, scores, scoresChannel
+     - SSE: GET {bridge}/stream?channel=main  + ?channel=sports
+     - POST {bridge}/events for overlay_warmup
+     - breakId safety, buyer-uniqueness rule, listingKey reassignment
+   ==================================================================== */
+
+(function(){
+"use strict";
+
+/* -----------------------------------------------------------------
+   1. CONFIG / URL PARAMS / LOCALSTORAGE
+   ----------------------------------------------------------------- */
+const qs = new URLSearchParams(location.search);
+
+function readBridgeUrl(){
+  // canonical first, then legacy fallbacks, then URL param
+  let v = localStorage.getItem("tsu.bridgeUrl")
+       || localStorage.getItem("tsu.bridge")
+       || qs.get("bridge")
+       || "";
+  v = String(v || "").trim();
+  if (!v) return "";
+  // normalize: strip trailing slashes, /events, /stream
+  v = v.replace(/\/+$/,"");
+  v = v.replace(/\/(events|stream)\b.*$/i,"");
+  return v;
+}
+
+function readBridgeKey(){
+  return (localStorage.getItem("tsu.bridgeKey")
+       || localStorage.getItem("tsu.key")
+       || qs.get("key")
+       || "").trim();
+}
+
+const BRIDGE_URL  = readBridgeUrl();
+const BRIDGE_KEY  = readBridgeKey();
+// persist canonical keys for downstream tools / extension
+if (BRIDGE_URL) localStorage.setItem("tsu.bridgeUrl", BRIDGE_URL);
+if (BRIDGE_KEY) localStorage.setItem("tsu.bridgeKey", BRIDGE_KEY);
+
+const MAIN_CHANNEL   = qs.get("channel") || "main";
+const SCORES_ENABLED = qs.get("scores") === "1" || qs.get("scores") === "true";
+const SCORES_CHANNEL = qs.get("scoresChannel") || "sports";
+const OVERLAY_ID     = "quantum-breaks";
+const STORAGE_NS     = "quantum";
+
+/* -----------------------------------------------------------------
+   2. STATE
+   ----------------------------------------------------------------- */
+const soldTeams = new Set();               // indices of sold tiles in current grid
+let soldTeamsList = [];                     // [{ index, code, sport, buyer, ts, listingKey }]
+const lastCodeByListingKey = new Map();     // listingKey -> last assigned teamCode
+let   currentSport = (localStorage.getItem(STORAGE_NS + ".sport") || "nfl").toLowerCase();
+let   currentBreakId = String(qs.get("break") || localStorage.getItem(STORAGE_NS + ".breakId") || "1");
+const scoreCache = { nfl:[], nba:[], mlb:[] };
+
+/* -----------------------------------------------------------------
+   3. SPORT DATA  (split-board layout)
+   ----------------------------------------------------------------- */
+const SPORTS = {
+  nfl:{
+    leftTitle:"AFC", rightTitle:"NFC",
+    left:[
+      ["BAL","Ravens"],["BUF","Bills"],["CIN","Bengals"],["CLE","Browns"],
+      ["DEN","Broncos"],["HOU","Texans"],["IND","Colts"],["JAX","Jaguars"],
+      ["KC","Chiefs"],["LV","Raiders"],["LAC","Chargers"],["MIA","Dolphins"],
+      ["NE","Patriots"],["NYJ","Jets"],["PIT","Steelers"],["TEN","Titans"]
+    ],
+    right:[
+      ["ARI","Cardinals"],["ATL","Falcons"],["CAR","Panthers"],["CHI","Bears"],
+      ["DAL","Cowboys"],["DET","Lions"],["GB","Packers"],["LAR","Rams"],
+      ["MIN","Vikings"],["NO","Saints"],["NYG","Giants"],["PHI","Eagles"],
+      ["SF","49ers"],["SEA","Seahawks"],["TB","Buccaneers"],["WAS","Commanders"]
+    ]
+  },
+  nba:{
+    leftTitle:"EAST", rightTitle:"WEST",
+    left:[
+      ["ATL","Hawks"],["BOS","Celtics"],["BKN","Nets"],["CHA","Hornets"],
+      ["CHI","Bulls"],["CLE","Cavaliers"],["DET","Pistons"],["IND","Pacers"],
+      ["MIA","Heat"],["MIL","Bucks"],["NYK","Knicks"],["ORL","Magic"],
+      ["PHI","76ers"],["TOR","Raptors"],["WAS","Wizards"]
+    ],
+    right:[
+      ["DAL","Mavericks"],["DEN","Nuggets"],["GSW","Warriors"],["HOU","Rockets"],
+      ["LAC","Clippers"],["LAL","Lakers"],["MEM","Grizzlies"],["MIN","Timberwolves"],
+      ["NOP","Pelicans"],["OKC","Thunder"],["PHX","Suns"],["POR","Trailblazers"],
+      ["SAC","Kings"],["SAS","Spurs"],["UTA","Jazz"]
+    ]
+  },
+  mlb:{
+    leftTitle:"AMERICAN", rightTitle:"NATIONAL",
+    left:[
+      ["BAL","Orioles"],["BOS","Red Sox"],["CWS","White Sox"],["CLE","Guardians"],
+      ["DET","Tigers"],["HOU","Astros"],["KC","Royals"],["LAA","Angels"],
+      ["MIN","Twins"],["NYY","Yankees"],["OAK","Athletics"],["SEA","Mariners"],
+      ["TB","Rays"],["TEX","Rangers"],["TOR","Blue Jays"]
+    ],
+    right:[
+      ["ARI","Diamondbacks"],["ATL","Braves"],["CHC","Cubs"],["CIN","Reds"],
+      ["COL","Rockies"],["LAD","Dodgers"],["MIA","Marlins"],["MIL","Brewers"],
+      ["NYM","Mets"],["PHI","Phillies"],["PIT","Pirates"],["SD","Padres"],
+      ["SF","Giants"],["STL","Cardinals"],["WAS","Nationals"]
+    ]
+  }
+};
+
+/* -----------------------------------------------------------------
+   4. LAYOUT BUILDER
+   ----------------------------------------------------------------- */
+function buildLayout(sport){
+  sport = String(sport || "nfl").toLowerCase();
+  if (!SPORTS[sport]) sport = "nfl";
+  currentSport = sport;
+  localStorage.setItem(STORAGE_NS + ".sport", sport);
+
+  // tabs
+  document.querySelectorAll("#tabs .tab").forEach(t=>{
+    t.classList.toggle("active", t.dataset.sport === sport);
+  });
+
+  const data = SPORTS[sport];
+  document.getElementById("panelLeftTitle").textContent  = data.leftTitle;
+  document.getElementById("panelRightTitle").textContent = data.rightTitle;
+
+  const left  = document.getElementById("gridLeft");
+  const right = document.getElementById("gridRight");
+  left.innerHTML = ""; right.innerHTML = "";
+
+  const all = data.left.concat(data.right);
+  const total = all.length;
+
+  function paint(grid, list, offset){
+    list.forEach((row, i) => {
+      const idx = offset + i;
+      const [code, name] = row;
+      const tile = document.createElement("div");
+      tile.className = "tile";
+      tile.dataset.index = String(idx);
+      tile.dataset.code  = code;
+      tile.dataset.sport = sport;
+      tile.innerHTML =
+        '<div class="code">' + code + '</div>' +
+        '<div class="name">' + name + '</div>' +
+        '<div class="buyer"></div>';
+      grid.appendChild(tile);
+    });
+  }
+  paint(left,  data.left,  0);
+  paint(right, data.right, data.left.length);
+
+  // re-apply current sold state if the same sport
+  soldTeams.clear();
+  soldTeamsList = soldTeamsList.filter(e => e.sport === sport);
+  soldTeamsList.forEach(e => {
+    soldTeams.add(e.index);
+    const tile = tileAt(e.index);
+    if (tile){
+      tile.classList.add("sold");
+      tile.querySelector(".buyer").textContent = e.buyer || "";
+    }
+  });
+
+  // dispatch event for the extension
+  document.dispatchEvent(new CustomEvent("quantum:layout", { detail:{ sport, total } }));
+}
+
+function tileAt(index){
+  return document.querySelector('#board .tile[data-index="' + index + '"]');
+}
+
+function indexOfCode(code){
+  if (!code) return -1;
+  const norm = String(code).toUpperCase();
+  const tiles = document.querySelectorAll("#board .tile");
+  for (let i=0;i<tiles.length;i++){
+    if ((tiles[i].dataset.code || "").toUpperCase() === norm) {
+      return parseInt(tiles[i].dataset.index, 10);
+    }
+  }
+  return -1;
+}
+
+/* -----------------------------------------------------------------
+   5. SOLD / UNSOLD / BUYER  (with buyer-uniqueness + listingKey reassignment)
+   ----------------------------------------------------------------- */
+function sseMarkSold(payload){
+  const code = String(payload.code || "").toUpperCase();
+  const sport = (payload.sport || currentSport || "").toLowerCase();
+  const buyer = String(payload.buyer || "").trim();
+  const listingKey = payload.listingKey || payload.listing_key || payload.listingId || "";
+
+  // listing reassignment: if this listingKey already mapped to a different code, unsold the old one
+  if (listingKey){
+    const prev = lastCodeByListingKey.get(listingKey);
+    if (prev && prev !== code){
+      sseMarkUnsold({ code: prev, sport: sport });
+    }
+    lastCodeByListingKey.set(listingKey, code);
+  }
+
+  // buyer uniqueness: clear any other tile already assigned to this buyer
+  if (buyer){
+    soldTeamsList
+      .filter(e => e.buyer && e.buyer.toLowerCase() === buyer.toLowerCase() && e.code !== code)
+      .forEach(e => sseMarkUnsold({ code: e.code, sport: e.sport }));
+  }
+
+  // resolve target tile
+  if (sport && sport !== currentSport && SPORTS[sport]) buildLayout(sport);
+  const idx = indexOfCode(code);
+  if (idx === -1) return;
+
+  // update state
+  if (!soldTeams.has(idx)){
+    soldTeams.add(idx);
+    soldTeamsList.push({
+      index: idx, code, sport, buyer,
+      ts: Date.now(), listingKey: listingKey || null
+    });
+  } else {
+    // already sold — possibly just a buyer update
+    sseUpdateBuyer({ code, buyer });
+    return;
+  }
+
+  const tile = tileAt(idx);
+  if (tile){
+    tile.classList.add("sold");
+    tile.querySelector(".buyer").textContent = buyer;
+    // trigger flipout animation (extension may layer extra fx, but the
+    // base CSS keyframe runs even if the extension never loads)
+    tile.classList.remove("flipout");
+    void tile.offsetWidth; // restart animation
+    tile.classList.add("flipout");
+    document.dispatchEvent(new CustomEvent("quantum:sold", { detail:{ index:idx, code, buyer, sport, tile } }));
+  }
+}
+
+function sseMarkUnsold(payload){
+  const code = String(payload.code || "").toUpperCase();
+  const idx  = indexOfCode(code);
+  if (idx === -1) return;
+  soldTeams.delete(idx);
+  soldTeamsList = soldTeamsList.filter(e => e.index !== idx);
+  const tile = tileAt(idx);
+  if (tile){
+    tile.classList.remove("sold","flipout");
+    const b = tile.querySelector(".buyer"); if (b) b.textContent = "";
+    document.dispatchEvent(new CustomEvent("quantum:unsold", { detail:{ index:idx, code, tile } }));
+  }
+}
+
+function sseUpdateBuyer(payload){
+  const code  = String(payload.code || "").toUpperCase();
+  const buyer = String(payload.buyer || "").trim();
+  if (!code || !buyer) return;
+  const idx = indexOfCode(code);
+  if (idx === -1) return;
+
+  // buyer uniqueness across the entire sold list
+  soldTeamsList
+    .filter(e => e.buyer && e.buyer.toLowerCase() === buyer.toLowerCase() && e.code !== code)
+    .forEach(e => sseMarkUnsold({ code: e.code }));
+
+  const entry = soldTeamsList.find(e => e.index === idx);
+  if (entry){
+    entry.buyer = buyer;
+    const tile = tileAt(idx);
+    if (tile) tile.querySelector(".buyer").textContent = buyer;
+  } else {
+    // no sold record yet — treat as a sold + buyer
+    sseMarkSold({ code, buyer, sport: currentSport });
+  }
+}
+
+/* -----------------------------------------------------------------
+   6. RESET
+   ----------------------------------------------------------------- */
+function resetAll(){
+  soldTeams.clear();
+  soldTeamsList = [];
+  lastCodeByListingKey.clear();
+  document.querySelectorAll("#board .tile.sold").forEach(t=>{
+    t.classList.remove("sold","flipout");
+    const b = t.querySelector(".buyer"); if (b) b.textContent = "";
+  });
+  document.dispatchEvent(new CustomEvent("quantum:reset"));
+}
+function resetSoldState(){ resetAll(); }   // alias for compatibility
+
+/* -----------------------------------------------------------------
+   7. BREAK ID + SPORT CONTROL
+   ----------------------------------------------------------------- */
+function breakIdMatches(payload){
+  // payload may carry breakId / break_id / break, or none at all.
+  const incoming = payload.breakId ?? payload.break_id ?? payload.break ?? null;
+  if (incoming === null || incoming === undefined || incoming === "") return true; // missing => accept
+  return String(incoming) === String(currentBreakId);
+}
+
+function setBreakId(id){
+  currentBreakId = String(id);
+  localStorage.setItem(STORAGE_NS + ".breakId", currentBreakId);
+  document.getElementById("breakNum").textContent = "BREAK #" + currentBreakId;
+  resetAll();
+}
+
+/* -----------------------------------------------------------------
+   8. SCORES
+   ----------------------------------------------------------------- */
+function ingestScores(payload){
+  // expected: { sport: 'nfl', games:[{home,away,homeScore,awayScore,status}] }
+  const sport = (payload.sport || payload.league || "").toLowerCase();
+  if (!scoreCache[sport]) return;
+  if (Array.isArray(payload.games)) scoreCache[sport] = payload.games;
+  renderTicker();
+}
+
+function renderTicker(){
+  const items = [];
+  ["nfl","nba","mlb"].forEach(s=>{
+    (scoreCache[s] || []).forEach(g=>{
+      const home = (g.home || g.homeTeam || "").toUpperCase();
+      const away = (g.away || g.awayTeam || "").toUpperCase();
+      const hs = g.homeScore ?? g.home_score ?? "-";
+      const as = g.awayScore ?? g.away_score ?? "-";
+      const st = g.status || g.gameStatus || "";
+      items.push(
+        '<span class="scoreItem">' +
+          '<span class="lg">' + s.toUpperCase() + '</span>' +
+          '<span>' + away + ' ' + as + '</span>' +
+          '<span class="vs">@</span>' +
+          '<span>' + home + ' ' + hs + '</span>' +
+          (st ? '<span class="live">' + st + '</span>' : '') +
+        '</span>'
+      );
+    });
+  });
+  if (items.length === 0){
+    items.push('<span class="scoreItem"><span class="lg">QUANTUM</span><span>SPIN 3 PICK 2 • TRADE 2 / 1 SPIN • STASH OR PASS</span></span>');
+  }
+  // duplicate so the marquee loops smoothly
+  document.getElementById("tickerTrack").innerHTML = items.concat(items).join("");
+}
+
+/* -----------------------------------------------------------------
+   9. EXPORT TSV  (sold list)  ["EXPORT TSV"]
+   ----------------------------------------------------------------- */
+function buildExportTSV(){
+  const rows = [["index","code","sport","buyer","ts","listingKey"]];
+  soldTeamsList.forEach(e=>{
+    rows.push([e.index, e.code, e.sport, e.buyer || "", new Date(e.ts).toISOString(), e.listingKey || ""]);
+  });
+  return rows.map(r => r.join("\t")).join("\n");
+}
+window.exportTSV = function(){
+  const tsv = buildExportTSV();
+  const blob = new Blob([tsv], { type:"text/tab-separated-values" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "quantum-sold-" + Date.now() + ".tsv";
+  a.click();
+};
+
+/* -----------------------------------------------------------------
+   10. SSE EVENT DISPATCH
+   ----------------------------------------------------------------- */
+function handleSSEEvent(raw){
+  let data = raw;
+  if (typeof raw === "string"){
+    try { data = JSON.parse(raw); } catch(e){ return; }
+  }
+  if (!data || typeof data !== "object") return;
+  if (data.type === "hello") return;
+
+  // breakId safety
+  if (!breakIdMatches(data)) return;
+
+  // sport switching hint
+  const inboundSport = (data.sport || data.league || data.breakType || "").toLowerCase();
+  if (inboundSport && inboundSport !== currentSport && SPORTS[inboundSport]) buildLayout(inboundSport);
+
+  // accept aliases for type
+  const t = String(data.type || data.event || "").toLowerCase();
+
+  // accept aliases for code
+  if (data.code === undefined){
+    data.code = data.teamCode || data.team_code || data.team || data.sku || data.item;
+  }
+  // accept aliases for buyer
+  if (data.buyer === undefined){
+    data.buyer = data.username || data.display_name || data.displayName || data.user || data.handle;
+  }
+
+  switch(t){
+    case "team_sold":
+    case "sale":
+    case "purchase":
+    case "whatnot_purchase":
+      sseMarkSold(data); break;
+    case "team_unsold":
+    case "unsold":
+    case "refund":
+      sseMarkUnsold(data); break;
+    case "buyer":
+    case "buyer_update":
+      sseUpdateBuyer(data); break;
+    case "reset":
+    case "next_break":
+      resetAll(); if (data.breakId) setBreakId(data.breakId); break;
+    case "set_break":
+      if (data.breakId) setBreakId(data.breakId); break;
+    case "set_sport":
+      if (data.sport && SPORTS[data.sport]) buildLayout(data.sport); break;
+    case "scores":
+      ingestScores(data); break;
+    default:
+      // unknown — let extensions try
+      document.dispatchEvent(new CustomEvent("quantum:event", { detail:data }));
+  }
+}
+
+/* -----------------------------------------------------------------
+   11. SSE CONNECTIONS  (main + sports)
+   ----------------------------------------------------------------- */
+let esMain = null, esScores = null;
+function setStatus(state, text){
+  const s = document.getElementById("status");
+  s.classList.remove("on","err");
+  if (state) s.classList.add(state);
+  document.getElementById("statusText").textContent = text || state;
+}
+
+function openSSE(channel, namedEvents){
+  if (!BRIDGE_URL){ setStatus("err","no bridge"); return null; }
+  const url = BRIDGE_URL + "/stream?channel=" + encodeURIComponent(channel);
+  let es;
+  try { es = new EventSource(url); }
+  catch(err){ setStatus("err","sse error"); return null; }
+
+  es.onopen    = () => setStatus("on","bridge: ON ("+channel+")");
+  es.onmessage = (e) => handleSSEEvent(e.data);
+
+  // named-event compatibility — listen for every event the spec calls out
+  (namedEvents || []).forEach(name=>{
+    es.addEventListener(name, (e)=>{
+      let payload;
+      try { payload = JSON.parse(e.data); } catch(_){ payload = { type:name, raw:e.data }; }
+      payload.type = payload.type || name;
+      handleSSEEvent(payload);
+    });
+  });
+
+  es.onerror = () => {
+    setStatus("err","reconnecting…");
+    // browser auto-reconnects; we just surface state
+  };
+  return es;
+}
+
+function startBridge(){
+  if (!BRIDGE_URL) { setStatus("err","no bridge URL"); return; }
+  esMain = openSSE(MAIN_CHANNEL, [
+    "team_sold","team_unsold","sale","purchase","whatnot_purchase",
+    "buyer","buyer_update","reset","set_break","set_sport","next_break"
+  ]);
+  if (SCORES_ENABLED) esScores = openSSE(SCORES_CHANNEL, ["scores"]);
+}
+
+/* -----------------------------------------------------------------
+   12. WARMUP POST
+   ----------------------------------------------------------------- */
+function postWarmup(){
+  if (!BRIDGE_URL) return;
+  const body = {
+    type: "overlay_warmup",
+    overlay: OVERLAY_ID,
+    overlay_id: OVERLAY_ID,
+    channel: MAIN_CHANNEL,
+    ts: Date.now(),
+    breakId: currentBreakId,
+    sport: currentSport
+  };
+  const headers = { "Content-Type":"application/json" };
+  if (BRIDGE_KEY) headers["x-bridge-key"] = BRIDGE_KEY;
+  fetch(BRIDGE_URL + "/events", {
+    method:"POST", headers, body: JSON.stringify(body)
+  }).catch(()=>{ /* warmup is best-effort */ });
+}
+
+/* -----------------------------------------------------------------
+   13. SCALER — keep 1920x1080 frame inside any browser source
+   ----------------------------------------------------------------- */
+function applyScale(){
+  const sx = window.innerWidth  / 1920;
+  const sy = window.innerHeight / 1080;
+  const s = Math.min(sx, sy) || 1;
+  document.documentElement.style.setProperty("--scale", s);
+}
+window.addEventListener("resize", applyScale);
+
+/* -----------------------------------------------------------------
+   14. PUBLIC API for the extension + manual ops
+   ----------------------------------------------------------------- */
+window.QUANTUM = Object.freeze({
+  // state
+  get sport(){ return currentSport; },
+  get breakId(){ return currentBreakId; },
+  get soldList(){ return soldTeamsList.slice(); },
+  // controls
+  buildLayout, setBreakId, resetAll, resetSoldState,
+  sseMarkSold, sseMarkUnsold, sseUpdateBuyer,
+  handleSSEEvent, ingestScores,
+  buildExportTSV,
+  // bridge
+  bridgeUrl: BRIDGE_URL, bridgeKey: BRIDGE_KEY ? "***" : "",
+  channel: MAIN_CHANNEL, scoresChannel: SCORES_CHANNEL, scoresEnabled: SCORES_ENABLED
+});
+
+/* -----------------------------------------------------------------
+   15. BOOT
+   ----------------------------------------------------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  applyScale();
+  buildLayout(currentSport);
+  document.getElementById("breakNum").textContent = "BREAK #" + currentBreakId;
+  renderTicker();
+  postWarmup();
+  startBridge();
+
+  // tab clicks (operator-only; harmless in OBS)
+  document.querySelectorAll("#tabs .tab").forEach(t=>{
+    t.addEventListener("click", ()=> buildLayout(t.dataset.sport));
+  });
+});
+
+/* -----------------------------------------------------------------
+   16. LOAD EXTENSION (sibling file, optional)
+   ----------------------------------------------------------------- */
+(function loadExtension(){
+  const s = document.createElement("script");
+  s.src = "extension.js";
+  s.async = true;
+  s.onerror = () => console.warn("[quantum] extension.js missing — running base overlay only");
+  document.head.appendChild(s);
+})();
+
+})();
+</script>
+</body>
+</html>
