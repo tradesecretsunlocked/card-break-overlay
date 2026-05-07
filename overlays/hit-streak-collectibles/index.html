@@ -1357,13 +1357,18 @@ function updateTickerMarquee(){
 function startTickerRotation(){
   if (tickerRotationTimer) clearInterval(tickerRotationTimer);
 
-  updateTickerMarquee();
+  rebuildTickerSequence();
+  tickerSequenceIndex = 0;
+  setTickerMessage(tickerSequence[tickerSequenceIndex]);
 
   tickerRotationTimer = setInterval(() => {
     rebuildTickerSequence();
+
+    if (!tickerSequence.length) return;
+
     tickerSequenceIndex = (tickerSequenceIndex + 1) % tickerSequence.length;
     setTickerMessage(tickerSequence[tickerSequenceIndex]);
-  }, 9000);
+  }, 12000);
 }
 
 function handleSportsEvent(data){
@@ -1383,7 +1388,10 @@ function handleSportsEvent(data){
 
 SCORES_BY_SPORT[sport] = txt;
 SCORES_UPDATED_AT[sport] = Date.now();
-updateTickerMarquee();
+
+// Do NOT restart ticker mid-scroll.
+// New scores will be picked up on the next normal ticker rotation.
+//rebuildTickerSequence();
 }
 
 function handleSSEEvent(payload){
