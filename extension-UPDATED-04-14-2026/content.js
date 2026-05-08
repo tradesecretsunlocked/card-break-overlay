@@ -58,7 +58,6 @@
       s.includes(" giveaway") ||
       s === "sale" ||
       s === "—" ||
-      /^#?\d+$/.test(s) ||
       (s.includes("bookmark future shows") && n <= 0)
     );
   }
@@ -203,14 +202,15 @@
 
   function inferSportFromTitle(title) {
     const match = inferTeamMatchFromTitle(title);
-    return match?.sport || "nil";
+    return match?.sport || "";
   }
 
   function inferCodeFromTitle(title, sport) {
-    const t = String(title || "");
+    const t = String(title || "").trim();
     const normalizedSport = String(sport || "").toLowerCase().trim();
 
-    // Best source: full title / alias match (team names checked FIRST)
+    // FIX: Team name lookup runs FIRST — before any CUSTOM/numeric check.
+    // A title like "Slot 15 - Arizona Diamondbacks" resolves to a team, not CUSTOM_015.
     const match = inferTeamMatchFromTitle(title);
     if (match) {
       if (!normalizedSport || normalizedSport === "nil" || match.sport === normalizedSport) {
@@ -218,7 +218,6 @@
       }
     }
 
-    // Fallback: short uppercase token, but only if valid for the chosen sport
     const m = t.match(/\b([A-Z]{2,4})\b/);
     if (m && m[1]) {
       const token = m[1].toUpperCase();
@@ -231,9 +230,9 @@
       if (tokenMatch) return token;
     }
 
-    // Last-resort: envelope/slot numeric titles → CUSTOM_NNN
-    // Only reached if no team name or abbreviation matched above.
-    // Handles "15", "#15", "Spot 15", "Slot 15", "Envelope 15" etc.
+    // Last resort: envelope/slot numeric titles → CUSTOM_NNN.
+    // Only reached when nothing above matched, so a title like "Arizona Diamondbacks"
+    // will never accidentally become CUSTOM even if it also contains a number.
     const customSpot = t.match(/^(?:#\s*)?(?:(?:envelope|env|spot|slot|number|no)\s*)?#?\s*(\d{1,3})\s*$/i);
     if (customSpot) {
       const n = parseInt(customSpot[1], 10);
@@ -517,14 +516,16 @@
           }
 
           const inferredSport = inferSportFromTitle(title);
-          const sport = ((cfg.sport || "").toLowerCase() && (cfg.sport || "").toLowerCase() !== "nil")
-            ? (cfg.sport || "").toLowerCase()
-            : inferredSport;
+const configuredSport = (cfg.sport || "").toLowerCase();
+const sport = (configuredSport && configuredSport !== "nil")
+  ? configuredSport
+  : inferredSport || "nil";
 
-          let code = "";
-          if (sport && sport !== "nil") {
-            code = inferCodeFromTitle(title, sport);
-          }
+let code = inferCodeFromTitle(title, sport);
+
+if (!code) {
+  console.warn("[TSU] unresolved title:", { title, sport, rawTitle, saleId: id });
+}
 
           lastSaleText = `${buyer} • ${title} • $${amount.toFixed(2)}`;
           buyerCounts.set(buyer, (buyerCounts.get(buyer) || 0) + 1);
@@ -532,26 +533,28 @@
           const eventPayload = {
             type: "team_sold",
             saleId: id,
+            id: id,
             buyer,
+            buyerName: buyer,
             title,
             amount,
             amountCents: price.cents,
             currency: price.currency,
             sport,
             code,
+            teamCode: code,
             listingId: n?.listing?.id || null,
             productId: n?.listing?.product?.id || n?.product?.id || null,
             liveId
           };
 
-          const listingKey = eventPayload.listingId || eventPayload.productId || id;
+          const listingKey = eventPayload.saleId || eventPayload.id || eventPayload.listingId || id;
           const prevCodeForListing = lastCodeByListing.get(listingKey);
 
-          // Only fire team_unsold when BOTH codes are real resolved team codes.
-          // CUSTOM_ codes are provisional placeholders (title not yet resolved) —
-          // transitioning CUSTOM→team is a resolution, not a reassignment,
-          // so no unsold event should be sent. Sending it risks spuriously unmarking
-          // an envelope tile when the overlay is in custom/envelope layout mode.
+          // FIX: Only fire team_unsold when BOTH codes are real resolved team codes.
+          // CUSTOM_ codes are provisional placeholders — a CUSTOM→team transition is a
+          // resolution, not a listing reassignment. Sending unsold for a CUSTOM code
+          // risks spuriously unmarking an envelope tile when the overlay is in envelope mode.
           const prevIsReal = prevCodeForListing && !prevCodeForListing.startsWith("CUSTOM_");
           const newIsReal = eventPayload.code && !eventPayload.code.startsWith("CUSTOM_");
 
@@ -569,7 +572,12 @@
             lastCodeByListing.set(listingKey, eventPayload.code);
           }
 
-          console.log("[TSU] sending event:", eventPayload);
+          console.log("[TSU] sending event:", {
+            liveId,
+            bridge: cfg.bridgeUrl,
+            channel: cfg.channel,
+            payload: eventPayload
+          });
           await sendEvent(cfg, eventPayload);
         }
 

@@ -3536,29 +3536,42 @@ if (
 }
 
   // IMPORTANT:
-  // Extension sends CUSTOM_NNN for envelope mode, or team codes + sport for combo mode.
-  // We don't need to convert CUSTOM→COMBO_ITEM because the DOM validation (codeExistsOnBoard)
-  // will work regardless of which layout the overlay is currently in.
-  // This handles layout mode mismatches gracefully.
-  if (raw.startsWith("CUSTOM_") && layoutMode === "combo") {
-    const m = raw.match(/^CUSTOM_(\d+)$/);
-    if (m) {
-      const idx = parseInt(m[1], 10);
-      if (!Number.isFinite(idx) || idx < 1 || idx > 150) return "";
-
-      // Try title inference first (for regular teams mixed with envelope)
-      if (title) {
-        const inferred = inferTeamCodeFromTitle(title, sport);
-        if (inferred) return inferred;  // Returns NFL_LAA, MLB_COL, etc.
-      }
-
-      // Return raw CUSTOM code and let DOM check validate it
-      // (overlay may be in envelope mode even though layoutMode says combo)
-      return raw;
-    }
-
+  // Envelope CUSTOM_NNN codes must never leak into combo automation.
+// If the overlay is in combo mode and receives CUSTOM_NNN, only allow it
+// to resolve by title into a valid combo code. Otherwise ignore it.
+if (raw.startsWith("CUSTOM_")){
+  if (layoutMode === "custom"){
     return raw;
   }
+
+  if (layoutMode === "combo" && title){
+    const inferred = inferTeamCodeFromTitle(title, sport);
+    if (
+      inferred &&
+      (
+        inferred.startsWith("MLB_") ||
+        inferred.startsWith("NFL_") ||
+        inferred.startsWith("COMBO_CHASER_") ||
+        inferred.startsWith("COMBO_ITEM_") ||
+        inferred.startsWith("COMBO_PRIZEPACK_")
+      )
+    ){
+      return inferred;
+    }
+  }
+
+  console.warn("[Overlay] ignored CUSTOM code while not in custom layout", {
+    raw,
+    title,
+    sport,
+    layoutMode
+  });
+
+  return "";
+}
+
+    return raw;
+  
 
   // overlay uses WSH for Commanders/Nationals, extension may send WAS
   if (raw === "WAS" && (sport === "nfl" || sport === "mlb")) {
@@ -5546,6 +5559,87 @@ function isComboBoardCode(code){
 
 function isEnvelopeBoardCode(code){
   return String(code || "").startsWith("CUSTOM_");
+}
+
+function getCodeLayoutScope(code){
+  const s = String(code || "").trim().toUpperCase();
+
+  if (
+    s.startsWith("MLB_") ||
+    s.startsWith("NFL_") ||
+    s.startsWith("COMBO_CHASER_") ||
+    s.startsWith("COMBO_ITEM_") ||
+    s.startsWith("COMBO_PRIZEPACK_")
+  ){
+    return "combo";
+  }
+
+  if (s.startsWith("CUSTOM_")){
+    return "custom";
+  }
+
+  return "";
+}
+
+function getCurrentLayoutScope(){
+  return layoutMode === "custom" ? "custom" : "combo";
+}
+
+function codeAllowedForCurrentLayout(code){
+  const scope = getCodeLayoutScope(code);
+  if (!scope) return false;
+  return scope === getCurrentLayoutScope();
+}
+
+function getScopedListingKey(payload){
+  const raw = String(
+    payload?.saleId ||
+    payload?.id ||
+    payload?.listingId ||
+    ""
+  ).trim();
+
+  if (!raw) return "";
+
+  return `${getCurrentLayoutScope()}:${raw}`;
+}
+
+function resolveCodeForCurrentLayout(payload){
+  const sportHint = String(payload?.sport || payload?.league || "").toLowerCase().trim();
+  const title = payload?.title || payload?.itemTitle || payload?.listingTitle || payload?.name || "";
+
+  let code = getCodeFromPayload(payload);
+
+  if (!code || !codeAllowedForCurrentLayout(code) || !getEntryByCode(code)){
+    const inferred = inferTeamCodeFromTitle(title, sportHint);
+    if (inferred && codeAllowedForCurrentLayout(inferred) && getEntryByCode(inferred)){
+      code = inferred;
+    }
+  }
+
+  if (!code) return "";
+
+  if (!codeAllowedForCurrentLayout(code)){
+    console.warn("[Overlay] ignored cross-layout code", {
+      code,
+      layoutMode,
+      title,
+      sportHint
+    });
+    return "";
+  }
+
+  if (!getEntryByCode(code)){
+    console.warn("[Overlay] ignored code not on active layout", {
+      code,
+      layoutMode,
+      title,
+      sportHint
+    });
+    return "";
+  }
+
+  return code;
 }
 
 function clearSoldCodesByPredicate(predicate){
