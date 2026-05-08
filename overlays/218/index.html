@@ -765,6 +765,31 @@
           try{ handleBridgeEvent(JSON.parse(e.data)); }catch(_){}
         };
       }catch(_){ setTimeout(connectBridgeSSE, 2500); }
+
+      [
+  "team_sold",
+  "team_unsold",
+  "sold",
+  "sale",
+  "purchase",
+  "whatnot_purchase",
+  "buyer",
+  "buyer_update",
+  "reset",
+  "set_break",
+  "set_title",
+  "set_ticker",
+  "stream_stats",
+  "overlay_warmup"
+].forEach(type => {
+  sseConn.addEventListener(type, (e) => {
+    try {
+      handleBridgeEvent(JSON.parse(e.data));
+    } catch (err) {
+      console.warn("[218] named SSE parse failed", type, err);
+    }
+  });
+});
     }
 
     function normalizeIncomingCode(raw){
