@@ -828,8 +828,8 @@ body.team-board-mode #soldPanel{
   position:absolute;
   top:55%;
   transform:translateY(-50%);
-  width:140px;
-  height:110px;
+  width:10px;
+  height:100px;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -838,11 +838,11 @@ body.team-board-mode #soldPanel{
 }
 
 .ticker-side-art.left{
-  left: -45px;
+  left: -33px;
 }
 
 .ticker-side-art.right{
-  right: -40px;
+  right: -20px;
 }
 
 .ticker-side-art img{
@@ -945,10 +945,11 @@ body.team-board-mode #soldPanel{
       display:grid;
       grid-template-columns:repeat(4, 1fr);
       gap:6px;
-      max-height:168px;
-      overflow:auto;
+      overflow-y:auto;
     }
-    .sold-list::-webkit-scrollbar{ display:none; }
+    .sold-list::-webkit-scrollbar{ width:6px; }
+    .sold-list::-webkit-scrollbar-track{ background:rgba(0,0,0,0.30); border-radius:999px; }
+    .sold-list::-webkit-scrollbar-thumb{ background:rgba(254,222,38,0.40); border-radius:999px; }
     .sold-item{
       border-radius:12px;
       padding:8px 10px;
@@ -1125,6 +1126,10 @@ body.team-board-mode #soldPanel{
       text-transform:uppercase;
       color:var(--gold);
       margin-bottom:8px;
+      position:relative !important;
+      z-index:99999 !important;
+      pointer-events:auto !important;
+      cursor:default !important;
     }
 
     body.view-list .ticker{
@@ -1341,7 +1346,6 @@ body.split-team-mode #soldList{
 .sold-list.sold-team-style{
   grid-template-columns: repeat(4, 1fr);
   gap:4px;
-  max-height:184px;
   padding:4px;
   border-radius:14px;
   background:rgba(0,0,0,0.34);
@@ -1500,7 +1504,6 @@ body.split-team-mode #soldList{
 .sold-list.sold-team-style{
   grid-template-columns:repeat(4, minmax(0, 1fr));
   gap:4px;
-  max-height:220px;
   padding:4px;
   border-radius:14px;
   background:rgba(0,0,0,0.34);
@@ -1922,6 +1925,25 @@ body.division-board-mode .division-grid .team.sold::after{
   content:none !important;
 }
 
+/* ===== TSU PATCH 2026-05-10: Hidden toggle — Edit Player button ===== */
+.list-panel.wick.edit-hidden .player-import-actions{
+  display:none !important;
+}
+
+/* ===== TSU PATCH 2026-05-10: Sold panel scroll fix — 1080px OBS height ===== */
+#soldPanelWrap{
+  display:flex;
+  flex-direction:column;
+  max-height:580px;
+  overflow:hidden;
+}
+#soldList{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  max-height:none !important;
+}
+
   </style>
 </head>
 <body data-sport="NFL">
@@ -2007,6 +2029,7 @@ body.division-board-mode .division-grid .team.sold::after{
         </div>
       </div>
 
+      <div id="soldPanelWrap">
       <div id="soldControlsWrap" class="sold-controls-wrap active">
         <div class="sold-controls">
           <div class="breaktype-buttons" id="breakTypeButtons"></div>
@@ -2022,6 +2045,7 @@ body.division-board-mode .division-grid .team.sold::after{
       </div>
 
       <div class="sold-list" id="soldList"></div>
+      </div>
     </div>
   </div>
 
@@ -4349,7 +4373,7 @@ function handleSSEEvent(data){
 
   if (type === 'scores'){
     const games = Array.isArray(payload.games) ? payload.games : [];
-    scoresData = games.map(g => ({
+    const incoming = games.map(g => ({
       league: String(g.sport || g.league || '').toUpperCase(),
       away: String(g.away || g.awayAbbr || ''),
       awayScore: g.awayScore ?? '',
@@ -4358,6 +4382,13 @@ function handleSSEEvent(data){
       state: String(g.status || g.state || g.phase || ''),
       clock: String(g.clock || g.period || '')
     }));
+    if (incoming.length){
+      const leaguesIncoming = new Set(incoming.map(g => g.league));
+      scoresData = [
+        ...scoresData.filter(g => !leaguesIncoming.has(g.league)),
+        ...incoming
+      ];
+    }
     renderScores();
     return;
   }
@@ -4623,6 +4654,20 @@ function bindEditPlayerListButton(){
   }, { passive:true, capture:true });
 }
 
+/* ===== TSU PATCH 2026-05-10: Hidden toggle for Edit Player button ===== */
+function bindEditPlayerToggle(){
+  const panel = document.querySelector('.list-panel.wick');
+  const title = panel && panel.querySelector('.list-panel-title');
+  if (!title) return;
+  // restore saved state (default: visible)
+  if (localStorage.getItem('bigtime.editPlayerVisible') === '0')
+    panel.classList.add('edit-hidden');
+  title.addEventListener('click', () => {
+    const hidden = panel.classList.toggle('edit-hidden');
+    localStorage.setItem('bigtime.editPlayerVisible', hidden ? '0' : '1');
+  }, true);
+}
+
 bindBuyerListCustomResize();
 
 
@@ -4699,6 +4744,7 @@ function bindMainControlActionButtons(){
 (function init(){
   applyViewModeUI();
   bindEditPlayerListButton();
+  bindEditPlayerToggle();
   bindPlayerListModalActionButtons();
   bindMainControlActionButtons();
 
