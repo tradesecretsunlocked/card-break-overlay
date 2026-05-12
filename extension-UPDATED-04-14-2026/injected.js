@@ -2,6 +2,11 @@
 // fetch interceptors and access page-level cookies/headers
 
 (function () {
+  // Guard against double-injection (extension reload, page nav, etc.)
+  // Without this, multiple calls stack message listeners and cause duplicate events.
+  if (window.__TSU_INJECTED__) return;
+  window.__TSU_INJECTED__ = true;
+
   const GRAPHQL_URL = 'https://www.whatnot.com/services/graphql/';
 
   function getCookie(name) {

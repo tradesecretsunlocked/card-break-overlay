@@ -2,746 +2,2830 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=920, initial-scale=1.0"/>
-  <title>NBA Box Break Overlay</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pokemaster Mates — Multi-Sport Break Overlay</title>
+
   <style>
-    body {
-      margin: 0;
+    :root{
+      /* ===== POKEMASTER MATES (Teal + Purple) ===== */
+      --bg0:#0d1a2e;
+      --bg1:#060d18;
+
+      --steel1:#00e5cc;  /* cream highlight */
+      --steel2:#00b8a8;  /* warm cream */
+      --steel3:#0f1e35;  /* deep green */
+
+      --red:#00e5cc;       /* gold accent */
+      --redDeep:#7b2d8b;   /* deep gold/brown */
+
+      --white:#ffffff;
+
+      --border: rgba(0,229,204,0.35);
+      --borderSoft: rgb(0 229 204);
+
+      --team-cols: 5;
+      --team-height: 68px;
+      --teams-h: 390px;
+
+      --W:1080px;
+      --radius:16px;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      width:100%;
+      max-width: var(--W);
+      min-height: 600px;
+      margin-inline:auto;
+      font-family: Arial, sans-serif;
+      color: var(--white);
       background: transparent;
-      font-family: 'Arial Black', Arial, sans-serif;
-      width: 920px;
-      min-height: 520px;
-      user-select: none;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      user-select:none;
     }
-    .container {
-      background: linear-gradient(2deg, #827878e3 0%, #030303e0 100%);
-      border: 4px solid #D4AF37;
-      border-radius: 12px;
-      padding: 6px;
-      width: auto;
-      box-shadow: 0 0 20px rgba(212,175,55,0.4);
-      display: flex;
-      flex-direction: column;
-      height: 340px;
+
+    /* ===== Outer container ===== */
+    .overlay-container{
+      width:100%;
+      max-width: var(--W);
+      overflow:hidden;
+      border-radius: var(--radius);
+      padding: 8px;
+      background:
+    linear-gradient(180deg, rgb(94 60 134) 21%, rgb(40, 38, 43) 49%, rgb(102 21 63) 90%);
+      border: 4px solid rgb(252 241 186);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.70);
+      display:flex;
+      flex-direction:column;
+      gap: 8px;
+      position:relative;
     }
-    .header {
-      background: linear-gradient(135deg, #B22222 0%, #8B0000 50%, #D4AF37 100%);
-      color: #fff;
-      text-align: left;
-      padding: 2px 6px;
-      margin: -6px -6px 6px -6px;
-      border-radius: 4px 4px 0 0;
-      font-weight: 900;
-      font-size: 18px;
-      letter-spacing: 0px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+
+    .overlay-container::before{
+      content:"";
+      position:absolute; inset:-30px;
+      background:
+        radial-gradient(circle at 22% 20%, rgba(0,229,204,0.14), transparent 56%),
+        radial-gradient(circle at 72% 18%, rgba(123,45,139,0.14), transparent 58%),
+        radial-gradient(circle at 60% 86%, rgba(0,229,204,0.10), transparent 58%);
+      filter: blur(16px);
+      opacity: .95;
+      pointer-events:none;
     }
-    .main-content {
-      display: flex;
-      gap: 4px;
-      flex: 1;
-      min-height: 0;
-      height: 100%;
+
+    /* ===== Header ===== */
+    .header{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      border-radius: 14px;
+      padding: 6px 10px;
+      background:
+     linear-gradient(90deg, rgb(94 60 134) 15%, rgb(63 35 97) 50%, rgb(94 60 134) 85%);
+      border: 2px solid var(--borderSoft);
+      position:relative;
+      z-index: 2;
     }
-    .teams-section { flex: 1; min-width: 0; padding-right: 4px }
-    .teams-grid {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
+
+    .brand{
+      display:flex;
+      flex-direction:column;
       gap: 2px;
-      height: 100%;
-      width: 100%;
+      min-width: 0;
     }
-    .team {
-      background: #fff;
-      border: 2.5px solid #D4AF37;
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; position: relative;
-      min-height: 44px; padding: 2px; overflow: hidden;
-      transition: border-color 0.2s;
+
+    .brand-title{
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 3px 12px rgba(0,0,0,0.85);
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      color: var(--steel1);
     }
-    .team img { width: 100%; height: 100%; object-fit: cover; border-radius: 4px; }
-    .team.sold { border-color: #B22222; }
-    .team.sold img { opacity: 0.3; filter: grayscale(100%) brightness(0.5); }
-    .team.sold::after {
-      content: '❌';
-      position: absolute;
-      font-size: 22px;
-      color: #B22222;
-      text-shadow: 2px 2px 4px #fff;
-      z-index: 10;
-      background: rgba(255,255,255,0.9);
-      border-radius: 50%;
-      width: 28px; height: 28px;
-      display: flex; align-items: center; justify-content: center;
-      left: 50%; top: 50%; transform: translate(-50%,-50%);
+
+    .brand-slogan{
+      font-size: 12px;
+      font-weight: 800;
+      opacity: 0.92;
+      letter-spacing: 0.8px;
+      margin-top:-4px;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      color: rgba(0,229,204,0.92);
     }
-    
-    .right-panel {
-      width: 165px;
-      display: flex; align-items: stretch;
-      flex-direction: column;
-      gap: 4px;
-      align-items: center;
-      background: none;
-      height: 100%;
+
+    .header-right{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+
+    .break-id-box{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 6px 10px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.55);
+      border: 2px solid rgba(0,229,204,0.22);
+      box-shadow: inset 0 0 14px rgba(0,0,0,0.45);
+    }
+
+    .break-id-label{
+      font-size: 18px;
+      opacity: 0.86;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-weight: 900;
+      color: rgba(0,229,204,0.92);
+    }
+
+    .break-id-value{
+      font-size: 20px;
+      font-weight: 900;
+      color: var(--steel1);
+      text-shadow: 0 2px 0 rgba(0,0,0,0.85);
+      min-width: 28px;
+      text-align:right;
+    }
+
+    /* ===== Main wrapper ===== */
+    .main{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap: 10px;
+      width:100%;
+      min-height:0;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* ===== Split grid + center control bar ===== */
+    .teams-section{
+      display:grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      height: var(--teams-h);
+      min-height:0;
+      align-items:stretch;
+      padding: 2px;
+      border-radius: 14px;
+      background: linear-gradient(90deg, rgba(0,229,204,0.10), rgba(0,0,0,0.20), rgba(123,45,139,0.10));
+      border: 2px solid rgba(255,255,255,0.10);
+    }
+
+    .conference{
+      display:flex;
+      flex-direction:column;
+     
+      border-radius: 14px;
+      padding: 3px;
+      background: rgba(0,0,0,0.45);
+      min-height:0;
+      height:inherit;
+      width:440px;
+      overflow-y:auto;
+      overflow-x:hidden;
       justify-content: flex-start;
-      padding-left: 4px;
-      margin: 3px;
     }
-    .stat-row {
-      display: flex;
-      flex-direction: row;
+    .conference::-webkit-scrollbar{ display:none; }
+
+    .conference-title{
+      font-size: 16px;
+      font-weight: 900;
+      text-align:center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 1px solid rgb(251 241 191);
+      padding-bottom: 4px;
+      color: var(--steel1);
+    }
+
+    .division{ margin-top: 4px; }
+
+    .division-name{
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.92;
+      color: rgba(0,229,204,0.90);
+    }
+
+    .division-teams{
+      display:grid;
+      grid-template-columns: repeat(var(--team-cols), 1fr);
       gap: 4px;
-      width: 105%;
-      min-height: 19%;
     }
-    .stat-box {
-      flex: 1;
-      background: linear-gradient(135deg, #B22222 0%, #8B0000 100%);
-      color: #fff;
-      border-radius: 9px;
-      padding: 1px 2px 2px 2px;
+
+    /* ===== Team tile ===== */
+    .team{
+      position:relative;
+      background: rgba(0,0,0,0.78);
+      border-radius: 10px;
+      height: var(--team-height);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
+      cursor:pointer;
+      border: 2px solid rgb(240, 240, 192, 0.98);
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+      will-change: transform;
+    }
+
+    .team:hover{
+      transform: translateY(-2px) scale(1.015);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.55);
+      border-color: rgba(123,45,139,0.55);
+    }
+
+    .team img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55));
+    }
+
+    .team-label{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 10px;
+      text-align:center;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      font-size: 18px;
+      line-height: 1.05;
+      text-shadow: 0 3px 12px rgba(0,0,0,0.80);
+      z-index: 3;
+      pointer-events:none;
+      color: rgb(255, 255, 255);
+    }
+
+    /* ===== NIL two-line label (title + subtitle) ===== */
+    .team.nil .team-label{
+      flex-direction: column;
+      gap: 2px;
+      padding: 8px;
+    }
+
+    .team.nil img{
+      filter: brightness(0.35) contrast(1.05);
+    }
+
+    .nil-title{
+      width: 100%;
       text-align: center;
       font-weight: 900;
-      font-size: 25px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.12);
-      
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      line-height: 1.02;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .nil-sub{
+      width: 100%;
+      text-align: center;
+      font-weight: 800;
+      opacity: 0.85;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      font-size: 11px;
       line-height: 1.1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-width: 0;
+      max-height: 2.2em;
+      overflow: hidden;
     }
-    .stat-label { font-size: 13px; font-weight: bold; margin-top: 2px; letter-spacing: 0.5px; }
-    .promo-box {
-      background: #6B6361;
-      border: 3px solid #E7622F;
-      border-radius: 8px;
-      text-align: -webkit-auto;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      margin-bottom: 1px;
-      margin-bottom: inherit;
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      justify-content: space-between;
-      gap: 6px;
-      padding: 0;
-      min-height: 46px;
+
+    .team::before{
+      content:'';
+      position:absolute;
+      inset:-12px;
+      border-radius: 14px;
+      background:
+        radial-gradient(circle, rgba(0,229,204,0.28) 0%, rgba(123,45,139,0.20) 40%, transparent 72%);
+      filter: blur(18px);
+      opacity: 0.34;
+      z-index: 0;
+      pointer-events:none;
+      animation: tilePulse 3.2s ease-in-out infinite;
     }
-    #promoWrap {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      width: 100%;
-      padding-left: 0px;
+
+    @keyframes tilePulse{
+      0%{ opacity: .16; transform: scale(.98); }
+      50%{ opacity: .45; transform: scale(1.02); }
+      100%{ opacity: .16; transform: scale(.98); }
     }
-    .promo-box-notes { justify-content: center; padding: 0; }
-    .promo-label {
-      font-size: 21px; font-weight: 900; color: #fcf9f9; letter-spacing: 0.5px;
-      display: flex; flex-direction: column; align-items: flex-start;
-      line-height: 1.1; min-width:50px;
+
+    .team.sold::before{ opacity: 0.10; animation:none; }
+
+    .team.sold img{
+      opacity: 0.22;
+      filter: grayscale(1) brightness(0.35);
     }
-    .promo-dollar {
-      color: #20bd26;
-      font-size: 34px;
+
+    .sold-x{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size: 54px;
       font-weight: 900;
-      
+      color: rgba(123,45,139,0.95);
+      text-shadow:
+        0 0 10px rgba(123,45,139,0.60),
+        0 0 18px rgba(0,229,204,0.22),
+        0 10px 22px rgba(0,0,0,0.85);
+      z-index: 4;
+      pointer-events:none;
+      opacity: 0;
+      transform: scale(0.92);
+      transition: opacity .14s ease, transform .14s ease;
     }
-    .promo-input {
-      width: 60px; font-size: 38px; font-weight: bold; text-align: center;
-      border-radius: 7px; padding: 4px 0; border: 4px solid #ED872D;
-      background: #e6dfcc; color: #000000;
-      height: 38px;
+    .team.sold .sold-x{ opacity: 1; transform: scale(1); }
+
+    /* ===== Center control bar ===== */
+    .control-bar{
+      display:flex;
+      flex-direction:column;
+      justify-content: space-between;
+      align-items: stretch;
+      width: 140px;
+      border-radius: 14px;
+      padding: 10px 6px;
+      background: linear-gradient(180deg, rgba(0,229,204,0.12), rgba(0,0,0,0.55), rgba(123,45,139,0.14));
+      border: 2px solid rgba(0,229,204,1);
+      box-shadow: inset 0 0 18px rgba(0,0,0,0.35);
+      position: relative;
+      overflow: visible;
     }
-    .promo-box-notes .promo-input-notes {
+
+    .control-bar .btn{
+      background: linear-gradient(180deg, rgb(212 185 112), rgb(253 245 211));
+      color: #162812;
+      border: 2px solid rgba(0,229,204,0.20);
+      border-radius: 12px;
+      padding: 10px 8px;
+      font-size: 18px;
+      font-weight: 900;
+      text-transform: uppercase;
+      cursor:pointer;
+      width:100%;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+      transition: transform .12s ease;
+      position: relative;
+      z-index: 2;
+    }
+    .control-bar .btn:active{ transform: translateY(1px); }
+
+    .stat-box{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,0.55);
+      border: 2px solid rgba(0,229,204,0.92);
+      border-radius: 12px;
+      padding: 6px 4px;
+      position: relative;
+      z-index: 2;
+    }
+    .stat-box .value{
+      font-size: 22px;
+      font-weight: 900;
+      color: var(--steel1);
+      text-shadow: 0 2px 0 rgba(0,0,0,0.85);
+    }
+    .stat-box .label{
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0.85;
+      font-weight: 900;
+      color: rgba(0,229,204,0.92);
+    }
+
+    .sold-stat{ cursor:pointer; }
+
+    .brand-logo{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap: 4px;
+
+      position:relative;
+      left:50%;
+      top:50%;
+      transform: translate(-50%, -50%);
       width: 100%;
+      padding: 0;
+
+      pointer-events:none;
+      animation: logoBreathe 9s ease-in-out infinite;
+      transform-origin:center;
+      z-index: 1;
+      padding-bottom:62px;
     }
-    
-    .promo-input-notes {
-      width: 100%; font-size: 22px; font-weight: bold; text-align: center;
-      border-radius: 7px; padding: 6px 0; border: 4px solid #ED872D;
-      background: #e6dfcc; color: #000000;
-      height: 35px;
+
+    @keyframes logoBreathe{
+      0%{ transform: scale(1); }
+      50%{ transform: scale(1.06); }
+      100%{ transform: scale(1); }
     }
-    .btn {
-      background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
-      color: #0c0b0b;
-      border: none;
-      
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 700;
-      font-size: 16px;
-      letter-spacing: .5px;
-      margin-bottom: 3px;
-      transition: all 0.3s;
-      text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      min-width: 0;
-      height: 17%;
+
+    .brand-logo img{
+      width: 150%;
+      height:auto;
+      top:-280px;
+      left:-95px;
+      z-index: 999;
+      object-fit: contain;
+      position:absolute;
+      filter:
+        drop-shadow(0 10px 18px rgba(0,0,0,0.65))
+        drop-shadow(0 0 12px rgba(0,229,204,0.18))
+        drop-shadow(0 0 10px rgba(123,45,139,0.18));
+      pointer-events:none;
     }
-    .btn.secondary {
-      background: linear-gradient(135deg, #B22222 0%, #8B0000 100%);
-      color: #ffffff;
-      height:19%
+
+    /* ===== Ticker ===== */
+/* ===== Marquee ===== */
+.ticker{
+  width:100%;
+  overflow:hidden;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(0,229,204,0.16), rgba(0,0,0,0.70), rgba(123,45,139,0.18));
+  border: 2px solid rgba(0,229,204,0.16);
+  position: relative;
+}
+
+.ticker-track{
+  display:flex;
+  align-items:center;
+  width:max-content;
+  min-width:100%;
+  will-change: transform;
+  animation: none !important;
+}
+
+.ticker-text{
+  flex: 0 0 auto;
+  white-space: nowrap;
+  display:inline-block;
+  padding-right: 60px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  font-size: 18px;
+  line-height: 40px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.65);
+  color: rgba(0,229,204,0.96);
+}
+
+@keyframes marqueeScroll{
+  0%{ transform: translateX(100%); }
+  100%{ transform: translateX(-100%); }
+}
+
+.obs-slider-wrap{
+  margin-top: 12px;
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+
+.obs-slider-wrap input[type="range"]{
+  flex: 1 1 auto;
+}
+
+.obs-slider-pill{
+  min-width: 84px;
+  text-align:center;
+  padding: 8px 10px;
+  border-radius: 999px;
+  border: 2px solid rgba(0,229,204,0.18);
+  background: rgba(0,0,0,0.35);
+  color: rgba(0,229,204,0.96);
+  font-weight: 900;
+  font-size: 12px;
+}
+
+    /* ===== Control panel ===== */
+.control-panel{
+  width:100%;
+  border: 2px solid rgba(0,229,204,0.16);
+  border-radius: 14px;
+  padding: 8px;
+  background: rgba(0,0,0,0.08);
+  display:flex;
+  flex-direction:row;
+  gap: 8px;
+  justify-content: space-between;
+  align-items:center;
+  flex-wrap: nowrap;
+}
+.control-panel.hidden{
+  display:none;
+}
+.breaktype-buttons{
+  display:flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  align-items:center;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+    .breaktype-btn{
+      background: rgba(0,0,0,0.55);
+      color: rgba(0,229,204,0.95);
+      border: 2px solid rgba(0,229,204,0.18);
+      border-radius: 12px;
+      padding: 8px 10px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor:pointer;
+      font-size: 18px;
     }
-    .btn:active { filter: brightness(0.95); }
-    .sold-list-container {
-      margin: 0px auto 0 auto;
-      width: 900px;
-      background:linear-gradient(180deg, #000000db, #6a636191 100%);
-      border: 5px solid #951f18;
-      border-radius: 8px;
-      padding: 4px 7px;
-text-align:center;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+
+    .breaktype-btn.active{
+      border-color: rgba(123,45,139,0.60);
+      box-shadow: 0 0 0 2px rgba(0,229,204,0.10);
     }
-    .sold-list-title { font-size: 19px; font-weight: 900; color: #ffffff; margin-bottom: 6px; }
-    .sold-list-grid {
+
+.control-actions{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  margin-left: 10px;
+  flex: 0 0 auto;
+}
+.breaktype-btn{
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+#nilItemsBtn{
+  max-width: 132px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+    .pill-btn{
+      background: linear-gradient(180deg, rgb(212 185 112), rgb(253 245 211));
+      color: #162812;
+      border: 2px solid rgba(0,229,204,0.18);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 900;
+      cursor:pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 13px;
+      white-space: nowrap;
+      box-shadow: 0 8px 18px rgba(0,0,0,0.30);
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .pill-btn:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 10px 22px rgba(0,0,0,0.40);
+    }
+    .pill-btn:active{ transform: translateY(0); }
+
+    .pill-btn.red{
+      background: linear-gradient(180deg, rgb(212 185 112), rgb(253 245 211));
+      border: 2px solid rgba(0,229,204,0.18);
+      color:#162812;
+    }
+
+    /* ===== SOLD header row ===== */
+ .sold-header-row{
+  display:grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items:center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-top: 2px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(0,229,204,0.10), rgba(0,0,0,0.12), rgba(123,45,139,0.10));
+  border: 1px solid rgba(0,229,204,0.18);
+  z-index: 2;
+  position: relative;
+  min-height: 36px;
+}
+
+.sold-header-controls{
+  grid-column: 2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  white-space: nowrap;
+}
+
+.sold-sse{
+  grid-column: 3;
+  justify-self: end;
+}
+
+    .sold-panel-title{
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      white-space: nowrap;
+      opacity: 0.94;
+      color: rgba(0,229,204,0.96);
+    }
+
+
+.sse-status-mini{
+  gap: 4px;
+  padding: 4px 8px;
+  border-width: 1px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  background: rgba(0,0,0,0.38);
+  min-height: 28px;
+}
+
+.sse-status-mini .dot{
+  width: 7px;
+  height: 7px;
+  box-shadow: 0 0 6px rgba(255,255,255,0.12);
+}
+
+
+.sse-status{
+  display:inline-flex;
+  align-items:center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,229,204,0.18);
+  background: rgba(0,0,0,0.25);
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(0,229,204,0.92);
+  line-height: 1;
+}
+
+.sse-status .dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+  box-shadow: 0 0 8px rgba(255,255,255,0.15);
+}
+    .sse-status.connected .dot{
+      background: #3cff8a;
+      box-shadow: 0 0 10px rgba(60,255,138,0.7);
+    }
+    .sse-status.error .dot{
+      background: #ff2f2f;
+      box-shadow: 0 0 10px rgba(255,47,47,0.7);
+    }
+
+    /* ===== SOLD panel slot ===== */
+    .sold-panel-slot{
+      width: 95%;
+      height: 160px;
+      position: relative;
+      overflow: visible;
+      margin: 0 auto;
+      z-index: 2;
+    }
+
+    .sold-panel{
+      position: relative;
+      inset: 0;
+      padding: 10px;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px 18px;
-      grid-auto-flow: row; /* Change from 'column' to 'row' */
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      border-radius: 14px;
+      border: 2px solid rgba(0,229,204,0.18);
+      background: linear-gradient(90deg, rgba(0,229,204,0.12), rgba(0,0,0,0.55), rgba(123,45,139,0.12));
+      opacity: 1;
+      pointer-events: auto;
+      transition: opacity 0.2s ease;
+      box-shadow: inset 0 0 18px rgba(0,0,0,0.35);
     }
-    .sold-row {
-      display: flex;
-      align-items: center;
+
+    .sold-panel.hidden{
+      opacity: 1;
+      
+      background: #505037fa;
+      border-color: #d2b871;
+    }
+
+    .sold-item{
+      display:flex;
+      align-items:center;
       gap: 8px;
-      margin-bottom: 4px;
-      background: #fff;
-      border-radius: 9px;
-      padding: 2px 4px;
-      border: 4px solid #8e281e;
+      padding: 6px 8px;
+      border-radius: 999px;
+      background: rgba(0,229,204,0.10);
+      box-shadow: inset 0 0 0 2px rgba(0,229,204,0.10);
+      transition: transform .15s ease, box-shadow .15s ease;
     }
-    .sold-team-img { width: 28px; height: 28px; object-fit: cover; border-radius: 4px; border: 1px solid #D4AF37; }
-    .sold-team-name { font-weight: bold; color: #333; min-width: 60px; text-transform: capitalize; font-size: 14px; }
-    .sold-buyer-input {
-      font-size: 14px; 
-border: 2px solid #B22222;
-border-radius: 4px;
- font-weight:bold;
-      padding: 2px 5px;
- width: 80%;
+
+    .sold-item:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.35);
     }
-    /* Right Sidebar Fix */
-  .sidebar {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
-    width: 160px;
-    background-color: #b92b27;
-    padding: 10px;
-    border-radius: 6px;
-  }
+
+    .sold-item img{
+      max-width: 100%;
+      max-height: 36px;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55));
+      background: rgba(0,0,0,0.25);
+      border-radius: 8px;
+      padding: 2px;
+    }
+
+    .buyer-input{
+      width: 100%;
+      border: none;
+      outline: none;
+      background: rgba(0,0,0,0.55);
+      color: rgba(0,229,204,0.96);
+      border-radius: 999px;
+      padding: 8px 5px;
+      font-size: 16px;
+      font-weight: 900;
+      border: 1px solid rgba(0,229,204,0.14);
+    }
+
+    /* ===== Sport density tweaks ===== 
+    .overlay-container.sport-nfl{
+      --teams-h: 390px;
+      --team-height: 65px;
+      --team-cols: 4;
+    }
+
+ .overlay-container.sport-nba,
+.overlay-container.sport-mlb,
+.overlay-container.sport-wnba{
+  --team-height: 79px;
+  --team-cols: 5;
+}
+
+    .overlay-container.sport-nil{
+      --team-height: 65px;
+      --team-cols: 4;
+    }
+
+*/
+
+    .overlay-container.sport-nil .conference-title,
+    .overlay-container.sport-nil .division-name{
+      display:none !important;
+    }
+
+ 
+
+    /* ===== NIL modal ===== */
+    .nil-modal{
+      position: fixed;
+      inset: 0;
+      z-index: 5000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,0.55);
+    }
+    .nil-modal.hidden{ display:none; }
+
+    .nil-modal-inner{
+      width: min(520px, 92vw);
+      border-radius: 14px;
+      border: 2px solid rgba(0,229,204,0.22);
+      background: linear-gradient(180deg, rgba(0,0,0,0.92), rgba(0,0,0,0.85));
+      box-shadow: 0 18px 60px rgba(0,0,0,0.65);
+      padding: 14px;
+    }
+
+    .nil-modal-inner h2{
+      margin: 0 0 10px 0;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--steel1);
+    }
+
+    #nilTextInput{
+      width: 100%;
+      height: 220px;
+      resize: none;
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(255,255,255,0.95);
+      color: #000;
+      font-weight: 900;
+      border: 2px solid rgba(255,255,255,0.25);
+      outline: none;
+    }
+
+    .nil-modal-actions{
+      margin-top: 10px;
+      display:flex;
+      gap: 8px;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .nil-modal-actions button{
+      background: linear-gradient(180deg, rgba(123,45,139,0.90), rgba(138,90,24,0.95));
+      color:#fff;
+      border:none;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 900;
+      cursor:pointer;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    .nil-modal-actions button.secondary{
+      background: rgba(0,229,204,0.12);
+      border: 2px solid rgba(0,229,204,0.20);
+      color: rgba(0,229,204,0.95);
+    }
+
+    /* ===== OBS-safe modal prompt (Break # / Title) ===== */
+    .obs-modal{
+      position: fixed;
+      inset: 0;
+      z-index: 6000;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: rgba(0,0,0,0.62);
+    }
+    .obs-modal.hidden{ display:none; }
+
+    .obs-modal-inner{
+      width: min(520px, 92vw);
+      border-radius: 14px;
+      border: 2px solid rgba(0,229,204,0.24);
+      background: linear-gradient(180deg, rgba(0,0,0,0.92), rgba(0,0,0,0.86));
+      box-shadow: 0 18px 60px rgba(0,0,0,0.70);
+      padding: 14px;
+    }
+
+    .obs-modal-title{
+      margin: 0 0 10px 0;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--steel1);
+    }
+
+    .obs-modal-desc{
+      margin: -4px 0 10px 0;
+      font-size: 12px;
+      font-weight: 800;
+      color: rgba(0,229,204,0.82);
+      letter-spacing: 0.6px;
+    }
+
+    .obs-modal-input{
+      width: 100%;
+      border-radius: 12px;
+      padding: 12px 12px;
+      background: rgba(0,0,0,0.55);
+      border: 2px solid rgba(0,229,204,0.20);
+      outline:none;
+      color: rgba(0,229,204,0.96);
+      font-weight: 900;
+      font-size: 16px;
+    }
+
+    .obs-modal-actions{
+      margin-top: 10px;
+      display:flex;
+      gap: 8px;
+      justify-content:flex-end;
+      flex-wrap: wrap;
+    }
+
+    .obs-modal-actions button{
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-weight: 900;
+      cursor:pointer;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      border: 2px solid rgba(0,229,204,0.18);
+    }
+
+    .obs-modal-actions .ok{
+      background: linear-gradient(180deg, rgba(123,45,139,0.90), rgba(138,90,24,0.95));
+      color:#fff;
+    }
+
+    .obs-modal-actions .cancel{
+      background: rgba(0,229,204,0.12);
+      color: rgba(0,229,204,0.95);
+    }
+
+/* ===== Border Wick Sweep (Hit Chasers exact) ===== */
+.wick{
+  position: relative;
+  border-radius: 14px;
+}
+.wick::after{
+  content:"";
+  position:absolute;
+  inset:-2px;                 /* slightly OUTSIDE so glow stays off content */
+  border-radius: inherit;
+  pointer-events:none;
+  z-index: 20;
+
+  background: linear-gradient(130deg,
+    rgba(255,221,122,0) 0%,
+    rgba(255,221,122,0) 38%,   /* dead zone before the spark */
+    rgba(255,250,210,1) 48%,   /* hot core starts */
+    rgba(255,221,122,0.95) 52%,
+    rgba(216,178,76,0.85) 58%,
+    rgba(255,221,122,0) 68%,   /* spark dies out */
+    rgba(255,221,122,0) 100%   /* dead zone after spark */
+  );
+  background-size: 300% 300%;
+  animation: wickRun 5s ease-in-out infinite alternate;
+
+  /* border-only mask */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  padding: 4px;
+
+  /* IMPORTANT: no blur, no blend-mode */
+  filter:
+    drop-shadow(0 0 10px rgba(255,221,122,0.95))
+    drop-shadow(0 0 22px rgba(216,178,76,0.75));
+  opacity: 1;
+}
+
+@keyframes wickRun{
+  0%   { background-position:   0% 50%; }
+  100% { background-position: 100% 100%; }
+}
 
   </style>
 </head>
+
 <body>
-  <div class="container">
-    <div class="header" id="headerText">
-      🏀 NBA BOX BREAK
+  <div class="overlay-container" id="overlayRoot">
+    <div class="header">
+      <div class="brand">
+        <div class="brand-title" id="brandTitle">Pokemaster Mates</div>
+        <div class="brand-slogan" id="brandSlogan">COLLECTIBLES</div>
+      </div>
+
+      <div class="header-right">
+        <div class="break-id-box">
+          <span class="break-id-label">Break #</span>
+          <span id="breakIdDisplay" class="break-id-value">—</span>
+        </div>
+      </div>
     </div>
-    <div class="main-content">
+
+    <div class="main">
       <div class="teams-section">
-        <div class="teams-grid" id="teamsGrid"></div>
-      </div>
-      <div class="right-panel">
-        <div class="stat-row">
+<div id="conferenceLeft" class="conference wick"></div>
+
+<div class="control-bar" id="centerControlBar">
+  <div class="brand-logo">
+    <img id="brandLogo" src="../../images/logos/pmm-logo.png" alt="Pokemaster Mates" />
+  </div>
+
+  <button class="btn" onclick="resetAll()">Reset</button>
+
+  <div class="stat-box sold-stat" onclick="toggleSoldControls()">
+            <div class="value" id="teamsSold">0</div>
+            <div class="label">Sold</div>
+          </div>
+
           <div class="stat-box">
-            <div id="teamsLeft">30</div>
-            <div class="stat-label">REMAINING</div>
+            <div class="value" id="teamsLeft">0</div>
+            <div class="label">Remaining</div>
           </div>
-          <div class="stat-box">
-            <div id="teamsSold">0</div>
-            <div class="stat-label">SOLD</div>
-          </div>
-        </div>
-        
-        <div id="promoWrap">
-          <div class="promo-box">
-            <div class="promo-label">High<br>Bid</div>
-            <div class="promo-dollar">$</div>
-            <input id="highBidInput" type="text" class="promo-input" placeholder="30">
-          </div>
-          <div class="promo-box promo-box-notes">
-            <input id="promoNotesInput" type="text" class="promo-input-notes" placeholder="Inactive">
-          </div>
+
+          <button class="btn" onclick="startNewBreakCycle()">Next</button>
         </div>
 
-        <button class="btn" onclick="resetAll()">🔄 RESET BREAK</button>
-        <button class="btn secondary" onclick="changeBreakType()">🔄 CHANGE SPORT</button>
+       <div id="conferenceRight" class="conference wick"></div>
+      </div>
+
+<div class="ticker wick">
+  <div class="ticker-track" id="tickerTrack">
+    <span id="tickerTextA" class="ticker-text"></span>
+    <span id="tickerTextB" class="ticker-text" aria-hidden="true"></span>
+  </div>
+</div>
+
+<div id="soldControlsPanel" class="control-panel">
+  <div class="breaktype-buttons" id="breakTypeButtons"></div>
+
+  <div class="control-actions">
+    <button class="pill-btn" onclick="openPrompt('ticker')">Set Ticker</button>
+    <button class="pill-btn red" onclick="openPrompt('break')">Set Break #</button>
+    <button class="pill-btn" onclick="openPrompt('title')">Set Title</button>
+<button id="nflChaseBtn" class="pill-btn" style="display:none;" onclick="toggleNFLChaseSpots()">Chase Spots</button>
+    <button id="nilItemsBtn" class="pill-btn" style="display:none;" onclick="openNilModal()">Custom Items</button>
+  </div>
+
+
+
+  <input id="nilCsvInput" type="file" accept=".csv,text/csv" style="display:none;" />
+</div>
+
+<div class="sold-header-row">
+  <div class="sold-header-controls">
+    <div class="sold-panel-title">SOLD TEAMS</div>
+  </div>
+
+  <div class="sse-status sse-status-mini sold-sse" id="sseStatus">
+    <span class="dot" id="sseDot"></span>
+    <span class="sse-label">SSE</span>
+    <span id="sseText">disconnected</span>
+  </div>
+</div>
+    </div>
+  </div>
+
+  <div id="soldPanelSlot" class="sold-panel-slot">
+    <div id="soldPanel" class="sold-panel hidden"></div>
+  </div>
+
+  <!-- NIL Modal -->
+  <div id="nilModal" class="nil-modal hidden">
+    <div class="nil-modal-inner">
+      <h2>Custom Items</h2>
+      <textarea id="nilTextInput" placeholder="Paste or type one item per line"></textarea>
+
+      <div class="nil-modal-actions">
+        <button class="secondary" onclick="triggerNilCsv()">Import CSV</button>
+        <button onclick="applyNilText()">Apply</button>
+        <button class="secondary" onclick="closeNilModal()">Close</button>
+        <button class="secondary" onclick="clearNilEntries()">Clear</button>
       </div>
     </div>
   </div>
-  <div class="sold-list-container">
-    <div class="sold-list-title">Sold Teams</div>
-    <div id="soldList" class="sold-list-grid"></div>
+
+  <!-- OBS-safe prompt modal -->
+  <div id="obsPrompt" class="obs-modal hidden">
+    <div class="obs-modal-inner">
+      <div class="obs-modal-title" id="obsPromptTitle">Set Value</div>
+      <div class="obs-modal-desc" id="obsPromptDesc"></div>
+      <input id="obsPromptInput" class="obs-modal-input" type="text" />
+      <div class="obs-modal-actions">
+        <button class="cancel" onclick="closePrompt()">Cancel</button>
+        <button class="ok" onclick="commitPrompt()">Apply</button>
+      </div>
+    </div>
   </div>
-<script>
 
-// Images live in /images at repo root.
-// Overlays are in /overlays/<client>/, so go up two levels.
-const imgPath     = (f) => `../../images/nba/${f}`;
-const imgPathNFL  = (f) => `../../images/nfl/${f}`;
-const imgPathPKM  = (f) => `../../images/pkm/${f}`;
-const imgPathMLB  = (f) => `../../images/mlb/${f}`;
+<div id="chaseModal" class="obs-modal hidden">
+  <div class="obs-modal-inner">
+    <div class="obs-modal-title">NFL Chase Spots</div>
+    <div class="obs-modal-desc">Edit up to 3 chase spot labels.</div>
 
-  // NBA teams with images
-  const breakTypes = {
-    nba: {
-      name: 'NBA', icon: '🏀', price: 25,
-      teams: [
-        {code:'ATL',name:'hawks',image:imgPath('hawks.png')},
-        {code:'BOS',name:'celtics',image:imgPath('celtics.png')},
-        {code:'BKN',name:'nets',image:imgPath('nets.png')},
-        {code:'CHA',name:'hornets',image:imgPath('hornets.png')},
-        {code:'CHI',name:'bulls',image:imgPath('bulls.png')},
-        {code:'CLE',name:'cavaliers',image:imgPath('cavaliers.png')},
-        {code:'DAL',name:'mavericks',image:imgPath('mavericks.png')},
-        {code:'DEN',name:'nuggets',image:imgPath('nuggets.png')},
-        {code:'DET',name:'pistons',image:imgPath('pistons.png')},
-        {code:'GSW',name:'warriors',image:imgPath('warriors.png')},
-        {code:'HOU',name:'rockets',image:imgPath('rockets.png')},
-        {code:'IND',name:'pacers',image:imgPath('pacers.png')},
-        {code:'LAC',name:'clippers',image:imgPath('clippers.png')},
-        {code:'LAL',name:'lakers',image:imgPath('lakers.png')},
-        {code:'MEM',name:'grizzlies',image:imgPath('grizzlies.png')},
-        {code:'MIA',name:'heat',image:imgPath('heat.png')},
-        {code:'MIL',name:'bucks',image:imgPath('bucks.png')},
-        {code:'MIN',name:'timberwolves',image:imgPath('timberwolves.png')},
-        {code:'NOP',name:'pelicans',image:imgPath('pelicans.png')},
-        {code:'NYK',name:'knicks',image:imgPath('knicks.png')},
-        {code:'OKC',name:'thunder',image:imgPath('thunder.png')},
-        {code:'ORL',name:'magic',image:imgPath('magic.png')},
-        {code:'PHI',name:'76ers',image:imgPath('76ers.png')},
-        {code:'PHX',name:'suns',image:imgPath('suns.png')},
-        {code:'POR',name:'blazers',image:imgPath('blazers.png')},
-        {code:'SAC',name:'kings',image:imgPath('kings.png')},
-        {code:'SAS',name:'spurs',image:imgPath('spurs.png')},
-        {code:'TOR',name:'raptors',image:imgPath('raptors.png')},
-        {code:'UTA',name:'jazz',image:imgPath('jazz.png')},
-        {code:'WAS',name:'wizards',image:imgPath('wizards.png')}
-      ]
-    },
-    nfl: { name:'NFL', icon:'🏈', price:30, teams:[
-     { code: 'ARI', name: 'cardinals',  image: imgPathNFL('cardinals.png') },
-    { code: 'ATL', name: 'falcons',    image: imgPathNFL('falcons.png') },
-    { code: 'BAL', name: 'ravens',     image: imgPathNFL('ravens.png') },
-    { code: 'BUF', name: 'bills',      image: imgPathNFL('bills.png') },
-    { code: 'CAR', name: 'panthers',   image: imgPathNFL('panthers.png') },
-    { code: 'CHI', name: 'bears',      image: imgPathNFL('bears.png') },
-    { code: 'CIN', name: 'bengals',    image: imgPathNFL('bengals.png') },
-    { code: 'CLE', name: 'browns',     image: imgPathNFL('browns.png') },
-    { code: 'DAL', name: 'cowboys',    image: imgPathNFL('cowboys.png') },
-    { code: 'DEN', name: 'broncos',    image: imgPathNFL('broncos.png') },
-    { code: 'DET', name: 'lions',      image: imgPathNFL('lions.png') },
-    { code: 'GB',  name: 'packers',    image: imgPathNFL('packers.png') },
-    { code: 'HOU', name: 'texans',     image: imgPathNFL('texans.png') },
-    { code: 'IND', name: 'colts',      image: imgPathNFL('colts.png') },
-    { code: 'JAX', name: 'jaguars',    image: imgPathNFL('jaguars.png') },
-    { code: 'KC',  name: 'chiefs',     image: imgPathNFL('chiefs.png') },
-    { code: 'LV',  name: 'raiders',    image: imgPathNFL('raiders.png') },
-    { code: 'LAC', name: 'chargers',   image: imgPathNFL('chargers.png') },
-    { code: 'LAR', name: 'rams',       image: imgPathNFL('rams.png') },
-    { code: 'MIA', name: 'dolphins',   image: imgPathNFL('dolphins.png') },
-    { code: 'MIN', name: 'vikings',    image: imgPathNFL('vikings.png') },
-    { code: 'NE',  name: 'patriots',   image: imgPathNFL('patriots.png') },
-    { code: 'NO',  name: 'saints',     image: imgPathNFL('saints.png') },
-    { code: 'NYG', name: 'giants',     image: imgPathNFL('giants.png') },
-    { code: 'NYJ', name: 'jets',       image: imgPathNFL('jets.png') },
-    { code: 'PHI', name: 'eagles',     image: imgPathNFL('eagles.png') },
-    { code: 'PIT', name: 'steelers',   image: imgPathNFL('steelers.png') },
-    { code: 'SF',  name: '49ers',      image: imgPathNFL('49ers.png') },
-    { code: 'SEA', name: 'seahawks',   image: imgPathNFL('seahawks.png') },
-    { code: 'TB',  name: 'buccaneers', image: imgPathNFL('buccaneers.png') },
-    { code: 'TEN', name: 'titans',     image: imgPathNFL('titans.png') },
-    { code: 'WAS', name: 'commanders', image: imgPathNFL('commanders.png') }
-    ]
-  },
-    pkm: {
-  name: 'POKÉMON', icon: '🧪', price: 0,  // price is cosmetic, ignore if you want
-  gridCols: 4,          // tell the grid to be 4x2 for 8 spots
-  soldCols: 2,          // sold list in 2 columns
-  teams: [
-    { code:'GRS', name:'grass',     image: imgPathPKM('grass.png') },
-    { code:'FIR', name:'fire',      image: imgPathPKM('fire.png') },
-    { code:'WAT', name:'water',     image: imgPathPKM('water.png') },
-    { code:'LIT', name:'lightning', image: imgPathPKM('lightning.png') },
-    { code:'PSY', name:'psychic',   image: imgPathPKM('psychic.png') },
-    { code:'FIG', name:'fighting',  image: imgPathPKM('fighting.png') },
-    { code:'DRK', name:'dark',      image: imgPathPKM('dark.png') },
-    { code:'MET', name:'metal',     image: imgPathPKM('metal.png') }
-   ]
-  },
+    <input id="chaseInput1" class="obs-modal-input" type="text" placeholder="Chase Spot 1" style="margin-bottom:10px;" />
+    <input id="chaseInput2" class="obs-modal-input" type="text" placeholder="Chase Spot 2" style="margin-bottom:10px;" />
+    <input id="chaseInput3" class="obs-modal-input" type="text" placeholder="Chase Spot 3" />
 
-  mlb: {
-        name: 'MLB',
-        icon: '⚾',
-        teams: [
-          { code: 'ARI', name: 'diamondbacks', image: imgPathMLB('diamondbacks.png') },
-          { code: 'ATL', name: 'braves',        image: imgPathMLB('braves.png') },
-          { code: 'BAL', name: 'orioles',       image: imgPathMLB('orioles.png') },
-          { code: 'BOS', name: 'red sox',       image: imgPathMLB('redsox.png') },
-          { code: 'CHC', name: 'cubs',          image: imgPathMLB('cubs.png') },
-          { code: 'CWS', name: 'white sox',     image: imgPathMLB('whitesox.png') },
-          { code: 'CIN', name: 'reds',          image: imgPathMLB('reds.png') },
-          { code: 'CLE', name: 'guardians',     image: imgPathMLB('guardians.png') },
-          { code: 'COL', name: 'rockies',       image: imgPathMLB('rockies.png') },
-          { code: 'DET', name: 'tigers',        image: imgPathMLB('tigers.png') },
-          { code: 'HOU', name: 'astros',        image: imgPathMLB('astros.png') },
-          { code: 'KC',  name: 'royals',        image: imgPathMLB('royals.png') },
-          { code: 'LAA', name: 'angels',        image: imgPathMLB('angels.png') },
-          { code: 'LAD', name: 'dodgers',       image: imgPathMLB('dodgers.png') },
-          { code: 'MIA', name: 'marlins',       image: imgPathMLB('marlins.png') },
-          { code: 'MIL', name: 'brewers',       image: imgPathMLB('brewers.png') },
-          { code: 'MIN', name: 'twins',         image: imgPathMLB('twins.png') },
-          { code: 'NYM', name: 'mets',          image: imgPathMLB('mets.png') },
-          { code: 'NYY', name: 'yankees',       image: imgPathMLB('yankees.png') },
-          { code: 'OAK', name: 'athletics',     image: imgPathMLB('athletics.png') },
-          { code: 'PHI', name: 'phillies',      image: imgPathMLB('phillies.png') },
-          { code: 'PIT', name: 'pirates',       image: imgPathMLB('pirates.png') },
-          { code: 'SD',  name: 'padres',        image: imgPathMLB('padres.png') },
-          { code: 'SF',  name: 'giants',        image: imgPathMLB('giants.png') },
-          { code: 'SEA', name: 'mariners',      image: imgPathMLB('mariners.png') },
-          { code: 'STL', name: 'cardinals',     image: imgPathMLB('cardinals.png') },
-          { code: 'TB',  name: 'rays',          image: imgPathMLB('rays.png') },
-          { code: 'TEX', name: 'rangers',       image: imgPathMLB('rangers.png') },
-          { code: 'TOR', name: 'blue jays',     image: imgPathMLB('bluejays.png') },
-          { code: 'WAS', name: 'nationals',     image: imgPathMLB('nationals.png') }
-        ]
+    <div class="obs-modal-actions">
+      <button class="cancel" onclick="closeChaseModal()">Cancel</button>
+      <button class="ok" onclick="applyChaseModal()">Apply</button>
+    </div>
+  </div>
+</div>
+
+
+  <script>
+    /* =========================
+       Paths (standard BASE)
+    ========================== */
+
+
+    
+    const BASE = (() => {
+      const isGhPages = location.hostname.endsWith('github.io');
+      if (isGhPages) {
+        const parts = location.pathname.split('/').filter(Boolean);
+        const repo = parts.length ? parts[0] : '';
+        return `/${repo}/`;
       }
-  }
-  let currentBreakType = 'nba';
-  let soldTeams = new Set();
-  let soldTeamsList = [];
+      return '../../';
+    })();
 
-  function broadcastSportUpdate() {
-  window.postMessage({
-    source: "TSU_OVERLAY",
-    type: "SPORT_UPDATE",
-    sport: currentBreakType
-  }, "*");
+    // Pokemaster Mates logo
+    const LOGO_PATH = `../../images/logos/pmm-logo.png`;
+    document.getElementById('brandLogo').src = LOGO_PATH;
+
+    // NIL background (kept identical to Wizards behavior)
+    const NIL_TILE_BG = `${BASE}images/logos/bojackson-logo.png`;
+
+    const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+    const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
+    const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
+    const imgPathWNBA = (f) => `${BASE}images/wnba/${f}`;
+
+    /* =========================
+       LocalStorage namespace
+    ========================== */
+const LS = {
+  BREAK_NUMBER: 'pmm.breakNumber',
+  TICKER: 'pmm.tickerLines',
+  TICKER_SPEED: 'pmm.tickerSpeed',
+  NIL_ENTRIES: 'pmm.nil.entries',
+  SOLD_STATE: 'pmm.soldState',
+
+  BRIDGE: 'tsu.bridgeUrl',
+  KEY: 'tsu.bridgeKey',
+
+  TITLE_MAIN: 'pmm.title.main',
+  TITLE_SUB: 'pmm.title.sub',
+
+  NFL_CHASE_ENABLED: 'pmm.nfl.chase.enabled',
+  NFL_CHASE_ITEMS: 'pmm.nfl.chase.items'
+};
+
+    /* =========================
+       Title persistence
+    ========================== */
+    const DEFAULT_TITLE_MAIN = 'POKEMASTER MATES';
+    const DEFAULT_TITLE_SUB  = 'COLLECTIBLES';
+
+    function loadTitles(){
+      const main = localStorage.getItem(LS.TITLE_MAIN) || DEFAULT_TITLE_MAIN;
+      const sub  = localStorage.getItem(LS.TITLE_SUB)  || DEFAULT_TITLE_SUB;
+      return { main, sub };
+    }
+
+    function saveTitles(main, sub){
+      localStorage.setItem(LS.TITLE_MAIN, main);
+      localStorage.setItem(LS.TITLE_SUB, sub);
+    }
+
+    function applyTitles(main, sub){
+      const m = (main || DEFAULT_TITLE_MAIN).trim() || DEFAULT_TITLE_MAIN;
+      const s = (sub || DEFAULT_TITLE_SUB).trim() || DEFAULT_TITLE_SUB;
+
+      document.getElementById('brandTitle').textContent = m;
+      document.getElementById('brandSlogan').textContent = s;
+      document.getElementById('brandLogo').alt = m;
+
+      saveTitles(m, s);
+    }
+
+    /* =========================
+       Ticker
+    ========================== */
+/* =========================
+   Ticker
+========================= */
+const DEFAULT_TICKER_LINES = [
+  'POKEMASTER MATES',
+  'BUY • SELL • TRADE • SPORTS CARDS'
+];
+
+const SCORES_BY_SPORT = {
+  nba: '',
+  nfl: '',
+  mlb: '',
+  wnba: ''
+};
+
+const SCORES_UPDATED_AT = {
+  nba: 0,
+  nfl: 0,
+  mlb: 0,
+  wnba: 0
+};
+
+let TICKER_LINES = loadTickerLines();
+let tickerCycleTimer = null;
+let tickerAnim = null;
+let tickerRefreshPending = false;
+
+
+function loadTickerLines(){
+  try{
+    const raw = localStorage.getItem(LS.TICKER);
+    if (!raw) return DEFAULT_TICKER_LINES.slice();
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr) && arr.length) return arr.map(s => String(s));
+  }catch(_){}
+  return DEFAULT_TICKER_LINES.slice();
 }
 
-broadcastSportUpdate();
+function saveTickerLines(lines){
+  localStorage.setItem(LS.TICKER, JSON.stringify(lines));
+}
 
-setInterval(broadcastSportUpdate, 500);
+function loadTickerSpeed(){
+  const n = parseInt(localStorage.getItem(LS.TICKER_SPEED) || '90', 10);
+  return Number.isFinite(n) ? Math.max(40, Math.min(200, n)) : 90;
+}
 
+function saveTickerSpeed(n){
+  const safe = Number.isFinite(n) ? Math.max(40, Math.min(200, n)) : 90;
+  localStorage.setItem(LS.TICKER_SPEED, String(safe));
+}
 
-    //  TSU EXTENSION SPORT SYNC — ADD THIS ↓↓↓
-  // ==========================================================
-  window.getTSUSport = () => {
-    try {
-      return currentBreakType || "nfl";
-    } catch {
-      return "nfl";
-    }
-  };
+function isFreshSportScore(sport){
+  return (Date.now() - (SCORES_UPDATED_AT[sport] || 0)) < 1000 * 60 * 20;
+}
 
-  // Optional: second alias for debugging
-  window.__TSU_ACTIVE_SPORT = () => currentBreakType;
-  // ==========================================================
-  // END TSU SPORT SYNC
+function normalizeScorePayloadToText(data){
+  if (!data) return '';
 
-  function initializeGrid() {
-    const grid = document.getElementById('teamsGrid');
-    const currentBreak = breakTypes[currentBreakType];
-    grid.innerHTML = '';
-    // dynamic columns: prefer per-break config, else default 6
-    const cols = currentBreak.gridCols || 6;
-    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    soldTeams.clear();
-    soldTeamsList = [];
+  if (typeof data.text === 'string' && data.text.trim()) {
+    return data.text.trim();
+  }
 
-    currentBreak.teams.forEach((team, index) => {
-      const teamDiv = document.createElement('div');
-      teamDiv.className = 'team';
-      teamDiv.dataset.teamIndex = index;
-      teamDiv.onclick = () => toggleTeam(index);
+  if (Array.isArray(data.lines) && data.lines.length){
+    return data.lines.map(s => String(s).trim()).filter(Boolean).join(' • ');
+  }
 
-      if (typeof team === 'object' && team.image) {
-        const img = document.createElement('img');
-        img.src = team.image;
-        img.alt = team.name;
-        img.onerror = () => {
-          teamDiv.innerHTML = team.code;
-          teamDiv.classList.add('text-only');
-        };
-        teamDiv.appendChild(img);
-      } else {
-        teamDiv.textContent = typeof team === 'object' ? team.code : team;
-        teamDiv.classList.add('text-only');
-      }
-      grid.appendChild(teamDiv);
+  const league = String(data.league || data.sport || '').toUpperCase();
+
+  if (Array.isArray(data.games) && data.games.length){
+    const chunks = data.games.slice(0, 10).map(g => {
+      const away = String(g.away || g.a || g.awayTeam || '').toUpperCase();
+      const home = String(g.home || g.h || g.homeTeam || '').toUpperCase();
+      const as = g.awayScore ?? g.as ?? g.aScore;
+      const hs = g.homeScore ?? g.hs ?? g.hScore;
+      const st = String(g.status || g.state || g.clock || '').trim();
+
+      const scorePart = (Number.isFinite(+as) && Number.isFinite(+hs))
+        ? `${away} ${as}-${hs} ${home}`
+        : `${away} VS ${home}`;
+
+      return st ? `${scorePart} (${st})` : scorePart;
     });
 
-    updateHeader();
-    updateStats();
-    updateSoldList();
-    updateControlsForBreak();
+    const prefix = league ? `${league}: ` : 'SCORES: ';
+    return prefix + chunks.join(' • ');
   }
 
-  function toggleTeam(index) {
-    const teamDiv = document.querySelector(`[data-team-index="${index}"]`);
-    const listIndex = soldTeamsList.findIndex(e => e.index === index);
+  return '';
+}
 
-    if (soldTeams.has(index)) {
-      soldTeams.delete(index);
-      teamDiv.classList.remove('sold');
-      if (listIndex !== -1) soldTeamsList.splice(listIndex, 1);
-    } else {
-      soldTeams.add(index);
-      teamDiv.classList.add('sold');
-      if (listIndex === -1) soldTeamsList.push({ index, buyer: '' });
-    }
-    updateStats();
-    updateSoldList();
-  }
+function getBaseTickerText(){
+  return TICKER_LINES.join('   •   ');
+}
 
-  function updateStats() {
-    const currentBreak = breakTypes[currentBreakType];
-    const totalTeams = currentBreak.teams.length;
-    const soldCount = soldTeams.size;
-    const teamsLeft = totalTeams - soldCount;
-    document.getElementById('teamsLeft').textContent = teamsLeft;
-    document.getElementById('teamsSold').textContent = soldCount;
-  }
+function getFreshScoreSegments(){
+  const order = ['nfl','nba','mlb','wnba'];
+  return order
+    .filter(s => String(SCORES_BY_SPORT[s] || '').trim() && isFreshSportScore(s))
+    .map(s => SCORES_BY_SPORT[s].trim());
+}
 
-  function updateHeader() {
-    const currentBreak = breakTypes[currentBreakType];
-    document.getElementById('headerText').textContent = `${currentBreak.icon} ${currentBreak.name} BOX BREAK`;
-  }
+function buildTickerSequence(){
+  const base = getBaseTickerText();
+  const scores = getFreshScoreSegments();
 
-  function resetAll() {
-    soldTeams.clear();
-    soldTeamsList = [];
-    document.querySelectorAll('.team').forEach(team => team.classList.remove('sold'));
-    updateStats();
-    updateSoldList();
-  }
+  if (!scores.length) return [base];
 
-  function changeBreakType() {
-    const types = Object.keys(breakTypes);
-    currentBreakType = types[(types.indexOf(currentBreakType) + 1) % types.length];
-    updateControlsForBreak();
-
-    initializeGrid();
-  }
-
-  // Sold list: 3 columns of 10
-  function updateSoldList() {
-  const soldListDiv = document.getElementById('soldList');
-  soldListDiv.innerHTML = '';
-  const currentBreak = breakTypes[currentBreakType];
-
-  // Calculate rows needed to determine item placement
-  const itemsPerColumn = Math.ceil(soldTeamsList.length / 3);
-
-  soldTeamsList.forEach((entry, i) => {
-    const team = currentBreak.teams[entry.index];
-    const row = document.createElement('div');
-    row.className = 'sold-row';
-
-    if (team.image) {
-      const img = document.createElement('img');
-      img.src = team.image;
-      img.className = 'sold-team-img';
-      row.appendChild(img);
-    }
-
-    const name = document.createElement('span');
-    name.className = 'sold-team-name';
-    name.textContent = team.name || team.code;
-    row.appendChild(name);
-
-    const input = document.createElement('input');
-    input.className = 'sold-buyer-input';
-    input.type = 'text';
-    input.placeholder = 'Buyer name';
-    input.value = entry.buyer || '';
-    input.oninput = (e) => { entry.buyer = e.target.value; };
-    row.appendChild(input);
-
-    soldListDiv.appendChild(row);
+  const seq = [];
+  scores.forEach(scoreText => {
+    seq.push(base);
+    seq.push(scoreText);
   });
 
-  soldListDiv.style.display = 'grid';
-  soldListDiv.style.gridTemplateColumns = 'repeat(3, 1fr)';
-  soldListDiv.style.gap = '6px 18px';
+  return seq;
 }
 
-function updateControlsForBreak() {
-  const wrap = document.getElementById('promoWrap');
-  const container = document.querySelector('.container');
-  const isPKM = currentBreakType === 'pkm';
 
-  if (wrap) wrap.style.display = isPKM ? 'none' : 'flex';
-  // shorter container when only 8 slots
-  if (container) container.style.height = isPKM ? '260px' : '340px';
+
+function buildFullTickerText(){
+  const seq = buildTickerSequence().filter(Boolean);
+  if (!seq.length) return ' POKEMASTER MATES ';
+  return seq.join('   ✦   ');
 }
 
-  // No keyboard shortcuts!
-  // (If you want to re-enable, add a similar event listener as before)
+function applyTickerMarquee(){
+  const a = document.getElementById('tickerTextA');
+  const b = document.getElementById('tickerTextB');
+  const track = document.getElementById('tickerTrack');
+  const ticker = document.querySelector('.ticker');
+  if (!a || !b || !track || !ticker) return;
 
-  // Init
-  initializeGrid();
-</script>
-<script>
-/* ===== Real-time hookup (SSE) ===== */
+  const pxPerSec = loadTickerSpeed();
+  const fullText = buildFullTickerText();
 
-/* 1) Dynamic bridge selection */
-function param(k){ return new URLSearchParams(location.search).get(k); }
-
-// Default to PROD bridge unless overridden.
-// For the dev overlay branch you can point this at dev if you want:
-const DEFAULT_BRIDGE = "https://tsu-bridge-pmm.onrender.com";
-
-const BRIDGE_BASE =
-  param("bridge") ||
-  localStorage.getItem("tsu.bridge.base") ||
-  DEFAULT_BRIDGE;
-
-
-const STREAM_URL = `${BRIDGE_BASE}/stream`;
-
-/* 2) Auto Break ID: YYYY-MM-DD + "-" + sport (nba/nfl/mlb) */
-function getDatePart(d = new Date()) {
-  const pad = n => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-}
-function computeBreakId(sport) {
-  return `${getDatePart()}-${sport}`.toLowerCase();
-}
-function getCurrentBreakId() {
-  return computeBreakId(currentBreakType || "nba");
-}
-
-/* 3) Helpers to apply updates */
-function teamCodeToIndex(code) {
-  const t = breakTypes[currentBreakType].teams;
-  return t.findIndex(x => (x.code || x) === code);
-}
-function setBuyerForTeamCode(teamCode, buyerName) {
-  const idx = teamCodeToIndex(teamCode);
-  if (idx === -1) return;
-  if (!soldTeams.has(idx)) toggleTeam(idx);
-  const entry = soldTeamsList.find(e => e.index === idx);
-  if (entry) { entry.buyer = buyerName; updateSoldList(); }
-}
-
-/* 4) Subscribe to SSE */
-let es;
-function startSSE() {
-  es = new EventSource(STREAM_URL);
-
-  // ==========================================================
-  //  SSE CONNECTED → SEND WARMUP PING (Fix Render Cold Start)
-  // ==========================================================
-  es.onopen = () => {
-    console.log("SSE connected — sending warmup ping");
-    sendWarmupPing(); // main warmup
-  };
-
-  // Backup warmup in case Render wakes slowly
-  setTimeout(() => {
-    console.log("Backup warmup ping fired");
-    sendWarmupPing();
-  }, 2000);
-
-  // ---- Warmup Ping Function ----
-  function sendWarmupPing() {
-    fetch(`${BRIDGE_BASE}/events`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        breakId: "warmup",
-        breakType: currentBreakType,
-        teamCode: "WARMUP",   // ignored
-        buyerName: "ping",
-        ts: Date.now()
-      })
-    }).catch(e => console.warn("Warmup ping failed:", e));
+  if (tickerAnim) {
+    try { tickerAnim.cancel(); } catch(_){}
+    tickerAnim = null;
   }
-  // ==========================================================
+  if (tickerCycleTimer) {
+    clearTimeout(tickerCycleTimer);
+    tickerCycleTimer = null;
+  }
+
+  a.textContent = fullText;
+  b.textContent = fullText;
+
+  track.style.animation = 'none';
+  track.style.transform = 'translateX(0)';
+  void track.offsetWidth;
+
+  requestAnimationFrame(() => {
+    const viewWidth = ticker.getBoundingClientRect().width || 900;
+    const gap = Math.max(120, Math.round(viewWidth * 0.10));
+
+    a.style.paddingRight = `${gap}px`;
+    b.style.paddingRight = `${gap}px`;
+
+    requestAnimationFrame(() => {
+      const travel = a.getBoundingClientRect().width || 1400;
+      const durMs = Math.max(12000, Math.round((travel / pxPerSec) * 1000));
+
+      tickerAnim = track.animate(
+        [
+          { transform: 'translateX(0)' },
+          { transform: `translateX(-${travel}px)` }
+        ],
+        {
+          duration: durMs,
+          easing: 'linear',
+          iterations: 1,
+          fill: 'forwards'
+        }
+      );
+
+      tickerCycleTimer = setTimeout(() => {
+        tickerCycleTimer = null;
+
+        if (tickerRefreshPending) {
+          tickerRefreshPending = false;
+        }
+
+        applyTickerMarquee();
+      }, durMs);
+    });
+  });
+}
+
+function requestTickerRefresh(){
+  tickerRefreshPending = true;
+}
+
+function restartTickerCycle(){
+  applyTickerMarquee();
+}
+
+function refreshTickerText(){
+  applyTickerMarquee();
+}
+
+function setTickerLines(lines){
+  TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
+  saveTickerLines(TICKER_LINES);
+  refreshTickerText();
+}
+
+function applyTickerFromRaw(raw){
+  const txt = String(raw || '').trim();
+  const parts = txt.includes('•') ? txt.split('•').map(s => s.trim()).filter(Boolean) : [txt].filter(Boolean);
+  setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+}
+
+    /* =========================
+       Break number
+    ========================== */
+    function loadBreakNumber(){
+      const raw = localStorage.getItem(LS.BREAK_NUMBER);
+      const n = parseInt(raw || '1', 10);
+      return Number.isFinite(n) && n > 0 ? n : 1;
+    }
+
+    function saveBreakNumber(n){
+      localStorage.setItem(LS.BREAK_NUMBER, String(n));
+    }
+
+    function setBreakNumber(n){
+      const safe = Number.isFinite(n) && n > 0 ? n : 1;
+      document.getElementById('breakIdDisplay').textContent = String(safe);
+      saveBreakNumber(safe);
+      loadSoldState();
+      updateStats();
+      renderSoldPanel();
+    }
+
+    function computeBreakId(){
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      const dayKey = `${yyyy}-${mm}-${dd}`;
+      const sport = currentBreakType || 'na';
+      const n = loadBreakNumber();
+      return `${dayKey}-${sport}-${n}`;
+    }
+
+    function startNewBreakCycle(){
+      resetAll();
+      const cur = loadBreakNumber();
+      setBreakNumber(cur + 1);
+    }
+
+    /* =========================
+       NIL entries
+    ========================== */
+    function loadNilEntries(){
+      try{
+        const raw = localStorage.getItem(LS.NIL_ENTRIES);
+        const arr = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(arr)) return [];
+
+        return arr.map((e) => {
+          const title = String(e?.title || e?.name || '').trim();
+          const sub   = String(e?.sub || e?.subtitle || '').trim();
+          const code  = String(e?.code || '').trim();
+          const image = String(e?.image || '').trim();
+          return { title, sub, code, image };
+        }).filter(e => e.title.length);
+      }catch{
+        return [];
+      }
+    }
+
+    function saveNilEntries(entries){
+      localStorage.setItem(LS.NIL_ENTRIES, JSON.stringify(entries || []));
+    }
+
+    function makeCodeFromName(name, idx){
+      const cleaned = (name || '').toUpperCase().replace(/[^A-Z0-9]+/g,'').slice(0,8);
+      const n = String(idx+1).padStart(3,'0');
+      return cleaned ? `${cleaned}${n}` : `NIL${n}`;
+    }
+
+    function buildNilBreakTypeFromEntries(entries){
+      const safe = (entries || []).filter(e => {
+        const title = String(e?.title || e?.name || '').trim();
+        return title.length > 0;
+      });
+
+      const mid = Math.ceil(safe.length / 2);
+      const left = safe.slice(0, mid);
+      const right = safe.slice(mid);
+
+      const leftTeams = left.map((e, i) => {
+        const title = (e.title || e.name || '').trim();
+        const sub   = (e.sub || '').trim();
+        return {
+          code: e.code || makeCodeFromName(title, i),
+          title,
+          sub,
+          name: title,
+          image: e.image || ''
+        };
+      });
+
+      const rightTeams = right.map((e, i) => {
+        const title = (e.title || e.name || '').trim();
+        const sub   = (e.sub || '').trim();
+        return {
+          code: e.code || makeCodeFromName(title, mid + i),
+          title,
+          sub,
+          name: title,
+          image: e.image || ''
+        };
+      });
+
+      return {
+        name: 'Custom',
+        conferences: ['Left','Right'],
+        divisions: {
+          Left: { Spots: leftTeams },
+          Right: { Spots: rightTeams }
+        },
+        scoreboard: []
+      };
+    }
+
+    function setNilEntries(entries){
+      const safe = Array.isArray(entries) ? entries : [];
+      saveNilEntries(safe);
+      breakTypes.nil = buildNilBreakTypeFromEntries(safe);
+      if (currentBreakType === 'nil') renderTeams();
+      SPORT_LOOKUP.nil = null;
+    }
+
+    function openNilModal(){
+      const modal = document.getElementById('nilModal');
+      const ta = document.getElementById('nilTextInput');
+      if (!modal || !ta) return;
+
+      const entries = loadNilEntries();
+      ta.value = entries
+        .map(e => {
+          const title = (e?.title || e?.name || '').trim();
+          const sub   = (e?.sub || '').trim();
+          return sub ? `${title}\t${sub}` : title;
+        })
+        .filter(Boolean)
+        .join('\n');
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeNilModal(){
+      document.getElementById('nilModal')?.classList.add('hidden');
+    }
+
+    function clearNilEntries(){
+      setNilEntries([]);
+      document.getElementById('nilTextInput').value = '';
+    }
+
+    function applyNilText(){
+      const el = document.getElementById('nilTextInput');
+      const raw = el ? el.value : '';
+      const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+
+      const entries = lines.map((line, i) => {
+        let parts = line.split('\t');
+        if (parts.length < 2) parts = line.split('|');
+        if (parts.length < 2) parts = line.split(',');
+
+        const title = String(parts[0] || '').trim();
+        const sub   = String(parts.slice(1).join(' ').trim() || '');
+
+        return {
+          title,
+          sub,
+          code: makeCodeFromName(title, i),
+          image: ''
+        };
+      }).filter(e => e.title.length);
+
+      setNilEntries(entries);
+      closeNilModal();
+    }
+
+    function triggerNilCsv(){
+      const inp = document.getElementById('nilCsvInput');
+      if (!inp) return;
+      inp.value = '';
+      inp.onchange = importNilCsv;
+      inp.click();
+    }
+
+    function importNilCsv(){
+      const file = document.getElementById('nilCsvInput')?.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        const lines = String(e.target.result || '').split('\n');
+        const entries = lines
+          .map(l => l.trim())
+          .filter(Boolean)
+          .map((l, i) => {
+            const cols = l.split(',');
+            const title = String(cols[0] || '').trim();
+            const sub   = String(cols[1] || '').trim();
+            if (!title) return null;
+            return { title, sub, code: makeCodeFromName(title, i) };
+          })
+          .filter(Boolean);
+
+        setNilEntries(entries);
+        closeNilModal();
+      };
+      reader.readAsText(file);
+    }
+
+    /* =========================
+       Break types
+    ========================== */
+    const breakTypes = {
+      nfl: {
+        name: 'NFL',
+        conferences: ['AFC','NFC'],
+        divisions: {
+          AFC: {
+            East: [
+              { code:'BUF', name:'Bills', image:imgPathNFL('bills.png') },
+              { code:'MIA', name:'Dolphins', image:imgPathNFL('dolphins.png') },
+              { code:'NE',  name:'Patriots', image:imgPathNFL('patriots.png') },
+              { code:'NYJ', name:'Jets', image:imgPathNFL('jets.png') }
+            ],
+            North: [
+              { code:'CIN', name:'Bengals', image:imgPathNFL('bengals.png') },
+              { code:'CLE', name:'Browns', image:imgPathNFL('browns.png') },
+              { code:'BAL', name:'Ravens', image:imgPathNFL('ravens.png') },
+              { code:'PIT', name:'Steelers', image:imgPathNFL('steelers.png') }
+            ],
+            South: [
+              { code:'HOU', name:'Texans', image:imgPathNFL('texans.png') },
+              { code:'IND', name:'Colts', image:imgPathNFL('colts.png') },
+              { code:'JAX', name:'Jaguars', image:imgPathNFL('jaguars.png') },
+              { code:'TEN', name:'Titans', image:imgPathNFL('titans.png') }
+            ],
+            West: [
+              { code:'DEN', name:'Broncos', image:imgPathNFL('broncos.png') },
+              { code:'KC',  name:'Chiefs', image:imgPathNFL('chiefs.png') },
+              { code:'LV',  name:'Raiders', image:imgPathNFL('raiders.png') },
+              { code:'LAC', name:'Chargers', image:imgPathNFL('chargers.png') }
+            ]
+          },
+          NFC: {
+            East: [
+              { code:'DAL', name:'Cowboys', image:imgPathNFL('cowboys.png') },
+              { code:'NYG', name:'Giants', image:imgPathNFL('giants.png') },
+              { code:'PHI', name:'Eagles', image:imgPathNFL('eagles.png') },
+              { code:'WAS', name:'Commanders', image:imgPathNFL('commanders.png') }
+            ],
+            North: [
+              { code:'CHI', name:'Bears', image:imgPathNFL('bears.png') },
+              { code:'DET', name:'Lions', image:imgPathNFL('lions.png') },
+              { code:'GB',  name:'Packers', image:imgPathNFL('packers.png') },
+              { code:'MIN', name:'Vikings', image:imgPathNFL('vikings.png') }
+            ],
+            South: [
+              { code:'ATL', name:'Falcons', image:imgPathNFL('falcons.png') },
+              { code:'CAR', name:'Panthers', image:imgPathNFL('panthers.png') },
+              { code:'NO',  name:'Saints', image:imgPathNFL('saints.png') },
+              { code:'TB',  name:'Buccaneers', image:imgPathNFL('buccaneers.png') }
+            ],
+            West: [
+              { code:'ARI', name:'Cardinals', image:imgPathNFL('cardinals.png') },
+              { code:'LAR', name:'Rams', image:imgPathNFL('rams.png') },
+              { code:'SF',  name:'49ers', image:imgPathNFL('49ers.png') },
+              { code:'SEA', name:'Seahawks', image:imgPathNFL('seahawks.png') }
+            ]
+          }
+        },
+        scoreboard: []
+      },
+
+      nba: {
+        name: 'NBA',
+        conferences: ['West','East'],
+        divisions: {
+          West: {
+            Northwest: [
+              { code:'DEN', name:'Nuggets', image:imgPathNBA('nuggets.png') },
+              { code:'MIN', name:'Timberwolves', image:imgPathNBA('timberwolves.png') },
+              { code:'OKC', name:'Thunder', image:imgPathNBA('thunder.png') },
+              { code:'POR', name:'Trail Blazers', image:imgPathNBA('trailblazers.png') },
+              { code:'UTA', name:'Jazz', image:imgPathNBA('jazz.png') }
+            ],
+            Pacific: [
+              { code:'GSW', name:'Warriors', image:imgPathNBA('warriors.png') },
+              { code:'LAC', name:'Clippers', image:imgPathNBA('clippers.png') },
+              { code:'LAL', name:'Lakers', image:imgPathNBA('lakers.png') },
+              { code:'PHX', name:'Suns', image:imgPathNBA('suns.png') },
+              { code:'SAC', name:'Kings', image:imgPathNBA('kings.png') }
+            ],
+            Southwest: [
+              { code:'DAL', name:'Mavericks', image:imgPathNBA('mavericks.png') },
+              { code:'HOU', name:'Rockets', image:imgPathNBA('rockets.png') },
+              { code:'MEM', name:'Grizzlies', image:imgPathNBA('grizzlies.png') },
+              { code:'NOP', name:'Pelicans', image:imgPathNBA('pelicans.png') },
+              { code:'SAS', name:'Spurs', image:imgPathNBA('spurs.png') }
+            ]
+          },
+          East: {
+            Atlantic: [
+              { code:'BOS', name:'Celtics', image:imgPathNBA('celtics.png') },
+              { code:'BKN', name:'Nets', image:imgPathNBA('nets.png') },
+              { code:'NYK', name:'Knicks', image:imgPathNBA('knicks.png') },
+              { code:'PHI', name:'76ers', image:imgPathNBA('76ers.png') },
+              { code:'TOR', name:'Raptors', image:imgPathNBA('raptors.png') }
+            ],
+            Central: [
+              { code:'CHI', name:'Bulls', image:imgPathNBA('bulls.png') },
+              { code:'CLE', name:'Cavaliers', image:imgPathNBA('cavaliers.png') },
+              { code:'DET', name:'Pistons', image:imgPathNBA('pistons.png') },
+              { code:'IND', name:'Pacers', image:imgPathNBA('pacers.png') },
+              { code:'MIL', name:'Bucks', image:imgPathNBA('bucks.png') }
+            ],
+            Southeast: [
+              { code:'ATL', name:'Hawks', image:imgPathNBA('hawks.png') },
+              { code:'CHA', name:'Hornets', image:imgPathNBA('hornets.png') },
+              { code:'MIA', name:'Heat', image:imgPathNBA('heat.png') },
+              { code:'ORL', name:'Magic', image:imgPathNBA('magic.png') },
+              { code:'WAS', name:'Wizards', image:imgPathNBA('wizards.png') }
+            ]
+          }
+        },
+        scoreboard: []
+      },
+
+      mlb: {
+        name: 'MLB',
+        conferences: ['AL','NL'],
+        divisions: {
+          AL: {
+            East: [
+              { code:'BAL', name:'Orioles', image:imgPathMLB('orioles.png') },
+              { code:'BOS', name:'Red Sox', image:imgPathMLB('redsox.png') },
+              { code:'NYY', name:'Yankees', image:imgPathMLB('yankees.png') },
+              { code:'TB',  name:'Rays', image:imgPathMLB('rays.png') },
+              { code:'TOR', name:'Blue Jays', image:imgPathMLB('bluejays.png') }
+            ],
+            Central: [
+              { code:'CWS', name:'White Sox', image:imgPathMLB('whitesox.png') },
+              { code:'CLE', name:'Guardians', image:imgPathMLB('guardians.png') },
+              { code:'DET', name:'Tigers', image:imgPathMLB('tigers.png') },
+              { code:'KC',  name:'Royals', image:imgPathMLB('royals.png') },
+              { code:'MIN', name:'Twins', image:imgPathMLB('twins.png') }
+            ],
+            West: [
+              { code:'HOU', name:'Astros', image:imgPathMLB('astros.png') },
+              { code:'LAA', name:'Angels', image:imgPathMLB('angels.png') },
+              { code:'OAK', name:'Athletics', image:imgPathMLB('athletics.png') },
+              { code:'SEA', name:'Mariners', image:imgPathMLB('mariners.png') },
+              { code:'TEX', name:'Rangers', image:imgPathMLB('rangers.png') }
+            ]
+          },
+          NL: {
+            East: [
+              { code:'ATL', name:'Braves', image:imgPathMLB('braves.png') },
+              { code:'MIA', name:'Marlins', image:imgPathMLB('marlins.png') },
+              { code:'NYM', name:'Mets', image:imgPathMLB('mets.png') },
+              { code:'PHI', name:'Phillies', image:imgPathMLB('phillies.png') },
+              { code:'WSH', name:'Nationals', image:imgPathMLB('nationals.png') }
+            ],
+            Central: [
+              { code:'CHC', name:'Cubs', image:imgPathMLB('cubs.png') },
+              { code:'CIN', name:'Reds', image:imgPathMLB('reds.png') },
+              { code:'MIL', name:'Brewers', image:imgPathMLB('brewers.png') },
+              { code:'PIT', name:'Pirates', image:imgPathMLB('pirates.png') },
+              { code:'STL', name:'Cardinals', image:imgPathMLB('cardinals.png') }
+            ],
+            West: [
+              { code:'ARI', name:'Diamondbacks', image:imgPathMLB('diamondbacks.png') },
+              { code:'COL', name:'Rockies', image:imgPathMLB('rockies.png') },
+              { code:'LAD', name:'Dodgers', image:imgPathMLB('dodgers.png') },
+              { code:'SD',  name:'Padres', image:imgPathMLB('padres.png') },
+              { code:'SF',  name:'Giants', image:imgPathMLB('giants.png') }
+            ]
+          }
+        },
+        scoreboard: []
+      },
+
+wnba: {
+  name: 'WNBA',
+  conferences: ['West','East'],
+  divisions: {
+    West: {
+      Teams: [
+        { code:'DAL', name:'Wings',     image: imgPathWNBA('wings.png') },
+        { code:'GSV', name:'Valkyries', image: imgPathWNBA('valkyries.png') },
+        { code:'LVA', name:'Aces',      image: imgPathWNBA('aces.png') },
+        { code:'LAS', name:'Sparks',    image: imgPathWNBA('sparks.png') },
+        { code:'MIN', name:'Lynx',      image: imgPathWNBA('lynx.png') },
+        { code:'PHX', name:'Mercury',   image: imgPathWNBA('mercury.png') },
+        { code:'POR', name:'Fire',      image: imgPathWNBA('fire.png') },     // ✅ added
+        { code:'SEA', name:'Storm',     image: imgPathWNBA('storm.png') }
+      ]
+    },
+    East: {
+      Teams: [
+        { code:'ATL', name:'Dream',     image: imgPathWNBA('dream.png') },
+        { code:'CHI', name:'Sky',       image: imgPathWNBA('sky.png') },
+        { code:'CON', name:'Sun',       image: imgPathWNBA('sun.png') },
+        { code:'IND', name:'Fever',     image: imgPathWNBA('fever.png') },
+        { code:'NYL', name:'Liberty',   image: imgPathWNBA('liberty.png') },
+        { code:'TOR', name:'Tempo',     image: imgPathWNBA('tempo.png') },    // ✅ added
+        { code:'WAS', name:'Mystics',   image: imgPathWNBA('mystics.png') }
+      ]
+    }
+  },
+  scoreboard: []
+},
 
 
-  // -------- EXISTING ONMESSAGE HANDLER ----------
-  es.onmessage = (e) => {
-    try {
-      const data = JSON.parse(e.data);
-      const myBreakId = getCurrentBreakId();
-      if (data.breakId !== myBreakId) return;
-      if (data.breakType !== currentBreakType) return;
+      nil: buildNilBreakTypeFromEntries(loadNilEntries())
+    };
 
-      if (data.type === "reset") {
+/* =========================
+   Tile sizing per sport
+   (sets CSS vars on #overlayRoot)
+========================= */
+const TILE_PRESETS = {
+  nfl:  { cols: 4, height: 64, teamsH: 390 },
+  nba:  { cols: 5, height: 79, teamsH: 390 },
+  mlb:  { cols: 5, height: 79, teamsH: 390 },
+  wnba: { cols: 3, height: 86, teamsH: 390 }, // tweak as needed
+  nil:  { cols: 4, height: 65, teamsH: 390 }
+};
+
+function applyTilePreset(sportKey){
+  const root = document.getElementById('overlayRoot');
+  if (!root) return;
+
+  const p = TILE_PRESETS[sportKey] || TILE_PRESETS.nfl;
+
+  root.style.setProperty('--team-cols', String(p.cols));
+  root.style.setProperty('--team-height', `${p.height}px`);
+  root.style.setProperty('--teams-h', `${p.teamsH}px`);
+}
+
+    /* =========================
+       State
+    ========================== */
+    let currentBreakType = 'nfl';
+    const soldTeams = new Set();
+    let soldTeamsList = [];
+    let soldPanelVisible = false;
+    let soldControlsVisible = true;
+const lastCodeByListingKey = new Map();
+    /* =========================
+       Sold persistence per breakType + break#
+    ========================== */
+    function soldStateKey(){
+      const n = loadBreakNumber();
+      return `${LS.SOLD_STATE}:${currentBreakType}:${n}`;
+    }
+
+    function saveSoldState(){
+      try{
+        const payload = { sold: Array.from(soldTeams), list: soldTeamsList };
+        localStorage.setItem(soldStateKey(), JSON.stringify(payload));
+      }catch(_){}
+    }
+
+    function loadSoldState(){
+      soldTeams.clear();
+      soldTeamsList = [];
+
+      try{
+        const raw = localStorage.getItem(soldStateKey());
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        const s = Array.isArray(data?.sold) ? data.sold : [];
+        const l = Array.isArray(data?.list) ? data.list : [];
+        s.forEach(code => soldTeams.add(code));
+        soldTeamsList = l.map(e => ({ code: String(e.code||''), buyer: String(e.buyer||'') })).filter(e => e.code);
+      }catch(_){}
+    }
+
+function loadNFLChaseEnabled(){
+  return localStorage.getItem(LS.NFL_CHASE_ENABLED) === '1';
+}
+
+function saveNFLChaseEnabled(v){
+  localStorage.setItem(LS.NFL_CHASE_ENABLED, v ? '1' : '0');
+}
+
+function loadNFLChaseItems(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(LS.NFL_CHASE_ITEMS) || '[]');
+    const arr = Array.isArray(raw) ? raw : [];
+    return [
+      String(arr[0] || 'CHASE 1').trim() || 'CHASE 1',
+      String(arr[1] || 'CHASE 2').trim() || 'CHASE 2',
+      String(arr[2] || 'CHASE 3').trim() || 'CHASE 3'
+    ];
+  }catch(_){
+    return ['CHASE 1','CHASE 2','CHASE 3'];
+  }
+}
+
+function saveNFLChaseItems(items){
+  localStorage.setItem(LS.NFL_CHASE_ITEMS, JSON.stringify((items || []).slice(0,3)));
+}
+
+function getNFLChaseTeams(){
+  const items = loadNFLChaseItems();
+  return [
+    { code:'CHASE1', name:items[0], image:'' },
+    { code:'CHASE2', name:items[1], image:'' },
+    { code:'CHASE3', name:items[2], image:'' }
+  ];
+}
+
+function nflConfigWithChase(){
+  const base = JSON.parse(JSON.stringify(breakTypes.nfl));
+  if (!loadNFLChaseEnabled()) return base;
+
+  if (!base.divisions.NFC) base.divisions.NFC = {};
+  base.divisions.NFC.Chase = getNFLChaseTeams();
+
+  return base;
+}
+
+function getCurrentConfig(){
+  if (currentBreakType === 'nfl') return nflConfigWithChase();
+  return breakTypes[currentBreakType];
+}
+
+function toggleNFLChaseSpots(){
+  const next = !loadNFLChaseEnabled();
+  saveNFLChaseEnabled(next);
+
+  if (next) {
+    openChaseModal();
+  }
+
+  renderTeams();
+}
+
+function openChaseModal(){
+  const items = loadNFLChaseItems();
+  document.getElementById('chaseInput1').value = items[0] || '';
+  document.getElementById('chaseInput2').value = items[1] || '';
+  document.getElementById('chaseInput3').value = items[2] || '';
+  document.getElementById('chaseModal')?.classList.remove('hidden');
+}
+
+function closeChaseModal(){
+  document.getElementById('chaseModal')?.classList.add('hidden');
+}
+
+function applyChaseModal(){
+  const items = [
+    document.getElementById('chaseInput1')?.value || 'CHASE 1',
+    document.getElementById('chaseInput2')?.value || 'CHASE 2',
+    document.getElementById('chaseInput3')?.value || 'CHASE 3'
+  ].map((s, i) => String(s || '').trim() || `CHASE ${i + 1}`);
+
+  saveNFLChaseItems(items);
+  closeChaseModal();
+
+  if (currentBreakType === 'nfl' && loadNFLChaseEnabled()){
+    renderTeams();
+  }
+}
+
+    /* =========================
+       UI controls
+    ========================== */
+    function updateHeader(){
+      const root = document.getElementById('overlayRoot');
+      if (!root) return;
+
+   root.classList.remove('sport-nfl','sport-nba','sport-mlb','sport-wnba','sport-nil');
+root.classList.add(`sport-${currentBreakType}`);
+
+applyTilePreset(currentBreakType);
+
+      const nilBtn = document.getElementById('nilItemsBtn');
+      if (nilBtn) nilBtn.style.display = currentBreakType === 'nil' ? 'inline-flex' : 'none';
+
+const chaseBtn = document.getElementById('nflChaseBtn');
+if (chaseBtn){
+  chaseBtn.style.display = currentBreakType === 'nfl' ? 'inline-flex' : 'none';
+  chaseBtn.textContent = loadNFLChaseEnabled() ? 'Hide Chase' : 'Chase Spots';
+}
+
+      renderBreakTypeButtons();
+      refreshTickerText();
+    }
+
+
+
+    function renderBreakTypeButtons(){
+      const wrap = document.getElementById('breakTypeButtons');
+      if (!wrap) return;
+
+      const types = Object.keys(breakTypes);
+      wrap.innerHTML = '';
+
+      types.forEach((t) => {
+        const btn = document.createElement('button');
+        btn.className = 'breaktype-btn' + (t === currentBreakType ? ' active' : '');
+        btn.textContent = breakTypes[t].name;
+        btn.onclick = () => setBreakType(t);
+        wrap.appendChild(btn);
+      });
+    }
+
+    function setBreakType(t){
+      if (!breakTypes[t]) return;
+      currentBreakType = t;
+      loadSoldState();
+      renderTeams();
+    }
+
+    function initializeGrid(){
+      renderTeams();
+    }
+
+    /* =========================
+       Grid rendering
+    ========================== */
+    function renderTeams(){
+      updateHeader();
+
+      const left = document.getElementById('conferenceLeft');
+      const right = document.getElementById('conferenceRight');
+      if (!left || !right) return;
+
+      left.innerHTML = '';
+      right.innerHTML = '';
+
+      const cfg = getCurrentConfig();
+      if (!cfg) return;
+
+      cfg.conferences.forEach((confName, i) => {
+        const container = (i === 0) ? left : right;
+
+        const confTitle = document.createElement('div');
+        confTitle.className = 'conference-title';
+        confTitle.textContent = confName;
+        container.appendChild(confTitle);
+
+        const divisions = cfg.divisions[confName] || {};
+        Object.keys(divisions).forEach((divName) => {
+          const divisionWrap = document.createElement('div');
+          divisionWrap.className = 'division';
+
+          const divTitle = document.createElement('div');
+          divTitle.className = 'division-name';
+          divTitle.textContent = divName;
+          divisionWrap.appendChild(divTitle);
+
+          const teamGrid = document.createElement('div');
+          teamGrid.className = 'division-teams';
+
+          divisions[divName].forEach((teamObj) => {
+            const teamDiv = makeTeamDiv(teamObj);
+            teamGrid.appendChild(teamDiv);
+          });
+
+          divisionWrap.appendChild(teamGrid);
+          container.appendChild(divisionWrap);
+        });
+      });
+
+      soldTeams.forEach(code => {
+        const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+        if (el) el.classList.add('sold');
+      });
+
+      SPORT_LOOKUP[currentBreakType] = null;
+
+      updateStats();
+      renderSoldPanel();
+
+      if (currentBreakType === 'nil'){
+        requestAnimationFrame(refitAllNilTitles);
+      }
+    }
+
+    function makeTeamDiv(teamObj){
+      const teamDiv = document.createElement('div');
+      teamDiv.className = 'team';
+      teamDiv.dataset.teamCode = teamObj.code || '';
+
+      const isNil = (currentBreakType === 'nil');
+      const bgSrc = isNil ? NIL_TILE_BG : (teamObj.image || '');
+
+      if (bgSrc){
+        const img = document.createElement('img');
+        img.src = bgSrc;
+        img.alt = (teamObj.title || teamObj.name || teamObj.code || '');
+        img.onerror = () => { img.style.display = 'none'; };
+        teamDiv.appendChild(img);
+      }
+
+      const label = document.createElement('div');
+      label.className = 'team-label';
+
+      if (currentBreakType === 'nil'){
+        teamDiv.classList.add('nil');
+
+        const title = document.createElement('div');
+        title.className = 'nil-title';
+        title.textContent = (teamObj.title || teamObj.name || teamObj.code || '').trim();
+
+        const sub = document.createElement('div');
+        sub.className = 'nil-sub';
+        sub.textContent = (teamObj.sub || '').trim();
+
+        label.appendChild(title);
+        label.appendChild(sub);
+
+        teamDiv.dataset.nilTitle = title.textContent;
+      } else {
+        label.textContent = teamObj.code || teamObj.name || '';
+      }
+
+      teamDiv.appendChild(label);
+
+      const soldX = document.createElement('div');
+      soldX.className = 'sold-x';
+      soldX.textContent = '✕';
+      teamDiv.appendChild(soldX);
+
+      teamDiv.onclick = () => toggleTeam(teamObj.code);
+      if (currentBreakType === 'nfl' && /^CHASE[123]$/.test(teamObj.code || '')){
+  teamDiv.oncontextmenu = (e) => {
+    e.preventDefault();
+    openChaseModal();
+  };
+}
+      return teamDiv;
+    }
+
+    function toggleTeam(code){
+      const sel = `[data-team-code="${cssEscape(code)}"]`;
+      const teamDiv = document.querySelector(sel);
+      if (!teamDiv) return;
+
+      const existingIndex = soldTeamsList.findIndex(entry => entry.code === code);
+
+      if (soldTeams.has(code)){
+        soldTeams.delete(code);
+        teamDiv.classList.remove('sold');
+        if (existingIndex !== -1) soldTeamsList.splice(existingIndex, 1);
+      } else {
+        soldTeams.add(code);
+        teamDiv.classList.add('sold');
+        if (existingIndex === -1) soldTeamsList.push({ code: code, buyer: '' });
+      }
+
+      updateStats();
+      renderSoldPanel();
+      saveSoldState();
+    }
+
+    function updateStats(){
+      const cfg = getCurrentConfig();
+      let total = 0;
+
+      cfg.conferences.forEach(conf => {
+        Object.values(cfg.divisions[conf] || {}).forEach(div => total += div.length);
+      });
+
+      const sold = soldTeams.size;
+      document.getElementById('teamsLeft').textContent = String(Math.max(0, total - sold));
+      document.getElementById('teamsSold').textContent = String(sold);
+    }
+
+    /* =========================
+       Sold panel
+    ========================== */
+ function toggleSoldControls(){
+  soldControlsVisible = !soldControlsVisible;
+  const panel = document.getElementById('soldControlsPanel');
+  if (!panel) return;
+  panel.classList.toggle('hidden', !soldControlsVisible);
+}
+
+    function renderSoldPanel(){
+      const panel = document.getElementById('soldPanel');
+      if (!panel) return;
+
+      panel.innerHTML = '';
+
+      soldTeamsList.forEach(entry => {
+        const teamObj = findTeamByCode(entry.code);
+
+        const row = document.createElement('div');
+        row.className = 'sold-item';
+
+        const img = document.createElement('img');
+        img.alt = entry.code;
+        img.src = teamObj?.image || '';
+        img.onerror = () => { img.style.display = 'none'; };
+        row.appendChild(img);
+
+        const input = document.createElement('input');
+        input.className = 'buyer-input';
+        input.placeholder = entry.code;
+        input.value = entry.buyer || '';
+        input.oninput = (e) => {
+          entry.buyer = e.target.value;
+          saveSoldState();
+        };
+        row.appendChild(input);
+
+        panel.appendChild(row);
+      });
+    }
+
+    function findTeamByCode(code){
+     const cfg = getCurrentConfig();
+      if (!cfg) return null;
+
+      for (const conf of cfg.conferences){
+        const divs = cfg.divisions[conf] || {};
+        for (const divName of Object.keys(divs)){
+          const found = (divs[divName] || []).find(t => t.code === code);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+
+    /* =========================
+       Reset
+    ========================== */
+ function resetAll(){
+  soldTeams.clear();
+  soldTeamsList = [];
+  lastCodeByListingKey.clear();
+  document.querySelectorAll('.team').forEach(t => t.classList.remove('sold'));
+  updateStats();
+  renderSoldPanel();
+  saveSoldState();
+}
+
+
+    /* =========================
+       OBS-safe modal prompt
+    ========================== */
+    let PROMPT_MODE = null;
+
+ function openPrompt(mode){
+  PROMPT_MODE = mode;
+
+  const modal = document.getElementById('obsPrompt');
+  const title = document.getElementById('obsPromptTitle');
+  const desc  = document.getElementById('obsPromptDesc');
+  const input = document.getElementById('obsPromptInput');
+  const inner = document.querySelector('#obsPrompt .obs-modal-inner');
+
+  if (!modal || !title || !desc || !input || !inner) return;
+
+  const oldSlider = document.getElementById('tickerSpeedWrap');
+  if (oldSlider) oldSlider.remove();
+
+  if (mode === 'break'){
+    title.textContent = 'Set Break Number';
+    desc.textContent  = 'Enter a positive number.';
+    input.value = String(loadBreakNumber());
+    input.type = 'text';
+  } else if (mode === 'ticker'){
+    title.textContent = 'Set Ticker Text';
+    desc.textContent  = 'Edit text and adjust scroll speed.';
+    input.value = (loadTickerLines() || []).join(' • ');
+    input.type = 'text';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'obs-slider-wrap';
+    wrap.id = 'tickerSpeedWrap';
+    wrap.innerHTML = `
+      <div class="obs-slider-pill">SPEED</div>
+      <input id="tickerSpeedSlider" type="range" min="40" max="200" step="5" value="${loadTickerSpeed()}" />
+      <div id="tickerSpeedValue" class="obs-slider-pill">${loadTickerSpeed()} px/s</div>
+    `;
+    inner.insertBefore(wrap, document.querySelector('#obsPrompt .obs-modal-actions'));
+
+    const slider = document.getElementById('tickerSpeedSlider');
+    const value  = document.getElementById('tickerSpeedValue');
+    if (slider && value){
+      slider.addEventListener('input', () => {
+        value.textContent = `${parseInt(slider.value, 10)} px/s`;
+      });
+    }
+  } else if (mode === 'title'){
+    const t = loadTitles();
+    title.textContent = 'Set Title';
+    desc.textContent  = 'Format: MAIN TITLE || SUBTITLE';
+    input.value = `${t.main} || ${t.sub}`;
+    input.type = 'text';
+  } else {
+    title.textContent = 'Set Value';
+    desc.textContent  = '';
+    input.value = '';
+    input.type = 'text';
+  }
+
+  modal.classList.remove('hidden');
+
+  setTimeout(() => input.focus(), 0);
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') commitPrompt();
+    if (e.key === 'Escape') closePrompt();
+  };
+}
+
+    function closePrompt(){
+      document.getElementById('obsPrompt')?.classList.add('hidden');
+      PROMPT_MODE = null;
+    }
+
+function commitPrompt(){
+  const input = document.getElementById('obsPromptInput');
+  if (!input) return;
+
+  const raw = String(input.value || '').trim();
+
+  if (PROMPT_MODE === 'break'){
+    const n = parseInt(raw, 10);
+    if (Number.isFinite(n) && n > 0) setBreakNumber(n);
+  }
+
+if (PROMPT_MODE === 'ticker'){
+  const slider = document.getElementById('tickerSpeedSlider');
+  if (slider){
+    saveTickerSpeed(parseInt(slider.value, 10));
+  }
+  applyTickerFromRaw(raw);
+}
+
+  if (PROMPT_MODE === 'title'){
+    const parts = raw.split('||').map(s => s.trim());
+    const main = parts[0] || DEFAULT_TITLE_MAIN;
+    const sub  = parts[1] || DEFAULT_TITLE_SUB;
+    applyTitles(main, sub);
+  }
+
+  closePrompt();
+}
+
+    /* =========================
+       SSE Bridge (Whatnot Sale Bridge)
+    ========================== */
+    let sse = null;
+    let sseScores = null;
+
+    function getBridgeUrl() {
+      const q = new URLSearchParams(location.search).get("bridge");
+      if (q) {
+        const cleaned = q.replace(/\/$/, "");
+        localStorage.setItem(LS.BRIDGE, cleaned);
+        return cleaned;
+      }
+      const saved = localStorage.getItem(LS.BRIDGE);
+      return saved ? saved.replace(/\/$/, "") : "";
+    }
+
+    function getBridgeKey() {
+      const q = new URLSearchParams(location.search).get("key");
+      if (q) {
+        localStorage.setItem(LS.KEY, q);
+        return q;
+      }
+      return localStorage.getItem(LS.KEY) || "";
+    }
+
+  function getChannel(){
+  return new URLSearchParams(location.search).get("channel") || "main";
+}
+function getScoresChannel(){
+  return new URLSearchParams(location.search).get("scoresChannel") || "sports";
+}
+    function automationEnabled(){ return !!getBridgeUrl(); }
+
+    function normalizeBridge(u){
+      return String(u||'')
+        .trim()
+        .replace(/\/$/, '')
+        .replace(/\/(events|stream)(\/.*)?$/,'');
+    }
+
+    function setSSEStatus(state, msg){
+      const wrap = document.getElementById('sseStatus');
+      const text = document.getElementById('sseText');
+      if (!wrap || !text) return;
+
+      wrap.classList.remove('connected','error');
+      if (state === 'connected') wrap.classList.add('connected');
+      if (state === 'error') wrap.classList.add('error');
+
+      text.textContent = msg || state || 'disconnected';
+    }
+
+    function connectSSE(url){
+      if (sse) { try { sse.close(); } catch(_){} }
+      setSSEStatus('error','connecting');
+
+      try{
+        console.log("[overlay] EventSource URL:", url);
+
+        sse = new EventSource(url);
+
+        const ingest = (e) => {
+          try{
+            const data = JSON.parse(e.data);
+            console.log("[SSE in]", data);
+            handleSSEEvent(data);
+          }catch(err){
+            console.warn("[SSE parse error]", err, e.data);
+          }
+        };
+
+        sse.onopen = () => {
+          setSSEStatus('connected','connected');
+          warmupPing();
+        };
+
+        sse.onmessage = ingest;
+
+[
+  'team_sold',
+  'team_unsold',
+  'buyer',
+  'buyer_update',
+  'sale',
+  'purchase',
+  'whatnot_purchase',
+  'stream_stats',
+  'scores',
+  'reset',
+  'set_break',
+  'set_sport',
+  'set_title'
+].forEach(t => {
+  try { sse.addEventListener(t, ingest); } catch(_){}
+});
+
+        sse.onerror = () => {
+          setSSEStatus('error','reconnecting');
+          try { sse.close(); } catch(_) {}
+          sse = null;
+          setTimeout(() => connectSSE(url), 2500);
+        };
+      }catch(_){
+        setSSEStatus('error','failed');
+      }
+    }
+
+function connectScoresSSE(base, scoresChannel = "sports"){
+  if (sseScores) { try { sseScores.close(); } catch(_){} }
+
+  try{
+    const url = `${base}/stream?channel=${encodeURIComponent(scoresChannel)}&key=${encodeURIComponent(getBridgeKey())}`;  
+    sseScores = new EventSource(url);
+
+    const ingest = (e) => {
+      try{
+        const data = JSON.parse(e.data);
+        if (data?.type === "hello") return;
+        if (String(data?.type || "").toLowerCase() === "scores") {
+          handleSSEEvent(data);
+        }
+      }catch(_){}
+    };
+
+    sseScores.onmessage = ingest;
+    try { sseScores.addEventListener("scores", ingest); } catch(_){}
+
+    sseScores.onerror = () => {
+      try { sseScores.close(); } catch(_) {}
+      sseScores = null;
+      setTimeout(() => connectScoresSSE(base, scoresChannel), 2500);
+    };
+  }catch(_){}
+}
+
+function startSSE(){
+  if (!automationEnabled()){
+    setSSEStatus('error','missing bridge');
+    return;
+  }
+
+  const base = normalizeBridge(getBridgeUrl());
+  const channel = getChannel();
+  const scoresChannel = getScoresChannel();
+
+  connectSSE(`${base}/stream?channel=${encodeURIComponent(channel)}&key=${encodeURIComponent(getBridgeKey())}`); 
+
+  if (scoresChannel) {
+    connectScoresSSE(base, scoresChannel);
+  }
+}
+
+    async function warmupPing(){
+      if (!automationEnabled()) return;
+      const base = normalizeBridge(getBridgeUrl());
+      const key = getBridgeKey();
+
+      try{
+        await fetch(`${base}/events`, {
+          method: 'POST',
+        headers: {
+  'Content-Type': 'application/json',
+  ...(key ? {
+    'x-bridge-key': key,
+    'x-api-key': key
+  } : {})
+},
+         body: JSON.stringify({
+  type: 'overlay_warmup',
+  overlay: 'pmm',
+  channel: getChannel(),
+  breakId: computeBreakId(),
+  ts: Date.now()
+})
+        });
+      }catch(_){}
+    }
+
+    function handleSSEEvent(data){
+      const type = String(data?.type || '').toLowerCase();
+
+      if (type === 'hello') return;
+
+if (type === 'scores'){
+  const sport = String(data?.sport || data?.league || '').toLowerCase().trim();
+  const txt = normalizeScorePayloadToText(data);
+
+  if (sport && txt){
+    SCORES_BY_SPORT[sport] = txt;
+    SCORES_UPDATED_AT[sport] = Date.now();
+    requestTickerRefresh();
+  }
+
+  return;
+}
+
+      if (type === 'reset'){
         resetAll();
         return;
       }
-      if (data.teamCode && data.buyerName) {
-        setBuyerForTeamCode(data.teamCode, data.buyerName);
+
+      if (type === 'set_break'){
+        const n = parseInt(data?.breakNumber, 10);
+        if (Number.isFinite(n) && n > 0) setBreakNumber(n);
+        return;
       }
-    } catch {}
-  };
+if (type === 'team_unsold'){
+  let code = String(data?.code || '').trim().toUpperCase();
 
-  es.onerror = () => {
-    es.close();
-    setTimeout(startSSE, 1500);
-  };
-}
-startSSE();
-
-/* 5) Single test helper — uses the same base as the overlay */
-window.__postTestSale = async (teamCode="LAL", buyerName="Tester") => {
-  const payload = {
-    breakId: getCurrentBreakId(),
-    breakType: currentBreakType,
-    teamCode,
-    buyerName,
-    ts: Date.now()
-  };
-  const TEST_KEY =
-    param("key") ||
-    localStorage.getItem("tsu.bridge.key") ||
-    "f19df96fe5697f8be7d31edcb5da689a"; // Lenhart key
-
-  await fetch(`${BRIDGE_BASE}/events`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(TEST_KEY ? { "x-bridge-key": TEST_KEY } : {})
-    },
-    body: JSON.stringify(payload)
-  });
-};
-</script>
-<script>
-function getDatePart(d = new Date()) {
-  const pad = n => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-}
-function isDevBridge() {
-  try { return BRIDGE_BASE.includes("-dev."); } catch { return false; }
-}
-function computeBreakId(sport) {
-  const base = `${getDatePart()}-${sport}`.toLowerCase();
-  return isDevBridge() ? `${base}-dev` : base;
-}
-</script>
-<script>
-document.addEventListener("DOMContentLoaded", () => {
-  if (isDevBridge()) {
-    const h = document.getElementById("headerText");
-    if (h && !h.textContent.includes("[DEV]")) h.textContent = "" + h.textContent;
-    document.body.style.outline = "0px solid #8b5cf6"; // tasteful purple guilt trip
+  if (!code){
+    const unsoldTitleRaw = String(data?.title || '');
+    const unsoldTitle = stripPrefixTitle(unsoldTitleRaw);
+    code = inferCodeFromTitle(unsoldTitle, String(data?.sport || currentBreakType || '').toLowerCase());
   }
-});
-</script>
 
+  if (!code) return;
+
+  if (soldTeams.has(code)){
+    soldTeams.delete(code);
+    const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+    if (el) el.classList.remove('sold');
+  }
+
+  const idx = soldTeamsList.findIndex(e => e.code === code);
+  if (idx !== -1) soldTeamsList.splice(idx, 1);
+
+  const listingKey = data?.saleId || data?.id || data?.listingId || null;
+  if (listingKey){
+    const cur = lastCodeByListingKey.get(listingKey);
+    if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
+  }
+
+  updateStats();
+  renderSoldPanel();
+  saveSoldState();
+  return;
+}
+if (type === 'team_sold'){
+  const sport = String(data?.sport || '').toLowerCase();
+  const buyer = String(data?.buyer || '').trim();
+
+  const incomingTitleRaw = String(data?.title || '');
+  const incomingTitle = stripPrefixTitle(incomingTitleRaw);
+
+  if (sport && breakTypes[sport] && sport !== currentBreakType){
+    currentBreakType = sport;
+    loadSoldState();
+    renderTeams();
+  }
+
+  let code = String(data?.code || '').trim().toUpperCase();
+
+  if ((sport || currentBreakType) === 'nil'){
+    code = inferCodeFromTitle(incomingTitle, 'nil');
+    if (!code){
+      console.warn("[overlay NIL] could not match title:", incomingTitleRaw, "=>", incomingTitle);
+      return;
+    }
+  } else {
+    if (!code) code = inferCodeFromTitle(stripPrefixTitle(incomingTitleRaw), sport || currentBreakType);
+    if (!code){
+      console.warn("[overlay] could not infer code from title:", incomingTitleRaw, "sportHint:", sport || currentBreakType);
+      return;
+    }
+  }
+
+  const listingKey = data?.saleId || data?.id || data?.listingId || null;
+
+  if (listingKey && code){
+    const prevCode = lastCodeByListingKey.get(listingKey);
+    if (prevCode && prevCode !== code){
+      soldTeams.delete(prevCode);
+      const prevEl = document.querySelector(`[data-team-code="${cssEscape(prevCode)}"]`);
+      if (prevEl) prevEl.classList.remove('sold');
+
+      const prevIdx = soldTeamsList.findIndex(e => e.code === prevCode);
+      if (prevIdx !== -1) soldTeamsList.splice(prevIdx, 1);
+    }
+
+    lastCodeByListingKey.set(listingKey, code);
+  }
+
+  if (!soldTeams.has(code)){
+    soldTeams.add(code);
+    const el = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+    if (el) el.classList.add('sold');
+    soldTeamsList.push({ code, buyer: buyer || '' });
+  } else if (buyer) {
+    const idx = soldTeamsList.findIndex(e => e.code === code);
+    if (idx !== -1) soldTeamsList[idx].buyer = buyer;
+  }
+
+  updateStats();
+  renderSoldPanel();
+  saveSoldState();
+  return;
+}
+
+      if (type === 'buyer'){
+        const code = String(data?.code || '').trim();
+        const buyer = String(data?.buyer || '').trim();
+        if (!code) return;
+
+        const idx = soldTeamsList.findIndex(e => e.code === code);
+        if (idx !== -1){
+          soldTeamsList[idx].buyer = buyer;
+          renderSoldPanel();
+          saveSoldState();
+        }
+      }
+    }
+
+    /* =========================
+       Helpers
+    ========================== */
+    function stripPrefixTitle(title){
+      const raw = String(title || '').trim();
+      if (!raw) return '';
+      const parts = raw.split(' - ').map(s => s.trim()).filter(Boolean);
+      return parts.length ? parts[parts.length - 1] : raw;
+    }
+
+    function norm(s){
+      return String(s || '')
+        .toLowerCase()
+        .replace(/&/g,'and')
+        .replace(/[^a-z0-9]+/g,' ')
+        .trim();
+    }
+
+    function buildLookupForSport(sportKey){
+      const cfg = breakTypes[sportKey];
+      const map = new Map();
+
+      if (!cfg) return map;
+
+      for (const conf of cfg.conferences || []){
+        const divs = cfg.divisions?.[conf] || {};
+        for (const divName of Object.keys(divs)){
+          for (const t of (divs[divName] || [])){
+            const code = String(t.code || '').toUpperCase().trim();
+            if (!code) continue;
+
+            map.set(norm(code), code);
+            if (t.name) map.set(norm(t.name), code);
+            if (t.title) map.set(norm(t.title), code);
+          }
+        }
+      }
+      return map;
+    }
+
+    const SPORT_LOOKUP = { nfl: null, nba: null, mlb: null, wnba: null, nil: null };
+
+    function ensureLookup(sportKey){
+      if (!SPORT_LOOKUP[sportKey]) SPORT_LOOKUP[sportKey] = buildLookupForSport(sportKey);
+      return SPORT_LOOKUP[sportKey];
+    }
+
+    function inferCodeFromTitle(title, sportHint){
+      const t = norm(title);
+      if (!t) return null;
+
+      if (sportHint && breakTypes[sportHint]){
+        const map = ensureLookup(sportHint);
+        if (map.has(t)) return map.get(t);
+        const keys = Array.from(map.keys()).sort((a,b) => b.length - a.length);
+        for (const k of keys){
+          if (k.length < 3) continue;
+          if (t.includes(k)) return map.get(k);
+        }
+      }
+
+      for (const sportKey of Object.keys(SPORT_LOOKUP)){
+        if (!breakTypes[sportKey]) continue;
+        const map = ensureLookup(sportKey);
+
+        if (map.has(t)) return map.get(t);
+
+        const keys = Array.from(map.keys()).sort((a,b) => b.length - a.length);
+        for (const k of keys){
+          if (k.length < 3) continue;
+          if (t.includes(k)) return map.get(k);
+        }
+      }
+
+      const tokens = t.toUpperCase().split(/\s+/).filter(Boolean);
+      for (const tok of tokens){
+        if (tok.length < 2 || tok.length > 4) continue;
+        for (const sportKey of Object.keys(SPORT_LOOKUP)){
+          const map = ensureLookup(sportKey);
+          const code = map.get(norm(tok));
+          if (code) return code;
+        }
+      }
+
+      return null;
+    }
+
+    function cssEscape(s){
+      return String(s || '').replace(/"/g,'\\"');
+    }
+
+    function fitTextToWidth(el, maxPx, minPx){
+      if (!el) return;
+      const parent = el.parentElement;
+      if (!parent) return;
+
+      const pad = 10;
+      const maxWidth = parent.clientWidth - pad;
+
+      let size = maxPx;
+      el.style.fontSize = size + 'px';
+
+      let loops = 0;
+      while (loops++ < 40 && size > minPx && el.scrollWidth > maxWidth){
+        size -= 1;
+        el.style.fontSize = size + 'px';
+      }
+    }
+
+    function refitAllNilTitles(){
+      document.querySelectorAll('.team.nil .nil-title').forEach(el => {
+        fitTextToWidth(el, 20, 10);
+      });
+    }
+
+    /* =========================
+       Init
+    ========================== */
+    document.addEventListener('DOMContentLoaded', () => {
+     
+
+      const t = loadTitles();
+      applyTitles(t.main, t.sub);
+
+      setTickerLines(loadTickerLines());
+      setBreakNumber(loadBreakNumber());
+
+      breakTypes.nil = buildNilBreakTypeFromEntries(loadNilEntries());
+
+applyTickerMarquee();
+
+      const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
+      if (qSport && breakTypes[qSport]) currentBreakType = qSport;
+
+      applyTilePreset(currentBreakType);
+
+      loadSoldState();
+      initializeGrid();
+
+      if (automationEnabled()) startSSE();
+      else setSSEStatus('error','missing bridge');
+    });
+  </script>
 </body>
 </html>
-https://card-break-overlay.onrender.com/overlays/pmm/index.html?bridge=https://tsu-bridge-pmm.onrender.com&key=a13b15c01bbe510f4e265df17be58096
