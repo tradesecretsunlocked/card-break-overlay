@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=920, initial-scale=1.0"/>
+  <title>DrayBreaks Box Break Overlay</title>
+
+  <style>
+    /**
+     * BASE TYPE: Open Layout (logo embedded, NO ticker, NO SSE, price box center)
+     * Sports: NBA / MLB / NFL
+     * Layout built via buildLayout() with sport-specific row templates.
+     */
+
+    :root{
+      /* DrayBreaks vibe (navy + cyan) */
+      --bg0:#050b14;
+      --bg1:#0b1a2f;
+      --panel:#0a1426;
+      --tile:#050b14;
+
+      --accent:#3aa0d8;     /* cyan */
+      --accent2:#1f6ea8;    /* deeper */
+      --text:#ffffff;
+      --muted: rgba(255,255,255,0.75);
+
+      --tileH: 58px;
+      --gap: 4px;
+
+      --cols: 8;            /* changes per sport */
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:0;
+      background:transparent;
+      font-family: "Arial Black", Arial, sans-serif;
+      width:920px;
+      min-height:520px;
+      user-select:none;
+    }
+
+    .container{
+      position: relative;
+      background: linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 100%);
+      border: 4px solid var(--accent);
+      border-radius: 12px;
+      padding: 6px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.6);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+
+    /* ===== HEADER ===== */
+    .header{
+      background: linear-gradient(90deg, #071226 0%, #0c2442 45%, #071226 100%);
+      color: var(--text);
+      padding: 6px 10px;
+      margin: -6px -6px 6px -6px;
+      border-radius: 6px 6px 0 0;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap:10px;
+      border-bottom: 2px solid rgba(255,255,255,0.12);
+    }
+
+    .header-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 0;
+    }
+
+    .header-icon{
+      width:18px;height:18px;border-radius:50%;
+      border:2px solid #fff;
+      background: var(--accent2);
+      box-shadow: 0 0 8px rgba(0,0,0,0.6);
+      flex: 0 0 auto;
+    }
+
+    .header-text{
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Header right: Break # badge */
+    .header-right{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      flex: 0 0 auto;
+      gap: 8px;
+    }
+
+    .break-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background:
+        radial-gradient(180px 60px at 25% 30%, rgba(255,255,255,0.10), transparent 60%),
+        linear-gradient(135deg, rgba(58,160,216,0.30), rgba(31,110,168,0.18));
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.40);
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 18px;
+      color:#fff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.60);
+      white-space: nowrap;
+    }
+
+    /* ===== MAIN WRAPPER ===== */
+    .main-content{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+    }
+
+    .teams-wrapper{
+      background: linear-gradient(180deg,#0c1220 0%, #03060c 100%);
+      border-radius: 8px;
+      padding: 6px;
+      border: 3px solid var(--accent);
+    }
+
+    /* ===== GENERIC ROW GRID ===== */
+    .row-grid{
+      display:grid;
+      gap: var(--gap);
+      margin-bottom: 6px;
+      grid-template-columns: repeat(var(--cols), 1fr);
+      align-items: stretch;
+      position:relative;
+    }
+
+    .team{
+      background: #000;
+      border: 2px solid var(--accent);
+      border-radius: 6px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      position:relative;
+      height: var(--tileH);
+      overflow:hidden;
+      transition: transform 0.1s, box-shadow 0.1s, border-color 0.2s;
+    }
+
+    .team:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 0 7px rgba(255,255,255,0.18);
+    }
+
+    .team img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    .team img.nfl-small{
+      object-fit: cover;
+    }
+
+    .team .fallback-code{
+      color:#fff;
+      font-size: 14px;
+      letter-spacing: 1px;
+      opacity: 0.9;
+    }
+
+    .team.sold img{
+      opacity: 0.25;
+      filter: grayscale(100%) brightness(0.4);
+    }
+
+    .team.flash{
+      animation: soldFlash 260ms ease;
+    }
+    @keyframes soldFlash{
+      0%{ box-shadow: 0 0 0 rgba(58,160,216,0.0); }
+      50%{ box-shadow: 0 0 18px rgba(58,160,216,0.65); }
+      100%{ box-shadow: 0 0 0 rgba(58,160,216,0.0); }
+    }
+
+    .team.sold::after{
+      content:"X";
+      position:absolute;
+      font-size: 20px;
+      color: #ffffff;
+      text-shadow: 0 0 3px #000;
+      z-index: 10;
+      background: rgba(31,110,168,0.95);
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid #ffffff;
+      pointer-events:none;
+    }
+
+    /* ===== LOGO SLOT (IN GRID) ===== */
+    .logo-slot{
+      grid-column: span 2; /* equals 2 tiles */
+      border-radius: 10px;
+      height: calc(var(--tileH) * 1);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border: 2px solid rgba(255,255,255,0.15);
+      overflow:visible;
+      position:relative;
+    }
+    .logo-slot img{
+      max-height: 255%;
+      max-width: 92%;
+      top:-75px;
+      object-fit: contain;
+      position:absolute;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.55));
+    }
+
+    /* ===== CONTROLS AREA (side stacks + center price box) ===== */
+    .controls-row{
+      margin-top: 6px;
+      display:grid;
+      grid-template-columns: 160px 1fr 160px;
+      gap: 20px;
+      align-items: stretch;
+    }
+
+    .side-stack{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      padding:10px;
+      justify-content: center;
+    }
+
+    .stat-box{
+      background: linear-gradient(135deg, #0b2240 0%, #071226 100%);
+      color:#fff;
+      border-radius: 8px;
+      text-align:center;
+      font-weight:900;
+      padding: 6px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      font-size: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.815);
+      min-height: 54px;
+    }
+
+    .stat-label{
+      font-size: 11px;
+      letter-spacing: 1px;
+      margin-top: 2px;
+      opacity: 0.95;
+    }
+
+    .btn{
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      color:#fff;
+      border:none;
+      border-radius: 8px;
+      cursor:pointer;
+      font-weight: 900;
+      font-size: 16px;
+      letter-spacing: 0.5px;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 6px;
+      padding: 10px 10px;
+      min-height: 60px;
+    }
+
+    .btn.secondary{
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .btn:active{
+      transform: translateY(1px);
+      box-shadow:none;
+    }
+
+    /* ===== PRICE BOX (always visible) ===== */
+    .price-box{
+      position: relative;
+      border-radius: 14px;
+      padding: 0px 20px 0px;
+      display:flex;
+      flex-direction:column;
+      gap: 5px;
+      min-height: 114px;
+
+      background:
+        radial-gradient(800px 240px at 20% 20%, rgba(58,160,216,0.28), transparent 55%),
+        linear-gradient(135deg, rgba(8,18,40,0.88), rgba(0,0,0,0.58));
+      border: 2px solid rgba(58,160,216,0.35);
+      box-shadow:
+        0 10px 26px rgba(0,0,0,0.55),
+        inset 0 0 0 1px rgba(255,255,255,0.10);
+      overflow:hidden;
+    }
+
+    .price-box::before{
+      content:"";
+      position:absolute;
+      inset:-30px;
+      background:
+        radial-gradient(circle at 25% 30%, rgba(255,255,255,0.10), transparent 55%),
+        radial-gradient(circle at 90% 40%, rgba(58,160,216,0.12), transparent 60%);
+      filter: blur(10px);
+      opacity: 0.9;
+      pointer-events:none;
+    }
+
+    .price-top{
+      position: relative;
+      z-index: 2;
+      display:flex;
+      align-items:center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .price-title{
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+      opacity: 0.98;
+      white-space: nowrap;
+    }
+
+    .price-grid{
+      position: relative;
+      z-index: 2;
+      display:grid;
+      grid-template-columns: 1fr 120px;
+      gap: 8px 12px;
+      align-items:center;
+      justify-items:start;
+    }
+
+    .price-label{
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      color: #ffffff;
+      text-transform: uppercase;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.55);
+      opacity: 0.98;
+      line-height: 1.1;
+    }
+
+    .money-field{
+      display:flex;
+      align-items:stretch;
+      width: 75%;
+      border-radius: 10px;
+      overflow:hidden;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(0,0,0,0.35);
+      box-shadow: inset 0 0 0 1px rgba(58,160,216,0.08);
+    }
+
+    .money-prefix{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width: 38px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, rgba(58,160,216,0.35), rgba(31,110,168,0.18));
+      border-right: 1px solid rgba(255,255,255,0.10);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    }
+
+    .price-input{
+      width: 100%;
+      padding: 4px 10px;
+      border: none;
+      background: transparent;
+      color:#fff;
+      font-weight: 900;
+      outline:none;
+      text-align:center;
+      font-size: 18px;
+    }
+
+    .price-input::placeholder{
+      color: rgba(255,255,255,0.55);
+    }
+
+    /* ===== SOLD LIST ===== */
+    .sold-list-container{
+      margin: 8px auto 0 auto;
+      width: 100%;
+      background: linear-gradient(180deg, #050b14 0%, #0b1a2f 100%);
+      border: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 6px 7px 8px;
+      text-align:center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+
+    .sold-top-row{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .sold-list-title{
+      font-size: 16px;
+      font-weight: 900;
+      color:#ffffff;
+      letter-spacing: 1px;
+      text-align:left;
+      padding-left: 2px;
+      white-space: nowrap;
+    }
+
+    .sold-admin{
+      display:flex;
+      gap: 6px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap: wrap;
+    }
+
+    .pill{
+      border:none;
+      cursor:pointer;
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-weight: 900;
+      font-size: 11px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color:#fff;
+      background: linear-gradient(135deg, rgba(58,160,216,0.85), rgba(31,110,168,0.85));
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .pill.secondary{
+      background: linear-gradient(135deg, rgba(11,34,64,0.95), rgba(7,18,38,0.95));
+    }
+    .pill:active{ transform: translateY(1px); box-shadow:none; }
+
+    .sold-list-grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px 12px;
+    }
+
+    .sold-row{
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      margin-bottom: 2px;
+      background: rgba(0,0,0,0.60);
+      border-radius: 7px;
+      padding: 2px 4px;
+      border: 2px solid var(--accent);
+    }
+
+    .sold-team-img{
+      width: 24px;
+      height: 24px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #ffffff;
+      background:#000;
+    }
+
+    .sold-buyer-input{
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      font-weight: 800;
+      padding: 2px 4px;
+      width: 100%;
+      background: rgba(0,0,0,0.35);
+      color:#f9fafb;
+      outline:none;
+    }
+
+
+.promo-img{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display:block;
+}
+
+
+    /* ===== PROMO OVERLAY GRAPHIC ===== */
+    .promo-overlay{
+      position:absolute;
+      right: 355px;
+      top: -30px; /* below header */
+      width: 210px;
+      border-radius: 16px;
+      padding: 12px 12px;
+     
+      display:none;
+      pointer-events:none;
+      overflow:hidden;
+       z-index: 9999;   
+    }
+
+    .promo-overlay.active{ display:block; }
+
+    .promo-overlay::before{
+      content:"";
+      position:absolute;
+      inset:-40px;
+      
+      filter: blur(10px);
+      opacity: 0.9;
+      pointer-events:none;
+    }
+
+    .promo-inner{ position: relative; z-index: 2; }
+
+    .promo-kicker{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.14);
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 11px;
+      opacity: 0.95;
+      margin-bottom: 8px;
+    }
+
+    .promo-title{
+      font-size: 20px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.55);
+      line-height: 1.05;
+    }
+
+    .promo-price{
+      margin-top: 8px;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: #fff;
+      text-shadow: 0 3px 16px rgba(0,0,0,0.65);
+    }
+
+    .promo-sub{
+      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      opacity: 0.85;
+      text-transform: uppercase;
+    }
+/* ===== OBS-FRIENDLY MODAL INPUT (replaces prompt()) ===== */
+.modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index: 9999;
+}
+
+.modal-backdrop.active{ display:flex; }
+
+.modal{
+  width: 520px;
+  max-width: calc(100% - 40px);
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  background:
+    radial-gradient(700px 220px at 20% 20%, rgba(58,160,216,0.28), transparent 55%),
+    linear-gradient(135deg, rgba(8,18,40,0.92), rgba(0,0,0,0.68));
+  border: 2px solid rgba(58,160,216,0.40);
+  box-shadow: 0 22px 50px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.10);
+  color: #fff;
+}
+
+.modal-title{
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 14px;
+  margin-bottom: 10px;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 10px;
+}
+
+.modal-hint{
+  font-size: 11px;
+  opacity: 0.82;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.modal-input{
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.35);
+  color: #fff;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  padding: 12px 12px;
+  outline: none;
+  font-size: 16px;
+  box-shadow: inset 0 0 0 1px rgba(58,160,216,0.10);
+}
+
+.modal-input::placeholder{
+  color: rgba(255,255,255,0.55);
+}
+
+.modal-actions{
+  margin-top: 12px;
+  display:flex;
+  gap: 10px;
+  justify-content:flex-end;
+}
+
+.modal-btn{
+  border:none;
+  cursor:pointer;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  font-size: 12px;
+  color:#fff;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.40);
+}
+
+.modal-btn.primary{
+  background: linear-gradient(135deg, rgba(58,160,216,0.90), rgba(31,110,168,0.90));
+  border: 1px solid rgba(255,255,255,0.14);
+}
+
+.modal-btn.secondary{
+  background: linear-gradient(135deg, rgba(11,34,64,0.95), rgba(7,18,38,0.95));
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.modal-error{
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  color: #fff;
+  opacity: 0.95;
+  display:none;
+}
+
+.modal-error.active{ display:block; }
+
+
+
+
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- promo sticker overlay -->
+<div id="promoOverlay" class="promo-overlay">
+  <img id="promoImg" class="promo-img" alt="" />
+</div>
+
+
+    <div class="header" id="header">
+      <div class="header-left">
+        <div class="header-icon"></div>
+        <div class="header-text" id="headerText">NBA BOX BREAK</div>
+      </div>
+
+      <div class="header-right">
+        <div class="break-badge" id="breakBadge">BREAK #1</div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="teams-wrapper" id="teamsWrapper">
+        <!-- rows injected here -->
+      </div>
+
+      <!-- CONTROLS -->
+      <div class="controls-row">
+        <div class="side-stack">
+          <button class="btn" onclick="resetAll()">🔄 RESET</button>
+          <div class="stat-box">
+            <div id="teamsLeft">0</div>
+            <div class="stat-label">REMAINING</div>
+          </div>
+        </div>
+
+        <!-- CENTER PRICE BOX -->
+        <div class="price-box">
+          <div class="price-top">
+            <div class="price-title">PROMO PRICE LIST</div>
+          </div>
+
+          <div class="price-grid">
+            <div class="price-label">STASH OR PASS ACTIVE AT</div>
+            <div class="money-field">
+              <div class="money-prefix">$</div>
+              <input id="priceStash" class="price-input" type="text" placeholder="20" />
+            </div>
+
+            <div class="price-label">SEE 2 PICK 1 ACTIVE AT</div>
+            <div class="money-field">
+              <div class="money-prefix">$</div>
+              <input id="priceSee2" class="price-input" type="text" placeholder="25" />
+            </div>
+
+            <div class="price-label">SEE 3 PICK 1 ACTIVE AT</div>
+            <div class="money-field">
+              <div class="money-prefix">$</div>
+              <input id="priceSee3" class="price-input" type="text" placeholder="30" />
+            </div>
+          </div>
+        </div>
+
+        <div class="side-stack">
+          <button class="btn secondary" onclick="cycleSport()">⚙ CHANGE SPORT</button>
+          <div class="stat-box">
+            <div id="teamsSold">0</div>
+            <div class="stat-label">SOLD</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sold-list-container">
+    <div class="sold-top-row">
+      <div class="sold-list-title">SOLD TEAMS</div>
+
+      <!-- SOLD PANEL ADMIN MENU -->
+      <div class="sold-admin">
+        <button class="pill" onclick="activatePromo('stash')">Stash/Pass</button>
+        <button class="pill" onclick="activatePromo('see2')">See 2 Pick 1</button>
+        <button class="pill" onclick="activatePromo('see3')">See 3 Pick 1</button>
+        <button class="pill secondary" onclick="activatePromo('off')">Clear</button>
+
+        <button class="pill secondary" onclick="setCustomHeaderText()">Set Header Text</button>
+        <button class="pill secondary" onclick="setBreakNumberPrompt()">Set Break #</button>
+      </div>
+    </div>
+
+    <div id="soldList" class="sold-list-grid"></div>
+  </div>
+
+<script>
+  // =========================
+  // Dynamic base path (works on GitHub Pages + local folders)
+  // =========================
+  const BASE = (() => {
+    const isGhPages = location.hostname.endsWith('github.io');
+    if (isGhPages) {
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repo = parts.length ? parts[0] : '';
+      return `/${repo}/`;
+    }
+    return '../..\/';
+  })();
+
+  const LOGO_PRIMARY = `${BASE}images/logos/dray-breaks-logo.png`;
+
+  const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+  const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
+  const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
+
+  // =========================
+  // Local storage keys
+  // =========================
+  const PRICE_KEY = "dray.promos.prices.v1";
+  const PROMO_ACTIVE_KEY = "dray.promos.active.v1";
+  const HEADER_TEXT_KEY = "dray.header.customText.v1";
+  const BREAK_NUM_KEY   = "dray.break.number.v1";
+
+  const PRICE_DEFAULTS = { stash: "", see2: "", see3: "" };
+
+  // =========================
+  // Price persistence
+  // =========================
+  function loadPrices(){
+    try{
+      const raw = localStorage.getItem(PRICE_KEY);
+      if (!raw) return { ...PRICE_DEFAULTS };
+      const obj = JSON.parse(raw);
+      return {
+        stash: String(obj?.stash ?? PRICE_DEFAULTS.stash),
+        see2:  String(obj?.see2  ?? PRICE_DEFAULTS.see2),
+        see3:  String(obj?.see3  ?? PRICE_DEFAULTS.see3),
+      };
+    }catch(_){
+      return { ...PRICE_DEFAULTS };
+    }
+  }
+
+  function savePrices(pr){
+    localStorage.setItem(PRICE_KEY, JSON.stringify(pr));
+  }
+
+  function readPriceInputs(){
+    return {
+      stash: (document.getElementById("priceStash")?.value || "").trim(),
+      see2:  (document.getElementById("priceSee2")?.value || "").trim(),
+      see3:  (document.getElementById("priceSee3")?.value || "").trim(),
+    };
+  }
+
+  function writePriceInputs(pr){
+    const a = document.getElementById("priceStash");
+    const b = document.getElementById("priceSee2");
+    const c = document.getElementById("priceSee3");
+    if (a) a.value = pr.stash ?? "";
+    if (b) b.value = pr.see2 ?? "";
+    if (c) c.value = pr.see3 ?? "";
+  }
+
+  function formatMoney(v){
+    const s = String(v || "").trim();
+    if (!s) return "—";
+    return s.replace(/^\$/,'').trim();
+  }
+
+  // =========================
+  // Promo persistence
+  // =========================
+  function loadActivePromo(){
+    return localStorage.getItem(PROMO_ACTIVE_KEY) || "off";
+  }
+
+  function saveActivePromo(mode){
+    localStorage.setItem(PROMO_ACTIVE_KEY, mode);
+  }
+
+  function activatePromo(mode){
+    saveActivePromo(mode);
+    renderPromoOverlay();
+  }
+
+  const PROMO_IMAGES = {
+  stash: "./stash-or-pass.png",
+  see2:  "./see2-pick1.png",
+  see3:  "./see3-pick1.png"
+};
+
+function renderPromoOverlay(){
+  const mode = loadActivePromo();
+  const overlay = document.getElementById("promoOverlay");
+  const imgEl = document.getElementById("promoImg");
+  if (!overlay || !imgEl) return;
+
+  if (mode === "off"){
+    overlay.classList.remove("active");
+    imgEl.removeAttribute("src");
+    return;
+  }
+
+  const src = PROMO_IMAGES[mode];
+  if (!src){
+    overlay.classList.remove("active");
+    imgEl.removeAttribute("src");
+    return;
+  }
+
+  imgEl.src = src;
+  overlay.classList.add("active");
+}
+
+  // =========================
+  // Header custom text + Break #
+  // =========================
+  function getCustomHeaderText(){
+    return (localStorage.getItem(HEADER_TEXT_KEY) || "").trim();
+  }
+
+function setCustomHeaderText(){
+  const current = getCustomHeaderText();
+  openModal({
+    title: "Set Header Text",
+    placeholder: "e.g. PRIZM HOBBY · CASE #2 (blank clears)",
+    value: current,
+    validate: (val) => true, // allow anything (including blank to clear)
+    onSave: (val) => {
+      localStorage.setItem(HEADER_TEXT_KEY, String(val || "").trim());
+      setHeader();
+    }
+  });
+}
+
+function getBreakNumber(){
+  const raw = localStorage.getItem(BREAK_NUM_KEY);
+  const n = parseInt(raw || "", 10);
+  return Number.isFinite(n) && n > 0 ? n : 1;
+}
+
+function setBreakNumber(v){
+  const n = parseInt(String(v).trim(), 10);
+  if (!Number.isFinite(n) || n < 1) return;
+  localStorage.setItem(BREAK_NUM_KEY, String(n));
+  updateBreakBadge();
+}
+
+function setBreakNumberPrompt(){
+  const current = getBreakNumber();
+  openModal({
+    title: "Set Break #",
+    placeholder: "Enter a number (min 1)",
+    value: String(current),
+    inputMode: "numeric",
+    validate: (val) => {
+      const n = parseInt(String(val).trim(), 10);
+      return Number.isFinite(n) && n >= 1;
+    },
+    errorText: "Break # must be a whole number (1 or higher).",
+    onSave: (val) => {
+      setBreakNumber(val);
+      updateBreakBadge();
+    }
+  });
+}
+
+function incrementBreakNumberOnLoad(){
+  const current = getBreakNumber();
+  const next = current + 1;
+  localStorage.setItem(BREAK_NUM_KEY, String(next));
+}
+
+
+
+
+  function updateBreakBadge(){
+    const el = document.getElementById("breakBadge");
+    if (!el) return;
+    el.textContent = `BREAK #${getBreakNumber()}`;
+  }
+
+  // =========================
+  // Break Types
+  // =========================
+  const breakTypes = {
+    nba: {
+      name: "NBA",
+      icon: "🏀",
+      cols: 8,
+      teams: [
+        { code:'ATL', name:'hawks', image: imgPathNBA('hawks.png') },
+        { code:'BOS', name:'celtics', image: imgPathNBA('celtics.png') },
+        { code:'BKN', name:'nets', image: imgPathNBA('nets.png') },
+        { code:'CHA', name:'hornets', image: imgPathNBA('hornets.png') },
+        { code:'CHI', name:'bulls', image: imgPathNBA('bulls.png') },
+        { code:'CLE', name:'cavaliers', image: imgPathNBA('cavaliers.png') },
+        { code:'DAL', name:'mavericks', image: imgPathNBA('mavericks.png') },
+        { code:'DEN', name:'nuggets', image: imgPathNBA('nuggets.png') },
+        { code:'DET', name:'pistons', image: imgPathNBA('pistons.png') },
+        { code:'GSW', name:'warriors', image: imgPathNBA('warriors.png') },
+        { code:'HOU', name:'rockets', image: imgPathNBA('rockets.png') },
+        { code:'IND', name:'pacers', image: imgPathNBA('pacers.png') },
+        { code:'LAC', name:'clippers', image: imgPathNBA('clippers.png') },
+        { code:'LAL', name:'lakers', image: imgPathNBA('lakers.png') },
+        { code:'MEM', name:'grizzlies', image: imgPathNBA('grizzlies.png') },
+        { code:'MIA', name:'heat', image: imgPathNBA('heat.png') },
+        { code:'MIL', name:'bucks', image: imgPathNBA('bucks.png') },
+        { code:'MIN', name:'timberwolves', image: imgPathNBA('timberwolves.png') },
+        { code:'NOP', name:'pelicans', image: imgPathNBA('pelicans.png') },
+        { code:'NYK', name:'knicks', image: imgPathNBA('knicks.png') },
+        { code:'OKC', name:'thunder', image: imgPathNBA('thunder.png') },
+        { code:'ORL', name:'magic', image: imgPathNBA('magic.png') },
+        { code:'PHI', name:'76ers', image: imgPathNBA('76ers.png') },
+        { code:'PHX', name:'suns', image: imgPathNBA('suns.png') },
+        { code:'POR', name:'blazers', image: imgPathNBA('blazers.png') },
+        { code:'SAC', name:'kings', image: imgPathNBA('kings.png') },
+        { code:'SAS', name:'spurs', image: imgPathNBA('spurs.png') },
+        { code:'TOR', name:'raptors', image: imgPathNBA('raptors.png') },
+        { code:'UTA', name:'jazz', image: imgPathNBA('jazz.png') },
+        { code:'WAS', name:'wizards', image: imgPathNBA('wizards.png') }
+      ]
+    },
+
+    mlb: {
+      name: "MLB",
+      icon: "⚾",
+      cols: 8,
+      teams: [
+        { code:'ARI', name:'diamondbacks', image: imgPathMLB('diamondbacks.png') },
+        { code:'ATL', name:'braves', image: imgPathMLB('braves.png') },
+        { code:'BAL', name:'orioles', image: imgPathMLB('orioles.png') },
+        { code:'BOS', name:'red sox', image: imgPathMLB('redsox.png') },
+        { code:'CHC', name:'cubs', image: imgPathMLB('cubs.png') },
+        { code:'CHW', name:'white sox', image: imgPathMLB('whitesox.png') },
+        { code:'CIN', name:'reds', image: imgPathMLB('reds.png') },
+        { code:'CLE', name:'guardians', image: imgPathMLB('guardians.png') },
+        { code:'COL', name:'rockies', image: imgPathMLB('rockies.png') },
+        { code:'DET', name:'tigers', image: imgPathMLB('tigers.png') },
+        { code:'HOU', name:'astros', image: imgPathMLB('astros.png') },
+        { code:'KC', name:'royals', image: imgPathMLB('royals.png') },
+        { code:'LAA', name:'angels', image: imgPathMLB('angels.png') },
+        { code:'LAD', name:'dodgers', image: imgPathMLB('dodgers.png') },
+        { code:'MIA', name:'marlins', image: imgPathMLB('marlins.png') },
+        { code:'MIL', name:'brewers', image: imgPathMLB('brewers.png') },
+        { code:'MIN', name:'twins', image: imgPathMLB('twins.png') },
+        { code:'NYM', name:'mets', image: imgPathMLB('mets.png') },
+        { code:'NYY', name:'yankees', image: imgPathMLB('yankees.png') },
+        { code:'OAK', name:'athletics', image: imgPathMLB('athletics.png') },
+        { code:'PHI', name:'phillies', image: imgPathMLB('phillies.png') },
+        { code:'PIT', name:'pirates', image: imgPathMLB('pirates.png') },
+        { code:'SD', name:'padres', image: imgPathMLB('padres.png') },
+        { code:'SF', name:'giants', image: imgPathMLB('giants.png') },
+        { code:'SEA', name:'mariners', image: imgPathMLB('mariners.png') },
+        { code:'STL', name:'cardinals', image: imgPathMLB('cardinals.png') },
+        { code:'TB', name:'rays', image: imgPathMLB('rays.png') },
+        { code:'TEX', name:'rangers', image: imgPathMLB('rangers.png') },
+        { code:'TOR', name:'blue jays', image: imgPathMLB('bluejays.png') },
+        { code:'WSH', name:'nationals', image: imgPathMLB('nationals.png') }
+      ]
+    },
+
+    nfl: {
+      name: "NFL",
+      icon: "🏈",
+      cols: 10,
+      teams: [
+        { code:'ARI', name:'cardinals', image: imgPathNFL('cardinals.png') },
+        { code:'ATL', name:'falcons', image: imgPathNFL('falcons.png') },
+        { code:'BAL', name:'ravens', image: imgPathNFL('ravens.png') },
+        { code:'BUF', name:'bills', image: imgPathNFL('bills.png') },
+        { code:'CAR', name:'panthers', image: imgPathNFL('panthers.png') },
+        { code:'CHI', name:'bears', image: imgPathNFL('bears.png') },
+        { code:'CIN', name:'bengals', image: imgPathNFL('bengals.png') },
+        { code:'CLE', name:'browns', image: imgPathNFL('browns.png') },
+        { code:'DAL', name:'cowboys', image: imgPathNFL('cowboys.png') },
+        { code:'DEN', name:'broncos', image: imgPathNFL('broncos.png') },
+
+        { code:'DET', name:'lions', image: imgPathNFL('lions.png') },
+        { code:'GB', name:'packers', image: imgPathNFL('packers.png') },
+        { code:'HOU', name:'texans', image: imgPathNFL('texans.png') },
+        { code:'IND', name:'colts', image: imgPathNFL('colts.png') },
+        { code:'JAX', name:'jaguars', image: imgPathNFL('jaguars.png') },
+        { code:'KC', name:'chiefs', image: imgPathNFL('chiefs.png') },
+        { code:'LV', name:'raiders', image: imgPathNFL('raiders.png') },
+        { code:'LAC', name:'chargers', image: imgPathNFL('chargers.png') },
+        { code:'LAR', name:'rams', image: imgPathNFL('rams.png') },
+        { code:'MIA', name:'dolphins', image: imgPathNFL('dolphins.png') },
+
+        { code:'MIN', name:'vikings', image: imgPathNFL('vikings.png') },
+        { code:'NE', name:'patriots', image: imgPathNFL('patriots.png') },
+        { code:'NO', name:'saints', image: imgPathNFL('saints.png') },
+        { code:'NYG', name:'giants', image: imgPathNFL('giants.png') },
+        { code:'NYJ', name:'jets', image: imgPathNFL('jets.png') },
+        { code:'PHI', name:'eagles', image: imgPathNFL('eagles.png') },
+        { code:'PIT', name:'steelers', image: imgPathNFL('steelers.png') },
+        { code:'SF', name:'49ers', image: imgPathNFL('49ers.png') },
+        { code:'SEA', name:'seahawks', image: imgPathNFL('seahawks.png') },
+        { code:'TB', name:'buccaneers', image: imgPathNFL('buccaneers.png') },
+
+        { code:'TEN', name:'titans', image: imgPathNFL('titans.png') },
+        { code:'WAS', name:'commanders', image: imgPathNFL('commanders.png') }
+      ]
+    }
+  };
+
+  // =========================
+  // State
+  // =========================
+  let currentBreakType = "nba";
+  let soldIndexes = new Set();
+  let soldList = [];
+
+// =========================
+// TSU SSE BRIDGE — DrayBreaks
+// =========================
+let sse = null;
+
+const TSU_BRIDGE_LS_KEY = "tsu.bridge.base";
+const TSU_KEY_LS_KEY    = "tsu.bridge.key";
+
+// DrayBreaks bridge
+const DEFAULT_BRIDGE = "https://bridge.tradesecretsunlocked.com";
+const BRIDGE_KEY_DEFAULT = "0f13ef8a-9b8d-4ac5-ab28-ecfa684a62a9";
+
+function normalizeBridge(u){
+  return String(u || "")
+    .trim()
+    .replace(/\/$/, "")
+    .replace(/\/(events|stream)(\/.*)?$/, "");
+}
+
+function getBridgeFromQuery(){
+  const q = new URLSearchParams(location.search);
+  const b = q.get("bridge");
+  if (!b) return "";
+  const cleaned = normalizeBridge(b);
+  localStorage.setItem(TSU_BRIDGE_LS_KEY, cleaned);
+  return cleaned;
+}
+
+function getKeyFromQuery(){
+  const q = new URLSearchParams(location.search);
+  const k = q.get("key");
+  if (k === null) return "";
+  const cleaned = String(k || "").trim();
+  localStorage.setItem(TSU_KEY_LS_KEY, cleaned);
+  return cleaned;
+}
+
+function getActiveBridge(){
+  const fromQuery = getBridgeFromQuery();
+  if (fromQuery) return fromQuery;
+
+  const saved = localStorage.getItem(TSU_BRIDGE_LS_KEY);
+  if (saved) return normalizeBridge(saved);
+
+  return normalizeBridge(DEFAULT_BRIDGE);
+}
+
+function getActiveKey(){
+  const qk = getKeyFromQuery();
+  if (qk) return qk;
+  return String(localStorage.getItem(TSU_KEY_LS_KEY) || "").trim();
+}
+
+function automationEnabled(){
+  const q = new URLSearchParams(location.search);
+  if (q.get("bridge")) return true;
+  return !!localStorage.getItem(TSU_BRIDGE_LS_KEY);
+}
+
+
+// BreakId: YYYY-MM-DD-sport-counter (Chicago time)
+function yyyymmddChicago(d = new Date()){
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+
+  const y = parts.find(p => p.type === "year")?.value;
+  const m = parts.find(p => p.type === "month")?.value;
+  const day = parts.find(p => p.type === "day")?.value;
+  return `${y}-${m}-${day}`;
+}
+
+function computeBreakId(){
+  const date = yyyymmddChicago();
+  const counter = getBreakNumber();
+  return `${date}-${currentBreakType}-${counter}`;
+}
+
+// Warmup ping (keeps Render awake)
+async function warmupPing(){
+  if (!automationEnabled()) return;
+
+  const base = getActiveBridge();
+  const key  = getActiveKey();
+
+  try{
+    await fetch(`${base}/events`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-bridge-key": key
+      },
+      body: JSON.stringify({
+        breakId: "warmup",
+        breakType: currentBreakType,
+        teamCode: "WARMUP",
+        buyerName: "ping",
+        ts: Date.now()
+      })
+    });
+  }catch(_){}
+}
+
+// Helpers: code -> index
+function findIndexByCode(code){
+  const teams = breakTypes[currentBreakType]?.teams || [];
+  const c = String(code || "").toUpperCase();
+  return teams.findIndex(t => String(t.code || "").toUpperCase() === c);
+}
+
+function sseMarkSold(code, buyer){
+  const idx = findIndexByCode(code);
+  if (idx < 0) return;
+
+  const tile = document.querySelector(`[data-team-index="${idx}"]`);
+  if (!tile) return;
+
+  if (!soldIndexes.has(idx)){
+    soldIndexes.add(idx);
+    tile.classList.add("sold");
+    tile.classList.add("flash");
+    setTimeout(()=>tile.classList.remove("flash"), 280);
+
+    if (!soldList.some(e => e.index === idx)){
+      soldList.push({ index: idx, buyer: buyer || "" });
+    }
+  } else {
+    if (buyer){
+      const entry = soldList.find(e => e.index === idx);
+      if (entry) entry.buyer = buyer;
+    }
+  }
+
+  updateStats();
+  updateSoldList();
+}
+
+function sseMarkUnsold(code){
+  const idx = findIndexByCode(code);
+  if (idx < 0) return;
+
+  const tile = document.querySelector(`[data-team-index="${idx}"]`);
+  if (!tile) return;
+
+  soldIndexes.delete(idx);
+  tile.classList.remove("sold");
+
+  const li = soldList.findIndex(e => e.index === idx);
+  if (li !== -1) soldList.splice(li, 1);
+
+  updateStats();
+  updateSoldList();
+}
+
+function sseUpdateBuyer(code, buyer){
+  const idx = findIndexByCode(code);
+  if (idx < 0) return;
+
+  const entry = soldList.find(e => e.index === idx);
+  if (!entry) return;
+
+  entry.buyer = buyer || "";
+  updateSoldList();
+}
+
+function applySaleFromSSE(data){
+  if (!data || !data.type) return;
+
+  // breakId guard (ignore other breaks)
+  const localBreakId = computeBreakId();
+  if (data.breakId && data.breakId !== localBreakId && data.breakId !== "warmup") return;
+
+  switch (data.type){
+   case "team_sold": {
+  const teamCode = data.code || data.teamCode || data.team || "";
+  sseMarkSold(teamCode, data.buyer || data.buyerName || "");
+  break;
+}
+
+
+ case "team_unsold": {
+  const teamCode = data.code || data.teamCode || data.team || "";
+  sseMarkUnsold(teamCode);
+  break;
+}
+
+case "buyer_update": {
+  const teamCode = data.code || data.teamCode || data.team || "";
+  sseUpdateBuyer(teamCode, data.buyer || data.buyerName || "");
+  break;
+}
+
+    case "reset":
+      resetAll();
+      break;
+
+    case "set_break":
+      setBreakNumber(data.value);
+      updateBreakBadge();
+      break;
+
+    case "set_sport":
+      if (data.sport && breakTypes[data.sport]){
+        currentBreakType = data.sport;
+        buildLayout();
+        renderPromoOverlay();
+      }
+      break;
+  }
+}
+
+function connectSSE(){
+  if (!automationEnabled()) return;
+
+  const base = getActiveBridge();
+  const streamUrl = `${base}/stream`;
+
+  if (sse) { try { sse.close(); } catch(_){} }
+
+  try{
+    sse = new EventSource(streamUrl);
+
+    sse.onmessage = (e) => {
+      try{
+        const data = JSON.parse(e.data);
+        applySaleFromSSE(data);
+      }catch(_){}
+    };
+
+    sse.onerror = () => {
+      try { sse.close(); } catch(_) {}
+      sse = null;
+      setTimeout(connectSSE, 2500);
+    };
+  }catch(_){}
+}
+
+function startSSE(){
+  if (!automationEnabled()) return;
+  warmupPing();
+  connectSSE();
+}
+
+// Extension handshake support
+window.addEventListener("message", (event) => {
+  const msg = event.data || {};
+
+  if (msg === "TSU_REQUEST_BRIDGE" || msg?.type === "TSU_REQUEST_BRIDGE"){
+    const bridge = getActiveBridge();
+    window.postMessage({ type: "TSU_OVERLAY", bridge }, "*");
+    return;
+  }
+
+  if (msg?.type === "TSU_BRIDGE_INFO"){
+    if (msg.bridge){
+      localStorage.setItem(TSU_BRIDGE_LS_KEY, normalizeBridge(msg.bridge));
+    }
+    if (typeof msg.key === "string"){
+      localStorage.setItem(TSU_KEY_LS_KEY, String(msg.key).trim());
+    }
+  }
+});
+
+
+// =========================
+// OBS-friendly modal (no prompt())
+// =========================
+let modalOnSave = null;
+let modalValidate = null;
+let modalErrorText = "Invalid input.";
+let lastFocusedEl = null;
+
+function openModal({ title, placeholder="", value="", onSave, validate, errorText, inputMode }){
+  const backdrop = document.getElementById("modalBackdrop");
+  const titleText = document.getElementById("modalTitleText");
+  const input = document.getElementById("modalInput");
+  const err = document.getElementById("modalError");
+
+  if (!backdrop || !titleText || !input || !err) return;
+
+  lastFocusedEl = document.activeElement;
+
+  modalOnSave = typeof onSave === "function" ? onSave : null;
+  modalValidate = typeof validate === "function" ? validate : null;
+  modalErrorText = errorText || "Invalid input.";
+
+  titleText.textContent = title || "Edit";
+  input.placeholder = placeholder || "";
+  input.value = value ?? "";
+  err.classList.remove("active");
+  err.textContent = "";
+
+  // numeric keyboard on mobile/OBS
+  if (inputMode === "numeric"){
+    input.setAttribute("inputmode", "numeric");
+    input.setAttribute("pattern", "[0-9]*");
+  } else {
+    input.removeAttribute("inputmode");
+    input.removeAttribute("pattern");
+  }
+
+  backdrop.classList.add("active");
+  backdrop.setAttribute("aria-hidden", "false");
+
+  // focus + select
+  setTimeout(() => {
+    input.focus();
+    input.select();
+  }, 0);
+}
+
+function closeModal(){
+  const backdrop = document.getElementById("modalBackdrop");
+  const err = document.getElementById("modalError");
+  if (!backdrop) return;
+
+  backdrop.classList.remove("active");
+  backdrop.setAttribute("aria-hidden", "true");
+
+  if (err){
+    err.classList.remove("active");
+    err.textContent = "";
+  }
+
+  modalOnSave = null;
+  modalValidate = null;
+
+  if (lastFocusedEl && typeof lastFocusedEl.focus === "function"){
+    setTimeout(() => lastFocusedEl.focus(), 0);
+  }
+}
+
+function trySaveModal(){
+  const input = document.getElementById("modalInput");
+  const err = document.getElementById("modalError");
+  if (!input) return;
+
+  const val = input.value;
+
+  if (modalValidate && !modalValidate(val)){
+    if (err){
+      err.textContent = modalErrorText;
+      err.classList.add("active");
+    }
+    input.focus();
+    return;
+  }
+
+  if (typeof modalOnSave === "function"){
+    modalOnSave(val);
+  }
+  closeModal();
+}
+
+// Wire modal buttons + keyboard
+document.addEventListener("DOMContentLoaded", () => {
+  const backdrop = document.getElementById("modalBackdrop");
+  const cancelBtn = document.getElementById("modalCancelBtn");
+  const saveBtn = document.getElementById("modalSaveBtn");
+  const input = document.getElementById("modalInput");
+
+  if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+  if (saveBtn) saveBtn.addEventListener("click", trySaveModal);
+
+  if (backdrop){
+    backdrop.addEventListener("click", (e) => {
+      // click outside modal closes
+      if (e.target === backdrop) closeModal();
+    });
+  }
+
+  if (input){
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        trySaveModal();
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeModal();
+      }
+    });
+  }
+
+  // ESC anywhere closes if modal open
+  document.addEventListener("keydown", (e) => {
+    const bd = document.getElementById("modalBackdrop");
+    if (!bd || !bd.classList.contains("active")) return;
+    if (e.key === "Escape"){
+      e.preventDefault();
+      closeModal();
+    }
+  });
+});
+
+
+  function setHeader(){
+    const b = breakTypes[currentBreakType];
+    const custom = getCustomHeaderText();
+    const left = custom ? `${custom} · ${b.name} BOX BREAK` : `${b.name} BOX BREAK`;
+    document.getElementById("headerText").textContent = left;
+    updateBreakBadge();
+  }
+
+  function makeTeamDiv(team, index){
+    const d = document.createElement("div");
+    d.className = "team";
+    d.dataset.teamIndex = String(index);
+    d.dataset.teamCode = String(team.code || "");
+
+
+    d.onclick = () => toggleTeam(index);
+
+    if (team.image){
+      const img = document.createElement("img");
+      img.src = team.image;
+      img.alt = team.name || team.code || "";
+
+      if (currentBreakType === "nfl") img.classList.add("nfl-small");
+
+      img.onerror = () => {
+        d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
+      };
+      d.appendChild(img);
+    } else {
+      d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
+    }
+    return d;
+  }
+
+  function makeLogoSlot(){
+    const slot = document.createElement("div");
+    slot.className = "logo-slot";
+    const img = document.createElement("img");
+    img.src = LOGO_PRIMARY;
+    img.alt = "DrayBreaks Logo";
+    slot.appendChild(img);
+    return slot;
+  }
+
+  function buildLayout(){
+    const wrap = document.getElementById("teamsWrapper");
+    wrap.innerHTML = "";
+
+    const config = breakTypes[currentBreakType];
+    document.documentElement.style.setProperty("--cols", String(config.cols));
+
+    soldIndexes.clear();
+    soldList = [];
+
+    const teams = config.teams;
+
+    if (currentBreakType === "nba" || currentBreakType === "mlb"){
+      // Row1: 3 teams, logo(2), 3 teams
+      // Row2-4: 8 teams each
+      let idx = 0;
+
+      const r1 = document.createElement("div");
+      r1.className = "row-grid";
+      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx], idx++));
+      r1.appendChild(makeLogoSlot());
+      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx], idx++));
+      wrap.appendChild(r1);
+
+      for (let r=0;r<3;r++){
+        const row = document.createElement("div");
+        row.className = "row-grid";
+        for (let i=0;i<8;i++){
+          row.appendChild(makeTeamDiv(teams[idx], idx++));
+        }
+        wrap.appendChild(row);
+      }
+      // ✅ No Row5
+    }
+
+    if (currentBreakType === "nfl"){
+      // Row1: 4 teams, logo(2), 4 teams
+      // Row2: 10 teams
+      // Row3: 10 teams
+      // Row4: remaining 4 teams (2 + 2)
+      let idx = 0;
+
+      const r1 = document.createElement("div");
+      r1.className = "row-grid";
+      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx], idx++));
+      r1.appendChild(makeLogoSlot());
+      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx], idx++));
+      wrap.appendChild(r1);
+
+      const r2 = document.createElement("div");
+      r2.className = "row-grid";
+      for (let i=0;i<10;i++) r2.appendChild(makeTeamDiv(teams[idx], idx++));
+      wrap.appendChild(r2);
+
+      const r3 = document.createElement("div");
+      r3.className = "row-grid";
+      for (let i=0;i<10;i++) r3.appendChild(makeTeamDiv(teams[idx], idx++));
+      wrap.appendChild(r3);
+
+const r4 = document.createElement("div");
+r4.className = "row-grid";
+
+// center 4 tiles in a 10-col grid: start at column 4 (fills cols 4-7)
+const spacer = document.createElement("div");
+spacer.style.gridColumn = "1 / span 3"; // empty cols 1-3
+r4.appendChild(spacer);
+
+r4.appendChild(makeTeamDiv(teams[idx], idx++));
+r4.appendChild(makeTeamDiv(teams[idx], idx++));
+r4.appendChild(makeTeamDiv(teams[idx], idx++));
+r4.appendChild(makeTeamDiv(teams[idx], idx++));
+
+wrap.appendChild(r4);
+
+    }
+
+    setHeader();
+    updateStats();
+    updateSoldList();
+  }
+
+  function toggleTeam(index){
+    const tile = document.querySelector(`[data-team-index="${index}"]`);
+    if (!tile) return;
+
+    const listIndex = soldList.findIndex(e => e.index === index);
+
+    if (soldIndexes.has(index)){
+      soldIndexes.delete(index);
+      tile.classList.remove("sold");
+      if (listIndex !== -1) soldList.splice(listIndex, 1);
+    } else {
+      soldIndexes.add(index);
+      tile.classList.add("sold");
+      tile.classList.add("flash");
+      setTimeout(()=>tile.classList.remove("flash"), 280);
+
+      if (listIndex === -1) soldList.push({ index, buyer: "" });
+    }
+
+    updateStats();
+    updateSoldList();
+  }
+
+  function updateStats(){
+    const total = breakTypes[currentBreakType].teams.length;
+    const sold = soldIndexes.size;
+    document.getElementById("teamsLeft").textContent = String(total - sold);
+    document.getElementById("teamsSold").textContent = String(sold);
+  }
+
+  function updateSoldList(){
+    const soldListDiv = document.getElementById("soldList");
+    soldListDiv.innerHTML = "";
+    const currentBreak = breakTypes[currentBreakType];
+
+    soldList.forEach(entry => {
+      const team = currentBreak.teams[entry.index];
+      const row = document.createElement("div");
+      row.className = "sold-row";
+
+      if (team.image){
+        const img = document.createElement("img");
+        img.src = team.image;
+        img.className = "sold-team-img";
+        row.appendChild(img);
+      }
+
+      const input = document.createElement("input");
+      input.className = "sold-buyer-input";
+      input.type = "text";
+      input.placeholder = "Buyer";
+      input.value = entry.buyer || "";
+      input.oninput = (e) => { entry.buyer = e.target.value; };
+      row.appendChild(input);
+
+      soldListDiv.appendChild(row);
+    });
+  }
+
+  function resetAll(){
+    soldIndexes.clear();
+    soldList = [];
+    document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
+    updateStats();
+    updateSoldList();
+  }
+
+  function cycleSport(){
+    const types = Object.keys(breakTypes);
+    const idx = types.indexOf(currentBreakType);
+    currentBreakType = types[(idx + 1) % types.length];
+    buildLayout();
+    renderPromoOverlay();
+  }
+
+  // =========================
+  // Boot
+  // =========================
+  document.addEventListener("DOMContentLoaded", () => {
+    // Auto-increment break # each load
+    incrementBreakNumberOnLoad();
+
+    // Load prices
+    const p = loadPrices();
+    writePriceInputs(p);
+
+    ["priceStash","priceSee2","priceSee3"].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener("input", () => {
+        const pr = readPriceInputs();
+        savePrices(pr);
+        renderPromoOverlay();
+      });
+    });
+
+    // restore promo + render
+    renderPromoOverlay();
+
+    // init grid
+    buildLayout();
+startSSE();
+
+    // ensure badge shows current break
+    updateBreakBadge();
+  });
+</script>
+
+
+<!-- ===== OBS-FRIENDLY INPUT MODAL ===== -->
+<div id="modalBackdrop" class="modal-backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-title" id="modalTitle">
+      <span id="modalTitleText">EDIT</span>
+      <span class="modal-hint" id="modalHint">Enter to Save · Esc to Cancel</span>
+    </div>
+
+    <input id="modalInput" class="modal-input" type="text" placeholder="" />
+
+    <div id="modalError" class="modal-error"></div>
+
+    <div class="modal-actions">
+      <button class="modal-btn secondary" id="modalCancelBtn" type="button">Cancel</button>
+      <button class="modal-btn primary" id="modalSaveBtn" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

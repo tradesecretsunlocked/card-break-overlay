@@ -1,0 +1,2031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=920, initial-scale=1.0"/>
+  <title>Pack Smashers – Box Break Overlay (Center Slot)</title>
+  <style>
+:root{
+  /* Pack Smashers pastel/neon palette */
+  --bg0:#05090f;
+  --bg1:#0b1420;
+--logo1-width: 415px;
+  --logo1-top: 86px;
+  --logo1-left: 50%;
+  --logo1-scale-active: 1;
+
+  --logo2-width: 415px;
+  --logo2-top: 86px;
+  --logo2-left: 50%;
+  --logo2-scale-active: 1;
+  --panel: rgba(0,0,0,0.55);
+  --panel2: rgba(255,255,255,0.06);
+
+  --accentA:#63f5d0;   /* neon aqua/green */
+  --accentB:#5fc7ff;   /* pastel blue */
+  --accentC:#ffb07a;   /* soft orange */
+  --accentD:#ffd84d;   /* warm yellow */
+  --accentE:#7bff8b;   /* green pop */
+
+  --red: var(--accentC);
+  --red2: #ff8752;
+  --white:#ffffff;
+
+  --border: rgba(255,255,255,0.22);
+  --border2: rgba(255,255,255,0.12);
+
+  --tileH: 65px;
+  --gap: 4px;
+
+  --W: 1080px;
+
+  --gridCols: 10;
+}
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:25px;;
+      background:transparent;
+      font-family: Arial, sans-serif;
+      width: var(--W);
+      user-select:none;
+      overflow:hidden;
+      color: var(--white);
+    }
+.wrap{
+  width: var(--W);
+  border-radius: 14px;
+  padding: 8px;
+  background:
+    radial-gradient(900px 420px at 18% 0%, rgba(95,199,255,0.18), transparent 60%),
+    radial-gradient(820px 420px at 82% 8%, rgba(99,245,208,0.16), transparent 58%),
+    radial-gradient(760px 360px at 50% 100%, rgba(255,176,122,0.12), transparent 60%),
+    linear-gradient(180deg, var(--bg0), var(--bg1));
+  border: 2px solid rgba(99,245,208,0.85);
+  box-shadow:
+    0 16px 40px rgba(0,0,0,0.65),
+    0 0 0 1px rgba(255,255,255,0.06),
+    0 0 28px rgba(95,199,255,0.10);
+  overflow:hidden;
+  position: relative;
+}
+
+.wrap::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  pointer-events:none;
+  z-index: 20;
+  background:
+    linear-gradient(90deg,
+      rgba(95,199,255,0.00) 0%,
+      rgba(95,199,255,0.42) 10%,
+      rgba(99,245,208,0.18) 22%,
+      rgba(255,255,255,0.05) 34%,
+      rgba(255,176,122,0.16) 50%,
+      rgba(99,245,208,0.14) 66%,
+      rgba(95,199,255,0.38) 84%,
+      rgba(95,199,255,0.00) 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 2px;
+  opacity: 0.85;
+}
+.wrap::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  pointer-events:none;
+  z-index: 20;
+  background:
+    linear-gradient(90deg,
+      rgba(95,199,255,0.00) 0%,
+      rgba(95,199,255,0.42) 10%,
+      rgba(99,245,208,0.18) 22%,
+      rgba(255,255,255,0.05) 34%,
+      rgba(255,176,122,0.16) 50%,
+      rgba(99,245,208,0.14) 66%,
+      rgba(95,199,255,0.38) 84%,
+      rgba(95,199,255,0.00) 100%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: 2px;
+  opacity: 0.85;
+}
+
+.wrap::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  pointer-events:none;
+  z-index: 19;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.04),
+    inset 0 0 18px rgba(95,199,255,0.05),
+    inset 0 0 24px rgba(255,176,122,0.04);
+}
+
+    /* ===== HEADER (TITLE | LOGO | BREAK#) ===== */
+.header{
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items:center;
+  gap: 4px;
+  padding: 3px 10px;
+  height: 55px;
+  border-radius: 12px;
+  background:
+linear-gradient(307deg, rgb(222 161 85), rgba(95, 199, 255, 0.22), rgb(95 199 255 / 95%), rgb(154 213 252 / 35%), rgb(242 119 42)), linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
+  border:2px solid rgba(95,199,255,0.70);
+  position: relative;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 0 18px rgba(95,199,255,0.08);
+}
+
+    .titleBox{
+      font-weight: 900;
+      font-size: 26px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 3px 14px rgba(0,0,0,0.75);
+      opacity: 0.95;
+      padding-left: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+.logoBox{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+}
+
+.logoBox img{
+  display:none;
+}
+
+    .breakBox{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap: 10px;
+      padding-right: 8px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .breakPill{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.55);
+      border: 2px solid rgba(255,159,28,0.95);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+    }
+    .breakPill .l{
+      font-size: 18px;
+      opacity: 0.85;
+    }
+    .breakPill .v{
+      font-size: 22px;
+      color: #fff;
+      min-width: 28px;
+      text-align:right;
+    }
+
+    /* ===== BOARD ===== */
+.board{
+  margin-top: 8px;
+  border-radius: 14px;
+  padding: 8px;
+  background:
+radial-gradient(900px 340px at 50% 22%, rgba(95,199,255,0.10), transparent 48%),
+    radial-gradient(720px 280px at 50% 36%, rgba(29, 178, 236, 0.733), transparent 52%),
+    radial-gradient(640px 240px at 50% 58%, rgba(255,176,122,0.07), transparent 56%),
+    linear-gradient(180deg, rgba(8,16,28,0.92), rgba(4,8,14,0.94));
+  border: 2px solid rgba(95,199,255,0.72);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.05),
+    inset 0 -18px 32px rgba(0,0,0,0.22);
+  position: relative;
+  overflow: hidden;
+}
+
+
+.board::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg, transparent 0%, rgba(95,199,255,0.05) 18%, transparent 34%, transparent 66%, rgba(255,176,122,0.04) 82%, transparent 100%),
+    linear-gradient(180deg, rgba(255,255,255,0.05), transparent 18%, transparent 82%, rgba(99,245,208,0.04));
+  mix-blend-mode: screen;
+  z-index: 0;
+}
+
+  .grid{
+  display:grid;
+  grid-template-columns: repeat(var(--gridCols), 1fr);
+  gap: var(--gap);
+  align-items: stretch;
+  position: relative;
+  isolation: isolate;
+}
+.grid > *{
+  position: relative;
+}
+
+.cell{
+  height: var(--tileH);
+  border: 2px solid rgb(255, 255, 255);
+  outline: 1px solid rgba(255,255,255,0.10);
+  border-radius: 0px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+  overflow:hidden;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 1;
+}
+
+ /* ===== TILE HOVER (lift + red shimmer) ===== */
+.team{
+  position: relative;
+  z-index: 1;
+  transform: translateZ(0);
+  transition:
+    transform 180ms cubic-bezier(.2,.9,.2,1),
+    box-shadow 180ms cubic-bezier(.2,.9,.2,1),
+    border-color 180ms ease,
+    filter 180ms ease;
+  will-change: transform, box-shadow, filter;
+}
+
+    .team img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      filter: drop-shadow(0 8px 14px rgba(0,0,0,0.55));
+      position: relative;
+z-index: 1;
+    }
+    .team .fallback{
+      font-weight: 900;
+      letter-spacing: 1px;
+      font-size: 16px;
+      opacity: 0.95;
+    }
+
+/* shimmer layer (ON TOP of the image) */
+.team::before{
+  content:"";
+  position:absolute;
+  inset:-8px;                 /* bigger so it sweeps cleanly */
+  pointer-events:none;
+  opacity:0;
+  transform: translateX(-140%) skewX(-22deg);
+  z-index: 6;                 /* IMPORTANT: above img */
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    rgba(255,255,255,0.00) 30%,
+    rgba(255,255,255,0.55) 44%,
+    rgba(95,199,255,0.72) 52%,
+    rgba(99,245,208,0.82) 58%,
+    rgba(255,176,122,0.68) 64%,
+    transparent 80%
+  );
+  filter: blur(0.4px);
+  mix-blend-mode: screen;     /* keep */
+  transition: opacity 120ms ease;
+}
+
+.team:hover::before{
+  opacity:1;
+  animation: redShimmer 650ms ease-out 1;
+}
+/* subtle glossy top highlight */
+.team::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:0;
+  z-index: 5;
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.18) 0%,
+    rgba(255,255,255,0.08) 22%,
+    rgba(255,255,255,0.00) 55%
+  );
+  transition: opacity 160ms ease;
+}
+
+.team:hover::after{
+  opacity: 1;
+}
+
+
+@keyframes redShimmer{
+  0%   { transform: translateX(-140%) skewX(-22deg); }
+  100% { transform: translateX(160%)  skewX(-22deg); }
+}
+
+.team:hover{
+   transform: translateY(-6px) scale(1.02);
+  z-index: 3;
+  border-color: rgba(99,245,208,0.88);
+  box-shadow:
+    0 18px 28px rgba(0,0,0,0.55),
+    0 0 0 2px rgba(95,199,255,0.22),
+    0 0 22px rgba(99,245,208,0.26);
+  filter: saturate(1.10) contrast(1.05);
+  animation: tilePop 220ms ease-out 1;
+  outline: 1px solid rgba(255,176,122,0.62);
+}
+
+
+@keyframes tilePop{
+  0%   { transform: translateY(-2px) scale(1.00); }
+  60%  { transform: translateY(-7px) scale(1.03); }
+  100% { transform: translateY(-6px) scale(1.02); }
+}
+
+.team.sold::before{ display:none; }
+.team.sold:hover{
+  transform:none;
+  box-shadow:none;
+  filter: grayscale(1) brightness(0.35);
+  animation:none;
+}
+
+    .team.sold img{
+      opacity: 0.92;
+      filter: grayscale(1) brightness(0.35);
+    }
+.team.sold::after{
+  content:"X";
+  opacity: 1; 
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform: translate(-50%,-50%);
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight: 900;
+  font-size: 22px;
+  background: rgba(255,176,122,0.96);
+  border: 2px solid rgba(99,245,208,0.88);
+  color: #08121d;
+  text-shadow: none;
+  z-index: 5;
+  pointer-events:none;
+}
+
+    .team.flash{
+      animation: flash 240ms ease;
+    }
+    @keyframes flash{
+      0%{ box-shadow: 0 0 0 rgba(225,15,31,0.0); }
+      50%{ box-shadow: 0 0 18px rgba(255,159,28,0.55); }
+      100%{ box-shadow: 0 0 0 rgba(225,15,31,0.0); }
+    }
+
+    /* ===== CENTER SLOT (opening) ===== */
+.centerSlot{
+  background:
+    radial-gradient(circle at 50% 42%, rgba(95,199,255,0.16), transparent 30%),
+    radial-gradient(circle at 50% 60%, rgba(99,245,208,0.18), transparent 38%),
+    radial-gradient(circle at 50% 72%, rgba(255,176,122,0.15), transparent 44%);
+  color:#111;
+  border: none;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  overflow:visible;
+  perspective: 1200px;
+  z-index: 30;
+}
+
+.centerSlot .centerMedia{
+  position:absolute;
+  inset:-90px -90px -70px -90px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  z-index: 50;
+  overflow:visible;
+}
+
+/* shared rotating logo base */
+.centerSlot .rotatingLogo{
+  position:absolute;
+  opacity: 0;
+  transform: rotateY(90deg) scale(0.96);
+  backface-visibility: visible;
+  transition:
+    opacity 700ms ease,
+    transform 900ms cubic-bezier(.2,.8,.2,1),
+    filter 300ms ease;
+  z-index: 60;
+}
+
+/* logo 1: primary Pack Smashers logo */
+.centerSlot .logoPrimary{
+  width: var(--logo1-width);
+  height: auto;
+  top: var(--logo1-top);
+  left: var(--logo1-left);
+  object-fit: contain;
+  z-index: 70;
+  filter:
+    drop-shadow(0 16px 28px rgba(0,0,0,0.44))
+    drop-shadow(0 0 16px rgba(95,199,255,0.10));
+  transform-origin: center center;
+}
+
+/* logo 2: alt/circle logo */
+.centerSlot .logoAlt{
+  width: var(--logo2-width);
+  height: auto;
+  top: var(--logo2-top);
+  left: var(--logo2-left);
+  object-fit: contain;
+  z-index: 70;
+  filter:
+    drop-shadow(0 14px 24px rgba(0,0,0,0.38))
+    drop-shadow(0 0 14px rgba(99,245,208,0.09));
+  transform-origin: center center;
+}
+
+/* center the logos cleanly */
+.centerSlot .logoPrimary,
+.centerSlot .logoAlt{
+  translate: -50% 0;
+}
+
+.centerSlot .rotatingLogo.active{
+  opacity: 1;
+  transform: rotateY(0deg) scale(1);
+}
+
+.centerSlot .rotatingLogo.exiting{
+  opacity: 0;
+  transform: rotateY(-90deg) scale(0.96);
+}
+
+.centerSlot .placeholder{
+  font-weight: 900;
+  font-size: 48px;
+  letter-spacing: 2px;
+  opacity: 0.85;
+  text-transform: uppercase;
+  z-index: 2;
+  text-align:center;
+  padding: 8px;
+  display:none;
+}
+
+.centerSlot::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width: 420px;
+  height: 250px;
+  transform: translate(-50%,-50%);
+  pointer-events:none;
+  z-index: 2;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(95,199,255,0.18), transparent 34%),
+    radial-gradient(circle at 50% 55%, rgba(99,245,208,0.16), transparent 48%),
+    radial-gradient(circle at 50% 62%, rgba(255,176,122,0.14), transparent 64%);
+  filter: blur(10px);
+}
+
+.centerSlot::before{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:80%;
+  width: 200px;
+  height: 180px;
+  transform: translate(-50%,-50%);
+  pointer-events:none;
+  z-index: 1;
+  border-radius: 50%;
+  border: 1px solid rgba(95,199,255,0.16);
+  box-shadow:
+    0 0 20px rgba(95,199,255,0.10),
+    0 0 34px rgba(99,245,208,0.07),
+    inset 0 0 24px rgba(255,176,122,0.05);
+}
+    /* ===== SPORT CORNER LOGOS (NBA/MLB only) ===== */
+    .sportCorner{
+      background: rgba(0,0,0,0.10);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border: 4px solid rgba(0,0,0,0.85);
+      outline: 1px solid rgba(255,255,255,0.10);
+    }
+    .sportCorner img{
+      width: 92%;
+      height: 92%;
+      object-fit: cover;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.45));
+    }
+
+    /* ===== TICKER (SOLD | TICKER | REMAIN) ===== */
+.tickerBar{
+  margin-top: 8px;
+  border-radius: 12px;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,0.78), rgba(95,199,255,0.10), rgba(99,245,208,0.10), rgba(255,176,122,0.12), rgba(0,0,0,0.78)),
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  border: 2px solid rgba(95,199,255,0.66);
+  display:grid;
+  grid-template-columns: 130px 1fr 130px;
+  gap: 8px;
+  padding: 8px;
+  align-items:center;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.04),
+    0 0 16px rgba(99,245,208,0.05);
+}
+
+.statPill{
+  height: 48px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.06);
+  border: 4px solid rgba(110,255,214,0.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 18px;
+  text-shadow: 0 3px 10px rgba(0,0,0,0.55);
+}
+
+.statPillToggle{
+  cursor:pointer;
+  user-select:none;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.statPillToggle:hover{
+  transform: translateY(-1px);
+  border-color: rgba(255,166,108,0.88);
+  box-shadow: 0 0 18px rgba(110,255,214,0.18);
+  background: rgba(255,255,255,0.10);
+}
+
+    .tickerTrack{
+      height: 48px;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.35);
+      border: 2px solid rgb(255, 255, 255);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .ticker-track{
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      width: max-content;
+      min-width: max-content;
+      flex: 0 0 auto;
+      will-change: transform;
+      animation: ticker-marquee var(--tickerDur, 22s) linear infinite;
+    }
+
+    .ticker-text{
+      display: inline-block;
+      white-space: nowrap;
+      flex: 0 0 auto;
+      padding-right: 64px;
+      font-weight: 900;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      font-size: 26px;
+      opacity: 0.95;
+      color:#fff;
+      text-shadow: 0 4px 14px rgba(0,0,0,0.65);
+    }
+
+    @keyframes ticker-marquee{
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(calc(-50% - 32px)); }
+    }
+
+
+
+    /* ===== SOLD PANEL (controls live here) ===== */
+.soldPanel{
+  margin-top: 10px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.55);
+  border: 2px solid rgb(255 215 97);
+  padding: 10px;
+}
+
+    .soldTop{
+      display:flex;
+      align-items:center;
+      justify-content: center;
+      gap: 50px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .soldTitle{
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-size: 18px;
+      opacity: 0.95;
+    }
+
+    .controls{
+      display:flex;
+      gap: 8px;
+      align-items:center;
+      flex-wrap: wrap;
+      justify-content:flex-end;
+    }
+
+    .soldPanel.controls-collapsed .controlsMain{
+      display:none;
+    }
+
+    .controlsWrap{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .controlsMain{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+
+.btn{
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 2px solid rgba(255,176,122,0.85);
+  background: linear-gradient(180deg, rgba(95,199,255,0.14), rgba(99,245,208,0.08));
+  color:#fff;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap: 8px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+}
+    .btn:active{ transform: translateY(1px); }
+
+    .input{
+      height: 44px;
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.35);
+      color:#fff;
+      font-weight: 900;
+      padding: 0 12px;
+      outline:none;
+      width: 140px;
+    }
+    .input.wide{ width: 240px; }
+
+    .sseStatus{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      border: 2px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.25);
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .dot{
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #666;
+      box-shadow: 0 0 8px rgba(255,255,255,0.15);
+    }
+    .sseStatus.connected .dot{ background:#3cff8a; box-shadow:0 0 10px rgba(60,255,138,0.7); }
+    .sseStatus.error .dot{ background:#ff2f2f; box-shadow:0 0 10px rgba(255,47,47,0.7); }
+
+    .soldGrid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px 2px;
+    }
+
+    .soldRow{
+      display:flex;
+      align-items:center;
+      gap: 4px;
+      padding: 4px 2px;
+      border-radius: 12px;
+      border: 2px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.35);
+    }
+
+    .soldRow img{
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,0.8);
+      background:#000;
+    }
+
+    .soldTeam{
+      min-width: 35px;
+      font-weight: 900;
+      text-transform: uppercase;
+      font-size: 13px;
+      opacity: 0.95;
+      white-space: nowrap;
+      overflow:hidden;
+      text-overflow: ellipsis;
+    }
+
+    .buyerInput{
+      flex:1;
+      height: 32px;
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.884);
+      background: rgba(0,0,0,0.35);
+      color:#fff;
+      font-weight: 900;
+      width:60px;
+      outline:none;
+      font-size: 18px;
+    }
+
+/* ===== POPUP MODAL (OBS FRIENDLY) ===== */
+.modal{
+  position:fixed;
+  inset:0;
+  background: rgba(0,0,0,0.70);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index: 9999;
+}
+
+.modal.show{ display:flex; }
+
+.modalCard{
+  width: 520px;
+  max-width: calc(100% - 40px);
+  border-radius: 14px;
+  background: rgba(0,0,0,0.85);
+  border: 2px solid rgba(255,255,255,0.18);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.65);
+  padding: 14px;
+}
+
+.modalTitle{
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.modalRow{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.modalLabel{
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.modalInput{
+  height: 44px;
+  border-radius: 10px;
+  border: 2px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.35);
+  color:#fff;
+  font-weight: 900;
+  padding: 0 12px;
+  outline:none;
+}
+
+.modalTextArea{
+  min-height: 90px;
+  border-radius: 10px;
+  border: 2px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.35);
+  color:#fff;
+  font-weight: 900;
+  padding: 10px 12px;
+  outline:none;
+  resize:none;
+}
+
+.modalActions{
+  display:flex;
+  gap: 8px;
+  justify-content:flex-end;
+}
+
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="titleBox" id="titleText">PACK SMASHERS</div>
+      <div class="logoBox">
+        <img id="brandLogo" alt="Pack Smashers" />
+      </div>
+      <div class="breakBox">
+        <div class="breakPill">
+          <span class="l">Break #</span>
+          <span class="v" id="breakNumDisplay">1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="board">
+      <div class="grid" id="grid"></div>
+      <div class="tickerBar">
+        <div class="statPill statPillToggle" id="soldLabel" title="Toggle sold controls">SOLD</div>
+<div class="tickerTrack">
+  <div id="tickerTrack" class="ticker-track">
+    <span id="tickerTextA" class="ticker-text"></span>
+    <span id="tickerTextB" class="ticker-text" aria-hidden="true"></span>
+  </div>
+</div>
+        <div class="statPill" id="remainLabel">REMAIN</div>
+      </div>
+
+      <div class="soldPanel">
+        <div class="soldTop">
+          <div class="soldTitle">SOLD TEAMS</div>
+
+          <div class="controlsWrap">
+         <div class="controlsMain" id="soldControlsMain">
+<button class="btn" onclick="resetAll()">RESET</button>
+<button class="btn" onclick="newBreak()">NEW BREAK</button>
+<button class="btn" onclick="cycleSport()">SPORT</button>
+<button class="btn" onclick="openBreakPopup()">BREAK #</button>
+<button class="btn" onclick="openTickerPopup()">TICKER</button>
+<button class="btn" onclick="openTitlePopup()">TITLE</button>
+</div>
+
+            <div class="sseStatus" id="sseStatus">
+              SSE <span class="dot"></span> <span id="sseText">OFF</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="soldGrid" id="soldGrid"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =========================
+   BASE PATH (../../ standard)
+========================= */
+const BASE = (() => {
+  const isGhPages = location.hostname.endsWith('github.io');
+  if (isGhPages) {
+    const parts = location.pathname.split('/').filter(Boolean);
+    const repo = parts.length ? parts[0] : '';
+    return `/${repo}/`;
+  }
+  return '../..\/';
+})();
+
+const ASSETS = {
+  brand: `${BASE}images/logos/pack-smashers-logo.png`,
+  center: `${BASE}images/logos/pack-smashers-logo-alt.png`,
+  sport: (sport) => `${BASE}images/${sport}/${sport}.png`,
+  nba: (f) => `${BASE}images/nba/${f}`,
+  nfl: (f) => `${BASE}images/nfl/${f}`,
+  mlb: (f) => `${BASE}images/mlb/${f}`
+};
+
+const LOGO_BRAND = ASSETS.brand;
+const LOGO_CENTER = ASSETS.center;
+const sportLogoPath = (sport) => ASSETS.sport(sport);
+
+const imgNBA = (f) => ASSETS.nba(f);
+const imgNFL = (f) => ASSETS.nfl(f);
+const imgMLB = (f) => ASSETS.mlb(f);
+
+/* =========================
+   TICKER (persist)
+========================= */
+const TICKER_LS = "packsmashers.centerGrid.ticker";
+const TICKER_SPEED_LS = "packsmashers.centerGrid.tickerSpeedSec";
+const DEFAULT_TICKER = "Stay connected with @PackSmashers on YouTube & ebay... Don't Miss the deals, bookmark upcoming shows";
+
+const TITLE_LS = "packsmashers.centerGrid.title";
+const DEFAULT_TITLE = "PACK SMASHERS";
+
+function loadTicker(){
+  try{
+    const v = localStorage.getItem(TICKER_LS);
+    return (v && String(v).trim()) ? v : DEFAULT_TICKER;
+  }catch(_){ return DEFAULT_TICKER; }
+}
+function saveTicker(v){
+  try{ localStorage.setItem(TICKER_LS, String(v||"")); }catch(_){}
+}
+function setTicker(v){
+  const safe = (String(v || "").trim() || DEFAULT_TICKER);
+  const text = ` ${safe} • ${safe} • ${safe} • ${safe} `;
+  const a = document.getElementById("tickerTextA");
+  const b = document.getElementById("tickerTextB");
+
+  if (a) a.textContent = text;
+  if (b) b.textContent = text;
+
+  saveTicker(safe);
+  requestAnimationFrame(() => {
+    syncTickerCopies();
+    applyTickerSpeed();
+  });
+}
+
+function applyTicker(){
+  // kept for compatibility; UI now uses modal
+  setTicker(loadTicker());
+}
+
+function loadTickerSpeedSec(){
+  const raw = parseInt(localStorage.getItem(TICKER_SPEED_LS) || "40", 10);
+  return (Number.isFinite(raw) && raw >= 10 && raw <= 140) ? raw : 22;
+}
+function saveTickerSpeedSec(sec){
+  const s = (Number.isFinite(sec) ? sec : 40);
+  const clamped = Math.max(10, Math.min(140, s));
+  localStorage.setItem(TICKER_SPEED_LS, String(clamped));
+}
+function applyTickerSpeed(){
+  const sec = loadTickerSpeedSec();
+  const track = document.getElementById("tickerTrack");
+  if (!track) return;
+
+  track.style.setProperty("--tickerDur", `${sec}s`);
+  track.style.animation = "none";
+  void track.offsetWidth;
+  track.style.animation = `ticker-marquee ${sec}s linear infinite`;
+}
+
+function syncTickerCopies(){
+  const a = document.getElementById("tickerTextA");
+  const b = document.getElementById("tickerTextB");
+  if (!a || !b) return;
+
+  b.style.minWidth = `${a.offsetWidth}px`;
+}
+
+function loadTitle(){
+  const t = (localStorage.getItem(TITLE_LS) || "").trim();
+  return t ? t : DEFAULT_TITLE;
+}
+function saveTitle(t){
+  localStorage.setItem(TITLE_LS, String(t||"").trim());
+}
+
+/* =========================
+   DAILY BREAK COUNTER + BREAK ID
+   Format: YYYY-MM-DD-sport-counter
+========================= */
+const BREAK_LS = {
+  DATE: "packsmashers.centerGrid.breakDate",
+  COUNT: "packsmashers.centerGrid.breakCount",
+  MANUAL: "packsmashers.centerGrid.breakManual"
+};
+
+function todayKey(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+function loadDailyCounter(){
+  const t = todayKey();
+  const savedDate = localStorage.getItem(BREAK_LS.DATE) || BRIDGE_KEY_DEFAULT;
+  let count = parseInt(localStorage.getItem(BREAK_LS.COUNT) || "1", 10);
+  if (!Number.isFinite(count) || count < 1) count = 1;
+
+  if (savedDate !== t){
+    localStorage.setItem(BREAK_LS.DATE, t);
+    localStorage.setItem(BREAK_LS.COUNT, "1");
+    count = 1;
+  }
+  return count;
+}
+
+function saveDailyCounter(n){
+  const safe = (Number.isFinite(n) && n > 0) ? n : 1;
+  localStorage.setItem(BREAK_LS.DATE, todayKey());
+  localStorage.setItem(BREAK_LS.COUNT, String(safe));
+}
+
+function loadManualBreakNumber(){
+  return (localStorage.getItem(BREAK_LS.MANUAL) || "").trim();
+}
+
+function saveManualBreakNumber(v){
+  localStorage.setItem(BREAK_LS.MANUAL, String(v||"").trim());
+}
+
+function getDisplayBreakNumber(){
+  const manual = loadManualBreakNumber();
+  if (manual) return manual;
+  return String(loadDailyCounter());
+}
+
+function computeBreakId(){
+  const counter = loadDailyCounter();
+  return `${todayKey()}-${currentSport}-${counter}`;
+}
+
+/* =========================
+   SPORTS / TEAMS
+========================= */
+const breakTypes = {
+  nba: {
+    name: "NBA",
+    teams: [
+      { code:'ATL', name:'hawks', image: imgNBA('hawks.png') },
+      { code:'BOS', name:'celtics', image: imgNBA('celtics.png') },
+      { code:'BKN', name:'nets', image: imgNBA('nets.png') },
+      { code:'CHA', name:'hornets', image: imgNBA('hornets.png') },
+      { code:'CHI', name:'bulls', image: imgNBA('bulls.png') },
+      { code:'CLE', name:'cavaliers', image: imgNBA('cavaliers.png') },
+      { code:'DAL', name:'mavericks', image: imgNBA('mavericks.png') },
+      { code:'DEN', name:'nuggets', image: imgNBA('nuggets.png') },
+      { code:'DET', name:'pistons', image: imgNBA('pistons.png') },
+      { code:'GSW', name:'warriors', image: imgNBA('warriors.png') },
+      { code:'HOU', name:'rockets', image: imgNBA('rockets.png') },
+      { code:'IND', name:'pacers', image: imgNBA('pacers.png') },
+      { code:'LAC', name:'clippers', image: imgNBA('clippers.png') },
+      { code:'LAL', name:'lakers', image: imgNBA('lakers.png') },
+      { code:'MEM', name:'grizzlies', image: imgNBA('grizzlies.png') },
+      { code:'MIA', name:'heat', image: imgNBA('heat.png') },
+      { code:'MIL', name:'bucks', image: imgNBA('bucks.png') },
+      { code:'MIN', name:'timberwolves', image: imgNBA('timberwolves.png') },
+      { code:'NOP', name:'pelicans', image: imgNBA('pelicans.png') },
+      { code:'NYK', name:'knicks', image: imgNBA('knicks.png') },
+      { code:'OKC', name:'thunder', image: imgNBA('thunder.png') },
+      { code:'ORL', name:'magic', image: imgNBA('magic.png') },
+      { code:'PHI', name:'76ers', image: imgNBA('76ers.png') },
+      { code:'PHX', name:'suns', image: imgNBA('suns.png') },
+      { code:'POR', name:'blazers', image: imgNBA('blazers.png') },
+      { code:'SAC', name:'kings', image: imgNBA('kings.png') },
+      { code:'SAS', name:'spurs', image: imgNBA('spurs.png') },
+      { code:'TOR', name:'raptors', image: imgNBA('raptors.png') },
+      { code:'UTA', name:'jazz', image: imgNBA('jazz.png') },
+      { code:'WAS', name:'wizards', image: imgNBA('wizards.png') }
+    ],
+    layout: "NBA_MLB_30"
+  },
+  nfl: {
+    name: "NFL",
+    teams: [
+      { code:'ARI', name:'cardinals', image: imgNFL('cardinals.png') },
+      { code:'ATL', name:'falcons', image: imgNFL('falcons.png') },
+      { code:'BAL', name:'ravens', image: imgNFL('ravens.png') },
+      { code:'BUF', name:'bills', image: imgNFL('bills.png') },
+      { code:'CAR', name:'panthers', image: imgNFL('panthers.png') },
+      { code:'CHI', name:'bears', image: imgNFL('bears.png') },
+      { code:'CIN', name:'bengals', image: imgNFL('bengals.png') },
+      { code:'CLE', name:'browns', image: imgNFL('browns.png') },
+      { code:'DAL', name:'cowboys', image: imgNFL('cowboys.png') },
+      { code:'DEN', name:'broncos', image: imgNFL('broncos.png') },
+      { code:'DET', name:'lions', image: imgNFL('lions.png') },
+      { code:'GB',  name:'packers', image: imgNFL('packers.png') },
+      { code:'HOU', name:'texans', image: imgNFL('texans.png') },
+      { code:'IND', name:'colts', image: imgNFL('colts.png') },
+      { code:'JAX', name:'jaguars', image: imgNFL('jaguars.png') },
+      { code:'KC',  name:'chiefs', image: imgNFL('chiefs.png') },
+      { code:'LV',  name:'raiders', image: imgNFL('raiders.png') },
+      { code:'LAC', name:'chargers', image: imgNFL('chargers.png') },
+      { code:'LAR', name:'rams', image: imgNFL('rams.png') },
+      { code:'MIA', name:'dolphins', image: imgNFL('dolphins.png') },
+      { code:'MIN', name:'vikings', image: imgNFL('vikings.png') },
+      { code:'NE',  name:'patriots', image: imgNFL('patriots.png') },
+      { code:'NO',  name:'saints', image: imgNFL('saints.png') },
+      { code:'NYG', name:'giants', image: imgNFL('giants.png') },
+      { code:'NYJ', name:'jets', image: imgNFL('jets.png') },
+      { code:'PHI', name:'eagles', image: imgNFL('eagles.png') },
+      { code:'PIT', name:'steelers', image: imgNFL('steelers.png') },
+      { code:'SF',  name:'49ers', image: imgNFL('49ers.png') },
+      { code:'SEA', name:'seahawks', image: imgNFL('seahawks.png') },
+      { code:'TB',  name:'buccaneers', image: imgNFL('buccaneers.png') },
+      { code:'TEN', name:'titans', image: imgNFL('titans.png') },
+      { code:'WAS', name:'commanders', image: imgNFL('commanders.png') }
+    ],
+    layout: "NFL_32"
+  },
+  mlb: {
+    name: "MLB",
+    teams: [
+      { code:'ARI', name:'diamondbacks', image: imgMLB('diamondbacks.png') },
+      { code:'ATL', name:'braves', image: imgMLB('braves.png') },
+      { code:'BAL', name:'orioles', image: imgMLB('orioles.png') },
+      { code:'BOS', name:'red sox', image: imgMLB('redsox.png') },
+      { code:'CHC', name:'cubs', image: imgMLB('cubs.png') },
+      { code:'CHW', name:'white sox', image: imgMLB('whitesox.png') },
+      { code:'CIN', name:'reds', image: imgMLB('reds.png') },
+      { code:'CLE', name:'guardians', image: imgMLB('guardians.png') },
+      { code:'COL', name:'rockies', image: imgMLB('rockies.png') },
+      { code:'DET', name:'tigers', image: imgMLB('tigers.png') },
+      { code:'HOU', name:'astros', image: imgMLB('astros.png') },
+      { code:'KC',  name:'royals', image: imgMLB('royals.png') },
+      { code:'LAA', name:'angels', image: imgMLB('angels.png') },
+      { code:'LAD', name:'dodgers', image: imgMLB('dodgers.png') },
+      { code:'MIA', name:'marlins', image: imgMLB('marlins.png') },
+      { code:'MIL', name:'brewers', image: imgMLB('brewers.png') },
+      { code:'MIN', name:'twins', image: imgMLB('twins.png') },
+      { code:'NYM', name:'mets', image: imgMLB('mets.png') },
+      { code:'NYY', name:'yankees', image: imgMLB('yankees.png') },
+      { code:'OAK', name:'athletics', image: imgMLB('athletics.png') },
+      { code:'PHI', name:'phillies', image: imgMLB('phillies.png') },
+      { code:'PIT', name:'pirates', image: imgMLB('pirates.png') },
+      { code:'SD',  name:'padres', image: imgMLB('padres.png') },
+      { code:'SF',  name:'giants', image: imgMLB('giants.png') },
+      { code:'SEA', name:'mariners', image: imgMLB('mariners.png') },
+      { code:'STL', name:'cardinals', image: imgMLB('cardinals.png') },
+      { code:'TB',  name:'rays', image: imgMLB('rays.png') },
+      { code:'TEX', name:'rangers', image: imgMLB('rangers.png') },
+      { code:'TOR', name:'blue jays', image: imgMLB('bluejays.png') },
+      { code:'WSH', name:'nationals', image: imgMLB('nationals.png') }
+    ],
+    layout: "NBA_MLB_30"
+  }
+};
+
+let currentSport = "nfl";
+const soldTeams = new Set();
+let soldTeamsList = [];
+const lastCodeByListingKey = new Map();
+
+const soldSet = soldTeams;   // compatibility alias
+let soldList = soldTeamsList; // compatibility alias for legacy helpers
+
+
+
+
+/* =========================
+   UI: Header + Break display
+========================= */
+function syncSoldListAlias(){
+  soldList = soldTeamsList;
+}
+
+function setHeader(){
+  const sportName = breakTypes[currentSport]?.name || "SPORT";
+  document.getElementById("titleText").textContent = loadTitle();
+
+  const brandLogo = document.getElementById("brandLogo");
+  if (brandLogo){
+    brandLogo.removeAttribute("src");
+  }
+
+  document.getElementById("breakNumDisplay").textContent = getDisplayBreakNumber();
+  document.title = `Pack Smashers – ${sportName} Box Break`;
+}
+
+function applyBreak(){
+  document.getElementById("breakNumDisplay").textContent = getDisplayBreakNumber();
+}
+
+function incrementDailyBreak(){
+  const n = loadDailyCounter() + 1;
+  saveDailyCounter(n);
+  document.getElementById("breakNumDisplay").textContent = getDisplayBreakNumber();
+}
+
+function newBreak(){
+  saveManualBreakNumber("");
+  resetAll();
+  incrementDailyBreak();
+  const bn = document.getElementById("breakNumDisplay");
+  if (bn) bn.textContent = getDisplayBreakNumber();
+  bridgeWarmup({ breakId: computeBreakId(), breakType: currentSport });
+}
+
+/* =========================
+   GRID LAYOUT MAPS
+========================= */
+function makeTeamCell(team){
+  const d = document.createElement("div");
+  d.className = "cell team";
+  d.dataset.teamCode = team.code;
+
+  const img = document.createElement("img");
+  img.src = team.image;
+  img.alt = team.name || team.code;
+  img.onerror = () => {
+    d.innerHTML = `<div class="fallback">${team.code || "?"}</div>`;
+  };
+
+  d.appendChild(img);
+
+  if (soldTeams.has(team.code)) d.classList.add("sold");
+  d.addEventListener("click", () => toggleTeam(team.code, ""));
+  return d;
+}
+
+function makeCenterSlot(colStart, colEnd, rowStart, rowEnd){
+  const d = document.createElement("div");
+  d.className = "cell centerSlot";
+  d.id = "centerSlot";
+  d.style.gridColumn = `${colStart} / ${colEnd}`;
+  d.style.gridRow = `${rowStart} / ${rowEnd}`;
+
+  const media = document.createElement("div");
+  media.className = "centerMedia";
+
+  const img1 = document.createElement("img");
+  img1.src = LOGO_BRAND;
+  img1.alt = "Pack Smashers";
+  img1.className = "rotatingLogo logoPrimary active";
+
+  const img2 = document.createElement("img");
+  img2.src = LOGO_CENTER;
+  img2.alt = "Pack Smashers Live";
+  img2.className = "rotatingLogo logoAlt";
+
+  let loadFailCount = 0;
+  const onErr = () => {
+    loadFailCount += 1;
+    if (loadFailCount >= 2){
+      const ph = document.createElement("div");
+      ph.className = "placeholder";
+      ph.style.display = "block";
+      ph.textContent = "PACK SMASHERS";
+      d.appendChild(ph);
+    }
+  };
+
+  img1.onerror = onErr;
+  img2.onerror = onErr;
+
+  media.appendChild(img1);
+  media.appendChild(img2);
+  d.appendChild(media);
+  return d;
+}
+
+let centerLogoTimer = null;
+let centerLogoIndex = 0;
+
+function startCenterLogoRotation(){
+  if (centerLogoTimer){
+    clearInterval(centerLogoTimer);
+    centerLogoTimer = null;
+  }
+
+  const slot = document.getElementById("centerSlot");
+  if (!slot) return;
+
+    const imgs = Array.from(slot.querySelectorAll(".centerMedia .rotatingLogo"));
+  if (imgs.length < 2) return;
+
+  imgs.forEach((img, i) => {
+    img.classList.toggle("active", i === 0);
+    img.classList.toggle("exiting", false);
+  });
+  centerLogoIndex = 0;
+
+  centerLogoTimer = setInterval(() => {
+    const current = imgs[centerLogoIndex];
+    centerLogoIndex = (centerLogoIndex + 1) % imgs.length;
+    const next = imgs[centerLogoIndex];
+
+    current.classList.remove("active");
+    current.classList.add("exiting");
+
+    next.classList.remove("exiting");
+    next.classList.add("active");
+
+    setTimeout(() => current.classList.remove("exiting"), 950);
+  }, 4200);
+}
+
+function makeSportCorner(col, row){
+  const d = document.createElement("div");
+  d.className = "cell sportCorner";
+  d.style.gridColumn = `${col} / ${col+1}`;
+  d.style.gridRow = `${row} / ${row+1}`;
+
+  const img = document.createElement("img");
+  img.src = sportLogoPath(currentSport);
+  img.alt = `${currentSport} logo`;
+  img.onerror = () => {};
+  d.appendChild(img);
+  return d;
+}
+
+function getSlotsForSport(){
+  const slots = [];
+  const pushRow = (row, cols) => cols.forEach(c => slots.push({row, col:c}));
+
+  pushRow(1, [1,2,3,4,5,6,7,8,9,10]);
+  pushRow(2, [1,2,3,8,9,10]);
+  pushRow(3, [1,2,3,8,9,10]);
+
+  if (currentSport === "nfl"){
+    pushRow(4, [1,2,3,4,5,6,7,8,9,10]);
+  } else {
+    pushRow(4, [2,3,4,5,6,7,8,9]);
+  }
+
+  return slots;
+}
+
+function initializeGrid(){
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
+
+  document.documentElement.style.setProperty("--tileH", currentSport === "nfl" ? "68px" : "68px");
+
+  const center = makeCenterSlot(4, 8, 2, 4);
+  grid.appendChild(center);
+
+  const slots = getSlotsForSport();
+  const teams = breakTypes[currentSport].teams.slice();
+
+  if (currentSport !== "nfl"){
+    grid.appendChild(makeSportCorner(1, 4));
+    grid.appendChild(makeSportCorner(10, 4));
+  }
+
+  for (let i = 0; i < slots.length; i++){
+    const team = teams[i];
+    const s = slots[i];
+    if (!team) continue;
+
+    const cell = makeTeamCell(team);
+    cell.style.gridColumn = `${s.col} / ${s.col+1}`;
+    cell.style.gridRow = `${s.row} / ${s.row+1}`;
+    grid.appendChild(cell);
+  }
+  startCenterLogoRotation();
+  updateStats();
+  updateSoldList();
+  setHeader();
+}
+
+function buildGrid(){
+  initializeGrid();
+}
+
+/* =========================
+   Sold / Remaining
+========================= */
+function updateStats(){
+  const total = breakTypes[currentSport].teams.length;
+  const sold = soldTeams.size;
+
+  document.getElementById("soldLabel").textContent = `SOLD ${sold}`;
+  document.getElementById("remainLabel").textContent = `REMAIN ${Math.max(0, total - sold)}`;
+}
+
+function ensureSoldEntry(code, buyer = ""){
+  let entry = soldTeamsList.find(x => x.code === code);
+  if (!entry){
+    entry = { code, buyer: buyer || "" };
+    soldTeamsList.push(entry);
+  } else if (buyer){
+    entry.buyer = buyer;
+  }
+  syncSoldListAlias();
+  return entry;
+}
+
+function markSold(code, buyerFromSSE = ""){
+  if (!code) return;
+  const tile = document.querySelector(`.team[data-team-code="${CSS.escape(code)}"]`);
+
+  if (!soldTeams.has(code)){
+    soldTeams.add(code);
+    ensureSoldEntry(code, buyerFromSSE);
+    if (tile){
+      tile.classList.add("sold","flash");
+      setTimeout(() => tile.classList.remove("flash"), 280);
+    }
+  } else if (buyerFromSSE){
+    ensureSoldEntry(code, buyerFromSSE);
+  }
+
+  updateStats();
+  updateSoldList();
+}
+
+function markUnsold(code){
+  if (!code) return;
+  soldTeams.delete(code);
+  soldTeamsList = soldTeamsList.filter(x => x.code !== code);
+  syncSoldListAlias();
+
+  const tile = document.querySelector(`.team[data-team-code="${CSS.escape(code)}"]`);
+  if (tile) tile.classList.remove("sold");
+
+  updateStats();
+  updateSoldList();
+}
+
+function updateBuyerForCode(code, buyer){
+  if (!code) return;
+  const entry = soldTeamsList.find(x => x.code === code);
+  if (entry){
+    entry.buyer = buyer || "";
+  }
+  updateSoldList();
+}
+
+function toggleTeam(code, buyerFromSSE = ""){
+  if (!code) return;
+  if (soldTeams.has(code)) markUnsold(code);
+  else markSold(code, buyerFromSSE);
+}
+
+function updateSoldList(){
+  const host = document.getElementById("soldGrid");
+  host.innerHTML = "";
+
+  const teams = breakTypes[currentSport].teams;
+
+  soldTeamsList.forEach(entry => {
+    const team = teams.find(t => t.code === entry.code);
+    if (!team) return;
+
+    const row = document.createElement("div");
+    row.className = "soldRow";
+
+    const img = document.createElement("img");
+    img.src = team.image;
+    img.alt = team.code;
+    img.onerror = () => {};
+    row.appendChild(img);
+
+    const name = document.createElement("div");
+    name.className = "soldTeam";
+    name.textContent = team.code;
+    row.appendChild(name);
+
+    const input = document.createElement("input");
+    input.className = "buyerInput";
+    input.type = "text";
+    input.placeholder = "Buyer";
+    input.value = entry.buyer || "";
+    input.addEventListener("input", (e) => {
+      entry.buyer = e.target.value;
+    });
+    row.appendChild(input);
+
+    host.appendChild(row);
+  });
+}
+
+function resetAll(){
+  soldTeams.clear();
+  soldTeamsList = [];
+  soldList = soldTeamsList;
+  lastCodeByListingKey.clear();
+  document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
+  updateStats();
+  updateSoldList();
+}
+
+/* =========================
+   Sport Switching (NBA -> NFL -> MLB)
+========================= */
+function cycleSport(){
+  const order = ["nba","nfl","mlb"];
+  const idx = order.indexOf(currentSport);
+  currentSport = order[(idx + 1) % order.length];
+  resetAll();
+  initializeGrid();
+  bridgeWarmup({ breakId: computeBreakId(), breakType: currentSport });
+}
+
+function setSport(s){
+  if (!breakTypes[s]) return;
+  currentSport = s;
+  resetAll();
+  initializeGrid();
+  bridgeWarmup({ breakId: computeBreakId(), breakType: currentSport });
+}
+
+function toggleSoldControls(){
+  const panel = document.querySelector(".soldPanel");
+  if (!panel) return;
+  panel.classList.toggle("controls-collapsed");
+}
+/* =========================
+   SSE BRIDGE (TSU STANDARD)
+========================= */
+const BRIDGE_LS = { URL: "tsu.bridgeUrl", KEY: "tsu.bridgeKey" };
+const CHANNEL_MAIN = "main";
+
+function getParam(name){
+  return new URLSearchParams(location.search).get(name);
+}
+
+    // ── TSU Migration: shared bridge defaults (May 2026) ──────────────────
+    const BRIDGE_URL_DEFAULT = "https://bridge.tradesecretsunlocked.com";
+    const BRIDGE_KEY_DEFAULT = "e144bc88-806d-4d54-af51-4baf963b4b46";
+    // ──────────────────────────────────────────────────────────────────────
+function getBridgeBase(){
+  const q = getParam("bridge");
+  if (q) return normalizeBridge(q);
+  return BRIDGE_URL_DEFAULT;
+}
+function getBridgeKey(){
+  const q = getParam("key");
+  if (q) return q.trim();
+  return BRIDGE_KEY_DEFAULT;
+}
+function getChannel(){
+  return String(getParam("channel") || CHANNEL_MAIN).trim().toLowerCase() || CHANNEL_MAIN;
+}
+function getOverlayId(){
+  return String(getParam("overlay") || "pack-smashers-center-grid").trim().toLowerCase();
+}
+function bridgeEnabled(){
+  return !!getBridgeBase();
+}
+function unwrapPayload(payload){
+  return (payload && typeof payload === "object" && payload.data && typeof payload.data === "object") ? payload.data : payload;
+}
+function getListingKey(data){
+  return data?.saleId || data?.id || data?.listingId || null;
+}
+function normalizeTeamCode(data){
+  const direct = String(data?.teamCode || data?.code || data?.team || "").trim().toUpperCase();
+  if (direct) return direct;
+
+  const title = String(data?.title || data?.itemTitle || data?.listingTitle || "").trim();
+  if (!title) return "";
+
+  const token = (title.match(/\b([A-Z]{2,4})\b/) || [])[1];
+  if (token && breakTypes[currentSport]?.teams?.some(x => x.code === token)) return token;
+
+  const lower = title.toLowerCase();
+  const teams = breakTypes[currentSport]?.teams || [];
+  const match = teams.find(x => lower.includes(String(x.name || "").toLowerCase()));
+  return match?.code || "";
+}
+function normalizeBuyer(data){
+  return String(data?.buyerName || data?.buyer || data?.username || "").trim();
+}
+function normalizeSport(data){
+  const s = String(data?.breakType || data?.sport || "").trim().toLowerCase();
+  return breakTypes[s] ? s : "";
+}
+function getEventBreakId(data){
+  return String(data?.breakId || "").trim();
+}
+
+let sseMain = null;
+
+function setSSEStatus(state, msg){
+  const el = document.getElementById("sseStatus");
+  const t = document.getElementById("sseText");
+  if (!el || !t) return;
+
+  el.classList.remove("connected","error");
+  if (state === "connected") el.classList.add("connected");
+  if (state === "error" || state === "connecting") el.classList.add("error");
+  t.textContent = msg || state || "OFF";
+}
+
+function connectBridgeSSE(){
+  const base = getBridgeBase();
+  if (!base){
+    setSSEStatus("error","OFF");
+    return;
+  }
+
+  const channel = getChannel();
+  const url = `${base}/stream?channel=${encodeURIComponent(channel)}&key=${encodeURIComponent(getBridgeKey())}`;
+
+  if (sseMain){
+    try { sseMain.close(); } catch(_){}
+    sseMain = null;
+  }
+
+  setSSEStatus("connecting","CONNECTING");
+
+  let es;
+  try{
+    es = new EventSource(url);
+  }catch(_){
+    setSSEStatus("error","FAILED");
+    return;
+  }
+
+  const ingest = (e) => {
+    try{
+      const raw = JSON.parse(e.data);
+      if (raw?.type === "hello") return;
+      const data = unwrapPayload(raw);
+      handleSSEEvent(data);
+    }catch(err){
+      console.warn("[SSE parse error]", err, e?.data);
+    }
+  };
+
+  es.onopen = () => setSSEStatus("connected","ON");
+  es.onmessage = ingest;
+
+  [
+    "team_sold","team_unsold",
+    "sale","sold","purchase","whatnot_purchase",
+    "buyer","buyer_update",
+    "reset","set_break","set_sport","set_title","set_ticker","next_break",
+    "scores","overlay_warmup"
+  ].forEach(type => {
+    try { es.addEventListener(type, ingest); } catch(_){}
+  });
+
+  es.onerror = () => {
+    setSSEStatus("error","RETRY");
+    try { es.close(); } catch(_){}
+    sseMain = null;
+    setTimeout(() => connectBridgeSSE(), 2500);
+  };
+
+  sseMain = es;
+}
+
+async function bridgePost(payload){
+  const base = getBridgeBase();
+  if (!base) return;
+  const key = getBridgeKey();
+
+  await fetch(`${base}/events`, {
+    method: "POST",
+    headers: {
+      "Content-Type":"application/json",
+      ...(key ? { "x-bridge-key": key } : {})
+    },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
+}
+
+function bridgeWarmup(extra = {}){
+  return bridgePost({
+    type: "overlay_warmup",
+    overlay: getOverlayId(),
+    channel: getChannel(),
+    ts: Date.now(),
+    breakId: computeBreakId(),
+    breakType: currentSport,
+    sport: currentSport,
+    ...extra
+  });
+}
+
+/* =========================
+   SSE Event Handling
+========================= */
+function handleSSEEvent(payload){
+  const data = unwrapPayload(payload);
+  if (!data || typeof data !== "object") return;
+
+  const type = String(data?.type || "").toLowerCase();
+  if (type === "hello") return;
+
+  const incomingBreakId = getEventBreakId(data);
+  const myBreakId = computeBreakId();
+  if (incomingBreakId && incomingBreakId !== myBreakId) return;
+
+  if (type === "reset"){
+    resetAll();
+    return;
+  }
+
+  if (type === "set_break" || type === "next_break"){
+    const v = String(data?.value ?? "").trim();
+    if (v){
+      saveManualBreakNumber(v);
+      document.getElementById("breakNumDisplay").textContent = v;
+    } else if (type === "next_break"){
+      newBreak();
+    }
+    return;
+  }
+
+  if (type === "set_title"){
+    const nextTitle = String(data?.title || data?.value || "").trim();
+    if (nextTitle){
+      saveTitle(nextTitle);
+      setHeader();
+    }
+    return;
+  }
+
+  if (type === "set_ticker"){
+    const nextTicker = Array.isArray(data?.lines)
+      ? data.lines.map(x => String(x).trim()).filter(Boolean).join(" • ")
+      : String(data?.text || data?.value || "").trim();
+    if (nextTicker){
+      setTicker(nextTicker);
+      applyTickerSpeed();
+    }
+    return;
+  }
+
+  if (type === "set_sport"){
+    const s = normalizeSport(data);
+    if (s) setSport(s);
+    return;
+  }
+
+  const saleLike = ["team_sold","sale","sold","purchase","whatnot_purchase"].includes(type);
+  if (saleLike){
+    const s = normalizeSport(data);
+    if (s && s !== currentSport) return;
+
+    const code = normalizeTeamCode(data);
+    const buyer = normalizeBuyer(data);
+    if (!code) return;
+
+    const listingKey = getListingKey(data);
+    if (listingKey){
+      const prev = lastCodeByListingKey.get(listingKey);
+      if (prev && prev !== code) markUnsold(prev);
+      lastCodeByListingKey.set(listingKey, code);
+    }
+
+    markSold(code, buyer);
+    return;
+  }
+
+  if (type === "buyer" || type === "buyer_update"){
+    const code = normalizeTeamCode(data);
+    const buyer = normalizeBuyer(data);
+    if (code && buyer) updateBuyerForCode(code, buyer);
+    return;
+  }
+
+  if (type === "team_unsold" || type === "unsold"){
+    const s = normalizeSport(data);
+    if (s && s !== currentSport) return;
+
+    const code = normalizeTeamCode(data);
+    if (!code) return;
+
+    markUnsold(code);
+
+    const listingKey = getListingKey(data);
+    if (listingKey){
+      const mapped = lastCodeByListingKey.get(listingKey);
+      if (!mapped || mapped === code) lastCodeByListingKey.delete(listingKey);
+    }
+    return;
+  }
+}
+
+
+/* =========================
+   MODAL STATE + FUNCTIONS
+========================= */
+let modalMode = ""; // "break" | "ticker" | "title"
+
+function openModal(mode){
+  modalMode = mode;
+
+  const m = document.getElementById("modal");
+  const mt = document.getElementById("modalTitle");
+  const breakRow = document.getElementById("modalBreakRow");
+  const tickerRow = document.getElementById("modalTickerRow");
+  const titleRow = document.getElementById("modalTitleRow");
+
+  if (!m || !mt || !breakRow || !tickerRow || !titleRow) return;
+
+  breakRow.style.display = "none";
+  tickerRow.style.display = "none";
+  titleRow.style.display = "none";
+
+  if (mode === "break"){
+    mt.textContent = "SET BREAK #";
+    breakRow.style.display = "flex";
+    const inp = document.getElementById("modalBreakInput");
+    if (inp){
+      inp.value = getDisplayBreakNumber();
+      setTimeout(()=>inp.focus(), 0);
+    }
+  }
+
+  if (mode === "ticker"){
+    mt.textContent = "SET TICKER";
+    tickerRow.style.display = "flex";
+
+    const ti = document.getElementById("modalTickerInput");
+    if (ti) ti.value = loadTicker();
+
+    const s = loadTickerSpeedSec();
+    const sr = document.getElementById("modalSpeed");
+    const sv = document.getElementById("modalSpeedVal");
+    if (sr && sv){
+      sr.value = String(s);
+      sv.textContent = String(s);
+      sr.oninput = () => { sv.textContent = sr.value; };
+    }
+
+    setTimeout(()=>ti && ti.focus(), 0);
+  }
+
+  if (mode === "title"){
+    mt.textContent = "SET TITLE";
+    titleRow.style.display = "flex";
+    const inp = document.getElementById("modalTitleInput");
+    if (inp){
+      inp.value = loadTitle();
+      setTimeout(()=>inp.focus(), 0);
+    }
+  }
+
+  m.classList.add("show");
+}
+
+function closeModal(){
+  const m = document.getElementById("modal");
+  if (m) m.classList.remove("show");
+  modalMode = "";
+}
+
+function saveModal(){
+  if (modalMode === "break"){
+    const v = (document.getElementById("modalBreakInput")?.value || "").trim();
+    if (!v) saveManualBreakNumber("");
+    else saveManualBreakNumber(v);
+
+    const b = document.getElementById("breakNumDisplay");
+    if (b) b.textContent = getDisplayBreakNumber();
+
+    bridgeWarmup({ breakId: computeBreakId() });
+  }
+
+  if (modalMode === "ticker"){
+    const text = (document.getElementById("modalTickerInput")?.value || "").trim();
+    const sec = parseInt(document.getElementById("modalSpeed")?.value || "40", 10);
+    saveTickerSpeedSec(sec);
+    setTicker(text || DEFAULT_TICKER);
+  }
+
+  if (modalMode === "title"){
+    const t = (document.getElementById("modalTitleInput")?.value || "").trim();
+    saveTitle(t || DEFAULT_TITLE);
+    const el = document.getElementById("titleText");
+    if (el) el.textContent = loadTitle();
+  }
+
+  closeModal();
+}
+
+function openBreakPopup(){ openModal("break"); }
+function openTickerPopup(){ openModal("ticker"); }
+function openTitlePopup(){ openModal("title"); }
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape"){
+    const m = document.getElementById("modal");
+    if (m && m.classList.contains("show")) closeModal();
+  }
+});
+
+/* =========================
+   INIT (ONE TIME ONLY)
+========================= */
+document.addEventListener("DOMContentLoaded", () => {
+  const bl = document.getElementById("brandLogo");
+  if (bl){
+    bl.removeAttribute("src");
+  }
+
+  setTicker(loadTicker());
+
+    const soldLabel = document.getElementById("soldLabel");
+  if (soldLabel){
+    soldLabel.addEventListener("click", toggleSoldControls);
+  }
+
+  if (!localStorage.getItem(TITLE_LS)) saveTitle(DEFAULT_TITLE);
+
+  const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
+  if (qSport && breakTypes[qSport]) currentSport = qSport;
+
+  const bn = document.getElementById("breakNumDisplay");
+  if (bn) bn.textContent = getDisplayBreakNumber();
+
+  setHeader();
+  initializeGrid();
+  connectBridgeSSE();
+  bridgeWarmup({ breakId: computeBreakId(), breakType: currentSport });
+});
+
+window.addEventListener("resize", () => {
+  syncTickerCopies();
+  applyTickerSpeed();
+});
+
+</script>
+
+
+<!-- ===== OBS FRIENDLY MODAL ===== -->
+<div class="modal" id="modal">
+  <div class="modalCard" role="dialog" aria-modal="true">
+    <div class="modalTitle" id="modalTitle">EDIT</div>
+
+    <div class="modalRow" id="modalBreakRow" style="display:none;">
+      <div class="modalLabel">Break Number</div>
+      <input class="modalInput" id="modalBreakInput" type="text" placeholder="e.g. 12" />
+    </div>
+
+    <div class="modalRow" id="modalTitleRow" style="display:none;">
+      <div class="modalLabel">Title (top-left)</div>
+      <input class="modalInput" id="modalTitleInput" type="text" placeholder="e.g. PACK SMASHERS" />
+    </div>
+
+    <div class="modalRow" id="modalTickerRow" style="display:none;">
+      <div class="modalLabel">Ticker Text</div>
+      <textarea class="modalTextArea" id="modalTickerInput" placeholder="Your ticker..."></textarea>
+
+      <div class="modalLabel">Ticker Speed</div>
+      <input id="modalSpeed" type="range" min="10" max="140" step="1" />
+      <div style="font-weight:900; opacity:0.9; font-size:12px; letter-spacing:1px; text-transform:uppercase;">
+        Duration: <span id="modalSpeedVal">75</span>s
+      </div>
+    </div>
+
+    <div class="modalActions">
+      <button class="btn" onclick="closeModal()">CANCEL</button>
+      <button class="btn" onclick="saveModal()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+</body>
+</html>

@@ -165,19 +165,43 @@ let breakNum = 1;
 
 ## 6. Required JavaScript — localStorage Keys
 
-Use these exact key names for consistency across overlays:
+All localStorage keys must be namespaced with the client slug prefix to prevent
+collisions when multiple overlays are tested on the same machine.
 
-| Key | Type | Purpose |
+**Pattern:** `{client-slug}.{key}` — e.g. `barn.soldTeamsList`, `klutch.breakNumber`
+
+Define a single `LS` constants object at the top of each overlay's script block:
+
+```js
+const CLIENT = 'barn'; // ← change per client
+const LS = {
+  SOLD_LIST:   `${CLIENT}.soldTeamsList`,
+  BREAK_NUM:   `${CLIENT}.breakNumber`,
+  TITLE_MAIN:  `${CLIENT}.titleMain`,
+  TITLE_SUB:   `${CLIENT}.titleSub`,
+  TICKER_TEXT: `${CLIENT}.tickerText`,
+  TICKER_SPD:  `${CLIENT}.tickerSpeedSec`,
+  SPORT:       `${CLIENT}.sport`,
+  BRIDGE:      `${CLIENT}.bridgeUrl`,
+  KEY:         `${CLIENT}.bridgeKey`,
+};
+```
+
+| LS Key | Type | Purpose |
 |---|---|---|
-| `"breakNumber"` | number | Current break counter |
-| `"titleMain"` | string | Primary header title |
-| `"titleSub"` | string | Secondary header line |
-| `"tickerText"` | string | Ticker message content |
-| `"tickerSpeedSec"` | number | Ticker duration in seconds |
-| `"soldTeamsList"` | JSON | Serialized `soldTeamsList` array |
-| `"sport"` | string | Active sport slug |
-| `"bridgeUrl"` | string | SSE bridge base URL |
-| `"bridgeKey"` | string | SSE bridge auth key |
+| `{client}.breakNumber` | number | Current break counter |
+| `{client}.titleMain` | string | Primary header title |
+| `{client}.titleSub` | string | Secondary header line |
+| `{client}.tickerText` | string | Ticker message content |
+| `{client}.tickerSpeedSec` | number | Ticker duration in seconds |
+| `{client}.soldTeamsList` | JSON | Serialized `soldTeamsList` array |
+| `{client}.sport` | string | Active sport slug |
+| `{client}.bridgeUrl` | string | SSE bridge base URL (default baked in — see Section 9) |
+| `{client}.bridgeKey` | string | SSE bridge auth key (default baked in — see Section 9) |
+
+> **Bridge URL and key** are baked into each overlay as hardcoded defaults so clients
+> never need to configure them manually. localStorage stores overrides only.
+> See Section 9 for the correct `getBridgeUrl()` and `getBridgeKey()` pattern.
 
 **Helpers — use these in every overlay:**
 
@@ -271,11 +295,32 @@ const breakTypes = {
 
 ## 9. SSE Bridge Integration
 
+All overlays connect to the shared bridge at `https://bridge.tradesecretsunlocked.com`.
+Each client has a unique bridge key registered in Supabase (`bridge_keys` table).
+The bridge URL and key are baked into each overlay as hardcoded defaults — clients
+never configure these manually.
+
 ```js
-// Config — populated from URL params or localStorage
-function getBridgeBase()    { return new URLSearchParams(location.search).get("bridge") || loadText("bridgeUrl"); }
-function getBridgeKey()     { return new URLSearchParams(location.search).get("key")    || loadText("bridgeKey"); }
-function bridgeEnabled()    { return !!getBridgeBase(); }
+// ── Bridge config ─────────────────────────────────────────────────────────────
+// URL and key are baked in as defaults. URL params and localStorage act as overrides
+// (useful for testing). Clients never touch these in production.
+
+const BRIDGE_URL_DEFAULT = "https://bridge.tradesecretsunlocked.com";
+const BRIDGE_KEY_DEFAULT = "REPLACE_WITH_CLIENT_KEY"; // ← set per client at build time
+
+function getBridgeBase() {
+  return new URLSearchParams(location.search).get("bridge")
+      || loadText(LS.BRIDGE)
+      || BRIDGE_URL_DEFAULT;
+}
+
+function getBridgeKey() {
+  return new URLSearchParams(location.search).get("key")
+      || loadText(LS.KEY)
+      || BRIDGE_KEY_DEFAULT;
+}
+
+function bridgeEnabled() { return !!getBridgeBase(); }
 
 // Connect
 function connectBridgeSSE() {
