@@ -28,12 +28,13 @@ dotenv.config();
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
-const PORT = parseInt(process.env.PORT || "10000", 10);
-const SUPABASE_URL = process.env.SUPABASE_URL || "";
+const PORT          = parseInt(process.env.PORT || "10000", 10);
+const SUPABASE_URL  = process.env.SUPABASE_URL  || "";
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
-const ESPN_ENABLED = process.env.ESPN_ENABLED !== "false"; // opt-out with ESPN_ENABLED=false
-const HEARTBEAT_MS = 25_000;
-const ESPN_POLL_MS = 15_000;
+const ESPN_ENABLED  = process.env.ESPN_ENABLED !== "false";
+const HEARTBEAT_MS  = 25_000;
+const ESPN_POLL_MS  = 15_000;
+const KEY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes — revocation takes effect within this window
 
 // ─── Supabase (optional — logging degrades gracefully if not configured) ─────
 
@@ -43,6 +44,53 @@ if (SUPABASE_URL && SUPABASE_ANON_KEY) {
   console.log("[bridge] Supabase connected");
 } else {
   console.warn("[bridge] SUPABASE_URL / SUPABASE_ANON_KEY not set — event logging disabled");
+}
+
+// ─── Key validation (Supabase-backed, in-memory cache) ───────────────────────
+// Table: bridge_keys (key TEXT PRIMARY KEY, client_name TEXT, active BOOLEAN DEFAULT true)
+// Revoke a client: set active = false in Supabase — takes effect within KEY_CACHE_TTL ms.
+
+const keyCache = new Map(); // key → { valid: boolean, ts: number }
+
+async function validateKey(key) {
+  // No Supabase configured → open mode (backward compat for local dev / unset env)
+  if (!supabase) return true;
+
+  // Serve from cache if fresh
+  const cached = keyCache.get(key);
+  if (cached && Date.now() - cached.ts < KEY_CACHE_TTL) {
+    return cached.valid;
+  }
+
+  // Query Supabase
+  try {
+    const { data, error } = await supabase
+      .from("bridge_keys")
+      .select("active")
+      .eq("key", key)
+      .single();
+
+    const valid = !error && data?.active === true;
+    keyCache.set(key, { valid, ts: Date.now() });
+    if (!valid) console.warn(`[bridge] Key rejected: …${key.slice(-6)}`);
+    return valid;
+  } catch (err) {
+    // Supabase down → fail open so a Supabase outage doesn't kill live streams
+    console.error("[bridge] Key validation error (failing open):", err.message);
+    return true;
+  }
+}
+
+// Middleware: extracts + validates key, attaches to req.bridgeKey
+async function authMiddleware(req, res, next) {
+  const key = extractKey(req);
+  if (!key) return res.status(401).json({ error: "Missing bridge key" });
+
+  const valid = await validateKey(key);
+  if (!valid) return res.status(403).json({ error: "Invalid or revoked bridge key" });
+
+  req.bridgeKey = key;
+  next();
 }
 
 async function logEvent(bridgeKey, channel, payload) {
@@ -130,9 +178,8 @@ app.get("/health", (_req, res) => {
 
 // ─── Connection status (per-key) ─────────────────────────────────────────────
 
-app.get("/status", (req, res) => {
-  const key = requireKey(req, res);
-  if (!key) return;
+app.get("/status", authMiddleware, (req, res) => {
+  const key = req.bridgeKey;
   res.json({ key_prefix: key.slice(0, 6) + "…", connections: connCount(key) });
 });
 
@@ -140,9 +187,7 @@ app.get("/status", (req, res) => {
 // Handles:  GET /stream   GET /events   GET /
 
 function sseHandler(req, res) {
-  const key = requireKey(req, res);
-  if (!key) return;
-
+  const key = req.bridgeKey; // set by authMiddleware
   const channel = String(req.query.channel || "main").toLowerCase();
 
   // SSE headers
@@ -175,16 +220,14 @@ function sseHandler(req, res) {
   });
 }
 
-app.get("/stream", sseHandler);
-app.get("/events", sseHandler); // legacy GET alias
-app.get("/",       sseHandler); // flatbill-style: GET /?key=…
+app.get("/stream", authMiddleware, sseHandler);
+app.get("/events", authMiddleware, sseHandler); // legacy GET alias
+app.get("/",       authMiddleware, sseHandler); // flatbill-style: GET /?key=…
 
 // ─── Publish event (Chrome extension → bridge → overlays) ────────────────────
 
 function publishHandler(req, res) {
-  const key = requireKey(req, res);
-  if (!key) return;
-
+  const key = req.bridgeKey; // set by authMiddleware
   const body = req.body || {};
   const channel = String(body.channel || req.query.channel || "main").toLowerCase();
   const payload = { ts: Date.now(), ...body, channel };
@@ -197,8 +240,8 @@ function publishHandler(req, res) {
   res.json({ ok: true, channel, listeners: connCount(key) });
 }
 
-app.post("/events", publishHandler);
-app.post("/event",  publishHandler); // legacy alias
+app.post("/events", authMiddleware, publishHandler);
+app.post("/event",  authMiddleware, publishHandler); // legacy alias
 
 // ─── ESPN live scores (broadcast to "sports" channel for all connected keys) ──
 
