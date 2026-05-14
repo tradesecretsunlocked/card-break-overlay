@@ -5193,7 +5193,7 @@ function applyPrizeSpotSelectorModal(shouldClose = true){
 
   selectedPrizeSpotCodes.forEach(code => {
     const existing = customChaseMap.get(code);
-const category = existing?.category || "pack";
+const category = existing?.category || "team";
 
 nextMap.set(code, {
   category,
@@ -5306,7 +5306,7 @@ function applyChaseModal(shouldClose = true){
     const code = String(row.dataset.code || "").trim();
     if (!code) return;
 
-    const category = String(row.querySelector(".chase-category-btn")?.dataset.category || "pack")
+    const category = String(row.querySelector(".chase-category-btn")?.dataset.category || "team")
       .toLowerCase()
       .replace(/\s+/g, "");
 
@@ -5381,7 +5381,7 @@ function renderChaseManagerModal(){
     row.className = "chase-row";
     row.dataset.code = entry.key;
 
-const safeCategory = String(cfg.category || "pack")
+const safeCategory = String(cfg.category || "team")
   .toLowerCase()
   .replace(/\s+/g, "");
 
@@ -5406,7 +5406,7 @@ const btn = row.querySelector(".chase-category-btn");
 const labelBox = row.querySelector("[data-category-label]");
 
 btn?.addEventListener("click", () => {
-  const current = String(btn.dataset.category || "pack");
+  const current = String(btn.dataset.category || "team");
   const idx = CATEGORY_ORDER.indexOf(current);
   const next = CATEGORY_ORDER[(idx + 1) % CATEGORY_ORDER.length];
 
@@ -5431,6 +5431,42 @@ function closeChaseModal(){
   closeEnvelopeManager();
 }
 
+
+const NBA_FULL_TEAM_NAMES = {
+  "atlanta hawks":"NBA_ATL",
+  "boston celtics":"NBA_BOS",
+  "brooklyn nets":"NBA_BKN",
+  "charlotte hornets":"NBA_CHA",
+  "chicago bulls":"NBA_CHI",
+  "cleveland cavaliers":"NBA_CLE",
+  "dallas mavericks":"NBA_DAL",
+  "denver nuggets":"NBA_DEN",
+  "detroit pistons":"NBA_DET",
+  "golden state warriors":"NBA_GSW",
+  "houston rockets":"NBA_HOU",
+  "indiana pacers":"NBA_IND",
+  "los angeles clippers":"NBA_LAC",
+  "la clippers":"NBA_LAC",
+  "los angeles lakers":"NBA_LAL",
+  "la lakers":"NBA_LAL",
+  "memphis grizzlies":"NBA_MEM",
+  "miami heat":"NBA_MIA",
+  "milwaukee bucks":"NBA_MIL",
+  "minnesota timberwolves":"NBA_MIN",
+  "new orleans pelicans":"NBA_NOP",
+  "new york knicks":"NBA_NYK",
+  "ny knicks":"NBA_NYK",
+  "oklahoma city thunder":"NBA_OKC",
+  "orlando magic":"NBA_ORL",
+  "philadelphia 76ers":"NBA_PHI",
+  "phoenix suns":"NBA_PHX",
+  "portland trail blazers":"NBA_POR",
+  "sacramento kings":"NBA_SAC",
+  "san antonio spurs":"NBA_SAS",
+  "toronto raptors":"NBA_TOR",
+  "utah jazz":"NBA_UTA",
+  "washington wizards":"NBA_WAS"
+};
 
 const MLB_FULL_TEAM_NAMES = {
   "arizona diamondbacks":"MLB_ARI",
@@ -5532,7 +5568,10 @@ function splitBulkTileLines(text){
 function getComboTeamLookup(){
   const lookup = new Map();
 
-  Object.entries({ ...MLB_FULL_TEAM_NAMES, ...NFL_FULL_TEAM_NAMES }).forEach(([name, key]) => {
+  const activeLookupNames = layoutMode === "nfl-nba"
+    ? { ...NBA_FULL_TEAM_NAMES, ...NFL_FULL_TEAM_NAMES }
+    : { ...MLB_FULL_TEAM_NAMES, ...NFL_FULL_TEAM_NAMES };
+  Object.entries(activeLookupNames).forEach(([name, key]) => {
     lookup.set(normalizeBulkTileName(name), key);
   });
 
@@ -5671,7 +5710,7 @@ function applyComboBulkResultToModal(result){
 
     if (!(result.foundTeamCodes || []).length){
       summary.textContent =
-        `No default MLB/NFL team names were recognized, so no team tiles were changed. ` +
+        `No default ${layoutMode === "nfl-nba" ? "NBA/NFL" : "MLB/NFL"} team names were recognized, so no team tiles were changed. ` +
         `Check the pasted list format.${unmatchedText}`;
     } else {
       summary.textContent =
@@ -5730,6 +5769,34 @@ function initComboBulkImportPaste(){
     if (!text) return;
     e.preventDefault();
     area.value = String(text).replace(/\r/g, "");
+  });
+}
+
+// OBS Chromium may not fire native paste in plain textareas.
+// Intercept paste + manually insert at cursor position so lists paste reliably.
+function initComboExtraSpotsPaste(){
+  const ids = ["comboExtraChasersInput", "comboExtraItemsInput", "comboPrizePacksInput"];
+  ids.forEach(id => {
+    const area = document.getElementById(id);
+    if (!area) return;
+
+    area.addEventListener("paste", (e) => {
+      const text =
+        e.clipboardData?.getData("text/plain") ||
+        e.clipboardData?.getData("text") ||
+        window.clipboardData?.getData("Text") ||
+        "";
+      if (!text) return;
+      e.preventDefault();
+
+      const clean = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+      const start = area.selectionStart ?? area.value.length;
+      const end   = area.selectionEnd   ?? area.value.length;
+      area.value = area.value.slice(0, start) + clean + area.value.slice(end);
+      const cursor = start + clean.length;
+      area.selectionStart = cursor;
+      area.selectionEnd   = cursor;
+    });
   });
 }
 function setComboChaserTab(tab){
@@ -6155,17 +6222,19 @@ function clearCurrentLayoutStorage(){
     clearEnvelopeBoardAndStorage();
     return;
   }
-
+  // handles both "combo" and "nfl-nba" via internal isNflNba branch
   clearComboBoardAndStorage();
 }
 function resetAll(){
-  const predicate = layoutMode === "custom"
-    ? isEnvelopeBoardCode
-    : isComboBoardCode;
+  let predicate;
+  if (layoutMode === "custom")    predicate = isEnvelopeBoardCode;
+  else if (layoutMode === "nfl-nba") predicate = isNflNbaBoardCode;
+  else                            predicate = isComboBoardCode;
 
   clearSoldCodesByPredicate(predicate);
 
-  if (layoutMode === "combo"){
+  // Reset chase buyers panel for both combo-family modes
+  if (layoutMode === "combo" || layoutMode === "nfl-nba"){
     chaseBuyersActive = [];
     chaseBuyersRemoved = [];
     saveChaseBuyersState();
@@ -6630,6 +6699,7 @@ initCustomEntriesImport();
 initCustomEntriesPaste();
 initComboBulkImportFile();
 initComboBulkImportPaste();
+initComboExtraSpotsPaste();
 initChaseBuyersPopupInteractions();
 
 
@@ -6658,4 +6728,4 @@ initChaseBuyersPopupInteractions();
     boot();
   </script>
 </body>
-</html>
+</htm
