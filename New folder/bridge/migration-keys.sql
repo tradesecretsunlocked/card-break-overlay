@@ -50,7 +50,8 @@ INSERT INTO bridge_keys (key, client_name, active, notes) VALUES
   ('83ba8d20-e41f-4a3f-a366-71e41511ca9f', 'The Hit Chasers', true, 'migrated May 2026'),
   ('0f5c4a1d-0fc4-450b-8448-2bc7ece3a7db', 'Wheely Z Ripz', true, 'migrated May 2026 | priority: hardcoded URL'),
   ('becbe090-0aca-419b-a77e-71dcf418d96f', 'Wizards Trading Cards', true, 'migrated May 2026'),
-  ('03856a9b-fa07-43b7-acde-49fcde946da9', '808st_ripz', true, 'added May 2026')
+  ('03856a9b-fa07-43b7-acde-49fcde946da9', '808st_ripz', true, 'added May 2026'),
+  ('b85fc2e5-0f86-4770-a507-4a4a0982df55', 'Legends Hobby', true, 'added May 2026')
 ;
 
 -- ─────────────────────────────────────────────────────────────────
@@ -103,3 +104,4 @@ INSERT INTO bridge_keys (key, client_name, active, notes) VALUES
 -- wheelyzripz                      0f5c4a1d-0fc4-450b-8448-2bc7ece3a7db  ← PRIORITY
 -- wizards-trading-cards            becbe090-0aca-419b-a77e-71dcf418d96f
 -- 808st-ripz                       03856a9b-fa07-43b7-acde-49fcde946da9
+-- legends-hobby                    b85fc2e5-0f86-4770-a507-4a4a0982df55
