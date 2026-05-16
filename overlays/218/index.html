@@ -451,7 +451,7 @@
     function saveSoldState(){ saveJson(STORAGE.sold, soldTeamsList); }
     function loadSoldState(){ soldTeams.clear(); soldTeamsList = loadJson(STORAGE.sold, []); if (!Array.isArray(soldTeamsList)) soldTeamsList=[]; soldTeamsList = soldTeamsList.filter(e => e && e.code).map(e => ({ code:String(e.code), buyer:String(e.buyer || "") })); soldTeamsList.forEach(e => soldTeams.add(e.code)); }
     function findTeamByCode(code){ return breakTypes.nfl.teams.find(t => t.code === code) || null; }
-    // FIX: hardcoded defaults are LAST in the chain so a stored empty string can't block them
+    // FIX: hardcoded defaults LAST — stored empty string can never block auto-connect
     function getBridgeBase(){ return (new URLSearchParams(location.search).get("bridge") || loadText(STORAGE.bridgeUrl, "") || localStorage.getItem("tsu.bridge") || localStorage.getItem("tsu.bridgeUrl") || "https://bridge.tradesecretsunlocked.com").replace(/\/$/,""); }
     function getBridgeKey(){ return new URLSearchParams(location.search).get("key") || loadText(STORAGE.bridgeKey, "") || localStorage.getItem("tsu.key") || localStorage.getItem("tsu.bridgeKey") || "ff93638f-52bc-476c-be54-22529596c578"; }
     function warmupPing(){ const base = getBridgeBase(); const key = getBridgeKey(); if (!base || !key) return; fetch(`${base}/warmup`, { method:"POST", headers:{"x-bridge-key": key, "Content-Type":"application/json"}, body: JSON.stringify({ overlayId:"218-cards-co" }) }).catch(()=>{}); }
@@ -843,4 +843,19 @@
 
     // ── Init ─────────────────────────────────────────────────────────────────
     function init(){
-      loadSoldState(); syncHeader(); buildLayout(); renderSoldList(); updateStats(); startPromoRotation
+      loadSoldState(); syncHeader(); buildLayout(); renderSoldList(); updateStats(); startPromoRotation();
+      warmupPing();
+      if (getBridgeBase()) connectBridgeSSE();
+      startScorePolling();
+    }
+
+    // ── Exports ──────────────────────────────────────────────────────────────
+    window.newBreak=newBreak; window.resetAll=resetAll; window.openBreakPopup=openBreakPopup; window.closeBreakPopup=closeBreakPopup; window.applyBreakPopup=applyBreakPopup;
+    window.openTitlePopup=openTitlePopup; window.closeTitlePopup=closeTitlePopup; window.applyTitlePopup=applyTitlePopup; window.openTickerPopup=openTickerPopup; window.closeTickerPopup=closeTickerPopup; window.applyTickerPopup=applyTickerPopup;
+    window.openPromoPopup=openPromoPopup; window.closePromoPopup=closePromoPopup; window.applyPromoPopup=applyPromoPopup; window.openExportPopup=openExportPopup; window.closeExportPopup=closeExportPopup; window.copyExportTSV=copyExportTSV; window.toggleSoldControls=toggleSoldControls; window.showNflOnlyNotice=showNflOnlyNotice;
+    window.openAudioPopup=openAudioPopup; window.closeAudioPopup=closeAudioPopup; window.selectAudioPreset=selectAudioPreset; window.testCustomAudio=testCustomAudio; window.applyAudioPopup=applyAudioPopup;
+    window.openBridgePopup=openBridgePopup; window.closeBridgePopup=closeBridgePopup; window.applyBridgePopup=applyBridgePopup; window.disconnectBridge=disconnectBridge;
+    init();
+  </script>
+</body>
+</html>
