@@ -8,7 +8,7 @@ workspace folder. Copy the content below into each file.
 ## File 1 — CLAUDE.md
 
 **Location:**
-`C:\Users\TSU\AppData\Roaming\Claude\local-agent-mode-sessions\...\local_f16bfd88-..\.claude\CLAUDE.md`
+`C:\Users\TSU\AppData\Roaming\Claude\local-agent-mode-sessions\...\local_f16bfd88-..\.claud   e\CLAUDE.md`
 
 **Replace the entire file with:**
 

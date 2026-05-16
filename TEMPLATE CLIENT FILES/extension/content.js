@@ -83,6 +83,11 @@
     const s = raw.toLowerCase();
     if (s === "sale" || s === "—") return true;
 
+    // Whatnot auto-populates listing.subtitle with slot indices like "#3" when
+    // listing.title is null (race condition — title not yet returned by API).
+    // Reject these so the item retries on the next poll cycle with the real title.
+    if (/^#?\d+$/.test(raw)) return true;
+
     const tail = stripPrefixTitle(raw);
     if (!tail || tail.toLowerCase() === "sale") return true;
 
@@ -358,6 +363,28 @@ const lastCodeByListing = new Map();
           let code = "";
           if (sport !== "nil") code = inferCodeFromTitle(title, sport);
 
+// In content.js, after:
+let code = "";
+if (sport !== "nil") code = inferCodeFromTitle(title, sport);
+
+// ADD THIS:
+if (!code && sport === "nfl") {
+  const NFL_NAMES = {
+    "arizona":  "ARI","atlanta":"ATL","baltimore":"BAL","buffalo":"BUF","carolina":"CAR",
+    "chicago":  "CHI","cincinnati":"CIN","cleveland":"CLE","dallas":"DAL","denver":"DEN",
+    "detroit":  "DET","green bay":"GB","houston":"HOU","indianapolis":"IND",
+    "jacksonville":"JAX","kansas city":"KC","las vegas":"LV","los angeles chargers":"LAC",
+    "los angeles rams":"LAR","miami":"MIA","minnesota":"MIN","new england":"NE",
+    "new orleans":"NO","new york giants":"NYG","new york jets":"NYJ","philadelphia":"PHI",
+    "pittsburgh":"PIT","san francisco":"SF","seattle":"SEA","tampa bay":"TB",
+    "tennessee":"TEN","washington":"WAS"
+  };
+  const t = title.toLowerCase();
+  for (const [key, c] of Object.entries(NFL_NAMES)) {
+    if (t.includes(key)) { code = c; break; }
+  }
+}
+          
           lastSaleText = `${buyer} • ${title} • $${amount.toFixed(2)}`;
           buyerCounts.set(buyer, (buyerCounts.get(buyer) || 0) + 1);
 
