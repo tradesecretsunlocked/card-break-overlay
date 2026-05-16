@@ -256,4 +256,14 @@
         }, '*');
       } catch (error) {
         window.postMessage({
-          typ
+                   type: 'WHATNOT_SPY_FETCH_LIVESTREAM_RESULT',
+          requestId,
+          success: false,
+          error: error.message
+        }, '*');
+      }
+    }
+  });
+
+  window.postMessage({ type: 'WHATNOT_SPY_INJECTED_READY' }, '*');
+})();

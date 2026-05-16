@@ -451,8 +451,9 @@
     function saveSoldState(){ saveJson(STORAGE.sold, soldTeamsList); }
     function loadSoldState(){ soldTeams.clear(); soldTeamsList = loadJson(STORAGE.sold, []); if (!Array.isArray(soldTeamsList)) soldTeamsList=[]; soldTeamsList = soldTeamsList.filter(e => e && e.code).map(e => ({ code:String(e.code), buyer:String(e.buyer || "") })); soldTeamsList.forEach(e => soldTeams.add(e.code)); }
     function findTeamByCode(code){ return breakTypes.nfl.teams.find(t => t.code === code) || null; }
-    function getBridgeBase(){ return (new URLSearchParams(location.search).get("bridge") || loadText(STORAGE.bridgeUrl, "")).replace(/\/$/,""); }
-    function getBridgeKey(){ return new URLSearchParams(location.search).get("key") || loadText(STORAGE.bridgeKey, ""); }
+    function getBridgeBase(){ return (new URLSearchParams(location.search).get("bridge") || loadText(STORAGE.bridgeUrl, "https://bridge.tradesecretsunlocked.com") || localStorage.getItem("tsu.bridge") || localStorage.getItem("tsu.bridgeUrl") || "").replace(/\/$/,""); }
+    function getBridgeKey(){ return new URLSearchParams(location.search).get("key") || loadText(STORAGE.bridgeKey, "ff93638f-52bc-476c-be54-22529596c578") || localStorage.getItem("tsu.key") || localStorage.getItem("tsu.bridgeKey") || ""; }
+    function warmupPing(){ const base = getBridgeBase(); const key = getBridgeKey(); if (!base || !key) return; fetch(`${base}/warmup`, { method:"POST", headers:{"x-bridge-key": key, "Content-Type":"application/json"}, body: JSON.stringify({ overlayId:"218-cards-co" }) }).catch(()=>{}); }
 
     // ── Sold audio ───────────────────────────────────────────────────────────
     function getSoldAudioSrc(){
@@ -730,7 +731,7 @@
       saveText(STORAGE.bridgeKey, key);
       closeBridgePopup();
       if (sseConn){ try{ sseConn.close(); }catch(_){} sseConn = null; }
-      if (url) connectBridgeSSE();
+      if (url){ warmupPing(); connectBridgeSSE(); } // FIX: warmupPing on manual reconnect too
     }
     function disconnectBridge(){
       if (sseConn){ try{ sseConn.close(); }catch(_){} sseConn = null; }
@@ -743,7 +744,7 @@
     function updateBridgeStatusUI(){
       const el = document.getElementById("bridgeStatus");
       if (!el) return;
-      const url = loadText(STORAGE.bridgeUrl, "");
+      const url = getBridgeBase(); // FIX: use getBridgeBase() so it checks all LS keys, not just 218cardsco.bridgeUrl
       const connected = sseConn && sseConn.readyState === 1;
       el.style.color = connected ? "#6fdb8a" : url ? "#f0a030" : "var(--muted)";
       el.textContent = connected ? "● CONNECTED" : url ? "○ CONNECTING…" : "NOT CONNECTED";
@@ -764,32 +765,13 @@
         sseConn.onmessage = (e) => {
           try{ handleBridgeEvent(JSON.parse(e.data)); }catch(_){}
         };
+        // FIX: named event listeners moved inside try so they never run on a null sseConn
+        ["team_sold","team_unsold","sold","sale","purchase","whatnot_purchase","buyer","buyer_update","reset","set_break","set_title","set_ticker","stream_stats","overlay_warmup"].forEach(type => {
+          sseConn.addEventListener(type, (e) => {
+            try{ handleBridgeEvent(JSON.parse(e.data)); }catch(err){ console.warn("[218] named SSE parse failed", type, err); }
+          });
+        });
       }catch(_){ setTimeout(connectBridgeSSE, 2500); }
-
-      [
-  "team_sold",
-  "team_unsold",
-  "sold",
-  "sale",
-  "purchase",
-  "whatnot_purchase",
-  "buyer",
-  "buyer_update",
-  "reset",
-  "set_break",
-  "set_title",
-  "set_ticker",
-  "stream_stats",
-  "overlay_warmup"
-].forEach(type => {
-  sseConn.addEventListener(type, (e) => {
-    try {
-      handleBridgeEvent(JSON.parse(e.data));
-    } catch (err) {
-      console.warn("[218] named SSE parse failed", type, err);
-    }
-  });
-});
     }
 
     function normalizeIncomingCode(raw){
@@ -809,6 +791,18 @@
       if (type === "set_break"){ const n = parseInt(String(data.value || data.break || ""), 10); if (Number.isFinite(n) && n > 0) setBreakNumber(n); return; }
       if (type === "set_title"){ if (data.main) saveText(STORAGE.title, String(data.main)); syncHeader(); return; }
       if (type === "set_ticker"){ if (data.text) saveText(STORAGE.ticker, String(data.text)); if (data.speedSec) saveText(STORAGE.tickerSpeed, String(data.speedSec)); syncTickerTrack(); return; }
+
+      // FIX: buyer_update / buyer events were silently dropped — likely the root cause of 218's automation issues
+      // These fire when buyer name arrives after initial sale, or when a reassignment carries a new buyer name
+      if (type === "buyer_update" || type === "buyer"){
+        const code = normalizeIncomingCode(data.code || data.teamCode || "");
+        const buyer = String(data.buyer || data.buyerName || "").trim();
+        if (code && buyer && soldTeams.has(code)){
+          const entry = soldTeamsList.find(e => e.code === code);
+          if (entry){ entry.buyer = buyer; saveSoldState(); renderSoldList(); }
+        }
+        return;
+      }
 
       if (type === "team_unsold" || type === "unsold"){
         const code = normalizeIncomingCode(data.code || data.teamCode || "");
@@ -849,6 +843,7 @@
     // ── Init ─────────────────────────────────────────────────────────────────
     function init(){
       loadSoldState(); syncHeader(); buildLayout(); renderSoldList(); updateStats(); startPromoRotation();
+      warmupPing();
       if (getBridgeBase()) connectBridgeSSE();
       startScorePolling();
     }
