@@ -347,21 +347,4 @@
             lastCodeByListing.set(saleKey, eventPayload.code);
           }
 
-          await sendEvent(cfg, eventPayload);
-        }
-
-        loops++;
-        if (loops % cfg.summaryEvery === 0) {
-          let topBuyer = "—", topBuyerCount = 0;
-          for (const [b, c] of buyerCounts.entries()) { if (c > topBuyerCount) { topBuyerCount = c; topBuyer = b; } }
-          await sendEvent(cfg, { type: "stream_stats", topBuyer, lastSale: lastSaleText, liveId });
-        }
-
-        await sleep(cfg.pollMs);
-      } catch (err) {
-        console.warn("[TSU:218-cards-co] poll error:", err?.message || err);
-        await sleep(5000);
-      }
-    }
-  })();
-})();
+          await sendEvent(
