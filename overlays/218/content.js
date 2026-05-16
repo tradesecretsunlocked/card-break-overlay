@@ -2,7 +2,7 @@
   /**
    * ============================================================
    * TSU STANDARD content.js — 218 Cards & Co
-   * v2.0.0
+   * v2.2.1
    * ============================================================
    * overlayId : 218-cards-co
    * sport     : nfl
@@ -235,6 +235,14 @@
         let channel      = String(cfg.channel    || "main").trim().toLowerCase() || "main";
         let pollMs       = clampInt(cfg.pollMs,       DEFAULTS.pollMs,       1000, 20000);
         let summaryEvery = clampInt(cfg.summaryEvery, DEFAULTS.summaryEvery, 1,    50);
+        // Migration v2.2.1: if stored bridgeUrl is a deprecated per-client Render URL,
+        // auto-reset to the multi-tenant bridge. Runs once, persists the fix to sync storage.
+        if (/tsu-bridge-[\w-]+\.onrender\.com/.test(bridgeUrl)) {
+          console.log("[TSU:218-cards-co] Auto-migrating from legacy Render URL →", DEFAULTS.bridgeUrl);
+          bridgeUrl = DEFAULTS.bridgeUrl;
+          bridgeKey = DEFAULTS.bridgeKey;
+          chrome.storage.sync.set({ bridgeUrl: DEFAULTS.bridgeUrl, bridgeKey: DEFAULTS.bridgeKey }, () => {});
+        }
         try {
           const lsUrl = cleanUrl(localStorage.getItem("tsu.bridgeUrl") || localStorage.getItem("tsu.bridge"));
           const lsKey = String(localStorage.getItem("tsu.bridgeKey") || localStorage.getItem("tsu.key") || "").trim();
