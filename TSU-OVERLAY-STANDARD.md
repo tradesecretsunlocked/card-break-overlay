@@ -164,11 +164,23 @@ function warmupPing(){
 
 > ⚠️ Do NOT POST to `/warmup` — that endpoint does not exist on the bridge. Always use `/events`.
 
-### SSE connection — required named event listeners
+### SSE connection — key must be in query string
+
+`EventSource` does not support custom request headers. The bridge key **cannot** be sent via `x-bridge-key` on an SSE connection — it must go in the URL as `&key=`.
 
 ```js
-sse = new EventSource(`${getBridgeBase()}/stream?channel=main`);
+// ✅ CORRECT — key in query string
+const url = `${getBridgeBase()}/stream?channel=${encodeURIComponent(channel)}&key=${encodeURIComponent(getBridgeKey())}`;
+sse = new EventSource(url);
 
+// ❌ WRONG — EventSource ignores headers; bridge returns 401 "Missing bridge key"
+sse = new EventSource(`${getBridgeBase()}/stream?channel=main`);
+// (then trying to set headers via fetch or XMLHttpRequest won't work either — EventSource only)
+```
+
+This applies to **both** SSE connections: `connectBridgeSSE` (channel=main) and `connectScoresSSE` (channel=sports).
+
+```js
 // REQUIRED: listen for named event types explicitly (SSE named events bypass onmessage)
 ["team_sold","team_unsold","buyer","reset","set_break","set_sport",
  "scores","stream_stats","whatnot_purchase","purchase"].forEach(t => {
@@ -418,6 +430,7 @@ Run these checks on every overlay before marking it ready for review.
 | `getBridgeKey()` | Returns URL param OR hardcoded constant — no localStorage lookup |
 | `bridgeEnabled()` | Checks both `getBridgeBase()` AND `getBridgeKey()` |
 | `warmupPing` endpoint | POSTs to `/events`, not `/warmup` |
+| SSE key in URL | Both `connectBridgeSSE` and `connectScoresSSE` URLs include `&key=${encodeURIComponent(getBridgeKey())}` — EventSource cannot send headers |
 | SSE named listeners | All types listed including `team_sold`, `team_unsold`, `buyer`, `scores` |
 | `team_sold` handler | Includes `lastCodeByListingKey` reassignment check |
 | `overlayId` match | overlay's overlayId string === extension DEFAULTS.overlayId |
@@ -445,6 +458,7 @@ Run these checks on every overlay before marking it ready for review.
 | Lost events on network blip | Break has gaps despite sales showing in Whatnot | Old extension set `seen` before confirming bridge POST | v2.2 fix: only set `seen` after successful `sendEvent()` |
 | Duplicate team_sold on respin | Both old and new team show sold | No reassignment tracking | `lastCodeByListingKey` map — unsell prev code when same saleId returns different code |
 | Extension silently 401s all session | No sales ever appear | `bridgeKey` not set in DEFAULTS (left as placeholder) | Extension now fails fast with console error if bridgeKey is missing |
+| SSE 401 "Missing bridge key" | All `/stream` connections return 401, overlay never receives events | `EventSource` doesn't support headers; `x-bridge-key` header is ignored on SSE connections | Append `&key=${encodeURIComponent(getBridgeKey())}` to SSE URLs — applies to both main and sports channels |
 
 ---
 
