@@ -1257,19 +1257,6 @@ const LS = {
   TITLE_SUB: 'gtr.title.sub'
 };
 
-    // ===== Automation standard v2.2 — hardcoded constants =====
-    const BRIDGE_BASE      = "https://bridge.tradesecretsunlocked.com";
-    const BRIDGE_KEY       = "16d5f085-00d1-4dfd-9eb4-9908c56481a3";
-    const SCORES_NAMESPACE = "golden-triangle";
-    const ENABLE_SCORES    = (new URLSearchParams(location.search).get("scores") === null)
-                               ? true
-                               : (new URLSearchParams(location.search).get("scores") === "1");
-    const SCORES_BY_SPORT    = { nba: "", nfl: "", mlb: "" };
-    const SCORES_UPDATED_AT  = { nba: 0, nfl: 0, mlb: 0 };
-    function isFreshSportScore(sport){
-      return (Date.now() - (SCORES_UPDATED_AT[sport] || 0)) < 1000 * 60 * 20;
-    }
-
     /* =========================
        Title persistence
     ========================== */
@@ -1955,7 +1942,7 @@ function drawWheel(){
     ctx.closePath();
 
     const even = i % 2 === 0;
-    ctx.fillStyle = even ? 'rgba(240,188,45,0.92)' : 'rgba(20,20,20,0.95)';
+    ctx.fillStyle = even ? 'rgba(240,188,45,0.92)' : 'rgba(138,90,24,0.95)';
     ctx.fill();
 
     ctx.lineWidth = Math.max(2, cssSize * 0.0045);
@@ -2429,47 +2416,31 @@ function toggleSoldPanel(){
       const panel = document.getElementById('soldPanel');
       if (!panel) return;
 
-      // Incremental patch — never wipe innerHTML (destroys active buyer inputs mid-typing)
-      // Remove rows for teams no longer in soldTeamsList
-      panel.querySelectorAll('.sold-item[data-code]').forEach(row => {
-        if (!soldTeamsList.some(e => e.code === row.dataset.code)) row.remove();
-      });
+      panel.innerHTML = '';
 
-      // Add new rows / update existing without rebuilding
       soldTeamsList.forEach(entry => {
         const teamObj = findTeamByCode(entry.code);
 
-        let row = panel.querySelector(`.sold-item[data-code="${cssEscape(entry.code)}"]`);
+        const row = document.createElement('div');
+        row.className = 'sold-item';
 
-        if (!row) {
-          row = document.createElement('div');
-          row.className = 'sold-item';
-          row.dataset.code = entry.code;
+        const img = document.createElement('img');
+        img.alt = entry.code;
+        img.src = teamObj?.image || '';
+        img.onerror = () => { img.style.display = 'none'; };
+        row.appendChild(img);
 
-          const img = document.createElement('img');
-          img.alt = entry.code;
-          img.src = teamObj?.image || '';
-          img.onerror = () => { img.style.display = 'none'; };
-          row.appendChild(img);
+        const input = document.createElement('input');
+        input.className = 'buyer-input';
+        input.placeholder = entry.code;
+        input.value = entry.buyer || '';
+        input.oninput = (e) => {
+          entry.buyer = e.target.value;
+          saveSoldState();
+        };
+        row.appendChild(input);
 
-          const input = document.createElement('input');
-          input.className = 'buyer-input';
-          input.placeholder = entry.code;
-          input.value = entry.buyer || '';
-          input.oninput = (e) => {
-            entry.buyer = e.target.value;
-            saveSoldState();
-          };
-          row.appendChild(input);
-
-          panel.appendChild(row);
-        } else {
-          // Only update buyer input if it does not currently have focus (preserves typing)
-          const input = row.querySelector('.buyer-input');
-          if (input && document.activeElement !== input) {
-            input.value = entry.buyer || '';
-          }
-        }
+        panel.appendChild(row);
       });
     }
 
@@ -2616,6 +2587,7 @@ if (speedSlider) speedSlider.oninput = null;
 
     const RECONNECT_MS = 2500;
     const DEFAULT_CHANNELS = ['main'];
+    const DEFAULT_SCORES_CHANNEL = 'sports';
 
     let sse = null;
     let sseScores = null;
@@ -2632,8 +2604,15 @@ if (speedSlider) speedSlider.oninput = null;
       const qs = new URLSearchParams(location.search);
       const paramBridge = qs.get('bridge');
 
-      // URL param → hardcoded constant (localStorage bypassed to prevent stale Render URL)
-      const value = paramBridge || BRIDGE_BASE;
+      let value =
+        paramBridge ||
+        localStorage.getItem(BRIDGE_KEYS.URL_A) ||
+        localStorage.getItem(BRIDGE_KEYS.URL_B) ||
+        localStorage.getItem(BRIDGE_KEYS.LEGACY_URL) ||
+        localStorage.getItem(BRIDGE_KEYS.LEGACY_ALT) ||
+        localStorage.getItem(LS.BRIDGE) ||
+        '';
+
       const cleaned = cleanBridgeBase(value);
 
       if (cleaned){
@@ -2645,20 +2624,17 @@ if (speedSlider) speedSlider.oninput = null;
       return cleaned;
     }
 
-    function getBridgeBase(){ return resolveBridgeBase(); }
-
     function resolveBridgeKey(){
       const qs = new URLSearchParams(location.search);
       const paramKey = qs.get('key');
 
-      // URL param → localStorage → hardcoded constant
-      const value =
+      let value =
         paramKey ||
         localStorage.getItem(BRIDGE_KEYS.KEY_A) ||
         localStorage.getItem(BRIDGE_KEYS.KEY_B) ||
         localStorage.getItem(BRIDGE_KEYS.LEGACY_KEY) ||
         localStorage.getItem(LS.KEY) ||
-        BRIDGE_KEY;
+        '';
 
       const cleaned = String(value || '').trim();
 
@@ -2671,8 +2647,6 @@ if (speedSlider) speedSlider.oninput = null;
       return cleaned;
     }
 
-    function getBridgeKey(){ return resolveBridgeKey(); }
-
     function getChannels(){
       const qs = new URLSearchParams(location.search);
       const list = qs.getAll('channel')
@@ -2683,15 +2657,11 @@ if (speedSlider) speedSlider.oninput = null;
 
     function getScoresChannel(){
       const qs = new URLSearchParams(location.search);
-      return String(qs.get('scoresChannel') || `sports-${SCORES_NAMESPACE}`).trim().toLowerCase();
-    }
-
-    function bridgeEnabled(){
-      return !!(getBridgeBase() && getBridgeKey());
+      return String(qs.get('scoresChannel') || DEFAULT_SCORES_CHANNEL).trim().toLowerCase();
     }
 
     function automationEnabled(){
-      return bridgeEnabled();
+      return !!resolveBridgeBase();
     }
 
 function setSSEStatus(state, msg){
@@ -2796,8 +2766,8 @@ function startSSE(){
   const scoresQs = new URLSearchParams({ channel: scoresChannel });
   if (key) scoresQs.set('key', key);
 
-  connectSSEOne(`${base}/stream?${mainQs.toString()}`, 'main');
-  connectSSEOne(`${base}/stream?${scoresQs.toString()}`, 'scores');
+  connectSSEOne(`${base}/events?${mainQs.toString()}`, 'main');
+  connectSSEOne(`${base}/events?${scoresQs.toString()}`, 'scores');
 }
 
     async function warmupPing(){
@@ -3044,7 +3014,6 @@ function markSold(code, buyer = ''){
             return;
 
 case 'scores':
-  applyScoresPayload(payload);
   return;
 
           case 'stream_stats':
