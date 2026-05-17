@@ -1,5 +1,5 @@
 # TSU Overlay Standard — Build & Deploy Reference
-**Version:** 2.2 | **Updated:** 2026-05-16
+**Version:** 2.3 | **Updated:** 2026-05-16
 
 This document is the single source of truth for every TSU overlay build, extension deploy, and Supabase key setup. When anything here conflicts with older notes or code comments, this document wins.
 
@@ -11,11 +11,12 @@ This document is the single source of truth for every TSU overlay build, extensi
 3. [Overlay Bridge Wiring](#3-overlay-bridge-wiring)
 4. [Overlay Automation Requirements](#4-overlay-automation-requirements)
 5. [Live Scores Setup](#5-live-scores-setup)
-6. [Sold Panel — Correct Pattern](#6-sold-panel--correct-pattern)
-7. [Supabase — New Client Key](#7-supabase--new-client-key)
-8. [Deploy Checklist](#8-deploy-checklist)
-9. [Validation Checklist](#9-validation-checklist)
-10. [Known Bugs & Anti-Patterns](#10-known-bugs--anti-patterns)
+6. [Per-Client Services (Supabase)](#6-per-client-services-supabase)
+7. [Sold Panel — Correct Pattern](#7-sold-panel--correct-pattern)
+8. [Supabase — New Client Key](#8-supabase--new-client-key)
+9. [Deploy Checklist](#9-deploy-checklist)
+10. [Validation Checklist](#10-validation-checklist)
+11. [Known Bugs & Anti-Patterns](#11-known-bugs--anti-patterns)
 
 ---
 
@@ -28,21 +29,34 @@ Whatnot live page
            │  POSTs team_sold / team_unsold to bridge
            ▼
    bridge.tradesecretsunlocked.com   ← shared, always-on (Render)
-           │  validates x-bridge-key against Supabase
-           │  broadcasts events on client's SSE channel
+           │  validates x-bridge-key against Supabase bridge_keys
+           │  broadcasts events on client's SSE channel (channel=main)
            ▼
    Overlay (index.html in OBS browser source)
-           │  connects SSE: /stream?channel=main
+           │  connects SSE: /stream?channel=main&key=...
+           │  connects SSE: /stream?channel=sports-{namespace}&key=...
            │  marks teams sold, updates sold list, animates
            ▼
-   Supabase DB   ← bridge_keys table (key validation only)
+   Supabase DB   ← bridge_keys + client_services tables
+
+   tsu-score-bridge (separate Render service)
+           │  polls ESPN every 15s — NBA, NFL, MLB
+           │  reads client_services table every 5 min
+           │  POSTs scores to bridge /events per enabled client
+           ▼
+   bridge.tradesecretsunlocked.com
+           │  broadcasts on channel=sports-{namespace}
+           ▼
+   Overlay connectScoresSSE → ticker marquee
 ```
 
 **Key facts:**
 - One shared bridge for all clients — `https://bridge.tradesecretsunlocked.com`
 - No per-client Render services. Do not create new Render instances.
-- Clients are isolated by `bridgeKey` (validated by Supabase) and `channel`
+- Clients are isolated by `bridgeKey` (validated against `bridge_keys`) and `channel`
+- Scores are opt-in per client via the `client_services` Supabase table — toggling a row enables/disables scores without any code change or redeploy
 - The overlay and extension never talk to each other directly — everything goes through the bridge
+- Future services (stream stats widgets, promo feeds, etc.) follow the same `client_services` toggle pattern
 
 ---
 
@@ -237,15 +251,59 @@ The `overlayId` in the overlay and the `overlayId` in the extension DEFAULTS mus
 
 ## 5. Live Scores Setup
 
+### How scores flow (end to end)
+
+```
+ESPN public API (NBA / NFL / MLB)
+   ▼  polled every 15s by tsu-score-bridge
+tsu-score-bridge
+   │  reads client_services table → gets enabled namespaces
+   │  POSTs { type:"scores", channel:"sports-{namespace}", sport:"nba", games:[...] }
+   ▼
+bridge.tradesecretsunlocked.com  →  broadcasts on channel sports-{namespace}
+   ▼
+Overlay connectScoresSSE (channel = sports-{SCORES_NAMESPACE})
+   ▼  normalizeScorePayloadToText
+SCORES_BY_SPORT["nba"] = "NBA: LAL 112-108 BOS (Final)"
+   ▼  buildTickerLine
+ticker: [client text] • [NBA] • [client text] • [MLB] • ...
+```
+
+Scores only reach a client's overlay if that client has `service='scores'` enabled in Supabase. Toggling the row is the only control needed — no code changes, no redeploy.
+
+---
+
+### Overlay constants — one per client
+
+```js
+const BRIDGE_BASE      = "https://bridge.tradesecretsunlocked.com";
+const BRIDGE_KEY       = "CLIENT-UUID-HERE";
+const SCORES_NAMESPACE = "client-handle";  // ← slug that matches bridge_keys.namespace in Supabase
+```
+
+`SCORES_NAMESPACE` is the only scores-specific constant that changes per client. It must match the `namespace` value set in the `bridge_keys` table for this client.
+
 ### Scores feature flag
 ```js
-// Enabled by default. Disable via ?scores=0 in the OBS URL.
+// Enabled by default in overlay. Disable overlay-side via ?scores=0 in the OBS URL.
+// Real per-client control is via Supabase client_services — see §6.
 const ENABLE_SCORES = (getParam("scores") === null) ? true : (getParam("scores") === "1");
+```
+
+### Per-client SSE channel
+```js
+// ✅ CORRECT — per-client channel; only receives scores if enabled in Supabase
+function getScoresChannel(){
+  return `sports-${SCORES_NAMESPACE}`;
+}
+
+// ❌ OLD / WRONG — global channel; all overlays receive all scores with no per-client control
+function getScoresChannel(){ return "sports"; }
 ```
 
 ### Freshness guard — 20-minute window
 ```js
-const SCORES_BY_SPORT  = { nba: "", nfl: "", mlb: "" };
+const SCORES_BY_SPORT   = { nba: "", nfl: "", mlb: "" };
 const SCORES_UPDATED_AT = { nba: 0,  nfl: 0,  mlb: 0 };
 
 function isFreshSportScore(sport){
@@ -253,20 +311,12 @@ function isFreshSportScore(sport){
 }
 ```
 
-Scores older than 20 minutes are silently dropped from the ticker.
-
-### Separate SSE channel for scores
-```js
-function getScoresChannel(){ return "sports"; }
-
-// Connect scores on its own SSE stream — separate from the main channel
-connectScoresSSE({ onEvent: handleSSEEvent, onStatus: () => {} });
-```
+Scores older than 20 minutes are silently dropped from the ticker. This prevents stale game data from lingering when no games are in progress.
 
 ### Ticker interleave pattern — client text between each sport
 ```js
 function buildTickerLine(){
-  const client = getDefaultTickerText();  // client's custom ticker lines joined
+  const client = getDefaultTickerText();
   if (!ENABLE_SCORES) return client;
   const order = ["nba","mlb","nfl"];
   const parts = [];
@@ -283,9 +333,102 @@ function buildTickerLine(){
 
 Output pattern: `[client] • [NBA] • [client] • [MLB] • [client] • [NFL]`
 
+### Score payload format accepted by the overlay
+```js
+// Format 1 — pre-formatted text string (simplest)
+{ type: "scores", channel: "sports-jp2-cards", sport: "nba", text: "NBA: LAL 112-108 BOS (Final)" }
+
+// Format 2 — games array (what tsu-score-bridge sends)
+{ type: "scores", channel: "sports-jp2-cards", sport: "nba",
+  games: [{ away:"LAL", awayScore:112, home:"BOS", homeScore:108, status:"Final" }, ...] }
+
+// Format 3 — lines array
+{ type: "scores", channel: "sports-jp2-cards", sport: "nba", lines: ["LAL 112-108 BOS", ...] }
+```
+
+The overlay's `normalizeScorePayloadToText()` handles all three formats.
+
 ---
 
-## 6. Sold Panel — Correct Pattern
+## 6. Per-Client Services (Supabase)
+
+All optional features (live scores, and future services) are toggled per client via the `client_services` table. No code changes or redeploys are needed to enable or disable a service for a client.
+
+### Supabase table schema
+
+```sql
+-- Run once to set up
+ALTER TABLE bridge_keys ADD COLUMN IF NOT EXISTS namespace TEXT;
+
+CREATE TABLE IF NOT EXISTS client_services (
+  key        TEXT        NOT NULL REFERENCES bridge_keys(key) ON DELETE CASCADE,
+  service    TEXT        NOT NULL,
+  enabled    BOOLEAN     NOT NULL DEFAULT true,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (key, service)
+);
+```
+
+**`bridge_keys.namespace`** — URL-safe slug for this client (e.g. `jp2-cards`, `apex-card-company`). Used to name the client's per-service SSE channels. Set once when onboarding a client.
+
+**`client_services`** — one row per client per feature. The score-bridge reads this table every 5 minutes. Toggle `enabled` to turn a service on or off.
+
+### Available services
+
+| `service` value | What it controls |
+|---|---|
+| `scores` | Live NBA/NFL/MLB scores in the ticker via tsu-score-bridge |
+| *(future)* `stream_stats` | Top buyer / last sale widget feed |
+| *(future)* `promo_feed` | Scheduled promo content pushed to overlay |
+
+### New client onboarding — Supabase SQL
+
+```sql
+-- 1. Insert bridge key with namespace
+INSERT INTO bridge_keys (key, client_name, namespace, notes)
+VALUES (
+  'GENERATED-UUID-HERE',
+  'Client Name',
+  'client-handle',          -- slug used for SSE channel names, e.g. "jp2-cards"
+  'client-handle overlay'
+)
+ON CONFLICT (key) DO NOTHING;
+
+-- 2. Enable desired services
+INSERT INTO client_services (key, service, enabled) VALUES
+  ('GENERATED-UUID-HERE', 'scores', true)
+ON CONFLICT (key, service) DO UPDATE SET enabled = true, updated_at = now();
+```
+
+### Toggling a service on/off
+
+```sql
+-- Disable scores for a client (takes effect within 5 minutes — no redeploy)
+UPDATE client_services
+SET enabled = false, updated_at = now()
+WHERE key = 'CLIENT-UUID-HERE' AND service = 'scores';
+
+-- Re-enable
+UPDATE client_services
+SET enabled = true, updated_at = now()
+WHERE key = 'CLIENT-UUID-HERE' AND service = 'scores';
+```
+
+### tsu-score-bridge — required Render env vars
+
+The score-bridge must have these set in the Render dashboard for the `tsu-scores-bridge` service:
+
+| Variable | Value |
+|---|---|
+| `SUPABASE_URL` | `https://your-project.supabase.co` |
+| `SUPABASE_KEY` | Service role key (not anon — needs table read access) |
+| `BRIDGE_KEY` | Any valid key from `bridge_keys` (used to authenticate score POSTs) |
+
+After adding env vars, trigger a manual redeploy on Render. The `/status` endpoint on the score-bridge returns which clients are currently enabled.
+
+---
+
+## 7. Sold Panel — Correct Pattern
 
 ### updateSoldList — incremental patch, never innerHTML wipe
 
@@ -348,7 +491,7 @@ function updateSoldList(){
 
 ---
 
-## 7. Supabase — New Client Key
+## 8. Supabase — New Client Key
 
 ### Generate a UUID
 Run in PowerShell:
@@ -357,22 +500,30 @@ Run in PowerShell:
 ```
 Example output: `5d74ccce-d801-4064-8095-5428b6e7598e`
 
-### Insert into Supabase SQL Editor
+### Full new-client SQL (run in Supabase SQL Editor)
 ```sql
-INSERT INTO bridge_keys (key, client_name, notes)
+-- Step 1: Insert bridge key
+INSERT INTO bridge_keys (key, client_name, namespace, notes)
 VALUES (
   'GENERATED-UUID-HERE',
   'Client Name',
+  'client-handle',     -- URL-safe slug, e.g. "jp2-cards" or "apex-card-company"
   'client-handle overlay — brief description'
 )
 ON CONFLICT (key) DO NOTHING;
+
+-- Step 2: Enable services (add one row per service you want active)
+INSERT INTO client_services (key, service, enabled) VALUES
+  ('GENERATED-UUID-HERE', 'scores', true)
+ON CONFLICT (key, service) DO UPDATE SET enabled = true, updated_at = now();
 ```
 
-### Table schema reference
+### bridge_keys table schema
 ```sql
 CREATE TABLE bridge_keys (
   key          TEXT        PRIMARY KEY,
   client_name  TEXT        NOT NULL,
+  namespace    TEXT,                          -- slug for per-client SSE channels
   active       BOOLEAN     NOT NULL DEFAULT true,
   notes        TEXT,
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -380,31 +531,57 @@ CREATE TABLE bridge_keys (
 );
 ```
 
+### client_services table schema
+```sql
+CREATE TABLE client_services (
+  key        TEXT        NOT NULL REFERENCES bridge_keys(key) ON DELETE CASCADE,
+  service    TEXT        NOT NULL,
+  enabled    BOOLEAN     NOT NULL DEFAULT true,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (key, service)
+);
+```
+
+> See §6 for full service toggle reference and tsu-score-bridge env var setup.
+
 ---
 
-## 8. Deploy Checklist
+## 9. Deploy Checklist
 
 ### New client deploy (in order)
 
+**Supabase**
 - [ ] Generate UUID (`[System.Guid]::NewGuid().ToString()`)
-- [ ] Run Supabase SQL INSERT with new key
+- [ ] Run Supabase SQL — INSERT into `bridge_keys` with `key`, `client_name`, `namespace`
+- [ ] Run Supabase SQL — INSERT into `client_services` for each service to enable (e.g. `scores`)
+
+**Extension**
 - [ ] Copy `extension-UPDATED-04-14-2026` folder from template client
 - [ ] Update `content.js` DEFAULTS: `bridgeKey`, `sport`, `overlayId`
 - [ ] Confirm `manifest.json` has `bridge.tradesecretsunlocked.com/*` in `host_permissions`
 - [ ] Confirm `manifest.json` has NO `*.onrender.com` entries
 - [ ] Confirm `content.js` `isBadTitle` includes `/^#?\d+$/` guard
-- [ ] Build overlay: `BRIDGE_BASE` and `BRIDGE_KEY` hardcoded as constants
+
+**Overlay**
+- [ ] Set `BRIDGE_BASE`, `BRIDGE_KEY`, and `SCORES_NAMESPACE` as hardcoded constants
+- [ ] `SCORES_NAMESPACE` matches `namespace` set in Supabase `bridge_keys`
+- [ ] `getScoresChannel()` returns `` `sports-${SCORES_NAMESPACE}` `` (not `"sports"`)
 - [ ] Confirm `getBridgeBase()` does NOT read from localStorage as primary source
 - [ ] Confirm `warmupPing` / `bridgeWarmup` POSTs to `/events` (not `/warmup`)
 - [ ] Confirm `overlayId` in overlay matches `overlayId` in extension DEFAULTS
 - [ ] Confirm `soldTeams Set` is present
 - [ ] Confirm `lastCodeByListingKey Map` is present
 - [ ] Confirm `updateSoldList()` does NOT use `innerHTML = ""`
+- [ ] Both SSE URLs include `&key=${encodeURIComponent(getBridgeKey())}`
 - [ ] Stage overlay to `_drafts/{client}/index.html` for Mike review
 - [ ] Mike promotes `_drafts/` → `overlays/{client}/index.html`
+
+**Live**
 - [ ] Client installs: Remove old extension → Chrome Extensions → Load unpacked → select new folder → enable toggle
 - [ ] Load overlay in OBS browser source
-- [ ] No server redeploy needed — bridge is always-on
+- [ ] Confirm SSE connected (no 401s in DevTools Network tab)
+- [ ] If scores enabled: verify ticker shows scores within ~15s of score-bridge tick
+- [ ] No server redeploy needed — bridge and score-bridge are always-on
 
 ### Extension reinstall steps (client-facing)
 1. Open Chrome → `chrome://extensions`
@@ -416,7 +593,7 @@ CREATE TABLE bridge_keys (
 
 ---
 
-## 9. Validation Checklist
+## 10. Validation Checklist
 
 Run these checks on every overlay before marking it ready for review.
 
@@ -425,10 +602,12 @@ Run these checks on every overlay before marking it ready for review.
 | `soldTeams Set` | `const soldTeams = new Set()` present in STATE section |
 | `soldTeamsList` array | `let soldTeamsList = []` present |
 | `lastCodeByListingKey Map` | `const lastCodeByListingKey = new Map()` present |
-| Bridge constants | `const BRIDGE_BASE` and `const BRIDGE_KEY` hardcoded, not from localStorage |
+| Bridge constants | `const BRIDGE_BASE`, `const BRIDGE_KEY`, `const SCORES_NAMESPACE` all hardcoded |
+| `SCORES_NAMESPACE` | Matches `namespace` value in Supabase `bridge_keys` for this client |
 | `getBridgeBase()` | Returns URL param OR hardcoded constant — no localStorage lookup |
 | `getBridgeKey()` | Returns URL param OR hardcoded constant — no localStorage lookup |
 | `bridgeEnabled()` | Checks both `getBridgeBase()` AND `getBridgeKey()` |
+| `getScoresChannel()` | Returns `` `sports-${SCORES_NAMESPACE}` `` — NOT the bare string `"sports"` |
 | `warmupPing` endpoint | POSTs to `/events`, not `/warmup` |
 | SSE key in URL | Both `connectBridgeSSE` and `connectScoresSSE` URLs include `&key=${encodeURIComponent(getBridgeKey())}` — EventSource cannot send headers |
 | SSE named listeners | All types listed including `team_sold`, `team_unsold`, `buyer`, `scores` |
@@ -441,10 +620,11 @@ Run these checks on every overlay before marking it ready for review.
 | No stale Render URLs | Search for `onrender.com` in overlay — must return 0 results |
 | manifest `host_permissions` | Includes `bridge.tradesecretsunlocked.com/*`, no `onrender.com` |
 | `isBadTitle` in extension | Includes `/^#?\d+$/` guard |
+| Supabase `client_services` | Row exists for this client's key + any enabled services |
 
 ---
 
-## 10. Known Bugs & Anti-Patterns
+## 11. Known Bugs & Anti-Patterns
 
 | Bug | Symptom | Root cause | Fix |
 |---|---|---|---|
@@ -459,12 +639,20 @@ Run these checks on every overlay before marking it ready for review.
 | Duplicate team_sold on respin | Both old and new team show sold | No reassignment tracking | `lastCodeByListingKey` map — unsell prev code when same saleId returns different code |
 | Extension silently 401s all session | No sales ever appear | `bridgeKey` not set in DEFAULTS (left as placeholder) | Extension now fails fast with console error if bridgeKey is missing |
 | SSE 401 "Missing bridge key" | All `/stream` connections return 401, overlay never receives events | `EventSource` doesn't support headers; `x-bridge-key` header is ignored on SSE connections | Append `&key=${encodeURIComponent(getBridgeKey())}` to SSE URLs — applies to both main and sports channels |
+| Scores not showing (no 401) | SSE connects but ticker never shows scores | Client not added to `client_services` table, or `tsu-score-bridge` not reading Supabase | Insert row into `client_services` with `service='scores'`; confirm score-bridge env vars set; check `/status` endpoint |
+| All clients get/lose scores at once | Scores toggle affects every overlay | Using global `channel="sports"` in `getScoresChannel()` instead of per-client channel | Set `SCORES_NAMESPACE` constant and return `` `sports-${SCORES_NAMESPACE}` `` from `getScoresChannel()` |
 
 ---
 
 ## Quick Reference — Per-Client Diff
 
 When building a new client overlay, the ONLY things that change from the template are:
+
+**Supabase (one-time setup):**
+```
+bridge_keys.namespace → "client-handle"  (slug, e.g. "jp2-cards")
+client_services row   → (key, 'scores', true)  — if scores enabled
+```
 
 **Extension `content.js` DEFAULTS:**
 ```
@@ -473,13 +661,14 @@ sport      → "nfl" | "nba" | "mlb" | "nil"
 overlayId  → "client-handle"
 ```
 
-**Overlay `index.html`:**
+**Overlay `index.html` constants:**
 ```
-BRIDGE_KEY → same UUID as extension
-overlayId  → same string as extension DEFAULTS.overlayId
-Colors     → client primary/secondary
-Logo       → client logo path
-Ticker     → client default ticker text
+BRIDGE_KEY       → same UUID as extension
+SCORES_NAMESPACE → same slug as bridge_keys.namespace  (e.g. "jp2-cards")
+overlayId        → same string as extension DEFAULTS.overlayId
+Colors           → client primary/secondary
+Logo             → client logo path
+Ticker           → client default ticker text
 ```
 
 Everything else — SSE logic, sold list, scores feed, bridge functions — is identical across all clients. Do not modify automation code during a clone build.
