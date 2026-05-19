@@ -443,4 +443,227 @@
 
   // ═══════════════════════════════════════════════════════════════
   // 10. BRIDGE POST — with retry
-  // FIX: previous version had no retry. One network b
+  // FIX: previous version had no retry. One network blip = lost event.
+  // FIX: bridgeUrl is now BRIDGE_URL constant (never from config).
+  // ═══════════════════════════════════════════════════════════════
+
+  async function postToBridge(cfg, payload) {
+    const body = {
+      ts: Date.now(),
+      channel: cfg.channel || "main",
+      overlay_id: cfg.overlayId || undefined,
+      ...payload
+    };
+
+    const r = await fetch(`${BRIDGE_URL}/events`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-bridge-key": cfg.bridgeKey,
+        "x-api-key":    cfg.bridgeKey
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!r.ok) {
+      const txt = await r.text().catch(() => "");
+      throw new Error(`Bridge ${r.status}: ${txt.slice(0, 120)}`);
+    }
+  }
+
+  async function sendEvent(cfg, payload, maxRetries = 3) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await postToBridge(cfg, payload);
+        console.log(`[TSU] ✓ ${payload.type}${payload.code ? " " + payload.code : ""}${payload.buyer ? " → " + payload.buyer : ""}`);
+        return true;
+      } catch (e) {
+        console.warn(`[TSU] ✗ ${payload.type} attempt ${attempt}/${maxRetries}: ${e.message}`);
+        if (attempt < maxRetries) await sleep(2000 * attempt); // 2s, 4s backoff
+      }
+    }
+    console.error(`[TSU] DROPPED after ${maxRetries} retries:`, payload);
+    return false;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  // 11. MAIN LOOP
+  // ═══════════════════════════════════════════════════════════════
+
+  injectInjectedJs();
+
+  let injectedReady = false;
+  window.addEventListener("message", (event) => {
+    if (event.source !== window) return;
+    if (event.data?.type === "WHATNOT_SPY_INJECTED_READY") {
+      injectedReady = true;
+      console.log("[TSU] injected.js ready");
+    }
+  });
+
+  (async () => {
+    // Wait for injected.js
+    for (let i = 0; i < 40 && !injectedReady; i++) await sleep(250);
+    if (!injectedReady) {
+      console.error("[TSU] injected.js never became ready — aborting.");
+      return;
+    }
+
+    const liveId = getLiveIdFromUrl();
+    if (!liveId) {
+      console.error("[TSU] No liveId found in URL — aborting.");
+      return;
+    }
+
+    const cfg = await getConfig();
+
+    // FIX: Fail fast if bridgeKey is missing or is still the placeholder.
+    // Previous version would silently POST with no key and get 401s all session.
+    if (!cfg.bridgeKey || cfg.bridgeKey === "REPLACE_WITH_CLIENT_KEY") {
+      console.error("[TSU] bridgeKey not set! Update DEFAULTS.bridgeKey in content.js for this client.");
+      return;
+    }
+
+    console.log("[TSU] ══════════════════════════════════");
+    console.log("[TSU] Bridge:", BRIDGE_URL);
+    console.log("[TSU] liveId:", liveId);
+    console.log("[TSU] channel:", cfg.channel, "| overlay:", cfg.overlayId || "(none)", "| sport:", cfg.sport || "nil");
+    console.log("[TSU] poll:", cfg.pollMs, "ms | summaryEvery:", cfg.summaryEvery);
+    console.log("[TSU] ══════════════════════════════════");
+
+    await sendEvent(cfg, { type: "overlay_warmup", liveId, sport: cfg.sport || "" });
+
+    // State tracking
+    const seen             = new Map(); // itemId → last-seen title (set ONLY after successful send)
+    const lastCodeByItem   = new Map(); // itemId → last team code sent (for unsold detection)
+    const buyerCounts      = new Map(); // buyer → sale count
+    let lastSaleText       = "—";
+    let loops              = 0;
+
+    while (true) {
+      try {
+        // ── Fetch ALL pages of sold items ──────────────────────────
+        const allEdges = await fetchAllSoldEdges(liveId);
+
+        // Process oldest → newest (reverse of Whatnot's newest-first order)
+        // so if a spot was reassigned, we send sold-old → unsold-old → sold-new in order.
+        const nodes = allEdges.map((e) => e?.node).filter(Boolean).reverse();
+
+        for (const n of nodes) {
+          const id = stableId(n);
+
+          const buyer =
+            n?.buyer?.username ||
+            n?.buyer?.name ||
+            n?.buyer?.displayName ||
+            "Unknown";
+
+          const rawTitle =
+            n?.listing?.title ||
+            n?.listing?.subtitle ||
+            n?.listing?.description ||
+            n?.title ||
+            n?.product?.title ||
+            "";
+
+          const title = stripPrefixTitle(rawTitle);
+
+          // ── Dedup: skip if we already sent this exact title for this item ──
+          const prevTitle = seen.get(id);
+          if (prevTitle !== undefined && prevTitle === title) continue;
+
+          // ── Filter: skip bad/empty titles (don't set seen — retry next poll) ──
+          if (isBadTitle(rawTitle) || isBadTitle(title)) continue;
+
+          // ── Filter: skip giveaways ──
+          const price  = parsePrice(n);
+          const amount = price.amount;
+          if (isGiveawayLike(title, amount)) continue;
+
+          // ── Resolve sport and team code ──
+          const configuredSport = (cfg.sport || "").toLowerCase();
+          const inferredSport   = inferTeamMatch(title)?.sport || "";
+          const sport = (configuredSport && configuredSport !== "nil")
+            ? configuredSport
+            : inferredSport || "nil";
+
+          const code = inferCodeFromTitle(title, sport);
+
+          // FIX: Don't send team_sold with empty code — overlay can't handle it.
+          // Don't set seen either — title might update next poll with a resolvable value.
+          if (!code) {
+            console.warn("[TSU] unresolved title (will retry):", { id, title, sport, rawTitle });
+            continue;
+          }
+
+          // ── Unsold detection: same item, different real code = reassignment ──
+          const prevCode    = lastCodeByItem.get(id);
+          const prevIsReal  = prevCode && !prevCode.startsWith("CUSTOM_");
+          const newIsReal   = !code.startsWith("CUSTOM_");
+
+          if (prevIsReal && newIsReal && prevCode !== code) {
+            // Send unsold for the previous assignment before marking the new one
+            await sendEvent(cfg, {
+              type:      "team_unsold",
+              code:      prevCode,
+              listingId: n?.listing?.id || null,
+              liveId
+            });
+          }
+
+          // ── Build the sale event ──
+          const eventPayload = {
+            type:        "team_sold",
+            saleId:      id,
+            id,
+            buyer,
+            buyerName:   buyer,
+            title,
+            amount,
+            amountCents: price.cents,
+            currency:    price.currency,
+            sport,
+            code,
+            teamCode:    code,
+            listingId:   n?.listing?.id || null,
+            productId:   n?.listing?.product?.id || n?.product?.id || null,
+            liveId
+          };
+
+          // ── Send to bridge (with retry) ──
+          // FIX: Only update seen + lastCodeByItem AFTER successful send.
+          // Previously, seen was set before sending, so failures were lost forever.
+          const ok = await sendEvent(cfg, eventPayload);
+          if (ok) {
+            seenSet(seen, id, title);
+            lastCodeByItem.set(id, code);
+
+            lastSaleText = `${buyer} • ${title} • $${amount.toFixed(2)}`;
+            buyerCounts.set(buyer, (buyerCounts.get(buyer) || 0) + 1);
+          }
+        }
+
+        // ── Periodic stream stats summary ──
+        loops++;
+        if (loops % cfg.summaryEvery === 0) {
+          let topBuyer = "—", topCount = 0;
+          for (const [b, c] of buyerCounts.entries()) {
+            if (c > topCount) { topCount = c; topBuyer = b; }
+          }
+          await sendEvent(cfg, {
+            type:     "stream_stats",
+            topBuyer,
+            lastSale: lastSaleText,
+            liveId
+          });
+        }
+
+        await sleep(cfg.pollMs);
+
+      } catch (err) {
+        console.warn("[TSU] poll error:", err?.message || err);
+        await sleep(5000); // back off on unexpected errors
+      }
+    }
+  })();
+})();

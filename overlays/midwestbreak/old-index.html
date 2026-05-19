@@ -1930,8 +1930,6 @@ r1.className = "row-grid row-logo";
       setTimeout(()=>tile.classList.remove("flash"), 280);
 
       if (listIndex === -1) soldTeamsList.push({ code, buyer: buyerFromSSE || "" });
-
-      playSoldAnimation(code);
     }
 
     updateStats();
@@ -2492,12 +2490,12 @@ function handleSSEEvent(data){
   }
 }
 
-let soldControlsVisible = true;
+let soldPanelVisible = true;
 function toggleSoldPanel(){
-  const controls = document.querySelector(".sold-controls");
-  if (!controls) return;
-  soldControlsVisible = !soldControlsVisible;
-  controls.style.display = soldControlsVisible ? "" : "none";
+  const panel = document.querySelector(".sold-list-container");
+  if (!panel) return;
+  soldPanelVisible = !soldPanelVisible;
+  panel.style.display = soldPanelVisible ? "" : "none";
 }
 
 function sseMarkSold(code, buyer=""){
@@ -2565,6 +2563,9 @@ function playSoldAnimation(code){
   const dy = endCenterY - startCenterY;
   const strikeLen  = Math.max(120, Math.sqrt((dx * dx) + (dy * dy)));
   const strikeAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+  tile.classList.add("sell-pop");
+  setTimeout(() => tile.classList.remove("sell-pop"), 420);
 
   setTimeout(() => {
     const strike = document.createElement("div");

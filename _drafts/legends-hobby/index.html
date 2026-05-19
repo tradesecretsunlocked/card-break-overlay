@@ -882,6 +882,77 @@
   55% { transform:scale(0.94); filter:brightness(0.90); }
   100%{ transform:scale(1); filter:brightness(1); }
 }
+.team.chase-sell-pop{
+  animation: chaseSoldPop 950ms ease;
+}
+@keyframes chaseSoldPop{
+  0%  { transform: scale(1);    filter: brightness(1);    }
+  20% { transform: scale(1.08); filter: brightness(1.18); }
+  55% { transform: scale(1.03); filter: brightness(1.08); }
+  100%{ transform: scale(1);    filter: brightness(1);    }
+}
+.team.chase{
+  position: relative;
+  border: 3px solid #fff3a6;
+  box-shadow:
+    0 0 0 2px rgba(201,160,39,0.30) inset,
+    0 0 14px rgba(201,160,39,0.55),
+    0 0 28px rgba(201,160,39,0.30);
+  animation: chasePulse 1.9s ease-in-out infinite;
+}
+.team.chase::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius:4px;
+  background:
+    linear-gradient(120deg,
+      transparent 0%,
+      rgba(255,255,255,0.00) 35%,
+      rgba(255,255,255,0.35) 50%,
+      rgba(201,160,39,0.45) 58%,
+      rgba(255,255,255,0.00) 72%,
+      transparent 100%);
+  transform: translateX(-140%) skewX(-18deg);
+  animation: chaseSweep 2.8s linear infinite;
+  mix-blend-mode: screen;
+  z-index: 2;
+}
+.chase-chip{
+  position:absolute;
+  top:2px;
+  right:2px;
+  z-index:12;
+  padding:1px 4px;
+  border-radius:999px;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.8px;
+  color:#000;
+  background: linear-gradient(180deg, #fff2a8 0%, #ffd000 100%);
+  border: 1px solid rgba(255,255,255,0.75);
+  box-shadow: 0 0 10px rgba(201,160,39,0.38);
+}
+@keyframes chasePulse{
+  0%,100%{
+    box-shadow:
+      0 0 0 2px rgba(201,160,39,0.22) inset,
+      0 0 10px rgba(201,160,39,0.35),
+      0 0 18px rgba(201,160,39,0.18);
+  }
+  50%{
+    box-shadow:
+      0 0 0 2px rgba(201,160,39,0.40) inset,
+      0 0 18px rgba(201,160,39,0.65),
+      0 0 34px rgba(201,160,39,0.35);
+  }
+}
+@keyframes chaseSweep{
+  0%  { transform: translateX(-150%) skewX(-18deg); }
+  100%{ transform: translateX(150%)  skewX(-18deg); }
+}
+
 
 .sold-fx-layer{
   position: fixed;
@@ -1166,7 +1237,7 @@
   </div>
 </div>
 
-        <div class="stat-box">
+        <div class="stat-box" style="cursor:pointer;" onclick="toggleSoldControls()" title="Toggle controls">
           <div id="teamsSold">0</div>
           <div class="stat-label">SOLD</div>
         </div>
@@ -1191,6 +1262,7 @@
         
 <button class="btn ghost" style="padding:2px 2px; font-size:14px;" onclick="openPromoEditor()">🎁 PROMO</button>
         <button class="btn ghost" style="padding:2px 2px; font-size:14px;" onclick="copySoldListTSV()">📋 COPY SOLD</button>
+        <button class="btn ghost" style="padding:2px 2px; font-size:14px;" onclick="openChaseModal()">⭐ CHASE</button>
       </div>
       <div class="sse" id="sseStatus">
           SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
@@ -1829,38 +1901,48 @@ function clearOverlayState(){
       cols: 10,
       layout: "NFL_32",
       teams: [
-        { code:'ARI', name:'cardinals', image: imgPathNFL('cardinals.png') },
-        { code:'ATL', name:'falcons', image: imgPathNFL('falcons.png') },
-        { code:'BAL', name:'ravens', image: imgPathNFL('ravens.png') },
-        { code:'BUF', name:'bills', image: imgPathNFL('bills.png') },
-        { code:'CAR', name:'panthers', image: imgPathNFL('panthers.png') },
-        { code:'CHI', name:'bears', image: imgPathNFL('bears.png') },
-        { code:'CIN', name:'bengals', image: imgPathNFL('bengals.png') },
-        { code:'CLE', name:'browns', image: imgPathNFL('browns.png') },
-        { code:'DAL', name:'cowboys', image: imgPathNFL('cowboys.png') },
-        { code:'DEN', name:'broncos', image: imgPathNFL('broncos.png') },
-        { code:'DET', name:'lions', image: imgPathNFL('lions.png') },
-        { code:'GB',  name:'packers', image: imgPathNFL('packers.png') },
-        { code:'HOU', name:'texans', image: imgPathNFL('texans.png') },
-        { code:'IND', name:'colts', image: imgPathNFL('colts.png') },
-        { code:'JAX', name:'jaguars', image: imgPathNFL('jaguars.png') },
-        { code:'KC',  name:'chiefs', image: imgPathNFL('chiefs.png') },
-        { code:'LV',  name:'raiders', image: imgPathNFL('raiders.png') },
-        { code:'LAC', name:'chargers', image: imgPathNFL('chargers.png') },
-        { code:'LAR', name:'rams', image: imgPathNFL('rams.png') },
-        { code:'MIA', name:'dolphins', image: imgPathNFL('dolphins.png') },
-        { code:'MIN', name:'vikings', image: imgPathNFL('vikings.png') },
-        { code:'NE',  name:'patriots', image: imgPathNFL('patriots.png') },
-        { code:'NO',  name:'saints', image: imgPathNFL('saints.png') },
-        { code:'NYG', name:'giants', image: imgPathNFL('giants.png') },
-        { code:'NYJ', name:'jets', image: imgPathNFL('jets.png') },
-        { code:'PHI', name:'eagles', image: imgPathNFL('eagles.png') },
-        { code:'PIT', name:'steelers', image: imgPathNFL('steelers.png') },
-        { code:'SF',  name:'49ers', image: imgPathNFL('49ers.png') },
-        { code:'SEA', name:'seahawks', image: imgPathNFL('seahawks.png') },
+        // AFC East
+        { code:'BUF', name:'bills',      image: imgPathNFL('bills.png')      },
+        { code:'MIA', name:'dolphins',   image: imgPathNFL('dolphins.png')   },
+        { code:'NE',  name:'patriots',   image: imgPathNFL('patriots.png')   },
+        { code:'NYJ', name:'jets',       image: imgPathNFL('jets.png')       },
+        // AFC North
+        { code:'BAL', name:'ravens',     image: imgPathNFL('ravens.png')     },
+        { code:'CIN', name:'bengals',    image: imgPathNFL('bengals.png')    },
+        { code:'CLE', name:'browns',     image: imgPathNFL('browns.png')     },
+        { code:'PIT', name:'steelers',   image: imgPathNFL('steelers.png')   },
+        // AFC South
+        { code:'HOU', name:'texans',     image: imgPathNFL('texans.png')     },
+        { code:'IND', name:'colts',      image: imgPathNFL('colts.png')      },
+        { code:'JAX', name:'jaguars',    image: imgPathNFL('jaguars.png')    },
+        { code:'TEN', name:'titans',     image: imgPathNFL('titans.png')     },
+        // AFC West
+        { code:'DEN', name:'broncos',    image: imgPathNFL('broncos.png')    },
+        { code:'KC',  name:'chiefs',     image: imgPathNFL('chiefs.png')     },
+        { code:'LAC', name:'chargers',   image: imgPathNFL('chargers.png')   },
+        { code:'LV',  name:'raiders',    image: imgPathNFL('raiders.png')    },
+        // NFC East
+        { code:'DAL', name:'cowboys',    image: imgPathNFL('cowboys.png')    },
+        { code:'NYG', name:'giants',     image: imgPathNFL('giants.png')     },
+        { code:'PHI', name:'eagles',     image: imgPathNFL('eagles.png')     },
+        { code:'WAS', name:'commanders', image: imgPathNFL('commanders.png') },
+        // NFC North
+        { code:'CHI', name:'bears',      image: imgPathNFL('bears.png')      },
+        { code:'DET', name:'lions',      image: imgPathNFL('lions.png')      },
+        { code:'GB',  name:'packers',    image: imgPathNFL('packers.png')    },
+        { code:'MIN', name:'vikings',    image: imgPathNFL('vikings.png')    },
+        // NFC South
+        { code:'ATL', name:'falcons',    image: imgPathNFL('falcons.png')    },
+        { code:'CAR', name:'panthers',   image: imgPathNFL('panthers.png')   },
+        { code:'NO',  name:'saints',     image: imgPathNFL('saints.png')     },
         { code:'TB',  name:'buccaneers', image: imgPathNFL('buccaneers.png') },
-        { code:'TEN', name:'titans', image: imgPathNFL('titans.png') },
-        { code:'WAS', name:'commanders', image: imgPathNFL('commanders.png') }
+        // NFC West
+        { code:'ARI', name:'cardinals',  image: imgPathNFL('cardinals.png')  },
+        { code:'LAR', name:'rams',       image: imgPathNFL('rams.png')       },
+        { code:'SF',  name:'49ers',      image: imgPathNFL('49ers.png')      },
+        { code:'SEA', name:'seahawks',   image: imgPathNFL('seahawks.png')   },
+        // Misc
+        { code:'MSC', name:'misc',       image: null                         }
       ]
     },
 
@@ -1942,7 +2024,7 @@ function clearOverlayState(){
 
    soccer: {
   name: "MLS",
-  cols: 10,
+  cols: 8,
   layout: "SOCCER_20",
   teams: [
     { code:'ATL', name:'atlanta united', image: imgPathSOC('atlutd.png') },
@@ -1991,6 +2073,7 @@ custom: {
   let currentBreakType = "nfl";
   let soldTeams = new Set();
   let soldTeamsList = [];
+  let chaseTeams = new Set();
 
   function applyTileSizing(){
     document.documentElement.style.setProperty("--tileH", "var(--tileHTeam)");
@@ -2016,6 +2099,13 @@ custom: {
     }
 
     if (soldTeams.has(team.code)) d.classList.add("sold");
+  if (chaseTeams.has(team.code)) d.classList.add("chase");
+
+  const chip = document.createElement("div");
+  chip.className = "chase-chip";
+  chip.textContent = "CHASE";
+  if (!chaseTeams.has(team.code)) chip.style.display = "none";
+  d.appendChild(chip);
 
     // ✅ apply per-team style once tile exists
     setTimeout(() => applyTeamStyleToTile(currentBreakType, team.code), 0);
@@ -2052,6 +2142,70 @@ function makeTickerSlot(spanCols){
   slot.appendChild(track);
   return slot;
 }
+
+// ===== CHASE TEAMS =====
+let soldControlsVisible = true;
+function toggleSoldControls(){
+  const bar = document.querySelector(".sold-controls");
+  if (!bar) return;
+  soldControlsVisible = !soldControlsVisible;
+  bar.style.display = soldControlsVisible ? "" : "none";
+}
+
+function openChaseModal(){
+  buildChaseSelector();
+  document.getElementById("chaseModal").classList.add("open");
+}
+function closeChaseModal(){
+  document.getElementById("chaseModal").classList.remove("open");
+}
+function buildChaseSelector(){
+  const grid = document.getElementById("chaseTeamGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  const teams = breakTypes[currentBreakType].teams;
+  teams.forEach(team => {
+    const btn = document.createElement("button");
+    btn.textContent = team.code;
+    btn.className = "btn";
+    btn.style.cssText = "padding:6px 4px; font-size:12px; font-weight:900;";
+    if (chaseTeams.has(team.code)){
+      btn.style.background = "#6e5d16";
+      btn.style.color = "#ffd000";
+      btn.style.border = "2px solid #ffd000";
+    }
+    btn.onclick = () => {
+      if (chaseTeams.has(team.code)){
+        chaseTeams.delete(team.code);
+        btn.style.background = "";
+        btn.style.color = "";
+        btn.style.border = "";
+      } else {
+        chaseTeams.add(team.code);
+        btn.style.background = "#6e5d16";
+        btn.style.color = "#ffd000";
+        btn.style.border = "2px solid #ffd000";
+      }
+    };
+    grid.appendChild(btn);
+  });
+}
+function applyChaseTeams(){
+  document.querySelectorAll(".team").forEach(t => {
+    const code = t.dataset.teamCode;
+    const chip = t.querySelector(".chase-chip");
+    if (chaseTeams.has(code)){
+      t.classList.add("chase");
+      if (chip) chip.style.display = "";
+    } else {
+      t.classList.remove("chase");
+      if (chip) chip.style.display = "none";
+    }
+  });
+  closeChaseModal();
+}
+// ===== END CHASE TEAMS =====
+
   function buildLayout(){
     const wrap = document.getElementById("teamsWrapper");
     wrap.innerHTML = "";
@@ -2158,7 +2312,8 @@ r1.className = "row-grid row-logo";
       r4.className = "row-grid";
       r4.appendChild(makeTeamDiv(teams[idx++]));
       r4.appendChild(makeTeamDiv(teams[idx++]));
-      r4.appendChild(makeTickerSlot(6));
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      r4.appendChild(makeTickerSlot(4));
       r4.appendChild(makeTeamDiv(teams[idx++]));
       r4.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r4);
@@ -2167,8 +2322,8 @@ r1.className = "row-grid row-logo";
     if (config.layout === "SOCCER_20"){
       let idx = 0;
 
-      const r1 = document.createElement("div");
-      r1.className = "row-grid row-logo";
+const r1 = document.createElement("div");
+r1.className = "row-grid row-logo";
       for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
       r1.appendChild(makeLogoSlot(2));
       for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
@@ -2181,15 +2336,8 @@ r1.className = "row-grid row-logo";
 
       const r3 = document.createElement("div");
       r3.className = "row-grid";
-      for (let i=0;i<10;i++) r3.appendChild(makeTeamDiv(teams[idx++]));
+      r3.appendChild(makeTickerSlot(10));
       wrap.appendChild(r3);
-
-      const r4 = document.createElement("div");
-      r4.className = "row-grid";
-      r4.appendChild(makeTeamDiv(teams[idx++]));
-      r4.appendChild(makeTeamDiv(teams[idx++]));
-      r4.appendChild(makeTickerSlot(8));
-      wrap.appendChild(r4);
     }
 
     setHeader();
@@ -3083,7 +3231,7 @@ if (tickerSpeedSlider){
     updateTickerMarquee();
   });
 }
-    ["tickerModal","titleModal","breakModal","promoModal","customEntriesModal"].forEach(id => {
+    ["tickerModal","titleModal","breakModal","promoModal","customEntriesModal","chaseModal"].forEach(id => {
       const m = document.getElementById(id);
       if (!m) return;
       m.addEventListener("click", (e) => {
@@ -3221,5 +3369,29 @@ if (e.target === m){
 
 
 
+<!-- ===== Chase Teams Modal ===== -->
+<div class="modal-backdrop" id="chaseModal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Chase Teams" style="width:560px;">
+    <div class="modal-head">
+      <div class="modal-title">⭐ Chase Teams</div>
+      <div class="modal-actions">
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyChaseTeams()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeChaseModal()">CLOSE</button>
+      </div>
+    </div>
+    <div id="chaseTeamGrid" style="
+      display:grid;
+      grid-template-columns:repeat(6,1fr);
+      gap:8px;
+      max-height:340px;
+      overflow-y:auto;
+      padding:10px 0;
+    "></div>
+    <div class="ticker-hint">
+      Click teams to mark as chase. Hit APPLY to update the board — chase tiles shimmer gold.
+    </div>
+  </div>
+</div>
+
 </body>
-</html>                                                                                                                                                                                                                                     
+</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
