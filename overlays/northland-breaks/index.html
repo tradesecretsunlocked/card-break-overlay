@@ -2179,7 +2179,7 @@ function initPromoBar(){
    * STATE
    ******************************************************************/
   let currentBreakType = "nba";
-  const soldTeams = new Set();      // codes
+  const soldTeamsBySport = { nba: new Set(), nfl: new Set(), mlb: new Set() };  // Track sold teams per sport
   let soldTeamsList = [];           // {code,buyer}
   let chaseTeams = new Set();
 const lastCodeByListingKey = new Map(); // listingId/saleId -> last assigned team code (handles respins)
@@ -2218,7 +2218,7 @@ function setHeader(){
     d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
   }
 
-  if (soldTeams.has(team.code)) d.classList.add("sold");
+  if (soldTeamsBySport[currentBreakType].has(team.code)) d.classList.add("sold");
   if (chaseTeams.has(team.code)) d.classList.add("chase");
 
   const chip = document.createElement("div");
@@ -2357,13 +2357,14 @@ setHighBid(loadHighBid());
     if (!tile) return;
 
     const listIndex = soldTeamsList.findIndex(e => e.code === code);
+    const currentSportSold = soldTeamsBySport[currentBreakType];
 
-    if (soldTeams.has(code)){
-      soldTeams.delete(code);
+    if (currentSportSold.has(code)){
+      currentSportSold.delete(code);
       tile.classList.remove("sold");
       if (listIndex !== -1) soldTeamsList.splice(listIndex, 1);
        } else {
-      soldTeams.add(code);
+      currentSportSold.add(code);
       playSoldAnimation(code);
 
       setTimeout(() => {
@@ -2379,7 +2380,7 @@ setHighBid(loadHighBid());
 
   function updateStats(){
     const total = breakTypes[currentBreakType].teams.length;
-    const sold = soldTeams.size;
+    const sold = soldTeamsBySport[currentBreakType].size;
     document.getElementById("teamsLeft").textContent = String(total - sold);
     document.getElementById("teamsSold").textContent = String(sold);
   }
@@ -2425,7 +2426,7 @@ setHighBid(loadHighBid());
   }
 
 function resetAll(){
-  soldTeams.clear();
+  soldTeamsBySport[currentBreakType].clear();
   soldTeamsList = [];
   lastCodeByListingKey.clear();
 
@@ -3090,11 +3091,12 @@ if (data.type === "whatnot_purchase" || data.type === "purchase"){
   function sseMarkSold(code, buyer=""){
     if (!code) return;
 
-    if (!soldTeams.has(code)){
-  soldTeams.add(code);
-if (!soldTeamsList.some(x => x.code === code)) {
-  soldTeamsList.push({ code, buyer: buyer || "" });
-}
+    const currentSportSold = soldTeamsBySport[currentBreakType];
+    if (!currentSportSold.has(code)){
+      currentSportSold.add(code);
+      if (!soldTeamsList.some(x => x.code === code)) {
+        soldTeamsList.push({ code, buyer: buyer || "" });
+      }
 
       const tile = document.querySelector(`[data-team-code="${code}"]`);
       playSoldAnimation(code);
@@ -3116,7 +3118,7 @@ if (!soldTeamsList.some(x => x.code === code)) {
 
   function sseMarkUnsold(code){
     if (!code) return;
-    soldTeams.delete(code);
+    soldTeamsBySport[currentBreakType].delete(code);
     soldTeamsList = soldTeamsList.filter(t => t.code !== code);
 
     const tile = document.querySelector(`[data-team-code="${code}"]`);
