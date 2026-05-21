@@ -6502,7 +6502,29 @@ if (!codeExistsOnBoard(code)) {
   }
 }
 
+// Kill switch — when ?manual=1 (or ?automation=off) is on the OBS browser
+// source URL, drop all state-mutating events. Lets the operator click tiles
+// manually during stream issues without uninstalling/disabling extensions.
+// Allow warmup + stats through so SSE pill still reports connected.
+function isAutomationDisabled(){
+  const q = new URLSearchParams(location.search);
+  return q.get("manual") === "1" || q.get("automation") === "off";
+}
+
+const KILL_SWITCH_PASSTHROUGH_TYPES = new Set([
+  "overlay_warmup",
+  "stream_stats",
+  "hello"
+]);
+
 function handleSSEEvent(payload){
+  if (isAutomationDisabled() && payload && !KILL_SWITCH_PASSTHROUGH_TYPES.has(payload.type)) {
+    if (!window.__killSwitchLoggedOnce) {
+      console.warn("[Overlay] AUTOMATION DISABLED via URL param — dropping event:", payload.type);
+      window.__killSwitchLoggedOnce = true;
+    }
+    return;
+  }
   return handleMainEvent(payload);
 }
 
