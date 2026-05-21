@@ -152,7 +152,7 @@
     { sport:"mlb", code:"MIN", names:["minnesota twins","twins"] },
     { sport:"mlb", code:"NYM", names:["new york mets","mets"] },
     { sport:"mlb", code:"NYY", names:["new york yankees","yankees"] },
-    { sport:"mlb", code:"OAK", names:["oakland athletics","athletics","a's","as"] },
+    { sport:"mlb", code:"OAK", names:["oakland athletics","athletics","a's"] },
     { sport:"mlb", code:"PHI", names:["philadelphia phillies","phillies"] },
     { sport:"mlb", code:"PIT", names:["pittsburgh pirates","pirates"] },
     { sport:"mlb", code:"SD",  names:["san diego padres","padres"] },
