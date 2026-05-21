@@ -2124,7 +2124,7 @@ h1,h2,h3,.label,.stat-label,.sold-list-title{
   <button class="tool-btn" onclick="openBreakPrompt()">Set Break</button>
   <button class="tool-btn" onclick="openTickerModal()">Edit Ticker</button>
 <button class="tool-btn" onclick="openEnvelopeManager()">Envelope Manager</button>
-<button class="tool-btn" onclick="openComboChaserModal()">NFL/MLB Combo Manager</button>
+<button class="tool-btn" id="comboChaserModalBtn" onclick="openComboChaserModal()">NFL/MLB Combo Manager</button>
 <button class="tool-btn" onclick="toggleChaseBuyersPanel()">Chase Buyers</button>
 <button class="tool-btn" onclick="openExportSoldModal()">Export Sold</button>
 <button class="tool-btn" onclick="toggleLayoutMode()">Toggle Layout</button>
@@ -2416,11 +2416,14 @@ const CUSTOM_ENVELOPE = `${BASE}jim-tabby-envelope.png`;
 
     const imgPathNFL = (f) => `${BASE}../../images/nfl/${f}`;
     const imgPathMLB = (f) => `${BASE}../../images/mlb/${f}`;
+    const imgPathNBA = (f) => `${BASE}../../images/nba/${f}`;
 
 const STORAGE = {
   breakNumber: "jtb.combo.breakNumber",
   soldState: "jtb.combo.soldState",
   soldList: "jtb.combo.soldList",
+  customSoldState: "jtb.custom.soldState",
+  customSoldList: "jtb.custom.soldList",
   soldPanelOpen: "jtb.combo.soldPanelOpen",
   bridgeUrl: "tsu.bridgeUrl",
   bridgeKey: "tsu.bridgeKey",
@@ -2440,7 +2443,16 @@ const STORAGE = {
   comboChaserLabels: "jtb.combo.comboChaserLabels",
 comboExtraChasers: "jtb.combo.comboExtraChasers",
 comboExtraItems: "jtb.combo.comboExtraItems",
-comboExtraPrizePacks: "jtb.combo.comboExtraPrizePacks"
+comboExtraPrizePacks: "jtb.combo.comboExtraPrizePacks",
+
+  // ── nfl-nba combo mode ──────────────────────────────────────────────────
+  nflnbaSoldState: "jtb.nflnba.soldState",
+  nflnbaSoldList: "jtb.nflnba.soldList",
+  nflnbaChaserTeams: "jtb.nflnba.chaserTeams",
+  nflnbaChaserLabels: "jtb.nflnba.chaserLabels",
+  nflnbaExtraChasers: "jtb.nflnba.extraChasers",
+  nflnbaExtraItems: "jtb.nflnba.extraItems",
+  nflnbaExtraPrizePacks: "jtb.nflnba.extraPrizePacks"
 };
     const MLB_TEAMS = [
       { code:"ARI", name:"Diamondbacks", image:imgPathMLB("diamondbacks.png") },
@@ -2510,6 +2522,39 @@ comboExtraPrizePacks: "jtb.combo.comboExtraPrizePacks"
       { code:"WSH", name:"Commanders", image:imgPathNFL("commanders.png") }
     ];
 
+    const NBA_TEAMS = [
+      { code:"ATL", name:"Hawks",         image:imgPathNBA("hawks.png") },
+      { code:"BOS", name:"Celtics",        image:imgPathNBA("celtics.png") },
+      { code:"BKN", name:"Nets",           image:imgPathNBA("nets.png") },
+      { code:"CHA", name:"Hornets",        image:imgPathNBA("hornets.png") },
+      { code:"CHI", name:"Bulls",          image:imgPathNBA("bulls.png") },
+      { code:"CLE", name:"Cavaliers",      image:imgPathNBA("cavaliers.png") },
+      { code:"DAL", name:"Mavericks",      image:imgPathNBA("mavericks.png") },
+      { code:"DEN", name:"Nuggets",        image:imgPathNBA("nuggets.png") },
+      { code:"DET", name:"Pistons",        image:imgPathNBA("pistons.png") },
+      { code:"GS",  name:"Warriors",       image:imgPathNBA("warriors.png") },
+      { code:"HOU", name:"Rockets",        image:imgPathNBA("rockets.png") },
+      { code:"IND", name:"Pacers",         image:imgPathNBA("pacers.png") },
+      { code:"LAC", name:"Clippers",       image:imgPathNBA("clippers.png") },
+      { code:"LAL", name:"Lakers",         image:imgPathNBA("lakers.png") },
+      { code:"MEM", name:"Grizzlies",      image:imgPathNBA("grizzlies.png") },
+      { code:"MIA", name:"Heat",           image:imgPathNBA("heat.png") },
+      { code:"MIL", name:"Bucks",          image:imgPathNBA("bucks.png") },
+      { code:"MIN", name:"Timberwolves",   image:imgPathNBA("timberwolves.png") },
+      { code:"NO",  name:"Pelicans",       image:imgPathNBA("pelicans.png") },
+      { code:"NY",  name:"Knicks",         image:imgPathNBA("knicks.png") },
+      { code:"OKC", name:"Thunder",        image:imgPathNBA("thunder.png") },
+      { code:"ORL", name:"Magic",          image:imgPathNBA("magic.png") },
+      { code:"PHI", name:"76ers",          image:imgPathNBA("76ers.png") },
+      { code:"PHX", name:"Suns",           image:imgPathNBA("suns.png") },
+      { code:"POR", name:"Trail Blazers",  image:imgPathNBA("trail-blazers.png") },
+      { code:"SAC", name:"Kings",          image:imgPathNBA("kings.png") },
+      { code:"SAS", name:"Spurs",          image:imgPathNBA("spurs.png") },
+      { code:"TOR", name:"Raptors",        image:imgPathNBA("raptors.png") },
+      { code:"UTA", name:"Jazz",           image:imgPathNBA("jazz.png") },
+      { code:"WAS", name:"Wizards",        image:imgPathNBA("wizards.png") }
+    ];
+
 const soldTeams = new Set();
 let soldTeamsList = [];
 let soldPanelOpen = true;
@@ -2532,6 +2577,13 @@ let comboExtraChasers = [];
 let comboExtraItems = [];
 let comboExtraPrizePacks = [];
 
+// ── nfl-nba combo mode state (separate from MLB/NFL combo) ─────────────────
+let nflnbaChaserTeams = new Set();
+let nflnbaChaserLabels = new Map();
+let nflnbaExtraChasers = [];
+let nflnbaExtraItems = [];
+let nflnbaExtraPrizePacks = [];
+
 const lastCodeByListingKey = new Map();
 const SCORES_BY_SPORT = { mlb:"", nfl:"" };
 const SCORES_UPDATED_AT = { mlb:0, nfl:0 };
@@ -2543,19 +2595,22 @@ let mainState = "off";
 let sportsState = "off";
 
     function saveState(){
-      localStorage.setItem(STORAGE.soldState, JSON.stringify(Array.from(soldTeams)));
-      localStorage.setItem(STORAGE.soldList, JSON.stringify(soldTeamsList));
+      const [soldKey, listKey] = getSoldStorageKeys(layoutMode);
+      localStorage.setItem(soldKey, JSON.stringify(Array.from(soldTeams)));
+      localStorage.setItem(listKey, JSON.stringify(soldTeamsList));
       localStorage.setItem(STORAGE.soldPanelOpen, soldPanelOpen ? "1" : "0");
     }
 
 function loadState(){
+  const [soldKey, listKey] = getSoldStorageKeys(layoutMode);
+
   try{
-    const sold = JSON.parse(localStorage.getItem(STORAGE.soldState) || "[]");
+    const sold = JSON.parse(localStorage.getItem(soldKey) || "[]");
     sold.forEach(code => soldTeams.add(code));
   }catch(_){}
 
   try{
-    soldTeamsList = JSON.parse(localStorage.getItem(STORAGE.soldList) || "[]");
+    soldTeamsList = JSON.parse(localStorage.getItem(listKey) || "[]");
     if (!Array.isArray(soldTeamsList)) soldTeamsList = [];
   }catch(_){
     soldTeamsList = [];
@@ -2583,6 +2638,90 @@ function saveLayoutMode(){
   localStorage.setItem(STORAGE.layoutMode, layoutMode);
 }
 
+// Persist current layout's sold state and reload the new layout's sold state.
+// Call BEFORE changing layoutMode.
+function getSoldStorageKeys(mode){
+  if (mode === "nfl-nba") return [STORAGE.nflnbaSoldState, STORAGE.nflnbaSoldList];
+  if (mode === "custom")  return [STORAGE.customSoldState,  STORAGE.customSoldList];
+  return [STORAGE.soldState, STORAGE.soldList];
+}
+
+function swapSoldStateForLayout(nextMode){
+  // Save current sold state under the current layout's own keys
+  const [oldSoldKey, oldListKey] = getSoldStorageKeys(layoutMode);
+  localStorage.setItem(oldSoldKey, JSON.stringify(Array.from(soldTeams)));
+  localStorage.setItem(oldListKey, JSON.stringify(soldTeamsList));
+
+  // Clear active sold state
+  soldTeams.clear();
+  soldTeamsList = [];
+
+  // Reload from the next layout's keys
+  const [newSoldKey, newListKey] = getSoldStorageKeys(nextMode);
+  try{
+    const sold = JSON.parse(localStorage.getItem(newSoldKey) || "[]");
+    sold.forEach(code => soldTeams.add(code));
+  }catch(_){}
+  try{
+    soldTeamsList = JSON.parse(localStorage.getItem(newListKey) || "[]");
+    if (!Array.isArray(soldTeamsList)) soldTeamsList = [];
+  }catch(_){}
+}
+
+// ── nfl-nba chaser/pack save helpers ────────────────────────────────────────
+function saveNflNbaChaserTeams(){
+  localStorage.setItem(STORAGE.nflnbaChaserTeams, JSON.stringify(Array.from(nflnbaChaserTeams)));
+}
+function saveNflNbaChaserLabels(){
+  localStorage.setItem(STORAGE.nflnbaChaserLabels, JSON.stringify(Array.from(nflnbaChaserLabels.entries())));
+}
+function saveNflNbaExtraChasers(){
+  localStorage.setItem(STORAGE.nflnbaExtraChasers, JSON.stringify(nflnbaExtraChasers));
+}
+function saveNflNbaExtraItems(){
+  localStorage.setItem(STORAGE.nflnbaExtraItems, JSON.stringify(nflnbaExtraItems));
+}
+function saveNflNbaExtraPrizePacks(){
+  localStorage.setItem(STORAGE.nflnbaExtraPrizePacks, JSON.stringify(nflnbaExtraPrizePacks));
+}
+function saveNflNbaChaserState(){
+  saveNflNbaChaserTeams();
+  saveNflNbaChaserLabels();
+  saveNflNbaExtraChasers();
+  saveNflNbaExtraItems();
+  saveNflNbaExtraPrizePacks();
+}
+function loadNflNbaChaserTeams(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORAGE.nflnbaChaserTeams) || "[]");
+    return new Set(Array.isArray(raw) ? raw : []);
+  }catch(_){ return new Set(); }
+}
+function loadNflNbaChaserLabels(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORAGE.nflnbaChaserLabels) || "[]");
+    return new Map(Array.isArray(raw) ? raw : []);
+  }catch(_){ return new Map(); }
+}
+function loadNflNbaExtraChasers(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORAGE.nflnbaExtraChasers) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  }catch(_){ return []; }
+}
+function loadNflNbaExtraItems(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORAGE.nflnbaExtraItems) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  }catch(_){ return []; }
+}
+function loadNflNbaExtraPrizePacks(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORAGE.nflnbaExtraPrizePacks) || "[]");
+    return Array.isArray(raw) ? raw : [];
+  }catch(_){ return []; }
+}
+
 function saveChaseBuyersState(){
   localStorage.setItem(STORAGE.chaseBuyersOpen, chaseBuyersOpen ? "1" : "0");
   localStorage.setItem(STORAGE.chaseBuyersActive, JSON.stringify(chaseBuyersActive));
@@ -2596,7 +2735,7 @@ function saveChaseBuyersState(){
     localStorage.setItem("jtb.combo.chasePopup.height", popup.style.height || "290px");
   }
 }
-const DEFAULT_CUSTOM_ENTRY_COUNT = 84;
+const DEFAULT_CUSTOM_ENTRY_COUNT = 120;
 
 function makeDefaultCustomEntries(count = DEFAULT_CUSTOM_ENTRY_COUNT){
   return Array.from({ length: count }, (_, index) => ({
@@ -2691,6 +2830,7 @@ function saveComboChaserLabels(){
 }
 
 function getComboChaserLabel(code){
+  if (layoutMode === "nfl-nba") return getNflNbaChaserLabel(code);
   const stored = String(comboChaserLabels.get(code) || "").trim();
   if (stored) return stored;
   const idx = Array.from(comboChaserTeams).indexOf(code);
@@ -2700,6 +2840,18 @@ function getComboChaserLabel(code){
 function clearAccidentalAllTeamChasers(){
   const allTeamKeys = getAllTeams().map(t => t.key);
   if (!allTeamKeys.length) return;
+
+  if (layoutMode === "nfl-nba"){
+    const everyMarked =
+      nflnbaChaserTeams.size >= allTeamKeys.length &&
+      allTeamKeys.every(key => nflnbaChaserTeams.has(key));
+    if (!everyMarked) return;
+    nflnbaChaserTeams = new Set();
+    nflnbaChaserLabels = new Map();
+    saveNflNbaChaserTeams();
+    saveNflNbaChaserLabels();
+    return;
+  }
 
   const everyDefaultTeamIsMarked =
     comboChaserTeams.size >= allTeamKeys.length &&
@@ -2755,21 +2907,30 @@ function saveComboExtraPrizePacks(){
 }
 
 function saveComboChaserState(){
-  saveComboChaserTeams();
-  saveComboChaserLabels();
-  saveComboExtraChasers();
-  saveComboExtraItems();
-  saveComboExtraPrizePacks();
+  if (layoutMode === "nfl-nba"){
+    saveNflNbaChaserState();
+  } else {
+    saveComboChaserTeams();
+    saveComboChaserLabels();
+    saveComboExtraChasers();
+    saveComboExtraItems();
+    saveComboExtraPrizePacks();
+  }
 }
 
 function clearComboChaserSetup(){
-  comboChaserTeams = new Set();
-  comboChaserLabels = new Map();
-  comboExtraChasers = [];
-  comboExtraItems = [];
-
-  if (typeof comboExtraPrizePacks !== "undefined"){
-    comboExtraPrizePacks = [];
+  if (layoutMode === "nfl-nba"){
+    nflnbaChaserTeams = new Set();
+    nflnbaChaserLabels = new Map();
+    nflnbaExtraChasers = [];
+    nflnbaExtraItems = [];
+    nflnbaExtraPrizePacks = [];
+  } else {
+    comboChaserTeams = new Set();
+    comboChaserLabels = new Map();
+    comboExtraChasers = [];
+    comboExtraItems = [];
+    if (typeof comboExtraPrizePacks !== "undefined") comboExtraPrizePacks = [];
   }
 
   saveComboChaserState();
@@ -2811,7 +2972,9 @@ function resetSoldComboChasers(){
 }
 
 function isComboTeamChaser(code){
-  return layoutMode === "combo" && comboChaserTeams.has(code);
+  if (layoutMode === "combo")    return comboChaserTeams.has(code);
+  if (layoutMode === "nfl-nba")  return nflnbaChaserTeams.has(code);
+  return false;
 }
 
 function getComboExtraChaserCode(index){
@@ -2839,6 +3002,54 @@ function getNumberedCategoryLabel(category, index){
 
 function getComboExtraItemCode(index){
   return `COMBO_ITEM_${String(index + 1).padStart(2, "0")}`;
+}
+
+function getNflNbaExtraChaserCode(index){
+  return `NFLNBA_CHASER_${String(index + 1).padStart(2, "0")}`;
+}
+function getNflNbaExtraItemCode(index){
+  return `NFLNBA_ITEM_${String(index + 1).padStart(2, "0")}`;
+}
+function getNflNbaExtraPrizePackCode(index){
+  return `NFLNBA_PRIZEPACK_${String(index + 1).padStart(2, "0")}`;
+}
+
+function getNflNbaChaserLabel(code){
+  const stored = String(nflnbaChaserLabels.get(code) || "").trim();
+  if (stored) return stored;
+  const idx = Array.from(nflnbaChaserTeams).indexOf(code);
+  return idx >= 0 ? `Chaser ${idx + 1}` : "Chaser";
+}
+
+function getNflNbaSupplementalEntries(){
+  const chasers = nflnbaExtraChasers.map((name, index) => ({
+    key: getNflNbaExtraChaserCode(index),
+    code: getNflNbaExtraChaserCode(index),
+    name: `Chaser ${nflnbaChaserTeams.size + index + 1}`,
+    matchName: normalizeComboEntryLabel(name, "Chaser", nflnbaChaserTeams.size + index),
+    image: "", meta: "", sport: "",
+    comboType: "extra_chaser",
+    categoryLabel: "CHASER"
+  }));
+  const packs = nflnbaExtraItems.map((name, index) => ({
+    key: getNflNbaExtraItemCode(index),
+    code: getNflNbaExtraItemCode(index),
+    name: getNumberedCategoryLabel("pack", index),
+    matchName: normalizeComboEntryLabel(name, "Pack", index),
+    image: "", meta: "", sport: "",
+    comboType: "extra_item",
+    categoryLabel: "PACK"
+  }));
+  const prizePacks = nflnbaExtraPrizePacks.map((name, index) => ({
+    key: getNflNbaExtraPrizePackCode(index),
+    code: getNflNbaExtraPrizePackCode(index),
+    name: getNumberedCategoryLabel("prizepack", index),
+    matchName: normalizeComboEntryLabel(name, "Prize Pack", index),
+    image: "", meta: "", sport: "",
+    comboType: "extra_prizepack",
+    categoryLabel: "PRIZE PACK"
+  }));
+  return [...chasers, ...packs, ...prizePacks];
 }
 
 function getComboSupplementalEntries(){
@@ -3054,23 +3265,21 @@ function normalizeBridge(u){
   return cleanUrl(u).replace(/\/(events|stream)(\/.*)?$/i, "");
 }
 
+
+    // ── TSU Migration: shared bridge defaults (May 2026) ──────────────────
+    const BRIDGE_URL_DEFAULT = "https://bridge.tradesecretsunlocked.com";
+    const BRIDGE_KEY_DEFAULT = "469c3440-7511-4ee2-be2c-671fad9b9e6f";
+    // ──────────────────────────────────────────────────────────────────────
 function getBridgeBase(){
   const q = getParam("bridge");
-  if (q) {
-    const cleaned = normalizeBridge(q);
-    localStorage.setItem(STORAGE.bridgeUrl, cleaned);
-    return cleaned;
-  }
-  return normalizeBridge(localStorage.getItem(STORAGE.bridgeUrl) || "");
+  if (q) return normalizeBridge(q);
+  return BRIDGE_URL_DEFAULT;
 }
 
 function getBridgeKey(){
   const q = getParam("key");
-  if (q) {
-    localStorage.setItem(STORAGE.bridgeKey, q.trim());
-    return q.trim();
-  }
-  return String(localStorage.getItem(STORAGE.bridgeKey) || "").trim();
+  if (q) return q.trim();
+  return BRIDGE_KEY_DEFAULT;
 }
 
 function automationEnabled(){
@@ -3201,19 +3410,25 @@ function setBreakNumber(n){
 }
 
 function syncLayoutBodyClass(){
-  document.body.classList.toggle("custom-mode", layoutMode === "custom");
-  document.body.classList.toggle("combo-mode", layoutMode !== "custom");
+  document.body.classList.toggle("custom-mode",  layoutMode === "custom");
+  document.body.classList.toggle("nfl-nba-mode", layoutMode === "nfl-nba");
+  document.body.classList.toggle("combo-mode",   layoutMode === "combo" || layoutMode === "nfl-nba");
 }
 
 function updateHeaderMode(){
   syncLayoutBodyClass();
 
   const sub = document.querySelector(".header-sub");
-  if (!sub) return;
+  if (sub){
+    if (layoutMode === "custom")       sub.textContent = "CUSTOM ENVELOPE BREAK BOARD";
+    else if (layoutMode === "nfl-nba") sub.textContent = "NFL + NBA COMBO BREAK BOARD";
+    else                               sub.textContent = "MLB + NFL COMBO BREAK BOARD";
+  }
 
-  sub.textContent = layoutMode === "custom"
-    ? "CUSTOM ENVELOPE BREAK BOARD"
-    : "MLB + NFL COMBO BREAK BOARD";
+  const comboBtn = document.getElementById("comboChaserModalBtn");
+  if (comboBtn){
+    comboBtn.textContent = layoutMode === "nfl-nba" ? "NFL/NBA Combo Manager" : "NFL/MLB Combo Manager";
+  }
 }
 
 function getBuyerFromPayload(p){
@@ -3458,38 +3673,59 @@ function inferTeamCodeFromTitle(title, sportHint=""){
       if (label && raw.includes(label)) return code;
     }
 
+    // Combo mode: extra chaser/pack/prize pack names
+    for (let i = 0; i < comboExtraChasers.length; i++){
+      const exactName = String(comboExtraChasers[i] || "").toLowerCase().trim();
+      const numberedName = `chaser ${comboChaserTeams.size + i + 1}`;
+      if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraChaserCode(i);
+      if (raw === numberedName || raw.includes(numberedName)) return getComboExtraChaserCode(i);
+    }
+    for (let i = 0; i < comboExtraItems.length; i++){
+      const exactName = String(comboExtraItems[i] || "").toLowerCase().trim();
+      const numberedName = `pack ${i + 1}`;
+      if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraItemCode(i);
+      if (raw === numberedName || raw.includes(numberedName)) return getComboExtraItemCode(i);
+    }
+    for (let i = 0; i < comboExtraPrizePacks.length; i++){
+      const exactName = String(comboExtraPrizePacks[i] || "").toLowerCase().trim();
+      const numberedName = `prize pack ${i + 1}`;
+      if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraPrizePackCode(i);
+      if (raw === numberedName || raw.includes(numberedName)) return getComboExtraPrizePackCode(i);
+    }
+  }
 
-// Combo mode: extra chaser names
-for (let i = 0; i < comboExtraChasers.length; i++){
-  const exactName = String(comboExtraChasers[i] || "").toLowerCase().trim();
-  const numberedName = `chaser ${comboChaserTeams.size + i + 1}`;
-
-  if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraChaserCode(i);
-  if (raw === numberedName || raw.includes(numberedName)) return getComboExtraChaserCode(i);
-}
-
-// Combo mode: pack names
-for (let i = 0; i < comboExtraItems.length; i++){
-  const exactName = String(comboExtraItems[i] || "").toLowerCase().trim();
-  const numberedName = `pack ${i + 1}`;
-
-  if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraItemCode(i);
-  if (raw === numberedName || raw.includes(numberedName)) return getComboExtraItemCode(i);
-}
-
-// Combo mode: prize pack names
-for (let i = 0; i < comboExtraPrizePacks.length; i++){
-  const exactName = String(comboExtraPrizePacks[i] || "").toLowerCase().trim();
-  const numberedName = `prize pack ${i + 1}`;
-
-  if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraPrizePackCode(i);
-  if (raw === numberedName || raw.includes(numberedName)) return getComboExtraPrizePackCode(i);
-}
+  // NFL/NBA combo mode: chaser label + extra spot matches
+  if (layoutMode === "nfl-nba"){
+    for (const code of nflnbaChaserTeams){
+      const label = String(getNflNbaChaserLabel(code) || "").toLowerCase().trim();
+      if (label && raw === label) return code;
+      if (label && raw.includes(label)) return code;
+    }
+    for (let i = 0; i < nflnbaExtraChasers.length; i++){
+      const exactName = String(nflnbaExtraChasers[i] || "").toLowerCase().trim();
+      const numberedName = `chaser ${nflnbaChaserTeams.size + i + 1}`;
+      if (exactName && (raw === exactName || raw.includes(exactName))) return getNflNbaExtraChaserCode(i);
+      if (raw === numberedName || raw.includes(numberedName)) return getNflNbaExtraChaserCode(i);
+    }
+    for (let i = 0; i < nflnbaExtraItems.length; i++){
+      const exactName = String(nflnbaExtraItems[i] || "").toLowerCase().trim();
+      const numberedName = `pack ${i + 1}`;
+      if (exactName && (raw === exactName || raw.includes(exactName))) return getNflNbaExtraItemCode(i);
+      if (raw === numberedName || raw.includes(numberedName)) return getNflNbaExtraItemCode(i);
+    }
+    for (let i = 0; i < nflnbaExtraPrizePacks.length; i++){
+      const exactName = String(nflnbaExtraPrizePacks[i] || "").toLowerCase().trim();
+      const numberedName = `prize pack ${i + 1}`;
+      if (exactName && (raw === exactName || raw.includes(exactName))) return getNflNbaExtraPrizePackCode(i);
+      if (raw === numberedName || raw.includes(numberedName)) return getNflNbaExtraPrizePackCode(i);
+    }
   }
 
   const list =
     sportHint === "mlb"
       ? MLB_TEAMS.map(t => ({ ...t, key:`MLB_${t.code}`, sport:"MLB" }))
+      : sportHint === "nba"
+      ? NBA_TEAMS.map(t => ({ ...t, key:`NBA_${t.code}`, sport:"NBA" }))
       : sportHint === "nfl"
       ? NFL_TEAMS.map(t => ({ ...t, key:`NFL_${t.code}`, sport:"NFL" }))
       : getAllTeams();
@@ -3524,16 +3760,20 @@ function getCodeFromPayload(p){
 
   if (!raw) return "";
 
-  // already normalized overlay keys
-if (
-  raw.startsWith("MLB_") ||
-  raw.startsWith("NFL_") ||
-  raw.startsWith("COMBO_CHASER_") ||
-  raw.startsWith("COMBO_ITEM_") ||
-  raw.startsWith("COMBO_PRIZEPACK_")
-) {
-  return raw;
-}
+  // already normalized overlay keys — pass through as-is
+  if (
+    raw.startsWith("MLB_") ||
+    raw.startsWith("NFL_") ||
+    raw.startsWith("NBA_") ||
+    raw.startsWith("COMBO_CHASER_") ||
+    raw.startsWith("COMBO_ITEM_") ||
+    raw.startsWith("COMBO_PRIZEPACK_") ||
+    raw.startsWith("NFLNBA_CHASER_") ||
+    raw.startsWith("NFLNBA_ITEM_") ||
+    raw.startsWith("NFLNBA_PRIZEPACK_")
+  ){
+    return raw;
+  }
 
   // IMPORTANT:
   // Envelope CUSTOM_NNN codes must never leak into combo automation.
@@ -3544,18 +3784,9 @@ if (raw.startsWith("CUSTOM_")){
     return raw;
   }
 
-  if (layoutMode === "combo" && title){
+  if ((layoutMode === "combo" || layoutMode === "nfl-nba") && title){
     const inferred = inferTeamCodeFromTitle(title, sport);
-    if (
-      inferred &&
-      (
-        inferred.startsWith("MLB_") ||
-        inferred.startsWith("NFL_") ||
-        inferred.startsWith("COMBO_CHASER_") ||
-        inferred.startsWith("COMBO_ITEM_") ||
-        inferred.startsWith("COMBO_PRIZEPACK_")
-      )
-    ){
+    if (inferred && codeAllowedForCurrentLayout(inferred)){
       return inferred;
     }
   }
@@ -3569,9 +3800,6 @@ if (raw.startsWith("CUSTOM_")){
 
   return "";
 }
-
-    return raw;
-  
 
   // overlay uses WSH for Commanders/Nationals, extension may send WAS
   if (raw === "WAS" && (sport === "nfl" || sport === "mlb")) {
@@ -3605,6 +3833,12 @@ function getDisplayEntryName(entry){
 }
 
 function getAllTeams(){
+  if (layoutMode === "nfl-nba"){
+    return [
+      ...NBA_TEAMS.map(t => ({ ...t, key:`NBA_${t.code}`, sport:"NBA" })),
+      ...NFL_TEAMS.map(t => ({ ...t, key:`NFL_${t.code}`, sport:"NFL" }))
+    ];
+  }
   return [
     ...MLB_TEAMS.map(t => ({ ...t, key:`MLB_${t.code}`, sport:"MLB" })),
     ...NFL_TEAMS.map(t => ({ ...t, key:`NFL_${t.code}`, sport:"NFL" }))
@@ -3612,7 +3846,8 @@ function getAllTeams(){
 }
 
 function getAllEntries(){
-  if (layoutMode === "custom") return customEntries;
+  if (layoutMode === "custom")  return customEntries;
+  if (layoutMode === "nfl-nba") return [...getAllTeams(), ...getNflNbaSupplementalEntries()];
   return [...getAllTeams(), ...getComboSupplementalEntries()];
 }
 
@@ -3917,6 +4152,88 @@ function buildBoard(){
     return;
   }
 
+  // ── nfl-nba combo layout ────────────────────────────────────────────────
+  if (layoutMode === "nfl-nba"){
+    const nbaTeams = NBA_TEAMS.map(t => ({ ...t, key:`NBA_${t.code}`, sport:"NBA" }));
+    const nflTeamsNN = NFL_TEAMS.map(t => ({ ...t, key:`NFL_${t.code}`, sport:"NFL" }));
+
+    const nbaRows = splitByCounts(nbaTeams, [5, 6, 6, 6, 5, 2]);
+    const nflRowsNN = splitByCounts(nflTeamsNN, [5, 6, 6, 6, 7, 2]);
+
+    // NBA left / NFL right — same structural approach as MLB/NFL
+    {
+      const row = document.createElement("div");
+      row.className = "board-row sport-split-row sport-split-top-row";
+      nbaRows[0].forEach(t => row.appendChild(makeTeamTile(t)));
+      row.appendChild(makeLogoSlot());
+      nflRowsNN[0].forEach(t => row.appendChild(makeTeamTile(t)));
+      board.appendChild(row);
+    }
+
+    for (let r = 1; r <= 4; r++){
+      const row = document.createElement("div");
+      row.className = "board-row sport-split-row";
+      const leftEntries  = nbaRows[r]    || [];
+      const rightEntries = nflRowsNN[r]  || [];
+      const leftTarget   = rightEntries.length > 6 ? 5 : 6;
+      leftEntries.forEach(entry => row.appendChild(makeTeamTile(entry)));
+      while (row.children.length < leftTarget) row.appendChild(makeHiddenCell());
+      rightEntries.forEach(entry => row.appendChild(makeTeamTile(entry)));
+      while (row.children.length < 12) row.appendChild(makeHiddenCell());
+      board.appendChild(row);
+    }
+
+    const tickerSideNN = [
+      ...(nbaRows[5]   || []),
+      ...(nflRowsNN[5] || [])
+    ];
+    board.appendChild(makeComboTickerRow(tickerSideNN));
+
+    const nflNbaSupp = getNflNbaSupplementalEntries();
+    for (let i = 0; i < nflNbaSupp.length; i += 12){
+      const rowEntries = nflNbaSupp.slice(i, i + 12);
+      const row = document.createElement("div");
+      row.className = "board-row combo-supplemental-row";
+      rowEntries.forEach(entry => row.appendChild(makeTeamTile(entry)));
+      while (row.children.length < 12) row.appendChild(makeHiddenCell());
+      board.appendChild(row);
+    }
+
+    {
+      const row = document.createElement("div");
+      row.className = "board-row board-row-controls combo-stats-row";
+      row.style.gridTemplateColumns = "1fr 1fr 1fr 1fr 1fr 1fr";
+      const resetBtn = makeControl("Reset", "", "btn red");
+      resetBtn.onclick = resetAll;
+      row.appendChild(resetBtn);
+      const soldStat = makeControl("Total Sold", soldTeams.size, "stat");
+      soldStat.onclick = toggleSoldPanel;
+      soldStat.id = "soldStatBottom";
+      row.appendChild(soldStat);
+      const chasersSoldStat = makeControl("Chasers Sold", getComboChaserSoldCount(), "stat");
+      chasersSoldStat.id = "comboChasersSoldStat";
+      row.appendChild(chasersSoldStat);
+      const remainStat = makeControl("Total Remaining", getRemainingCount(), "stat");
+      remainStat.id = "remainStatBottom";
+      row.appendChild(remainStat);
+      const chasersRemainStat = makeControl("Chasers Remaining", getComboChaserRemainingCount(), "stat");
+      chasersRemainStat.id = "comboChasersRemainStat";
+      row.appendChild(chasersRemainStat);
+      const nextBtn = makeControl("New Break", "", "btn");
+      nextBtn.onclick = newBreak;
+      row.appendChild(nextBtn);
+      board.appendChild(row);
+    }
+
+    const soldTitleNN = document.querySelector(".sold-title");
+    if (soldTitleNN) soldTitleNN.textContent = "Sold Teams";
+
+    updateStats();
+    renderSoldPanel();
+    updateTicker();
+    return;
+  }
+
   const mlbTeams = MLB_TEAMS.map(t => ({ ...t, key:`MLB_${t.code}`, sport:"MLB" }));
   const nflTeams = NFL_TEAMS.map(t => ({ ...t, key:`NFL_${t.code}`, sport:"NFL" }));
 
@@ -4041,21 +4358,25 @@ function getRemainingCount(){
 }
 
 function isComboChaserCode(code){
-  if (layoutMode !== "combo") return false;
+  if (layoutMode !== "combo" && layoutMode !== "nfl-nba") return false;
 
   const entry = getEntryByCode(code);
   if (!entry) return false;
 
+  if (layoutMode === "nfl-nba"){
+    return nflnbaChaserTeams.has(code) || entry.comboType === "extra_chaser";
+  }
   return comboChaserTeams.has(code) || entry.comboType === "extra_chaser";
 }
 
 function getComboChaserTotalCount(){
-  if (layoutMode !== "combo") return 0;
+  if (layoutMode !== "combo" && layoutMode !== "nfl-nba") return 0;
 
+  const chaserSet = layoutMode === "nfl-nba" ? nflnbaChaserTeams : comboChaserTeams;
   let count = 0;
 
   getAllEntries().forEach(entry => {
-    if (comboChaserTeams.has(entry.key) || entry.comboType === "extra_chaser"){
+    if (chaserSet.has(entry.key) || entry.comboType === "extra_chaser"){
       count++;
     }
   });
@@ -4869,7 +5190,7 @@ function applyPrizeSpotSelectorModal(shouldClose = true){
 
   selectedPrizeSpotCodes.forEach(code => {
     const existing = customChaseMap.get(code);
-const category = existing?.category || "pack";
+const category = existing?.category || "team";
 
 nextMap.set(code, {
   category,
@@ -4982,7 +5303,7 @@ function applyChaseModal(shouldClose = true){
     const code = String(row.dataset.code || "").trim();
     if (!code) return;
 
-    const category = String(row.querySelector(".chase-category-btn")?.dataset.category || "pack")
+    const category = String(row.querySelector(".chase-category-btn")?.dataset.category || "team")
       .toLowerCase()
       .replace(/\s+/g, "");
 
@@ -5057,7 +5378,7 @@ function renderChaseManagerModal(){
     row.className = "chase-row";
     row.dataset.code = entry.key;
 
-const safeCategory = String(cfg.category || "pack")
+const safeCategory = String(cfg.category || "team")
   .toLowerCase()
   .replace(/\s+/g, "");
 
@@ -5082,7 +5403,7 @@ const btn = row.querySelector(".chase-category-btn");
 const labelBox = row.querySelector("[data-category-label]");
 
 btn?.addEventListener("click", () => {
-  const current = String(btn.dataset.category || "pack");
+  const current = String(btn.dataset.category || "team");
   const idx = CATEGORY_ORDER.indexOf(current);
   const next = CATEGORY_ORDER[(idx + 1) % CATEGORY_ORDER.length];
 
@@ -5107,6 +5428,42 @@ function closeChaseModal(){
   closeEnvelopeManager();
 }
 
+
+const NBA_FULL_TEAM_NAMES = {
+  "atlanta hawks":"NBA_ATL",
+  "boston celtics":"NBA_BOS",
+  "brooklyn nets":"NBA_BKN",
+  "charlotte hornets":"NBA_CHA",
+  "chicago bulls":"NBA_CHI",
+  "cleveland cavaliers":"NBA_CLE",
+  "dallas mavericks":"NBA_DAL",
+  "denver nuggets":"NBA_DEN",
+  "detroit pistons":"NBA_DET",
+  "golden state warriors":"NBA_GSW",
+  "houston rockets":"NBA_HOU",
+  "indiana pacers":"NBA_IND",
+  "los angeles clippers":"NBA_LAC",
+  "la clippers":"NBA_LAC",
+  "los angeles lakers":"NBA_LAL",
+  "la lakers":"NBA_LAL",
+  "memphis grizzlies":"NBA_MEM",
+  "miami heat":"NBA_MIA",
+  "milwaukee bucks":"NBA_MIL",
+  "minnesota timberwolves":"NBA_MIN",
+  "new orleans pelicans":"NBA_NOP",
+  "new york knicks":"NBA_NYK",
+  "ny knicks":"NBA_NYK",
+  "oklahoma city thunder":"NBA_OKC",
+  "orlando magic":"NBA_ORL",
+  "philadelphia 76ers":"NBA_PHI",
+  "phoenix suns":"NBA_PHX",
+  "portland trail blazers":"NBA_POR",
+  "sacramento kings":"NBA_SAC",
+  "san antonio spurs":"NBA_SAS",
+  "toronto raptors":"NBA_TOR",
+  "utah jazz":"NBA_UTA",
+  "washington wizards":"NBA_WAS"
+};
 
 const MLB_FULL_TEAM_NAMES = {
   "arizona diamondbacks":"MLB_ARI",
@@ -5208,7 +5565,10 @@ function splitBulkTileLines(text){
 function getComboTeamLookup(){
   const lookup = new Map();
 
-  Object.entries({ ...MLB_FULL_TEAM_NAMES, ...NFL_FULL_TEAM_NAMES }).forEach(([name, key]) => {
+  const activeLookupNames = layoutMode === "nfl-nba"
+    ? { ...NBA_FULL_TEAM_NAMES, ...NFL_FULL_TEAM_NAMES }
+    : { ...MLB_FULL_TEAM_NAMES, ...NFL_FULL_TEAM_NAMES };
+  Object.entries(activeLookupNames).forEach(([name, key]) => {
     lookup.set(normalizeBulkTileName(name), key);
   });
 
@@ -5244,7 +5604,9 @@ function parseComboBulkTileList(text){
     const chaserMatch = normalized.match(/^chaser\s*(\d+)?$/i);
     if (chaserMatch){
       const n = chaserMatch[1] ? parseInt(chaserMatch[1], 10) : (chasers.length + 1);
-      chasers.push(`Chaser ${Number.isFinite(n) ? n : chasers.length + 1}`);
+      const label = `Chaser ${Number.isFinite(n) ? n : chasers.length + 1}`;
+      // Deduplicate — ignore if this numbered label is already in the list
+      if (!chasers.includes(label)) chasers.push(label);
       return;
     }
 
@@ -5347,7 +5709,7 @@ function applyComboBulkResultToModal(result){
 
     if (!(result.foundTeamCodes || []).length){
       summary.textContent =
-        `No default MLB/NFL team names were recognized, so no team tiles were changed. ` +
+        `No default ${layoutMode === "nfl-nba" ? "NBA/NFL" : "MLB/NFL"} team names were recognized, so no team tiles were changed. ` +
         `Check the pasted list format.${unmatchedText}`;
     } else {
       summary.textContent =
@@ -5408,6 +5770,34 @@ function initComboBulkImportPaste(){
     area.value = String(text).replace(/\r/g, "");
   });
 }
+
+// OBS Chromium may not fire native paste in plain textareas.
+// Intercept paste + manually insert at cursor position so lists paste reliably.
+function initComboExtraSpotsPaste(){
+  const ids = ["comboExtraChasersInput", "comboExtraItemsInput", "comboPrizePacksInput"];
+  ids.forEach(id => {
+    const area = document.getElementById(id);
+    if (!area) return;
+
+    area.addEventListener("paste", (e) => {
+      const text =
+        e.clipboardData?.getData("text/plain") ||
+        e.clipboardData?.getData("text") ||
+        window.clipboardData?.getData("Text") ||
+        "";
+      if (!text) return;
+      e.preventDefault();
+
+      const clean = String(text).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+      const start = area.selectionStart ?? area.value.length;
+      const end   = area.selectionEnd   ?? area.value.length;
+      area.value = area.value.slice(0, start) + clean + area.value.slice(end);
+      const cursor = start + clean.length;
+      area.selectionStart = cursor;
+      area.selectionEnd   = cursor;
+    });
+  });
+}
 function setComboChaserTab(tab){
   const tabMap = {
     teams: "comboTabTeams",
@@ -5433,12 +5823,26 @@ const prizePacksInput = document.getElementById("comboPrizePacksInput");
 const bulkInput = document.getElementById("comboBulkImportInput");
   const bulkSummary = document.getElementById("comboBulkImportSummary");
 
+  // Update modal title based on current mode
+  const modalTitle = document.querySelector("#comboChaserModal .modal-title");
+  if (modalTitle){
+    modalTitle.textContent = layoutMode === "nfl-nba" ? "NFL/NBA Combo Manager" : "NFL/MLB Combo Manager";
+  }
+  const teamGridLabel = document.querySelector("#comboTabTeams .modal-label");
+  if (teamGridLabel){
+    teamGridLabel.textContent = layoutMode === "nfl-nba"
+      ? "Select NBA / NFL Teams to Convert to Chasers"
+      : "Select MLB / NFL Teams to Convert to Chasers";
+  }
+
+  const activeChaserTeams = layoutMode === "nfl-nba" ? nflnbaChaserTeams : comboChaserTeams;
+
   if (grid){
     grid.innerHTML = "";
     getAllTeams().forEach(team => {
       const btn = document.createElement("button");
       btn.type = "button";
-      const isSelected = comboChaserTeams.has(team.key);
+      const isSelected = activeChaserTeams.has(team.key);
       const label = isSelected ? getComboChaserLabel(team.key) : "";
       btn.className = `prize-spot-chip${isSelected ? " selected" : ""}`;
       btn.dataset.code = team.key;
@@ -5463,16 +5867,20 @@ const bulkInput = document.getElementById("comboBulkImportInput");
     });
   }
 
+  const activeExtraChasers   = layoutMode === "nfl-nba" ? nflnbaExtraChasers   : comboExtraChasers;
+  const activeExtraItems     = layoutMode === "nfl-nba" ? nflnbaExtraItems     : comboExtraItems;
+  const activeExtraPrizePacks = layoutMode === "nfl-nba" ? nflnbaExtraPrizePacks : comboExtraPrizePacks;
+
   if (extraChasersInput){
-    extraChasersInput.value = comboExtraChasers.join("\n");
+    extraChasersInput.value = activeExtraChasers.join("\n");
   }
 
   if (extraItemsInput){
-    extraItemsInput.value = comboExtraItems.join("\n");
+    extraItemsInput.value = activeExtraItems.join("\n");
   }
 
 if (prizePacksInput){
-  prizePacksInput.value = comboExtraPrizePacks.join("\n");
+  prizePacksInput.value = activeExtraPrizePacks.join("\n");
 }
 
 if (bulkInput){
@@ -5501,39 +5909,48 @@ function applyComboChaserModal(){
 
   if (grid){
     const selectedButtons = Array.from(grid.querySelectorAll(".prize-spot-chip.selected"));
-
-    comboChaserTeams = new Set(
-      selectedButtons
-        .map(el => String(el.dataset.code || "").trim())
-        .filter(Boolean)
+    const newChaserSet = new Set(
+      selectedButtons.map(el => String(el.dataset.code || "").trim()).filter(Boolean)
     );
-
-    comboChaserLabels = new Map();
+    const newChaserLabels = new Map();
     selectedButtons.forEach((el, index) => {
       const code = String(el.dataset.code || "").trim();
       if (!code) return;
-      const label = String(el.dataset.chaserLabel || "").trim() || `Chaser ${index + 1}`;
-      comboChaserLabels.set(code, label);
+      const label = `Chaser ${index + 1}`;
+      newChaserLabels.set(code, label);
     });
+    if (layoutMode === "nfl-nba"){
+      nflnbaChaserTeams = newChaserSet;
+      nflnbaChaserLabels = newChaserLabels;
+    } else {
+      comboChaserTeams = newChaserSet;
+      comboChaserLabels = newChaserLabels;
+    }
   }
 
-  comboExtraChasers = String(extraChasersInput?.value || "")
-    .split("\n")
-    .map(v => v.trim())
-    .filter(Boolean)
-    .slice(0, 24);
+  // Deduplicate by label — prevents "Chaser 1 / Chaser 1 / Chaser 1" from repeat entries
+  const parsedChasers = [...new Set(
+    String(extraChasersInput?.value || "")
+      .split("\n").map(v => v.trim()).filter(Boolean)
+  )].slice(0, 24);
+  const parsedItems = [...new Set(
+    String(extraItemsInput?.value || "")
+      .split("\n").map(v => v.trim()).filter(Boolean)
+  )].slice(0, 24);
+  const parsedPrizePacks = [...new Set(
+    String(prizePacksInput?.value || "")
+      .split("\n").map(v => v.trim()).filter(Boolean)
+  )].slice(0, 24);
 
-  comboExtraItems = String(extraItemsInput?.value || "")
-    .split("\n")
-    .map(v => v.trim())
-    .filter(Boolean)
-    .slice(0, 24);
-
-  comboExtraPrizePacks = String(prizePacksInput?.value || "")
-    .split("\n")
-    .map(v => v.trim())
-    .filter(Boolean)
-    .slice(0, 24);
+  if (layoutMode === "nfl-nba"){
+    nflnbaExtraChasers   = parsedChasers;
+    nflnbaExtraItems     = parsedItems;
+    nflnbaExtraPrizePacks = parsedPrizePacks;
+  } else {
+    comboExtraChasers   = parsedChasers;
+    comboExtraItems     = parsedItems;
+    comboExtraPrizePacks = parsedPrizePacks;
+  }
 
   saveComboChaserState();
   closeComboChaserModal();
@@ -5541,7 +5958,9 @@ function applyComboChaserModal(){
 }
 
 function toggleLayoutMode(){
-  layoutMode = layoutMode === "combo" ? "custom" : "combo";
+  const next = layoutMode === "combo" ? "nfl-nba" : layoutMode === "nfl-nba" ? "custom" : "combo";
+  swapSoldStateForLayout(next);
+  layoutMode = next;
   saveLayoutMode();
   updateHeaderMode();
   buildBoard();
@@ -5555,6 +5974,21 @@ function isComboBoardCode(code){
     s.startsWith("COMBO_ITEM_") ||
     s.startsWith("COMBO_PRIZEPACK_")
   );
+}
+
+function isNflNbaBoardCode(code){
+  const s = String(code || "");
+  return (
+    s.startsWith("NBA_") ||
+    s.startsWith("NFL_") ||
+    s.startsWith("NFLNBA_CHASER_") ||
+    s.startsWith("NFLNBA_ITEM_") ||
+    s.startsWith("NFLNBA_PRIZEPACK_")
+  );
+}
+
+function isAnyComboCode(code){
+  return isComboBoardCode(code) || isNflNbaBoardCode(code);
 }
 
 function isEnvelopeBoardCode(code){
@@ -5574,21 +6008,43 @@ function getCodeLayoutScope(code){
     return "combo";
   }
 
+  if (
+    s.startsWith("NBA_") ||
+    s.startsWith("NFLNBA_CHASER_") ||
+    s.startsWith("NFLNBA_ITEM_") ||
+    s.startsWith("NFLNBA_PRIZEPACK_")
+  ){
+    return "nfl-nba";
+  }
+
   if (s.startsWith("CUSTOM_")){
     return "custom";
   }
 
+  // NFL_ codes appear in BOTH combo and nfl-nba — return current active scope
+  // (already handled above by the combo/nfl-nba branches for prefixed codes;
+  // raw "NFL_*" without NFLNBA_ prefix is shared — allow for current combo-family mode)
   return "";
 }
 
 function getCurrentLayoutScope(){
-  return layoutMode === "custom" ? "custom" : "combo";
+  if (layoutMode === "custom")  return "custom";
+  if (layoutMode === "nfl-nba") return "nfl-nba";
+  return "combo";
 }
 
 function codeAllowedForCurrentLayout(code){
+  const s = String(code || "").trim().toUpperCase();
+  const currentScope = getCurrentLayoutScope();
+
+  // NFL_ codes are valid in both combo and nfl-nba modes
+  if (s.startsWith("NFL_")){
+    return currentScope === "combo" || currentScope === "nfl-nba";
+  }
+
   const scope = getCodeLayoutScope(code);
   if (!scope) return false;
-  return scope === getCurrentLayoutScope();
+  return scope === currentScope;
 }
 
 function getScopedListingKey(payload){
@@ -5657,32 +6113,41 @@ function clearSoldCodesByPredicate(predicate){
 }
 
 function clearComboBoardAndStorage(){
+  const isNflNba = layoutMode === "nfl-nba";
+  const label = isNflNba ? "NFL/NBA" : "NFL/MLB";
   const ok = window.confirm(
-    "Clear ONLY the NFL/MLB Combo + Chasers setup? This removes combo chaser assignments, packs, prize packs, combo sold state, and combo chase buyers. Envelope setup will NOT be cleared."
+    `Clear ONLY the ${label} Combo + Chasers setup? This removes combo chaser assignments, packs, prize packs, combo sold state, and combo chase buyers. Envelope setup will NOT be cleared.`
   );
   if (!ok) return;
 
-  // Clear combo setup only.
-  comboChaserTeams = new Set();
-  comboChaserLabels = new Map();
-  comboExtraChasers = [];
-  comboExtraItems = [];
-
-  if (typeof comboExtraPrizePacks !== "undefined"){
-    comboExtraPrizePacks = [];
+  if (isNflNba){
+    nflnbaChaserTeams = new Set();
+    nflnbaChaserLabels = new Map();
+    nflnbaExtraChasers = [];
+    nflnbaExtraItems = [];
+    nflnbaExtraPrizePacks = [];
+    try{ localStorage.removeItem(STORAGE.nflnbaChaserTeams); }catch(_){}
+    try{ localStorage.removeItem(STORAGE.nflnbaChaserLabels); }catch(_){}
+    try{ localStorage.removeItem(STORAGE.nflnbaExtraChasers); }catch(_){}
+    try{ localStorage.removeItem(STORAGE.nflnbaExtraItems); }catch(_){}
+    try{ localStorage.removeItem(STORAGE.nflnbaExtraPrizePacks); }catch(_){}
+    clearSoldCodesByPredicate(isNflNbaBoardCode);
+  } else {
+    // Clear MLB/NFL combo setup only.
+    comboChaserTeams = new Set();
+    comboChaserLabels = new Map();
+    comboExtraChasers = [];
+    comboExtraItems = [];
+    if (typeof comboExtraPrizePacks !== "undefined") comboExtraPrizePacks = [];
+    try{ localStorage.removeItem(STORAGE.comboChaserTeams); }catch(_){}
+    try{ localStorage.removeItem(STORAGE.comboChaserLabels); }catch(_){}
+    try{ localStorage.removeItem(STORAGE.comboExtraChasers); }catch(_){}
+    try{ localStorage.removeItem(STORAGE.comboExtraItems); }catch(_){}
+    if (STORAGE.comboExtraPrizePacks){
+      try{ localStorage.removeItem(STORAGE.comboExtraPrizePacks); }catch(_){}
+    }
+    clearSoldCodesByPredicate(isComboBoardCode);
   }
-
-  try{ localStorage.removeItem(STORAGE.comboChaserTeams); }catch(_){}
-  try{ localStorage.removeItem(STORAGE.comboChaserLabels); }catch(_){}
-  try{ localStorage.removeItem(STORAGE.comboExtraChasers); }catch(_){}
-  try{ localStorage.removeItem(STORAGE.comboExtraItems); }catch(_){}
-
-  if (STORAGE.comboExtraPrizePacks){
-    try{ localStorage.removeItem(STORAGE.comboExtraPrizePacks); }catch(_){}
-  }
-
-  // Clear combo sold state only. Leave CUSTOM_ envelope sold state alone.
-  clearSoldCodesByPredicate(isComboBoardCode);
 
   // Clear combo chase buyer panel only.
   chaseBuyersOpen = false;
@@ -5707,10 +6172,10 @@ function clearComboBoardAndStorage(){
 
   const bulkSummary = document.getElementById("comboBulkImportSummary");
   if (bulkSummary){
-    bulkSummary.textContent = "Combo/chaser setup cleared. Envelope setup was not touched.";
+    bulkSummary.textContent = `${label} combo/chaser setup cleared. Envelope setup was not touched.`;
   }
 
-  layoutMode = "combo";
+  if (!isNflNba) layoutMode = "combo";
   saveLayoutMode();
   updateHeaderMode();
   closeComboChaserModal?.();
@@ -5719,7 +6184,7 @@ function clearComboBoardAndStorage(){
 
 function clearEnvelopeBoardAndStorage(){
   const ok = window.confirm(
-    "Clear ONLY the Envelope setup? This removes custom envelope imports, envelope chaser/prize assignments, envelope category colors, and envelope sold state. NFL/MLB combo setup will NOT be cleared."
+    "Clear ONLY the Envelope setup? This removes custom envelope imports, envelope chaser/prize assignments, envelope category colors, and envelope sold state. NFL/MLB and NFL/NBA combo setups will NOT be cleared."
   );
   if (!ok) return;
 
@@ -5763,17 +6228,19 @@ function clearCurrentLayoutStorage(){
     clearEnvelopeBoardAndStorage();
     return;
   }
-
+  // handles both "combo" and "nfl-nba" via internal isNflNba branch
   clearComboBoardAndStorage();
 }
 function resetAll(){
-  const predicate = layoutMode === "custom"
-    ? isEnvelopeBoardCode
-    : isComboBoardCode;
+  let predicate;
+  if (layoutMode === "custom")    predicate = isEnvelopeBoardCode;
+  else if (layoutMode === "nfl-nba") predicate = isNflNbaBoardCode;
+  else                            predicate = isComboBoardCode;
 
   clearSoldCodesByPredicate(predicate);
 
-  if (layoutMode === "combo"){
+  // Reset chase buyers panel for both combo-family modes
+  if (layoutMode === "combo" || layoutMode === "nfl-nba"){
     chaseBuyersActive = [];
     chaseBuyersRemoved = [];
     saveChaseBuyersState();
@@ -6212,13 +6679,20 @@ function boot(){
   selectedPrizeSpotCodes = loadSelectedPrizeSpotCodes();
   chaseCategoryColors = loadChaseCategoryColors();
 
+  layoutMode = localStorage.getItem(STORAGE.layoutMode) || "combo";
   comboChaserTeams = loadComboChaserTeams();
   comboChaserLabels = loadComboChaserLabels();
-  clearAccidentalAllTeamChasers();
   comboExtraChasers = loadComboExtraChasers();
   comboExtraItems = loadComboExtraItems();
   comboExtraPrizePacks = loadComboExtraPrizePacks();
-  layoutMode = localStorage.getItem(STORAGE.layoutMode) || "combo";
+
+  nflnbaChaserTeams = loadNflNbaChaserTeams();
+  nflnbaChaserLabels = loadNflNbaChaserLabels();
+  nflnbaExtraChasers = loadNflNbaExtraChasers();
+  nflnbaExtraItems = loadNflNbaExtraItems();
+  nflnbaExtraPrizePacks = loadNflNbaExtraPrizePacks();
+
+  clearAccidentalAllTeamChasers();
   TICKER_LINES = loadTickerLines();
   setBreakNumber(loadBreakNumber());
   updateHeaderMode();
@@ -6231,6 +6705,7 @@ initCustomEntriesImport();
 initCustomEntriesPaste();
 initComboBulkImportFile();
 initComboBulkImportPaste();
+initComboExtraSpotsPaste();
 initChaseBuyersPopupInteractions();
 
 
@@ -6253,10 +6728,10 @@ initChaseBuyersPopupInteractions();
     mainState = "error";
     sportsState = "error";
     setSSEStatus();
-  }
+    }
 }
 
     boot();
   </script>
 </body>
-</html>
+</htm

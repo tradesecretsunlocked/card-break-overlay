@@ -1,6 +1,7 @@
 (() => {
   /**
-   * TSU Standard content.js — v2.2 (Multi-Tenant Bridge Edition)
+   * TSU content.js — v2.2 (Multi-Tenant Bridge Edition)
+   * Client: Jim & Tabby's Breaks
    *
    * BUGS FIXED vs v2.0/v2.1:
    *  [CRITICAL] Pagination: now fetches ALL sold items (not just first 24).
@@ -20,11 +21,6 @@
    *  [MIGRATION]   bridgeUrl locked as a constant — no longer in DEFAULTS.
    *                All clients share bridge.tradesecretsunlocked.com.
    *  [STABILITY]   injected.js has a duplicate-injection guard (see that file).
-   *
-   * PER-CLIENT SETUP (the only 3 things that differ between clients):
-   *   bridgeKey  — 32-char hex, get from TSU Notion build queue
-   *   sport      — "nfl" | "nba" | "mlb" | "nil" (nil = combo/infer)
-   *   overlayId  — descriptive ID string, e.g. "jim-tabby-combo"
    */
 
   // ═══════════════════════════════════════════════════════════════
@@ -36,8 +32,8 @@
 
   // Jim & Tabby client config
   const DEFAULTS = {
-    bridgeKey:    "469c3440-7511-4ee2-be2c-671fad9b9e6f",  // Jim & Tabby bridge key
-    sport:        "nil",                                    // combo break — infers NFL/NBA/MLB from title
+    bridgeKey:    "469c3440-7511-4ee2-be2c-671fad9b9e6f", // Jim & Tabby bridge key
+    sport:        "nil",          // combo break — infers NFL/NBA/MLB from listing title
     overlayId:    "jim-tabby-combo",
     channel:      "main",
     pollMs:       3000,
