@@ -321,7 +321,18 @@
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // 5. SEEN MAP — capped at 1000 entries to prevent memory leak
+  // 5. SEEN MAP + PERSISTENCE
+  //
+  // Both `seen` and `lastCodeByItem` are persisted to chrome.storage.local
+  // keyed by liveId. This prevents the "replay glitch" where Chrome's MV3
+  // service worker is evicted (or the Whatnot tab is refreshed, or the
+  // extension is reloaded), wiping the in-memory dedup state. Without
+  // persistence, the next poll sees every active sale as brand-new and
+  // re-fires team_sold for the entire break — overlay replays every
+  // animation and re-pops buyer assignments.
+  //
+  // Maps are capped at 1000 entries to prevent memory + storage leak.
+  // Old liveId entries are pruned on startup so storage doesn't grow.
   // ═══════════════════════════════════════════════════════════════
 
   function seenSet(map, key, value) {
@@ -334,6 +345,60 @@
       }
     }
     map.set(key, value);
+  }
+
+  const STORAGE_KEY = (liveId) => `tsu.maps.${liveId}`;
+
+  async function loadPersistedMaps(liveId) {
+    try {
+      const key = STORAGE_KEY(liveId);
+      const result = await chrome.storage.local.get([key]);
+      const data = result[key];
+      if (data && Array.isArray(data.seen) && Array.isArray(data.lastCodeByItem)) {
+        console.log(`[TSU] Restored ${data.seen.length} seen + ${data.lastCodeByItem.length} lastCode entries (liveId=${liveId})`);
+        return {
+          seen:           new Map(data.seen),
+          lastCodeByItem: new Map(data.lastCodeByItem)
+        };
+      }
+    } catch (err) {
+      console.warn("[TSU] loadPersistedMaps failed:", err?.message || err);
+    }
+    return { seen: new Map(), lastCodeByItem: new Map() };
+  }
+
+  function savePersistedMaps(liveId, seen, lastCodeByItem) {
+    // Fire-and-forget — don't block the poll loop on storage I/O.
+    try {
+      const key = STORAGE_KEY(liveId);
+      chrome.storage.local.set({
+        [key]: {
+          seen:           Array.from(seen.entries()),
+          lastCodeByItem: Array.from(lastCodeByItem.entries()),
+          ts:             Date.now()
+        }
+      }).catch((err) => {
+        console.warn("[TSU] savePersistedMaps failed:", err?.message || err);
+      });
+    } catch (err) {
+      console.warn("[TSU] savePersistedMaps threw:", err?.message || err);
+    }
+  }
+
+  async function cleanupOldPersistedMaps(currentLiveId) {
+    // Whatnot liveIds are one-time UUIDs — keep only the current entry.
+    try {
+      const all = await chrome.storage.local.get(null);
+      const toRemove = Object.keys(all).filter((k) =>
+        k.startsWith("tsu.maps.") && k !== STORAGE_KEY(currentLiveId)
+      );
+      if (toRemove.length) {
+        await chrome.storage.local.remove(toRemove);
+        console.log(`[TSU] Cleaned up ${toRemove.length} stale persisted map(s)`);
+      }
+    } catch (err) {
+      console.warn("[TSU] cleanupOldPersistedMaps failed:", err?.message || err);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -543,12 +608,19 @@
 
     await sendEvent(cfg, { type: "overlay_warmup", liveId, sport: cfg.sport || "" });
 
-    // State tracking
-    const seen             = new Map(); // itemId → last-seen title (set ONLY after successful send)
-    const lastCodeByItem   = new Map(); // itemId → last team code sent (for unsold detection)
+    // State tracking — restore from chrome.storage.local so a service-worker
+    // eviction or page refresh doesn't trigger a full replay of every sale.
+    const restored = await loadPersistedMaps(liveId);
+    const seen             = restored.seen;           // itemId → last-seen title (set ONLY after successful send)
+    const lastCodeByItem   = restored.lastCodeByItem; // itemId → last team code sent (for unsold detection)
+
+    // Prune stale liveId entries from previous streams.
+    cleanupOldPersistedMaps(liveId);
+
     const buyerCounts      = new Map(); // buyer → sale count
     let lastSaleText       = "—";
     let loops              = 0;
+    let dirty              = false;     // set true when seen/lastCodeByItem mutates this poll
 
     while (true) {
       try {
@@ -647,10 +719,17 @@
           if (ok) {
             seenSet(seen, id, title);
             lastCodeByItem.set(id, code);
+            dirty = true;
 
             lastSaleText = `${buyer} • ${title} • $${amount.toFixed(2)}`;
             buyerCounts.set(buyer, (buyerCounts.get(buyer) || 0) + 1);
           }
+        }
+
+        // Persist dedup state once per poll (batched). Fire-and-forget.
+        if (dirty) {
+          savePersistedMaps(liveId, seen, lastCodeByItem);
+          dirty = false;
         }
 
         // ── Periodic stream stats summary ──
