@@ -210,6 +210,12 @@
       );
       if (tokenMatch) return token;
     }
+    // Chaser / pack / prize-pack pass-through — overlay resolves via title inference
+    // Order matters: check "prize pack" before "pack" to avoid false match.
+    const titleLower = String(title || "").toLowerCase();
+    if (/\bchaser\b|\bchase\b/.test(titleLower))  return "CHASER";
+    if (/\bprize\s*pack\b/.test(titleLower))       return "PRIZEPACK";
+    if (/\bpack\b/.test(titleLower))               return "PACK";
     return "";
   }
 
