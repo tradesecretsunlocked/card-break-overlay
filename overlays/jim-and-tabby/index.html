@@ -3656,41 +3656,70 @@ function inferTeamCodeFromTitle(title, sportHint=""){
   const raw = String(title || "").toLowerCase().trim();
   if (!raw) return "";
 
+  // Helper: contains-match that respects digit boundaries so "chaser 1"
+  // doesn't match "chaser 10/11/19", and "pack 2" doesn't match "pack 20".
+  function labelMatches(haystack, needle){
+    if (!needle) return false;
+    if (haystack === needle) return true;
+    let from = 0;
+    while (from <= haystack.length - needle.length){
+      const idx = haystack.indexOf(needle, from);
+      if (idx === -1) return false;
+      const after = haystack.charAt(idx + needle.length);
+      const before = idx > 0 ? haystack.charAt(idx - 1) : "";
+      const needleEndsDigit = /\d$/.test(needle);
+      const needleStartsDigit = /^\d/.test(needle);
+      const okAfter  = !needleEndsDigit   || !/\d/.test(after);
+      const okBefore = !needleStartsDigit || !/\d/.test(before);
+      if (okAfter && okBefore) return true;
+      from = idx + 1;
+    }
+    return false;
+  }
+
   // Custom layout exact/contains match
   if (layoutMode === "custom"){
-    for (const entry of customEntries){
+    // Sort entries by name length DESC so longer names match before shorter prefixes
+    // (e.g. "Chaser 10" beats "Chaser 1" when both are configured).
+    const sorted = customEntries.slice().sort((a, b) =>
+      String(b.name || "").length - String(a.name || "").length
+    );
+    for (const entry of sorted){
       const name = String(entry.name || "").toLowerCase().trim();
-      if (name && raw === name) return entry.key;
-      if (name && raw.includes(name)) return entry.key;
+      if (labelMatches(raw, name)) return entry.key;
     }
   }
 
   // Combo mode: exact/contains match for marked team chaser labels
   if (layoutMode === "combo"){
-    for (const code of comboChaserTeams){
+    // Sort by label length DESC so "chaser 10" wins over "chaser 1".
+    const codes = Array.from(comboChaserTeams).sort((a, b) =>
+      String(getComboChaserLabel(b) || "").length -
+      String(getComboChaserLabel(a) || "").length
+    );
+    for (const code of codes){
       const label = String(getComboChaserLabel(code) || "").toLowerCase().trim();
-      if (label && raw === label) return code;
-      if (label && raw.includes(label)) return code;
+      if (labelMatches(raw, label)) return code;
     }
 
     // Combo mode: extra chaser/pack/prize pack names
     for (let i = 0; i < comboExtraChasers.length; i++){
       const exactName = String(comboExtraChasers[i] || "").toLowerCase().trim();
       const numberedName = `chaser ${comboChaserTeams.size + i + 1}`;
-      if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraChaserCode(i);
-      if (raw === numberedName || raw.includes(numberedName)) return getComboExtraChaserCode(i);
+      if (labelMatches(raw, exactName)) return getComboExtraChaserCode(i);
+      if (labelMatches(raw, numberedName)) return getComboExtraChaserCode(i);
     }
     for (let i = 0; i < comboExtraItems.length; i++){
       const exactName = String(comboExtraItems[i] || "").toLowerCase().trim();
       const numberedName = `pack ${i + 1}`;
-      if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraItemCode(i);
-      if (raw === numberedName || raw.includes(numberedName)) return getComboExtraItemCode(i);
+      if (labelMatches(raw, exactName)) return getComboExtraItemCode(i);
+      if (labelMatches(raw, numberedName)) return getComboExtraItemCode(i);
     }
     for (let i = 0; i < comboExtraPrizePacks.length; i++){
       const exactName = String(comboExtraPrizePacks[i] || "").toLowerCase().trim();
       const numberedName = `prize pack ${i + 1}`;
-      if (exactName && (raw === exactName || raw.includes(exactName))) return getComboExtraPrizePackCode(i);
-      if (raw === numberedName || raw.includes(numberedName)) return getComboExtraPrizePackCode(i);
+      if (labelMatches(raw, exactName)) return getComboExtraPrizePackCode(i);
+      if (labelMatches(raw, numberedName)) return getComboExtraPrizePackCode(i);
     }
   }
 
