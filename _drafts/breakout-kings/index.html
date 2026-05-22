@@ -1752,7 +1752,9 @@ function getBridgeBase(){
     return cleaned;
   }
   const stored = String(localStorage.getItem(BRIDGE_LS.URL) || "").trim().replace(/\/$/, "").replace(/\/(events|stream)(\/.*)?$/, "");
-  return stored || BRIDGE_URL_DEFAULT;
+  // Ignore stale per-client onrender.com URLs — force migration to shared bridge
+  if (stored && !stored.includes("onrender.com")) return stored;
+  return BRIDGE_URL_DEFAULT;
 }
 function getBridgeKey(){
   const q = String(getParam("key") || "").trim();
@@ -1761,7 +1763,9 @@ function getBridgeKey(){
     return q;
   }
   const stored = String(localStorage.getItem(BRIDGE_LS.KEY) || "").trim();
-  return stored || BRIDGE_KEY_DEFAULT;
+  // Ignore old 32-char hex Render keys — fall back to hardcoded migration key
+  if (stored && stored.includes("-")) return stored;
+  return BRIDGE_KEY_DEFAULT;
 }
 function getChannel(){
   return String(getParam("channel") || CHANNEL_MAIN).trim().toLowerCase() || CHANNEL_MAIN;
