@@ -2731,6 +2731,13 @@ if (speedSlider) speedSlider.oninput = null;
       LEGACY_ALT: 'tsu.url'
     };
 
+    // ── TSU Migration: shared bridge defaults (May 2026) ──────────────────
+    // Hardcoded so the overlay works on a clean OBS browser source (no localStorage,
+    // no URL params). URL params (?bridge=, ?key=) still override for testing.
+    const BRIDGE_URL_DEFAULT = "https://bridge.tradesecretsunlocked.com";
+    const BRIDGE_KEY_DEFAULT = "1b31f65e-10c2-41c2-9c6f-4f23bcc0cf72";
+    // ──────────────────────────────────────────────────────────────────────
+
     const RECONNECT_MS = 2500;
     const DEFAULT_CHANNELS = ['main'];
     const DEFAULT_SCORES_CHANNEL = 'sports';
@@ -2747,50 +2754,19 @@ if (speedSlider) speedSlider.oninput = null;
     }
 
     function resolveBridgeBase(){
+      // Priority: URL ?bridge= override → hardcoded default. localStorage ignored
+      // to avoid stale per-client Render URLs hijacking the connection.
       const qs = new URLSearchParams(location.search);
       const paramBridge = qs.get('bridge');
-
-      let value =
-        paramBridge ||
-        localStorage.getItem(BRIDGE_KEYS.URL_A) ||
-        localStorage.getItem(BRIDGE_KEYS.URL_B) ||
-        localStorage.getItem(BRIDGE_KEYS.LEGACY_URL) ||
-        localStorage.getItem(BRIDGE_KEYS.LEGACY_ALT) ||
-        localStorage.getItem(LS.BRIDGE) ||
-        '';
-
-      const cleaned = cleanBridgeBase(value);
-
-      if (cleaned){
-        localStorage.setItem(BRIDGE_KEYS.URL_A, cleaned);
-        localStorage.setItem(BRIDGE_KEYS.URL_B, cleaned);
-        localStorage.setItem(LS.BRIDGE, cleaned);
-      }
-
-      return cleaned;
+      const value = paramBridge || BRIDGE_URL_DEFAULT;
+      return cleanBridgeBase(value);
     }
 
     function resolveBridgeKey(){
+      // Priority: URL ?key= override → hardcoded default. localStorage ignored.
       const qs = new URLSearchParams(location.search);
       const paramKey = qs.get('key');
-
-      let value =
-        paramKey ||
-        localStorage.getItem(BRIDGE_KEYS.KEY_A) ||
-        localStorage.getItem(BRIDGE_KEYS.KEY_B) ||
-        localStorage.getItem(BRIDGE_KEYS.LEGACY_KEY) ||
-        localStorage.getItem(LS.KEY) ||
-        '';
-
-      const cleaned = String(value || '').trim();
-
-      if (cleaned){
-        localStorage.setItem(BRIDGE_KEYS.KEY_A, cleaned);
-        localStorage.setItem(BRIDGE_KEYS.KEY_B, cleaned);
-        localStorage.setItem(LS.KEY, cleaned);
-      }
-
-      return cleaned;
+      return String(paramKey || BRIDGE_KEY_DEFAULT || '').trim();
     }
 
     function getChannels(){
