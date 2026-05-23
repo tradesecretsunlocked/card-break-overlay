@@ -2880,7 +2880,9 @@ function normalizeCode(code){
 
     function ensureSportFromPayload(payload){
       const sport = payloadSport(payload);
-      if (sport && breakTypes[sport] && sport !== currentBreakType){
+      // Never auto-switch to 'nil' from an SSE event — nil is set manually by the breaker.
+      // Prevents extension sending sport:"nil" (multi-sport config) from triggering layout switch.
+      if (sport && sport !== 'nil' && breakTypes[sport] && sport !== currentBreakType){
         currentBreakType = sport;
         loadSoldState();
         renderTeams();
@@ -2888,7 +2890,9 @@ function normalizeCode(code){
     }
 
     function resolveCodeFromPayload(payload){
-      const sport = payloadSport(payload) || currentBreakType;
+      const rawSport = payloadSport(payload);
+      // If extension sends sport:"nil" (multi-sport mode), use currentBreakType for lookup instead
+      const sport = (rawSport && rawSport !== 'nil') ? rawSport : currentBreakType;
       let code = normalizeCode(payload?.code || payload?.teamCode || payload?.team || payload?.selection || '');
 
       const titleRaw = String(payload?.title || payload?.listingTitle || payload?.itemTitle || payload?.label || '').trim();

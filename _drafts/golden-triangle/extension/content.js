@@ -167,7 +167,7 @@
     { sport: "mlb", code: "MIN", names: ["minnesota twins", "twins"] },
     { sport: "mlb", code: "NYM", names: ["new york mets", "mets"] },
     { sport: "mlb", code: "NYY", names: ["new york yankees", "yankees"] },
-    { sport: "mlb", code: "OAK", names: ["oakland athletics", "athletics", "a's"] },
+    { sport: "mlb", code: "OAK", names: ["oakland athletics", "athletics", "a's", "as"] },
     { sport: "mlb", code: "PHI", names: ["philadelphia phillies", "phillies"] },
     { sport: "mlb", code: "PIT", names: ["pittsburgh pirates", "pirates"] },
     { sport: "mlb", code: "SD",  names: ["san diego padres", "padres"] },
@@ -243,16 +243,6 @@
         return `CUSTOM_${String(n).padStart(3, "0")}`;
       }
     }
-
-    // Step 4: Chaser / pack / prize-pack pass-through
-    // These titles couldn't match a team, but the overlay's title inference
-    // can still resolve them to the right slot. Returning a non-empty code
-    // prevents them from being silently dropped.
-    // Order matters: check "prize pack" before "pack" to avoid false match.
-    const titleLower = String(title || "").toLowerCase();
-    if (/\bchaser\b|\bchase\b/.test(titleLower))  return "CHASER";
-    if (/\bprize\s*pack\b/.test(titleLower))       return "PRIZEPACK";
-    if (/\bpack\b/.test(titleLower))               return "PACK";
 
     return ""; // unresolved
   }
