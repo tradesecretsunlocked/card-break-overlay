@@ -2560,9 +2560,13 @@ function setSport(type){
   /******************************************************************
    * REQUIRED SSE BRIDGE CLIENT (updated standard)
    ******************************************************************/
-const BRIDGE_BASE      = "https://bridge.tradesecretsunlocked.com";
-const BRIDGE_KEY       = "5d74ccce-d801-4064-8095-5428b6e7598e";
-const SCORES_NAMESPACE = "jp2-cards"; // per-client sports channel prefix
+const BRIDGE_BASE        = "https://bridge.tradesecretsunlocked.com";
+const BRIDGE_KEY         = "5d74ccce-d801-4064-8095-5428b6e7598e";
+const SCORES_NAMESPACE   = "jp2-cards"; // per-client sports channel prefix (legacy)
+// TSU 2026-05-21: ESPN scores are served by a SEPARATE bridge service. The main
+// bridge.tradesecretsunlocked.com does NOT broadcast scores. Connect score SSE
+// to tsu-scores-bridge.onrender.com on channel "sports".
+const SCORES_BRIDGE_BASE = "https://tsu-scores-bridge.onrender.com";
 
   function getBridgeBase() {
     return (new URLSearchParams(location.search).get("bridge") || BRIDGE_BASE).replace(/\/$/,"");
@@ -2654,7 +2658,8 @@ let sseScores = null; // scores channel
 function connectScoresSSE({ onEvent, onStatus }){
   if (!bridgeEnabled()) return;
 
-  const base = getBridgeBase();
+  // Scores live on the dedicated tsu-scores-bridge service, not the main bridge.
+  const base = SCORES_BRIDGE_BASE;
   const channel = getScoresChannel();
   const url = `${base}/stream?channel=${encodeURIComponent(channel)}&key=${encodeURIComponent(getBridgeKey())}`;
 
@@ -2666,7 +2671,10 @@ const ingest = (e) => {
     const data = JSON.parse(e.data);
     if (data?.type === "hello") return;
 
-    if (String(data?.type || "").toLowerCase() === "scores") {
+    // TSU 2026-05-21: bridge sends type "scores_update" (server.js L296).
+    // Old check required exact "scores" and dropped every real payload.
+    const t = String(data?.type || "").toLowerCase();
+    if (t === "scores_update" || t === "scores") {
       console.log("[SCORES SSE]", data);
       onEvent?.(data);
     }
