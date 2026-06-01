@@ -33,7 +33,7 @@
       --radius:16px;
       --tileR:14px;
 
-      --camH: 210px;
+      --camH: 220px;
       --bannerH: 85px;
 
       /* layout tuning */
@@ -41,14 +41,14 @@
       --gap: 10px;
 
       /* bottom grid per sport (JS updates) */
-      --bottomCols: 6;
+      --bottomCols: 5;
       --tileH: 66px;
     }
 
     *{ box-sizing:border-box; }
     body{
       margin:0;
-      background: url('overlay-bg.png') center top / cover no-repeat;
+      background:transparent;
       font-family: Arial, sans-serif;
       color: var(--white);
       user-select:none;
@@ -159,7 +159,23 @@ background-size: 140% auto; /* try 140–220% */
       opacity: 0.94;
     }
 
-
+    .brand-center{
+      position:absolute;
+      left:50%;
+      top: 70%;
+      transform: translate(-50%,-50%);
+      pointer-events:none;
+      z-index: 5;
+    }
+    .brand-center img{
+      height: 215px;
+      width:auto;
+      top: 0px;
+      position:relative;
+      filter:
+        drop-shadow(0 10px 18px rgba(0,0,0,0.65))
+        drop-shadow(0 0 10px rgba(255,61,242,0.55));
+    }
 
     .header-right{
       margin-left:auto;
@@ -296,10 +312,43 @@ background-size: 140% auto; /* try 140–220% */
       opacity:0.92;
     }
 
-    
+    /* logo toggle switch */
+    .logo-toggle{
+      display:flex; align-items:center; gap:6px;
+      cursor:pointer; user-select:none;
+    }
+    .logo-toggle input{ display:none; }
+    .logo-toggle-track{
+      width:38px; height:22px; border-radius:999px;
+      background:rgba(100,100,100,0.55);
+      border:1px solid rgba(255,255,255,0.18);
+      position:relative;
+      transition:background .22s;
+      flex-shrink:0;
+    }
+    .logo-toggle input:checked ~ .logo-toggle-track{
+      background:rgba(57,255,20,0.65);
+      border-color:rgba(57,255,20,0.55);
+    }
+    .logo-toggle-thumb{
+      position:absolute; top:3px; left:3px;
+      width:16px; height:16px; border-radius:50%;
+      background:#fff;
+      box-shadow:0 1px 4px rgba(0,0,0,0.45);
+      transition:left .22s;
+    }
+    .logo-toggle input:checked ~ .logo-toggle-track .logo-toggle-thumb{ left:19px; }
+    .logo-toggle-label{
+      font-size:10px; letter-spacing:1.5px; opacity:0.65;
+      text-transform:uppercase;
+    }
 
     /* hidden state */
- 
+    .brand-center.logo-hidden{
+      opacity:0; pointer-events:none;
+      transition:opacity .25s;
+    }
+    .brand-center{ transition:opacity .25s; }
     .cam::before{
       content:"";
       position:absolute; inset:0;
@@ -545,113 +594,26 @@ background-size: 140% auto; /* try 140–220% */
       position: relative;
     }
 
-    /* ── controls ticker — Bird Dogz branded ── */
+    /* ── controls ticker ── */
     .ctl-ticker-wrap{
-      overflow: hidden;
-      padding: 0 10px;
-      /* Override .ctl's plain border with transparent to let ::before show */
-      border: 2px solid transparent !important;
-      border-radius: 14px;
-      /* Dark background with fire-warm glow at bottom, neon at edges */
-      background:
-        radial-gradient(ellipse 80% 60% at 0%   50%, rgba(255,61,242,0.12), transparent 70%),
-        radial-gradient(ellipse 80% 60% at 100% 50%, rgba(57,255,20,0.10),  transparent 70%),
-        radial-gradient(ellipse 100% 80% at 50% 110%, rgba(255,107,0,0.18), transparent 60%),
-        linear-gradient(180deg, rgba(5,8,20,0.97), rgba(8,3,18,0.97));
-      position: relative;
+      overflow:hidden;
+      padding: 0 8px;
     }
-
-    /* Animated multi-color neon border cycling brand palette */
-    .ctl-ticker-wrap::before{
-      content:"";
-      position: absolute;
-      inset: -2px;
-      border-radius: 16px;
-      background: linear-gradient(90deg,
-        #ff3df2,   /* magenta */
-        #39ff14,   /* neon green */
-        #ff6b00,   /* orange */
-        #ffcc00,   /* yellow/fire */
-        #00b7ff,   /* electric blue */
-        #ff3df2    /* loop back */
-      );
-      background-size: 400% 100%;
-      animation: bdTickerBorder 5s linear infinite;
-      z-index: -1;
-    }
-
-    @keyframes bdTickerBorder{
-      0%   { background-position: 0%   50%; }
-      100% { background-position: 400% 50%; }
-    }
-
-    /* Subtle neon flare that sweeps across the ticker */
-    .ctl-ticker-wrap::after{
-      content:"";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(90deg,
-        transparent 0%,
-        rgba(255,61,242,0.06) 25%,
-        rgba(57,255,20,0.06)  50%,
-        rgba(255,107,0,0.06)  75%,
-        transparent 100%);
-      background-size: 300% 100%;
-      animation: bdTickerSweep 8s ease-in-out infinite alternate;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    @keyframes bdTickerSweep{
-      0%   { background-position: 0%   50%; }
-      100% { background-position: 300% 50%; }
-    }
-
     .ctl-ticker-track{
-      display: inline-flex;
+      display:inline-flex;
       gap: 0;
-      white-space: nowrap;
+      white-space:nowrap;
       animation: ctlScroll var(--ticker-duration, 18s) linear infinite;
       will-change: transform;
-      position: relative;
-      z-index: 1;
     }
-
     .ctl-ticker-track span{
       padding-right: 60px;
       font-size: 22px;
       font-weight: 900;
       letter-spacing: 2px;
       text-transform: uppercase;
-      /* Neon green with layered glow — evokes the green swirls in the logo */
-      color: #39ff14;
-      text-shadow:
-        0 0  8px rgba(57,255,20,0.95),
-        0 0 18px rgba(57,255,20,0.60),
-        0 0 36px rgba(57,255,20,0.25),
-        0 0  4px rgba(255,255,255,0.45);
-      animation: bdTextFlicker 7s ease-in-out infinite;
+      color: var(--orange2);
     }
-
-    /* Subtle neon flicker — not distracting, just alive */
-    @keyframes bdTextFlicker{
-      0%,100% { text-shadow:
-        0 0  8px rgba(57,255,20,0.95),
-        0 0 18px rgba(57,255,20,0.60),
-        0 0 36px rgba(57,255,20,0.25),
-        0 0  4px rgba(255,255,255,0.45); }
-      48%     { text-shadow:
-        0 0  6px rgba(57,255,20,0.85),
-        0 0 12px rgba(57,255,20,0.45),
-        0 0 22px rgba(57,255,20,0.18),
-        0 0  3px rgba(255,255,255,0.30); }
-      52%     { text-shadow:
-        0 0 10px rgba(57,255,20,1.00),
-        0 0 24px rgba(57,255,20,0.75),
-        0 0 48px rgba(57,255,20,0.35),
-        0 0  5px rgba(255,255,255,0.55); }
-    }
-
     @keyframes ctlScroll{
       0%   { transform: translateX(0); }
       100% { transform: translateX(-50%); }
@@ -1020,10 +982,16 @@ background-size: 140% auto; /* try 140–220% */
         <div class="title" id="headerTitle">BIRD DOGZ • NBA</div>
       </div>
 
- 
+      <div class="brand-center">
+        <img id="brandLogo" alt="Bird Dogz" />
+      </div>
 
       <div class="header-right">
-
+        <label class="logo-toggle" title="Show/hide logo">
+          <input type="checkbox" id="logoToggleCheck" checked />
+          <span class="logo-toggle-track"><span class="logo-toggle-thumb"></span></span>
+          <span class="logo-toggle-label">Logo</span>
+        </label>
         <div class="break-pill">
           <span class="label">Break #</span>
           <span id="breakId" class="value">—</span>
@@ -1200,6 +1168,9 @@ const LS = {
 };
 
 
+  // Brand logo (drop Bird Dogz logo here)
+  const LOGO_PATH = `${BASE}images/logos/bird-dogz-logo.png`;
+  document.getElementById('brandLogo').src = LOGO_PATH;
 
 document.documentElement.style.setProperty(
   '--skyline',
@@ -2545,6 +2516,18 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
     tickerPopup.classList.remove('active');
   });
 
+  /* =========================
+     Logo toggle
+  ========================== */
+  function toggleLogo(show){
+    const center = document.querySelector('.brand-center');
+    if (center) center.classList.toggle('logo-hidden', !show);
+    localStorage.setItem('birddogz.logoVisible', show ? '1' : '0');
+  }
+
+  document.getElementById('logoToggleCheck').addEventListener('change', function(){
+    toggleLogo(this.checked);
+  });
 
   /* =========================
      Debug helpers
@@ -2582,7 +2565,13 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
     applyTickerSpeed(tickerSpeed);
     updateCtlTicker();
 
-
+    // Logo visibility
+    const logoStored = localStorage.getItem('birddogz.logoVisible');
+    if (logoStored === '0') {
+      const chk = document.getElementById('logoToggleCheck');
+      if (chk) chk.checked = false;
+      toggleLogo(false);
+    }
 
     // Bridge SSE — connect to each channel
     const channels = (CHANNELS && CHANNELS.length) ? CHANNELS : ["main"];
