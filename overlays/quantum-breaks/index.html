@@ -3493,7 +3493,9 @@ function markSold(code, buyer = ''){
 }
 
     function applyAssignmentPayload(payload){
-      ensureSportFromPayload(payload);
+      // NOTE: ensureSportFromPayload intentionally removed here.
+      // Layout must never change as a side-effect of a team_sold / purchase event.
+      // Use an explicit set_sport event to switch layouts.
 
       const buyer = String(payload?.buyer || payload?.buyerName || payload?.username || '').trim();
       const code = resolveCodeFromPayload(payload);
@@ -3512,7 +3514,8 @@ function markSold(code, buyer = ''){
     }
 
     function applyUnsoldPayload(payload){
-      ensureSportFromPayload(payload);
+      // NOTE: ensureSportFromPayload intentionally removed here.
+      // Layout must never change as a side-effect of a team_unsold event.
 
       const listingKey = getListingKey(payload);
       const code = resolveCodeFromPayload(payload) || (listingKey ? lastCodeByListingKey.get(listingKey) : '');
@@ -3522,7 +3525,8 @@ function markSold(code, buyer = ''){
     }
 
     function applyBuyerPayload(payload){
-      ensureSportFromPayload(payload);
+      // NOTE: ensureSportFromPayload intentionally removed here.
+      // Layout must never change as a side-effect of a buyer_update event.
 
       const code = resolveCodeFromPayload(payload);
       if (!code) return;
