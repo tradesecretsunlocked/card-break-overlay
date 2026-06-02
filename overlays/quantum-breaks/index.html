@@ -1167,7 +1167,7 @@
       border: 2px solid rgba(240,240,192,0.18);
       border-radius: 8px;
       color: rgba(240,240,192,0.96);
-      padding: 7px 10px; font-size: 12px; font-weight: 700;
+      padding: 7px 10px; font-size: 14px; font-weight: 700;
       outline: none; width: 100%;
     }
     .promo-line-inputs input:focus{ border-color: rgba(240,188,45,0.55); }
@@ -1752,14 +1752,14 @@
         </div>
       </div>
       <div class="promo-line-row">
-        <div class="promo-line-label">Line 2 <span style="opacity:.4;font-weight:400">(optional)</span></div>
+        <div class="promo-line-label">Line 2</div>
         <div class="promo-line-inputs">
           <input class="promo-kicker-inp" id="promoKicker2" type="text" placeholder="Kicker (optional)" />
           <input class="promo-text-inp"   id="promoText2"   type="text" placeholder="Main text" />
         </div>
       </div>
       <div class="promo-line-row">
-        <div class="promo-line-label">Line 3 <span style="opacity:.4;font-weight:400">(optional)</span></div>
+        <div class="promo-line-label">Line 3</div>
         <div class="promo-line-inputs">
           <input class="promo-kicker-inp" id="promoKicker3" type="text" placeholder="Kicker (optional)" />
           <input class="promo-text-inp"   id="promoText3"   type="text" placeholder="Main text" />
@@ -1973,8 +1973,16 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
     function applyPromoLineToDOM(line){
       const k = document.getElementById('promoKicker');
       const t = document.getElementById('promoText');
-      if (k) k.textContent = String(line?.kicker || '').trim();
-      if (t) t.textContent = String(line?.text   || '').trim();
+      const kText = String(line?.kicker || '').trim();
+      const tText = String(line?.text   || '').trim();
+
+      if (k){
+        k.textContent = kText;
+        // Hide the kicker div when empty so it doesn't eat ~15px of vertical
+        // space and push the main text off-center in the promo bar
+        k.style.display = kText ? '' : 'none';
+      }
+      if (t) t.textContent = tText;
     }
 
     function advancePromoLine(){
