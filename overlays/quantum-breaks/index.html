@@ -3731,13 +3731,27 @@ function normalizeCode(code){
       if (idx !== -1) soldTeamsList.splice(idx, 1);
     }
 
-    function ensureSportFromPayload(payload){
-      const sport = payloadSport(payload);
-      if (sport && breakTypes[sport] && sport !== currentBreakType){
-        currentBreakType = sport;
-        loadSoldState();
-        renderTeams();
+    // Returns true if `code` corresponds to a real tile in the current break type.
+    // Used to reject phantom marks from codes that don't belong to the active board.
+    function isCodeOnCurrentBoard(code){
+      const c = normalizeCode(code);
+      if (!c) return false;
+      // A live DOM tile is the most reliable signal.
+      if (document.querySelector(`[data-team-code="${cssEscape(c)}"]`)) return true;
+      // Fallback: check the current break type's configured team/entry list.
+      const cfg = breakTypes[currentBreakType];
+      if (!cfg) return false;
+      if (currentBreakType === 'nil'){
+        const entries = (typeof getNilEntries === 'function') ? getNilEntries() : [];
+        return Array.isArray(entries) && entries.some(e => normalizeCode(e.code) === c);
       }
+      for (const conf of cfg.conferences || []){
+        const divs = cfg.divisions?.[conf] || {};
+        for (const divName of Object.keys(divs)){
+          if ((divs[divName] || []).some(t => normalizeCode(t.code) === c)) return true;
+        }
+      }
+      return false;
     }
 
     function resolveCodeFromPayload(payload){
@@ -3919,6 +3933,14 @@ function playSoldAnimation(code){
 function markSold(code, buyer = ''){
   code = normalizeCode(code);
   if (!code) return;
+
+  // Guard: only mark a code that actually exists as a tile on the CURRENT board.
+  // Prevents phantom "1 sold" counts when a sale resolves to a code that isn't
+  // part of the active break type (e.g. a stray NIL/custom code on an NFL board).
+  if (!isCodeOnCurrentBoard(code)){
+    console.warn('[Overlay] markSold ignored — code not on current board:', code, 'break:', currentBreakType);
+    return;
+  }
 
   soldTeams.add(code);
 
