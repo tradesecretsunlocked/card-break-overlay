@@ -48,7 +48,7 @@
     *{ box-sizing:border-box; }
     body{
       margin:0;
-      background:transparent;
+      background: url('overlay-bg.png') center top / cover no-repeat;
       font-family: Arial, sans-serif;
       color: var(--white);
       user-select:none;
@@ -545,26 +545,102 @@ background-size: 140% auto; /* try 140–220% */
       position: relative;
     }
 
-    /* ── controls ticker ── */
+    /* ── controls ticker — Bird Dogz branded ── */
     .ctl-ticker-wrap{
-      overflow:hidden;
-      padding: 0 8px;
+      overflow: hidden;
+      padding: 0 10px;
+      /* Override .ctl's plain border with transparent to let ::before show */
+      border: 2px solid transparent !important;
+      border-radius: 14px;
+      /* Dark background with fire-warm glow at bottom, neon at edges */
+      background:
+        radial-gradient(ellipse 80% 60% at 0%   50%, rgba(255,61,242,0.12), transparent 70%),
+        radial-gradient(ellipse 80% 60% at 100% 50%, rgba(57,255,20,0.10),  transparent 70%),
+        radial-gradient(ellipse 100% 80% at 50% 110%, rgba(255,107,0,0.18), transparent 60%),
+        linear-gradient(180deg, rgba(5,8,20,0.97), rgba(8,3,18,0.97));
+      position: relative;
     }
+
+    /* Animated multi-color neon border cycling brand palette */
+    .ctl-ticker-wrap::before{
+      content:"";
+      position: absolute;
+      inset: -2px;
+      border-radius: 16px;
+      background: linear-gradient(90deg,
+        #ff3df2,   /* magenta */
+        #39ff14,   /* neon green */
+        #ff6b00,   /* orange */
+        #ffcc00,   /* yellow/fire */
+        #00b7ff,   /* electric blue */
+        #ff3df2    /* loop back */
+      );
+      background-size: 400% 100%;
+      animation: bdTickerBorder 13s linear infinite;
+      z-index: -1;
+    }
+
+    @keyframes bdTickerBorder{
+      0%   { background-position: 0%   50%; }
+      100% { background-position: 400% 50%; }
+    }
+
+    /* Subtle neon flare that sweeps across the ticker */
+    .ctl-ticker-wrap::after{
+      content:"";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255,61,242,0.06) 25%,
+        rgba(57,255,20,0.06)  50%,
+        rgba(255,107,0,0.06)  75%,
+        transparent 100%);
+      background-size: 300% 100%;
+      animation: bdTickerSweep 14s ease-in-out infinite alternate;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    @keyframes bdTickerSweep{
+      0%   { background-position: 0%   50%; }
+      100% { background-position: 300% 50%; }
+    }
+
     .ctl-ticker-track{
-      display:inline-flex;
+      display: inline-flex;
       gap: 0;
-      white-space:nowrap;
-      animation: ctlScroll var(--ticker-duration, 18s) linear infinite;
+      white-space: nowrap;
+      animation: ctlScroll var(--ticker-duration, 30s) linear infinite;
       will-change: transform;
+      position: relative;
+      z-index: 1;
     }
+
     .ctl-ticker-track span{
       padding-right: 60px;
       font-size: 22px;
       font-weight: 900;
-      letter-spacing: 2px;
+      letter-spacing: 1.5px;
       text-transform: uppercase;
-      color: var(--orange2);
+      /* Clean legible font — replaces blurry heavy-glow rendering */
+      font-family: "Arial Black", Arial, Helvetica, sans-serif;
+      color: #39ff14;
+      /* Tight crisp glow + dark contour so text stays sharp, not blurry */
+      text-shadow:
+        0 0 4px rgba(57,255,20,0.55),
+        0 1px 2px rgba(0,0,0,0.95),
+       -1px 0 1px rgba(0,0,0,0.85),
+        1px 0 1px rgba(0,0,0,0.85);
+      animation: bdTextFlicker 12s ease-in-out infinite;
     }
+
+    /* Very subtle alive-flicker — no big blur radii */
+    @keyframes bdTextFlicker{
+      0%,100% { opacity: 1; }
+      50%     { opacity: 0.92; }
+    }
+
     @keyframes ctlScroll{
       0%   { transform: translateX(0); }
       100% { transform: translateX(-50%); }
@@ -658,8 +734,8 @@ background-size: 140% auto; /* try 140–220% */
     .sold-item{
       display:flex;
       align-items:center;
-      gap: 10px;
-      padding: 8px 10px;
+      gap: 2px;
+      padding: 2px 5px;
       border-radius: 999px;
       background: rgb(68, 68, 68);
       border: 1px solid rgba(0,183,255, 0.658);
@@ -678,8 +754,8 @@ background-size: 140% auto; /* try 140–220% */
       background: rgba(0, 0, 0, 0.966);
       color: #fff;
       border-radius: 999px;
-      padding: 10px 12px;
-      font-size: 14px;
+      padding: 5px 5px;
+      font-size: 18px;
       font-weight: 900;
     }
 
@@ -889,12 +965,13 @@ background-size: 140% auto; /* try 140–220% */
       position:absolute; inset:0; z-index:4;
       display:flex; align-items:center; justify-content:center;
       padding:0 28px; text-align:center;
-      font-family: Impact, "Arial Narrow", "Arial Black", sans-serif;
-      font-size:30px; font-weight:900; letter-spacing:4px;
+      /* Clean, heavy, fully legible — replaces condensed Impact */
+      font-family: "Arial Black", Arial, Helvetica, sans-serif;
+      font-size:30px; font-weight:900; letter-spacing:2px;
       text-transform:uppercase;
       /* flat color — no glow, no blur, fully legible */
-      color:#39ff14;
-      text-shadow: none;
+      color:#ff1495;
+      text-shadow: 0 2px 3px rgba(0,0,0,0.85);
       /* dark pill behind text so it pops over any image */
       background: rgba(0,0,0,0.68);
       border: 1px solid rgba(57,255,20,0.35);
@@ -906,12 +983,12 @@ background-size: 140% auto; /* try 140–220% */
       will-change: transform, opacity;
     }
 
-    /* flip-out → swap text → flip-in */
+    /* flip-out → swap text → flip-in (slowed + smoothed) */
     .banner-promo-text.flip-out{
-      animation: bdMsgFlipOut 240ms ease-in forwards;
+      animation: bdMsgFlipOut 420ms ease-in forwards;
     }
     .banner-promo-text.flip-in{
-      animation: bdMsgFlipIn  260ms ease-out forwards;
+      animation: bdMsgFlipIn  440ms ease-out forwards;
     }
     @keyframes bdMsgFlipOut{
       0%  { opacity:1; transform:rotateX(0deg); }
@@ -1272,7 +1349,7 @@ const CHANNELS = (() => {
 
   let bannerInterval = (() => {
     const v = parseInt(localStorage.getItem(BANNER_INTV_KEY) || "", 10);
-    return (Number.isFinite(v) && v >= 3) ? v : 9;
+    return (Number.isFinite(v) && v >= 3) ? v : 14;
   })();
 
   let bannerMsgIdx = 0;
@@ -1289,7 +1366,7 @@ const CHANNELS = (() => {
 
   let tickerSpeed = (() => {
     const v = parseInt(localStorage.getItem(TICKER_SPEED_KEY) || "", 10);
-    return (Number.isFinite(v) && v >= 5) ? v : 18;
+    return (Number.isFinite(v) && v >= 5) ? v : 30;
   })();
 
   function applyTickerSpeed(sec) {
@@ -1980,8 +2057,8 @@ function setScoreboard(games, sport){
       el.textContent = bannerMessages[bannerMsgIdx] || '';
       el.classList.remove('flip-out');
       el.classList.add('flip-in');
-      setTimeout(() => el.classList.remove('flip-in'), 280);
-    }, 240);
+      setTimeout(() => el.classList.remove('flip-in'), 460);
+    }, 420);
   }
 
   function startBannerTimer(){
