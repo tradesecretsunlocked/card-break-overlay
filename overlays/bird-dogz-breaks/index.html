@@ -734,8 +734,8 @@ background-size: 140% auto; /* try 140–220% */
     .sold-item{
       display:flex;
       align-items:center;
-      gap: 2px;
-      padding: 2px 5px;
+      gap: 10px;
+      padding: 8px 10px;
       border-radius: 999px;
       background: rgb(68, 68, 68);
       border: 1px solid rgba(0,183,255, 0.658);
@@ -754,8 +754,8 @@ background-size: 140% auto; /* try 140–220% */
       background: rgba(0, 0, 0, 0.966);
       color: #fff;
       border-radius: 999px;
-      padding: 5px 5px;
-      font-size: 18px;
+      padding: 10px 12px;
+      font-size: 14px;
       font-weight: 900;
     }
 
@@ -2581,11 +2581,12 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
       connectSSE(url);
     });
 
-    // Warmup ping — tells bridge this overlay is live
-    fetch(`${BRIDGE_URL}/warmup`, {
+    // Warmup ping — tells bridge this overlay is live.
+    // MUST POST to /events (the publish endpoint). There is no /warmup route — it 404s.
+    fetch(`${BRIDGE_URL}/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-bridge-key': BRIDGE_KEY },
-      body: JSON.stringify({ type: 'overlay_warmup', breakId: `birddogz:${currentSport}:${breakNum}` })
+      body: JSON.stringify({ type: 'overlay_warmup', channel: 'main', overlayId: 'bird-dogz-breaks-overlay', breakId: `birddogz:${currentSport}:${breakNum}` })
     }).catch(() => {});
   });
 

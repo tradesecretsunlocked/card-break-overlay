@@ -2581,11 +2581,12 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
       connectSSE(url);
     });
 
-    // Warmup ping — tells bridge this overlay is live
-    fetch(`${BRIDGE_URL}/warmup`, {
+    // Warmup ping — tells bridge this overlay is live.
+    // MUST POST to /events (the publish endpoint). There is no /warmup route — it 404s.
+    fetch(`${BRIDGE_URL}/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-bridge-key': BRIDGE_KEY },
-      body: JSON.stringify({ type: 'overlay_warmup', breakId: `birddogz:${currentSport}:${breakNum}` })
+      body: JSON.stringify({ type: 'overlay_warmup', channel: 'main', overlayId: 'bird-dogz-breaks-overlay', breakId: `birddogz:${currentSport}:${breakNum}` })
     }).catch(() => {});
   });
 
