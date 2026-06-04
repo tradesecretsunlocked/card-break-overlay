@@ -3942,6 +3942,12 @@ function markSold(code, buyer = ''){
     return;
   }
 
+  // Idempotency guard: the bridge can deliver the same sale through more than
+  // one SSE path (named event + onmessage, or aliased event names like
+  // sale/team_sold). Only fire the animations when the team genuinely
+  // transitions unsold → sold, so each real sale animates exactly once.
+  const wasAlreadySold = soldTeams.has(code);
+
   soldTeams.add(code);
 
   const idx = soldTeamsList.findIndex(entry => entry.code === code);
@@ -3954,20 +3960,20 @@ function markSold(code, buyer = ''){
   const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
   if (tile){
     tile.classList.add('sold');
-    /* flipout — Northland soldFxSpin pattern, no audio */
-    tile.classList.remove('flipout');
-    void tile.offsetWidth;
-    tile.classList.add('flipout');
-    setTimeout(() => tile.classList.remove('flipout'), 800);
-    tile.classList.add('flash');
-    setTimeout(() => tile.classList.remove('flash'), 280);
+    if (!wasAlreadySold){
+      /* flipout — Northland soldFxSpin pattern, no audio */
+      tile.classList.remove('flipout');
+      void tile.offsetWidth;
+      tile.classList.add('flipout');
+      setTimeout(() => tile.classList.remove('flipout'), 800);
+      tile.classList.add('flash');
+      setTimeout(() => tile.classList.remove('flash'), 280);
+    }
   }
 
   // TSU 2026-05-21: standard sold animation (shatter + flying card).
-  // Safe to call here because markSold() is only invoked from live SSE events
-  // (applyAssignmentPayload). Initial loadState restoration uses
-  // `el.classList.add('sold')` directly and does NOT call markSold.
-  playSoldAnimation(code);
+  // Only on a genuine new sale — prevents double-firing on duplicate SSE delivery.
+  if (!wasAlreadySold) playSoldAnimation(code);
 
   updateStats();
   renderSoldPanel();
