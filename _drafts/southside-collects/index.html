@@ -2782,27 +2782,16 @@ function inferCodeFromTitle(title, sportHint){
   }
 
   return null;
-}const BRIDGE_URL = (() => {
-  const q = new URLSearchParams(location.search).get("bridge");
-  if (q) {
-    const cleaned = q.replace(/\/$/, "");
-    localStorage.setItem(LS.BRIDGE, cleaned);
-    return cleaned;
-  }
-  const saved = localStorage.getItem(LS.BRIDGE) || localStorage.getItem(LS.URL_LEGACY);
-  return saved ? saved.replace(/\/$/, "") : "";
-})();
-
-const BRIDGE_KEY = (() => {
-  const q = new URLSearchParams(location.search).get("key");
-  if (q) {
-    localStorage.setItem(LS.KEY, q);
-    return q;
-  }
-  return localStorage.getItem(LS.KEY) || localStorage.getItem(LS.KEY_LEGACY) || "";
-})();
+}
+const BRIDGE_BASE = "https://bridge.tradesecretsunlocked.com";
+const BRIDGE_KEY_DEFAULT = "e1bc0f4cd2e5639d4828b0726be37777";
+const SCORES_NAMESPACE = "southside-collects";
+function getBridgeBase(){ return (new URLSearchParams(location.search).get("bridge") || BRIDGE_BASE).replace(/\/$/,""); }
+function getBridgeKey(){   return new URLSearchParams(location.search).get("key") || BRIDGE_KEY_DEFAULT; }
+const BRIDGE_URL = getBridgeBase();
+const BRIDGE_KEY = getBridgeKey();
 function automationEnabled(){
-  return !!BRIDGE_URL;
+  return !!(getBridgeBase() && getBridgeKey());
 }
 
 function normalizeBridge(u){
@@ -2976,7 +2965,7 @@ function connectScoresSSE(base){
   if (sseScores) { try { sseScores.close(); } catch(_){} }
 
   try{
-    const url = `${base}/stream?channel=sports${BRIDGE_KEY ? `&key=${encodeURIComponent(BRIDGE_KEY)}` : ""}`;
+    const url = `${base}/stream?channel=${encodeURIComponent(`sports-${SCORES_NAMESPACE}`)}${BRIDGE_KEY ? `&key=${encodeURIComponent(BRIDGE_KEY)}` : ""}`;
     sseScores = new EventSource(url);
 
     const ingest = (e) => {

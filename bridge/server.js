@@ -30,7 +30,12 @@ dotenv.config();
 
 const PORT          = parseInt(process.env.PORT || "10000", 10);
 const SUPABASE_URL  = process.env.SUPABASE_URL  || "";
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "";
+// Prefer the service-role key. Once RLS is enabled for the client portal, the
+// anon role is locked out of the tables — the bridge MUST use service_role
+// (which bypasses RLS) to keep validating keys and logging events. Falls back
+// to the anon key for backward compatibility until the env var is set.
+const SUPABASE_KEY  = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || "";
+const SUPABASE_USING_SERVICE_ROLE = !!process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ESPN_ENABLED  = process.env.ESPN_ENABLED !== "false";
 const HEARTBEAT_MS  = 25_000;
 const ESPN_POLL_MS  = 15_000;
@@ -39,11 +44,11 @@ const KEY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes — revocation takes effect wi
 // ─── Supabase (optional — logging degrades gracefully if not configured) ─────
 
 let supabase = null;
-if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  console.log("[bridge] Supabase connected");
+if (SUPABASE_URL && SUPABASE_KEY) {
+  supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+  console.log(`[bridge] Supabase connected (${SUPABASE_USING_SERVICE_ROLE ? "service-role" : "anon — set SUPABASE_SERVICE_ROLE_KEY before enabling RLS"})`);
 } else {
-  console.warn("[bridge] SUPABASE_URL / SUPABASE_ANON_KEY not set — event logging disabled");
+  console.warn("[bridge] SUPABASE_URL / key not set — event logging disabled");
 }
 
 // ─── Key validation (Supabase-backed, in-memory cache) ───────────────────────
