@@ -1265,6 +1265,27 @@
 
 .chaser-spot:hover { transform: translateY(-2px) scale(1.02); border-color: rgba(0,240,120,0.90) !important; }
 .chaser-spot:hover::before { opacity:0; animation:none; }
+
+/* Case Hit takes the logo's center slot — fill the slot, taller label */
+.team.case-hit-spot.case-hit-inline{
+  height: 100%;
+  min-height: var(--tileH);
+}
+.team.case-hit-spot.case-hit-inline .chaser-spot-label{
+  font-size: 18px;
+  letter-spacing: 2px;
+}
+/* Shrunk logo sits in the header when Case Hit is active */
+.header-mini-logo{
+  height: 110px;
+  width: auto;
+  object-fit: cover;
+  left:500px;
+  top: -20px;
+  position:absolute;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.6));
+  flex: 0 0 auto;
+}
   </style>
 </head>
 
@@ -1274,6 +1295,7 @@
     <div class="header" id="header">
       <div class="header-left">
         <div class="header-icon"></div>
+        <img id="headerMiniLogo" class="header-mini-logo" alt="Southside Collects" style="display:none;" />
         <div class="header-text" id="headerText">NFL BOX BREAK</div>
       </div>
 
@@ -1343,7 +1365,7 @@
     <div class="sold-top-row">
       <div class="sold-list-title">⭐ CHASER SPOTS</div>
     </div>
-    <div id="chaserBuyersList" style="display:flex; flex-direction:column; gap:4px;"></div>
+    <div id="chaserBuyersList" style="display:grid; grid-template-columns:repeat(4,1fr); gap:4px;"></div>
   </div>
 
 <script>
@@ -1382,7 +1404,8 @@
   STATE: "southside.overlayState.v1",
   TEAM_STYLE: "southside.teamStyle.v1",
   CHASER_BUYERS: "southside.chaserBuyers",
-  CASE_HIT_CODE_KEY: "southside.caseHitCode"
+  CASE_HIT_CODE_KEY: "southside.caseHitCode",
+  CHASE_TEAMS: "southside.chaseTeams"
 };
 
   const DEFAULT_TICKER_LINES = [
@@ -2104,7 +2127,7 @@ function clearOverlayState(){
 
   // ===== CASE HIT + CHASER BUYER TRACKING =====
   const CASE_HIT_CODE = "__CASEHIT__";
-  let caseHitCode = null; // the team code designated as Case Hit slot
+  let caseHitEnabled = false; // when true, an EXTRA Case Hit spot is added to the board
 
   // chaserBuyers: code → buyer name (for chaser spots + case hit)
   const chaserBuyers = new Map();
@@ -2117,14 +2140,18 @@ function clearOverlayState(){
       if(Array.isArray(arr)) arr.forEach(([k,v]) => chaserBuyers.set(k, v));
     }catch(_){}
     try{
-      const chc = localStorage.getItem(LS.CASE_HIT_CODE_KEY);
-      if(chc) caseHitCode = chc;
+      caseHitEnabled = localStorage.getItem(LS.CASE_HIT_CODE_KEY) === "1";
+    }catch(_){}
+    try{
+      const ct = JSON.parse(localStorage.getItem(LS.CHASE_TEAMS) || "[]");
+      if(Array.isArray(ct)){ chaseTeams = new Set(ct); }
     }catch(_){}
   }
 
   function saveChaserBuyers(){
     localStorage.setItem(LS.CHASER_BUYERS, JSON.stringify(Array.from(chaserBuyers.entries())));
-    if(caseHitCode) localStorage.setItem(LS.CASE_HIT_CODE_KEY, caseHitCode);
+    localStorage.setItem(LS.CHASE_TEAMS, JSON.stringify(Array.from(chaseTeams)));
+    if(caseHitEnabled) localStorage.setItem(LS.CASE_HIT_CODE_KEY, "1");
     else localStorage.removeItem(LS.CASE_HIT_CODE_KEY);
   }
 
@@ -2139,7 +2166,7 @@ function clearOverlayState(){
 
   function clearChaserBuyers(){
     chaserBuyers.clear();
-    caseHitCode = null;
+    caseHitEnabled = false;
     chaseTeams.clear();
     saveChaserBuyers();
   }
@@ -2150,14 +2177,14 @@ function clearOverlayState(){
     if(!panel || !list) return;
 
     // Show panel only when chasers or case hit are active
-    const hasAnyChasers = chaseTeams.size > 0 || !!caseHitCode;
+    const hasAnyChasers = chaseTeams.size > 0 || caseHitEnabled;
     panel.style.display = hasAnyChasers ? "" : "none";
     if(!hasAnyChasers){ list.innerHTML = ""; return; }
 
-    // Incremental patch by data-code
+    // Incremental patch by data-code — chasers first, then the Case Hit spot
     const activeCodes = [
-      ...Array.from(chaseTeams).filter(c => c !== (caseHitCode || "")),
-      ...(caseHitCode ? [caseHitCode] : [])
+      ...Array.from(chaseTeams),
+      ...(caseHitEnabled ? [CASE_HIT_CODE] : [])
     ];
 
     // Remove rows no longer active
@@ -2167,7 +2194,7 @@ function clearOverlayState(){
 
     // Add/update rows
     activeCodes.forEach((code, i) => {
-      const isCH    = (code === caseHitCode);
+      const isCH    = (code === CASE_HIT_CODE);
       const label   = isCH ? "CASE HIT" : `CHASER ${i + 1}`;
       const buyer   = getChaserBuyer(code);
 
@@ -2206,25 +2233,24 @@ function clearOverlayState(){
     document.documentElement.style.setProperty("--tileH", "var(--tileHTeam)");
   }
 
-  function makeTeamDiv(team){
-    // Case Hit spot
-    if (caseHitCode === team.code) {
-      const d = document.createElement("div");
-      d.className = "team chaser-spot case-hit-spot";
-      d.dataset.teamCode = String(team.code || "");
-      d.onclick = () => { toggleTeam(team.code); renderChaserBuyersPanel(); };
-      const lbl = document.createElement("div");
-      lbl.className = "chaser-spot-label";
-      lbl.textContent = "CASE HIT";
-      d.appendChild(lbl);
-      if (soldTeams.has(team.code)) d.classList.add("sold");
-      return d;
-    }
+  // Standalone Case Hit spot tile (extra spot, not a team)
+  function makeCaseHitDiv(){
+    const d = document.createElement("div");
+    d.className = "team chaser-spot case-hit-spot";
+    d.dataset.teamCode = CASE_HIT_CODE;
+    d.onclick = () => { toggleTeam(CASE_HIT_CODE); renderChaserBuyersPanel(); };
+    const lbl = document.createElement("div");
+    lbl.className = "chaser-spot-label";
+    lbl.textContent = "CASE HIT";
+    d.appendChild(lbl);
+    if (soldTeams.has(CASE_HIT_CODE)) d.classList.add("sold");
+    return d;
+  }
 
+  function makeTeamDiv(team){
     // Chaser spot: replace team tile with labeled "CHASER N" spot
     if (chaseTeams.has(team.code)) {
-      const chasers = Array.from(chaseTeams).filter(c => c !== (caseHitCode || ""));
-      const num = chasers.indexOf(team.code) + 1;
+      const num = Array.from(chaseTeams).indexOf(team.code) + 1;
       const d = document.createElement("div");
       d.className = "team chaser-spot";
       d.dataset.teamCode = String(team.code || "");
@@ -2282,6 +2308,25 @@ function clearOverlayState(){
     return slot;
   }
 
+  // Center-top board slot: the Case Hit spot when enabled, otherwise the logo.
+  function makeCenterTopSlot(spanCols=2){
+    if (caseHitEnabled){
+      const tile = makeCaseHitDiv();
+      tile.classList.add("case-hit-inline");
+      tile.style.gridColumn = `span ${spanCols}`;
+      return tile;
+    }
+    return makeLogoSlot(spanCols);
+  }
+
+  // When Case Hit takes the board's center slot, shrink the logo into the header.
+  function updateHeaderLogo(){
+    const mini = document.getElementById("headerMiniLogo");
+    if (!mini) return;
+    if (!mini.src) mini.src = LOGO_PRIMARY;
+    mini.style.display = caseHitEnabled ? "" : "none";
+  }
+
 function makeTickerSlot(spanCols){
   const slot = document.createElement("div");
   slot.className = "ticker-slot";
@@ -2327,60 +2372,49 @@ function buildChaseSelector(){
     btn.textContent = team.code;
     btn.className = "btn";
     btn.style.cssText = "padding:6px 4px; font-size:12px; font-weight:900;";
-    const isCH = (caseHitCode === team.code);
-    if (isCH){
-      btn.style.background = "#4a3800"; btn.style.color = "#FFD600"; btn.style.border = "2px solid #FFD600";
-    } else if (chaseTeams.has(team.code)){
+    if (chaseTeams.has(team.code)){
       btn.style.background = "#006630"; btn.style.color = "#00C853"; btn.style.border = "2px solid #00C853";
     }
     btn.onclick = () => {
-      if (caseHitCode === team.code){
-        // de-select case hit
-        caseHitCode = null;
-        btn.style.background = ""; btn.style.color = ""; btn.style.border = "";
-      } else if (chaseTeams.has(team.code)){
-        // de-select chaser
+      if (chaseTeams.has(team.code)){
         chaseTeams.delete(team.code);
         btn.style.background = ""; btn.style.color = ""; btn.style.border = "";
       } else {
-        // Select as regular chaser
         chaseTeams.add(team.code);
         btn.style.background = "#006630"; btn.style.color = "#00C853"; btn.style.border = "2px solid #00C853";
-      }
-    };
-    // Right-click to toggle as Case Hit
-    btn.oncontextmenu = (e) => {
-      e.preventDefault();
-      if (caseHitCode === team.code){
-        caseHitCode = null;
-        btn.style.background = chaseTeams.has(team.code) ? "#006630" : "";
-        btn.style.color      = chaseTeams.has(team.code) ? "#00C853" : "";
-        btn.style.border     = chaseTeams.has(team.code) ? "2px solid #00C853" : "";
-      } else {
-        // Remove from chasers if it was there; set as case hit
-        chaseTeams.delete(team.code);
-        // Clear previous case hit tile button styling
-        const prev = grid.querySelector(`[data-ch-code="${cssEscape(caseHitCode || "")}"]`);
-        if(prev){ prev.style.background=""; prev.style.color=""; prev.style.border=""; }
-        caseHitCode = team.code;
-        btn.style.background = "#4a3800"; btn.style.color = "#FFD600"; btn.style.border = "2px solid #FFD600";
-        // De-highlight if it was a chaser
-        btn.style.background = "#4a3800"; btn.style.color = "#FFD600"; btn.style.border = "2px solid #FFD600";
       }
     };
     btn.dataset.chCode = team.code;
     grid.appendChild(btn);
   });
 
-  // ── Case Hit hint text ──
+  // ── Standalone "Add Case Hit Spot" toggle (extra spot, independent of teams) ──
+  const chToggle = document.createElement("button");
+  chToggle.id = "caseHitToggleBtn";
+  chToggle.style.cssText = "grid-column:1/-1; margin-top:8px; padding:8px; font-size:13px; font-weight:900; border-radius:6px; cursor:pointer;";
+  const paintCH = () => {
+    if (caseHitEnabled){
+      chToggle.textContent = "🟡 CASE HIT SPOT: ON  (click to remove)";
+      chToggle.style.background = "#4a3800"; chToggle.style.color = "#FFD600"; chToggle.style.border = "2px solid #FFD600";
+    } else {
+      chToggle.textContent = "➕ ADD CASE HIT SPOT";
+      chToggle.style.background = "#1a1a1a"; chToggle.style.color = "#FFD600"; chToggle.style.border = "2px solid rgba(255,214,0,0.45)";
+    }
+  };
+  paintCH();
+  chToggle.onclick = () => { caseHitEnabled = !caseHitEnabled; paintCH(); };
+  grid.appendChild(chToggle);
+
+  // ── hint text ──
   const hint = document.createElement("div");
   hint.style.cssText = "grid-column:1/-1; font-size:10px; opacity:0.65; margin-top:4px; color:#fff;";
-  hint.textContent = "Left-click = Chaser spot  •  Right-click = Case Hit (gold)";
+  hint.textContent = "Click teams to convert them to Chaser spots. Add Case Hit adds one extra spot to the board.";
   grid.appendChild(hint);
 }
 function applyChaseTeams(){
+  saveChaserBuyers();        // persist chaser teams + case-hit toggle
   closeChaseModal();
-  buildLayout();        // re-render tiles with chaser/case-hit spots
+  buildLayout();             // re-render tiles with chaser/case-hit spots
   renderChaserBuyersPanel(); // show/update buyer panel
 }
 // ===== END CHASE TEAMS =====
@@ -2406,7 +2440,7 @@ function applyChaseTeams(){
 const r1 = document.createElement("div");
 r1.className = "row-grid row-logo";
       for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
-      r1.appendChild(makeLogoSlot(2));
+      r1.appendChild(makeCenterTopSlot(2));
       for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r1);
 
@@ -2439,7 +2473,7 @@ if (config.layout === "CUSTOM_30"){
     if (teams[idx]) topRow.appendChild(makeCustomTeamDiv(teams[idx++]));
   }
 
-  topRow.appendChild(makeLogoSlot(2));
+  topRow.appendChild(makeCenterTopSlot(2));
 
   for (let i = 0; i < 3; i++){
     if (teams[idx]) topRow.appendChild(makeCustomTeamDiv(teams[idx++]));
@@ -2473,7 +2507,7 @@ if (config.layout === "CUSTOM_30"){
       const r1 = document.createElement("div");
       r1.className = "row-grid row-logo";
       for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
-      r1.appendChild(makeLogoSlot(2));
+      r1.appendChild(makeCenterTopSlot(2));
       for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r1);
 
@@ -2503,7 +2537,7 @@ if (config.layout === "CUSTOM_30"){
 const r1 = document.createElement("div");
 r1.className = "row-grid row-logo";
       for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
-      r1.appendChild(makeLogoSlot(2));
+      r1.appendChild(makeCenterTopSlot(2));
       for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r1);
 
@@ -2517,6 +2551,9 @@ r1.className = "row-grid row-logo";
       r3.appendChild(makeTickerSlot(10));
       wrap.appendChild(r3);
     }
+
+    // Case Hit (when enabled) takes the logo's center slot; logo moves to header.
+    updateHeaderLogo();
 
     setHeader();
     refreshTickerText();
@@ -2560,9 +2597,10 @@ function updateStats(){
     ? getCustomEntries()
     : breakTypes[currentBreakType].teams;
 
-  const total = currentTeams.length;
+  // Total includes the extra Case Hit spot when it's enabled
+  const total = currentTeams.length + (caseHitEnabled ? 1 : 0);
   const sold = soldTeams.size;
-  const left = total - sold;
+  const left = Math.max(0, total - sold);
 
   const a = document.getElementById("teamsLeft");
   const b = document.getElementById("teamsSold");
@@ -3166,22 +3204,22 @@ function handleSSEEvent(data){
 }
 /* ===== SOLD FX (Northland-style card travel + 3D spin + stamp) ===== */
 function playSoldAnimation(code){
+  const isCaseHit    = (code === CASE_HIT_CODE);
   const currentTeams = currentBreakType === "custom"
     ? getCustomEntries()
     : breakTypes[currentBreakType].teams;
   const team = currentTeams.find(t => t.code === code);
-  if (!team) return;
+  if (!team && !isCaseHit) return; // case hit is a standalone spot — still animate
 
   // Chaser / Case Hit override — show the spot label, not the team logo
   const isChaserSpot = chaseTeams.has(code);
-  const isCaseHit    = (code === CASE_HIT_CODE);
   const chaserNum    = isChaserSpot && !isCaseHit
     ? Array.from(chaseTeams).indexOf(code) + 1
     : null;
   const fxDisplayName = isCaseHit  ? "CASE HIT"
                       : isChaserSpot ? `CHASER ${chaserNum}`
                       : (team.name || team.code);
-  const fxImage = (isChaserSpot || isCaseHit) ? null : team.image;
+  const fxImage = (isChaserSpot || isCaseHit) ? null : (team ? team.image : null);
 
   const fxLayer = document.getElementById("soldFxLayer");
   const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
@@ -3401,8 +3439,9 @@ if (currentBreakType === "custom" && !getCustomEntries().length) {
  
 setTickerLines(loadTickerLines());
 syncTickerSpeedUI();
+loadChaserBuyers();              // restore chasers + case-hit BEFORE first board build
 setBreakNumber(loadBreakNumber());
-loadChaserBuyers();
+renderChaserBuyersPanel();       // show restored chaser/case-hit buyer list
 
     if (automationEnabled()) startSSE();
     else setSSEStatus('error','missing bridge');

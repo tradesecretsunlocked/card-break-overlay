@@ -24,7 +24,7 @@
    * PER-CLIENT SETUP (the only 3 things that differ between clients):
    *   bridgeKey  — 32-char hex, get from TSU Notion build queue
    *   sport      — "nfl" | "nba" | "mlb" | "nil" (nil = combo/infer)
-   *   overlayId  — descriptive ID string, e.g. "jim-tabby-combo"
+   *   overlayId  — descriptive ID string, e.g. "bird-dogz-breaks-overlay"
    */
 
   // ═══════════════════════════════════════════════════════════════

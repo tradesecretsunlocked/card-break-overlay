@@ -95,14 +95,21 @@ async function authMiddleware(req, res, next) {
   next();
 }
 
+// High-frequency noise events: still broadcast live, but never persisted.
+// These (ESPN score relays + stream-stat heartbeats) were ~89% of all rows and
+// carry no business value. See TSU Phase 2 retention policy (2026-06-05).
+const NO_LOG_EVENT_TYPES = new Set(["scores", "stream_stats"]);
+
 async function logEvent(bridgeKey, clientName, channel, payload) {
   if (!supabase) return;
+  const eventType = payload.type || "unknown";
+  if (NO_LOG_EVENT_TYPES.has(eventType)) return; // skip noise — keep bridge_events a clean business log
   try {
     await supabase.from("bridge_events").insert({
       bridge_key:  bridgeKey,
       client_name: clientName,
       channel,
-      event_type:  payload.type || "unknown",
+      event_type:  eventType,
       payload,
       occurred_at: new Date().toISOString(),
     });
@@ -110,6 +117,35 @@ async function logEvent(bridgeKey, clientName, channel, payload) {
     // Non-fatal — never let logging crash the broadcast path
     console.error(`[${clientName}] Supabase log error:`, err.message);
   }
+}
+
+// ─── Per-client feature flags (client_services) ──────────────────────────────
+// Table: client_services (key, service, enabled). A client receives a gated
+// feature only when they have that service row enabled. Refreshed on an interval
+// so toggling a flag in Supabase takes effect within FLAG_REFRESH_MS.
+const FLAG_REFRESH_MS = 60_000;
+let scoresEnabledKeys = new Set(); // bridge keys with the "scores" service enabled
+
+async function refreshFeatureFlags() {
+  if (!supabase) return; // no DB → gating handled at call site (fail open for dev)
+  try {
+    const { data, error } = await supabase
+      .from("client_services")
+      .select("key")
+      .eq("service", "scores")
+      .eq("enabled", true);
+    if (!error && Array.isArray(data)) {
+      scoresEnabledKeys = new Set(data.map((r) => r.key));
+    }
+  } catch (err) {
+    // Keep the last known set on error so a Supabase blip doesn't kill live scores.
+    console.error("[bridge] feature-flag refresh error (keeping last set):", err.message);
+  }
+}
+
+function scoresEnabledFor(bridgeKey) {
+  if (!supabase) return true; // no DB configured (local/dev) → don't gate
+  return scoresEnabledKeys.has(bridgeKey);
 }
 
 // ─── Multi-tenant connection registry ────────────────────────────────────────
@@ -291,14 +327,17 @@ async function tickAllScores() {
     const payload = await fetchESPNScores(sport, url);
     if (!payload || payload.games.length === 0) continue;
 
-    // Broadcast to every connected client's "sports" channel
+    // Broadcast only to connected clients who have the "scores" feature enabled
     for (const [bridgeKey] of clients) {
+      if (!scoresEnabledFor(bridgeKey)) continue;
       broadcast(bridgeKey, "sports", { type: "scores_update", ...payload });
     }
   }
 }
 
 if (ESPN_ENABLED) {
+  refreshFeatureFlags();                          // load scores flags at startup
+  setInterval(refreshFeatureFlags, FLAG_REFRESH_MS);
   setInterval(tickAllScores, ESPN_POLL_MS);
 }
 
