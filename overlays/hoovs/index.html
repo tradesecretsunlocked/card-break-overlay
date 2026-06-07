@@ -1264,27 +1264,41 @@ function getCustomTickerText(){
     : DEFAULT_TICKER_LINES.join("   •   ");
 }
 
-function getScoresTickerText(){
-  const parts = [];
+// Returns an array of fresh per-sport score strings, in SCORES_SPORT_ORDER.
+function getScoresPerSport(){
+  const out = [];
   for (const s of SCORES_SPORT_ORDER){
     const txt = String(SCORES_BY_SPORT[s] || "").trim();
     const fresh = (Date.now() - (SCORES_UPDATED_AT[s] || 0)) < 1000 * 60 * 20;
-    if (txt && fresh) parts.push(txt);
+    if (txt && fresh) out.push(txt);
   }
-  return parts.join("   •   ");
+  return out;
+}
+
+// kept for compatibility with any external callers
+function getScoresTickerText(){
+  return getScoresPerSport().join("   •   ");
 }
 
 function buildTickerLine(){
   const customText = getCustomTickerText();
-  const scoresText = getScoresTickerText();
+  const sports = getScoresPerSport();
+  if (!sports.length) return customText;
 
-  return scoresText
-    ? `${customText}   •   LIVE SCORES   •   ${scoresText}`
-    : customText;
+  // Interleave client text before each sport block:
+  // custom • NFL • custom • NBA • custom • MLB
+  return sports.map(s => `${customText}   •   ${s}`).join("   •   ");
 }
 
-function updateTickerMarquee(){
+let __lastTickerLine = null;
+function updateTickerMarquee(force){
   const line = ` ${buildTickerLine()} `;
+
+  // Don't restart the scroll if the text hasn't changed — score broadcasts arrive
+  // every ~30s per sport, and resetting the CSS animation each time made the
+  // marquee jump back to the start before it could finish scrolling.
+  if (!force && line === __lastTickerLine) return;
+  __lastTickerLine = line;
 
   document.querySelectorAll(".ticker-track").forEach(track => {
     const copies = track.querySelectorAll(".ticker-copy");
@@ -1358,7 +1372,7 @@ function applyTickerFromModal(){
 
   setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
   saveTickerSpeed(speed);
-  updateTickerMarquee();
+  updateTickerMarquee(true); // force: speed may have changed even if text didn't
   syncTickerSpeedUI();
   closeTickerEditor();
 }
@@ -2239,7 +2253,15 @@ function normalizeScorePayloadToText(data){
   }
 
   const league = String(data.league || data.sport || "").toUpperCase().trim();
-  const games = Array.isArray(data.games) ? data.games : [];
+
+  // Drop games scheduled for another calendar day. ESPN prefixes the status of
+  // non-today games with a "M/D - time" date (e.g. "9/9 - 8:20 PM EDT"); live,
+  // final, and same-day games never carry that date prefix. This removes the
+  // off-season future games (e.g. NFL September schedule shown in June).
+  const isOtherDay = (st) => /\b\d{1,2}\/\d{1,2}\b/.test(String(st || ""));
+
+  const games = (Array.isArray(data.games) ? data.games : [])
+    .filter(g => !isOtherDay(g.status || g.state || g.clock));
   if (!games.length) return "";
 
   const chunks = games.slice(0, 10).map(g => {
@@ -2299,7 +2321,9 @@ function handleSportsEvent(data){
     SCORES_UPDATED_AT[sport] = Date.now();
     console.log(`%c[hoovs scores] ${sport.toUpperCase()}: ${gameCount} game(s) received → ticker updated`, "color:#3cff8a");
   } else {
-    console.log(`[hoovs scores] ${sport.toUpperCase()}: event received but no games to display`);
+    // No same-day / live games for this sport — clear it so old data doesn't linger.
+    SCORES_BY_SPORT[sport] = "";
+    console.log(`[hoovs scores] ${sport.toUpperCase()}: ${gameCount} game(s) received but none are today/live — nothing to show`);
   }
 
   updateTickerMarquee();
