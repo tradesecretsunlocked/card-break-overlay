@@ -294,6 +294,44 @@
       letter-spacing: 1px;
       opacity: 0.9;
     }
+.custom-team{
+  background:
+    linear-gradient(145deg, rgba(20,20,20,0.96) 0%, rgba(10,10,10,0.96) 100%);
+  border: 2px solid rgba(204,0,0,0.88);
+  padding: 4px 6px;
+}
+
+.custom-team .custom-text{
+  width:100%;
+  text-align:center;
+  color:#fff;
+  font-weight:900;
+  text-transform:uppercase;
+  line-height:1.02;
+  letter-spacing:.5px;
+  text-shadow:
+    0 1px 2px rgba(0,0,0,0.95),
+    0 0 10px rgba(204,0,0,0.45);
+  word-break: break-word;
+  overflow-wrap:anywhere;
+  padding: 0 2px;
+}
+
+.custom-team.sold .custom-text{
+  opacity:.45;
+}
+
+.custom-upload-row{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  margin-top:10px;
+  flex-wrap:wrap;
+}
+
+.custom-hidden-file{
+  display:none;
+}
     .team.sold img{
       opacity: 0.82;
       filter: grayscale(100%) brightness(0.28);
@@ -752,6 +790,53 @@
     .sse.🔃.dot{ background: #ffd24d; box-shadow: 0 0 10px rgba(255,210,77,0.7); }
     .sse.error .dot{ background: #ff2f2f; box-shadow: 0 0 10px rgba(255,47,47,0.7); }
 
+.custom-board-shell{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.custom-tiles-scroll{
+  max-height: 430px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+}
+
+.custom-tiles-scroll::-webkit-scrollbar{
+  width: 10px;
+}
+
+.custom-tiles-scroll::-webkit-scrollbar-track{
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+}
+
+.custom-tiles-scroll::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.75);
+  border-radius: 999px;
+  border: 2px solid rgba(28,28,28,0.90);
+}
+
+.custom-fixed-ticker{
+  flex: 0 0 auto;
+}
+
+.teams-wrapper.custom-scroll::-webkit-scrollbar{
+  width: 10px;
+}
+
+.teams-wrapper.custom-scroll::-webkit-scrollbar-track{
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+}
+
+.teams-wrapper.custom-scroll::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.75);
+  border-radius: 999px;
+  border: 2px solid rgba(28,28,28,0.90);
+}
+
 .sold-stat{
   position:relative;
 }
@@ -1151,16 +1236,18 @@
 
       <div class="sold-controls">
         <!-- ✅ rearranged: New Break, Break#, Sport ... Copy Sold List LAST -->
-        <button class="btn secondary" style="padding:2px 2px; font-size:12px;" onclick="newBreak()">🧾 NEW BREAK</button>
-        <button class="btn ghost" style="padding:2px 2px; font-size:12px;" onclick="openBreakEditor()">🔢 BREAK #</button>
-        <button class="btn ghost" style="padding:2px 2px; font-size:12px;" onclick="cycleSport()">⚙ SPORT</button>
-        <button class="btn ghost" style="padding:2px 2px; font-size:12px;" onclick="openTitleEditor()">🏷 TITLE</button>
-        <button class="btn ghost" id="openTickerEditorBtn" style="padding:2px 2px; font-size:12px;" onclick="openTickerEditor()">📰 TICKER</button>
+        <button class="btn secondary" style="padding:2px 2px; font: size 14px;" onclick="newBreak()">🧾 NEW BREAK</button>
+        <button class="btn ghost" style="padding:2px 2px; font: size 14px;" onclick="openBreakEditor()">🔢 BREAK #</button>
+        <button class="btn ghost" style="padding:2px 2px; font: size 14px;" onclick="cycleSport()">⚙ SPORT</button>
+<button class="btn ghost" style="padding:2px 2px; font: size 16px;" onclick="setSport('custom')">🧩 CUSTOM</button>
+<button class="btn ghost" style="padding:2px 2px; font: size 14px;" onclick="openCustomEntriesEditor()">📥 CUSTOM LIST</button>
+        <button class="btn ghost" style="padding:2px 2px; font: size 14px;" onclick="openTitleEditor()">🏷 TITLE</button>
+        <button class="btn ghost" id="openTickerEditorBtn" style="padding:2px 2px; font-size:14px;" onclick="openTickerEditor()">📰 TICKER</button>
 
         
-<button class="btn ghost" style="padding:2px 2px; font-size:12px;" onclick="openPromoEditor()">🎁 PROMO</button>
-        <button class="btn ghost" style="padding:2px 2px; font-size:12px;" onclick="copySoldListTSV()">📋 COPY SOLD</button>
-        <button class="btn ghost" style="padding:2px 2px; font-size:12px;" onclick="openChaseModal()">⭐ CHASE</button>
+<button class="btn ghost" style="padding:2px 2px; font-size:14px;" onclick="openPromoEditor()">🎁 PROMO</button>
+        <button class="btn ghost" style="padding:2px 2px; font-size:14px;" onclick="copySoldListTSV()">📋 COPY SOLD</button>
+        <button class="btn ghost" style="padding:2px 2px; font-size:14px;" onclick="openChaseModal()">⭐ CHASE</button>
       </div>
       <div class="sse" id="sseStatus">
           SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
@@ -1187,6 +1274,7 @@
   const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
   const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
   const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
+  const imgPathSOC = (f) => `${BASE}images/soccer/${f}`;
 
  const LS = {
   TICKER: "hoovs.tickerLines",
@@ -1198,6 +1286,8 @@
   PROMOS: "hoovs.promos",
   OVERLAY: "tsu.overlayId",
   CHANNEL: "tsu.channel",
+  CUSTOM_ENTRIES: "hoovs.customEntries",
+  CUSTOM_TITLE: "hoovs.customTitle",
   URL_LEGACY: "tsu.bridgeUrl",
   KEY_LEGACY: "tsu.bridgeKey",
   STATE: "hoovs.overlayState.v1",
@@ -1407,6 +1497,10 @@ function setHeader(){
   const b = breakTypes[currentBreakType];
   let base = `${b.name} BOX BREAK`;
 
+  if (currentBreakType === "custom") {
+    base = loadCustomTitle() || "CUSTOM ENTRY BOARD";
+  }
+
   const title = TITLE_OVERRIDE ? TITLE_OVERRIDE : base;
   document.getElementById("headerText").textContent = title;
 }
@@ -1463,6 +1557,123 @@ function applyPromoFromModal(){
   rotatePromo();
 
   closePromoEditor();
+}
+
+function loadCustomEntriesRaw(){
+  return String(localStorage.getItem(LS.CUSTOM_ENTRIES) || "").trim();
+}
+function saveCustomEntriesRaw(v){
+  localStorage.setItem(LS.CUSTOM_ENTRIES, String(v || ""));
+}
+function loadCustomTitle(){
+  return String(localStorage.getItem(LS.CUSTOM_TITLE) || "CUSTOM ENTRY BOARD").trim();
+}
+function saveCustomTitle(v){
+  localStorage.setItem(LS.CUSTOM_TITLE, String(v || "CUSTOM ENTRY BOARD").trim());
+}
+
+function parseCustomEntries(raw){
+  const text = String(raw || "").replace(/\r/g, "").trim();
+  if (!text) return [];
+
+  const lines = text.split("\n").map(s => s.trim()).filter(Boolean);
+
+  return lines.map((line, idx) => {
+    const aliases = line
+      .split(",")
+      .map(x => String(x || "").trim())
+      .filter(Boolean);
+
+    const label = aliases[0] || `Custom ${idx + 1}`;
+
+    return {
+      code: `C${idx + 1}`,
+      name: label,
+      label,
+      aliases,
+      sourceTitle: line
+    };
+  });
+}
+function getCustomEntries(){
+  return parseCustomEntries(loadCustomEntriesRaw());
+}
+function getCustomFontSize(text){
+  const len = String(text || "").trim().length;
+  if (len <= 8) return "24px";
+  if (len <= 12) return "21px";
+  if (len <= 16) return "18px";
+  if (len <= 22) return "15px";
+  if (len <= 30) return "13px";
+  return "11px";
+}
+
+function makeCustomTeamDiv(team){
+  const d = document.createElement("div");
+  d.className = "team custom-team";
+  d.dataset.teamCode = String(team.code || "");
+  d.onclick = () => toggleTeam(team.code);
+
+  const txt = document.createElement("div");
+  txt.className = "custom-text";
+  txt.textContent = team.label || team.name || team.code || "";
+  txt.style.fontSize = getCustomFontSize(txt.textContent);
+  d.appendChild(txt);
+
+  if (soldTeams.has(team.code)) d.classList.add("sold");
+  return d;
+}
+
+function openCustomEntriesEditor(){
+  const modal = document.getElementById("customEntriesModal");
+  const ta = document.getElementById("customEntriesTextarea");
+  const ti = document.getElementById("customEntriesTitleInput");
+  if (!modal || !ta || !ti) return;
+
+  ta.value = loadCustomEntriesRaw();
+  ti.value = loadCustomTitle();
+  modal.classList.add("open");
+}
+
+function closeCustomEntriesEditor(){
+  const modal = document.getElementById("customEntriesModal");
+  if (!modal) return;
+  modal.classList.remove("open");
+}
+
+function applyCustomEntriesFromModal(){
+  const ta = document.getElementById("customEntriesTextarea");
+  const ti = document.getElementById("customEntriesTitleInput");
+  if (!ta || !ti) return;
+
+  saveCustomEntriesRaw(ta.value || "");
+  saveCustomTitle(ti.value || "CUSTOM ENTRY BOARD");
+
+  if (currentBreakType === "custom") {
+    buildLayout();
+  }
+
+  closeCustomEntriesEditor();
+}
+
+function triggerCustomFileImport(){
+  const inp = document.getElementById("customEntriesFile");
+  if (inp) inp.click();
+}
+
+function handleCustomFileImport(evt){
+  const file = evt.target.files && evt.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const text = String(e.target?.result || "");
+    const ta = document.getElementById("customEntriesTextarea");
+    if (ta) ta.value = text;
+  };
+  reader.readAsText(file);
+
+  evt.target.value = "";
 }
 
   function loadBreakNumber(){
@@ -1714,7 +1925,9 @@ function clearOverlayState(){
         { code:'ARI', name:'cardinals',  image: imgPathNFL('cardinals.png')  },
         { code:'LAR', name:'rams',       image: imgPathNFL('rams.png')       },
         { code:'SF',  name:'49ers',      image: imgPathNFL('49ers.png')      },
-        { code:'SEA', name:'seahawks',   image: imgPathNFL('seahawks.png')   }
+        { code:'SEA', name:'seahawks',   image: imgPathNFL('seahawks.png')   },
+        // Misc
+        { code:'MSC', name:'misc',       image: null                         }
       ]
     },
 
@@ -1794,6 +2007,52 @@ function clearOverlayState(){
       ]
     },
 
+   soccer: {
+  name: "MLS",
+  cols: 8,
+  layout: "SOCCER_20",
+  teams: [
+    { code:'ATL', name:'atlanta united', image: imgPathSOC('atlutd.png') },
+    { code:'ATX', name:'austin fc', image: imgPathSOC('austin.png') },
+    { code:'MTL', name:'cf montreal', image: imgPathSOC('montreal.png') },
+    { code:'CLT', name:'charlotte fc', image: imgPathSOC('charlotte.png') },
+    { code:'CHI', name:'chicago fire', image: imgPathSOC('chifire.png') },
+    { code:'COL', name:'colorado rapids', image: imgPathSOC('rapids.png') },
+    { code:'CLB', name:'columbus crew', image: imgPathSOC('crew.png') },
+    { code:'DCU', name:'dc united', image: imgPathSOC('dcutd.png') },
+    { code:'CIN', name:'fc cincinnati', image: imgPathSOC('cincy.png') },
+    { code:'DAL', name:'fc dallas', image: imgPathSOC('dallas.png') },
+
+    { code:'HOU', name:'houston dynamo', image: imgPathSOC('dynamo.png') },
+    { code:'MIA', name:'inter miami', image: imgPathSOC('miami.png') },
+    { code:'LAG', name:'la galaxy', image: imgPathSOC('lagalaxy.png') },
+    { code:'LAF', name:'los angeles fc', image: imgPathSOC('lafc.png') },
+    { code:'MIN', name:'minnesota united', image: imgPathSOC('mnufc.png') },
+    { code:'NSH', name:'nashville sc', image: imgPathSOC('nashville.png') },
+    { code:'NER', name:'new england revolution', image: imgPathSOC('revs.png') },
+    { code:'NYC', name:'new york city fc', image: imgPathSOC('nycfc.png') },
+    { code:'RBNY', name:'new york red bulls', image: imgPathSOC('redbulls.png') },
+    { code:'ORL', name:'orlando city', image: imgPathSOC('orlando.png') },
+
+    { code:'PHI', name:'philadelphia union', image: imgPathSOC('union.png') },
+    { code:'POR', name:'portland timbers', image: imgPathSOC('timbers.png') },
+    { code:'RSL', name:'real salt lake', image: imgPathSOC('rsl.png') },
+    { code:'SD',  name:'san diego fc', image: imgPathSOC('sandiego.png') },
+    { code:'SJ',  name:'san jose earthquakes', image: imgPathSOC('quakes.png') },
+    { code:'SEA', name:'seattle sounders', image: imgPathSOC('sounders.png') },
+    { code:'SKC', name:'sporting kansas city', image: imgPathSOC('skc.png') },
+    { code:'STL', name:'st louis city', image: imgPathSOC('stlcity.png') },
+    { code:'TOR', name:'toronto fc', image: imgPathSOC('toronto.png') },
+    { code:'VAN', name:'vancouver whitecaps', image: imgPathSOC('whitecaps.png') }
+  ]
+},
+
+custom: {
+  name: "CUSTOM",
+  cols: 8,
+  layout: "CUSTOM_30",
+  teams: []
+}
   };
 
   let currentBreakType = "mlb";
@@ -1935,11 +2194,15 @@ function applyChaseTeams(){
   function buildLayout(){
     const wrap = document.getElementById("teamsWrapper");
     wrap.innerHTML = "";
+    wrap.classList.remove("custom-scroll");
+
     const config = breakTypes[currentBreakType];
     document.documentElement.style.setProperty("--cols", String(config.cols));
     applyTileSizing();
 
-    const teams = config.teams;
+ 
+
+    const teams = currentBreakType === "custom" ? getCustomEntries() : config.teams;
     restoreOverlayState();
 
 
@@ -1966,6 +2229,50 @@ r1.className = "row-grid row-logo";
       wrap.appendChild(r5);
     }
 
+if (config.layout === "CUSTOM_30"){
+  let idx = 0;
+
+  const shell = document.createElement("div");
+  shell.className = "custom-board-shell";
+
+  const tilesScroll = document.createElement("div");
+  tilesScroll.className = "custom-tiles-scroll";
+
+  const topRow = document.createElement("div");
+  topRow.className = "row-grid row-logo";
+
+  for (let i = 0; i < 3; i++){
+    if (teams[idx]) topRow.appendChild(makeCustomTeamDiv(teams[idx++]));
+  }
+
+  topRow.appendChild(makeLogoSlot(2));
+
+  for (let i = 0; i < 3; i++){
+    if (teams[idx]) topRow.appendChild(makeCustomTeamDiv(teams[idx++]));
+  }
+
+  tilesScroll.appendChild(topRow);
+
+  while (idx < teams.length){
+    const row = document.createElement("div");
+    row.className = "row-grid";
+
+    for (let i = 0; i < 8 && idx < teams.length; i++){
+      row.appendChild(makeCustomTeamDiv(teams[idx++]));
+    }
+
+    tilesScroll.appendChild(row);
+  }
+
+  const tickerRow = document.createElement("div");
+  tickerRow.className = "row-grid custom-fixed-ticker";
+  tickerRow.appendChild(makeTickerSlot(8));
+
+  shell.appendChild(tilesScroll);
+  shell.appendChild(tickerRow);
+  wrap.appendChild(shell);
+}
+
     if (config.layout === "NFL_32"){
       let idx = 0;
 
@@ -1990,10 +2297,32 @@ r1.className = "row-grid row-logo";
       r4.className = "row-grid";
       r4.appendChild(makeTeamDiv(teams[idx++]));
       r4.appendChild(makeTeamDiv(teams[idx++]));
-      r4.appendChild(makeTickerSlot(6));
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      r4.appendChild(makeTickerSlot(4));
       r4.appendChild(makeTeamDiv(teams[idx++]));
       r4.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r4);
+    }
+
+    if (config.layout === "SOCCER_20"){
+      let idx = 0;
+
+const r1 = document.createElement("div");
+r1.className = "row-grid row-logo";
+      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      r1.appendChild(makeLogoSlot(2));
+      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r1);
+
+      const r2 = document.createElement("div");
+      r2.className = "row-grid";
+      for (let i=0;i<10;i++) r2.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r2);
+
+      const r3 = document.createElement("div");
+      r3.className = "row-grid";
+      r3.appendChild(makeTickerSlot(10));
+      wrap.appendChild(r3);
     }
 
     setHeader();
@@ -2034,7 +2363,9 @@ r1.className = "row-grid row-logo";
   }
 
 function updateStats(){
-  const currentTeams = breakTypes[currentBreakType].teams;
+  const currentTeams = currentBreakType === "custom"
+    ? getCustomEntries()
+    : breakTypes[currentBreakType].teams;
 
   const total = currentTeams.length;
   const sold = soldTeams.size;
@@ -2049,7 +2380,9 @@ function updateStats(){
   function updateSoldList(){
     const soldListDiv = document.getElementById("soldList");
     soldListDiv.innerHTML = "";
-    const currentTeams = breakTypes[currentBreakType].teams;
+    const currentTeams = currentBreakType === "custom"
+  ? getCustomEntries()
+  : breakTypes[currentBreakType].teams;
 
 soldTeamsList.forEach(entry => {
   const team = currentTeams.find(t => t.code === entry.code);
@@ -2111,7 +2444,7 @@ function resetAll(){
     incrementBreak();
   }
 
- const SPORT_ORDER = ["nfl","nba","mlb"];
+ const SPORT_ORDER = ["nfl","nba","mlb","soccer","custom"];
 
   function cycleSport(){
     const idx = SPORT_ORDER.indexOf(currentBreakType);
@@ -2140,6 +2473,47 @@ function inferCodeFromTitle(title, sportHint){
   const rawTitle = String(title || "").trim();
   const t = norm(rawTitle);
   if (!t) return null;
+
+  // Custom row alias matching first
+  if (sportHint === "custom" || currentBreakType === "custom"){
+    const customTeams = getCustomEntries();
+
+    // Special support for "#1" style titles
+    const hashNum = rawTitle.match(/^\s*#\s*(\d+)\s*$/);
+    if (hashNum){
+      const idx = parseInt(hashNum[1], 10);
+      const direct = customTeams[idx - 1];
+      if (direct) return direct.code;
+    }
+
+    // Special support for bare numeric titles like "1"
+    const bareNum = rawTitle.match(/^\s*(\d+)\s*$/);
+    if (bareNum){
+      const idx = parseInt(bareNum[1], 10);
+      const direct = customTeams[idx - 1];
+      if (direct) return direct.code;
+    }
+
+    for (const tm of customTeams){
+      const aliases = Array.isArray(tm.aliases) ? tm.aliases : [];
+
+      for (const alias of aliases){
+        const na = norm(alias);
+        if (!na) continue;
+
+        if (t === na) return tm.code;
+        if (t.includes(na)) return tm.code;
+        if (na.includes(t)) return tm.code;
+      }
+
+      const source = norm(tm.sourceTitle || "");
+      if (source){
+        if (t === source) return tm.code;
+        if (t.includes(source)) return tm.code;
+        if (source.includes(t)) return tm.code;
+      }
+    }
+  }
 
   if (sportHint && breakTypes[sportHint]){
     const list = breakTypes[sportHint].teams || [];
@@ -2488,6 +2862,18 @@ function handleSSEEvent(data){
 
     let code = getCodeFromPayload(payload);
 
+    if (!code && currentBreakType === "custom"){
+      const rawTitle = String(payload.title || payload.itemTitle || payload.listingTitle || "").trim();
+      const m = rawTitle.match(/^\s*#\s*(\d+)\s*$/) || rawTitle.match(/^\s*(\d+)\s*$/);
+      if (m){
+        const idx = parseInt(m[1], 10);
+        const customTeams = getCustomEntries();
+        if (idx > 0 && customTeams[idx - 1]){
+          code = customTeams[idx - 1].code;
+        }
+      }
+    }
+
     if (!code && saleKey){
       code = lastCodeBySaleId.get(saleKey) || "";
     }
@@ -2571,7 +2957,9 @@ function handleSSEEvent(data){
 }
 /* ===== SOLD FX (Northland-style card travel + 3D spin + stamp) ===== */
 function playSoldAnimation(code){
-  const currentTeams = breakTypes[currentBreakType].teams;
+  const currentTeams = currentBreakType === "custom"
+    ? getCustomEntries()
+    : breakTypes[currentBreakType].teams;
   const team = currentTeams.find(t => t.code === code);
   if (!team) return;
 
@@ -2652,7 +3040,10 @@ function playSoldAnimation(code){
 function sseMarkSold(code, buyer=""){
   if (!code) return;
 
-  const currentTeams = breakTypes[currentBreakType].teams;
+  const currentTeams = currentBreakType === "custom"
+    ? getCustomEntries()
+    : breakTypes[currentBreakType].teams;
+
   const exists = currentTeams.some(t => t.code === code);
   if (!exists) return;
 
@@ -2718,7 +3109,9 @@ function exportSoldListTSV(){
   const lines = [];
   lines.push(["Spot", "Buyer", "Break #", "Date"].join("\t"));
 
-  const currentTeams = breakTypes[currentBreakType].teams;
+  const currentTeams = currentBreakType === "custom"
+    ? getCustomEntries()
+    : breakTypes[currentBreakType].teams;
 
   soldTeamsList.forEach(e => {
     if (!e || !e.code) return;
@@ -2781,6 +3174,10 @@ if (qSport && breakTypes[qSport]) {
   currentBreakType = "mlb";
 }
 
+if (currentBreakType === "custom" && !getCustomEntries().length) {
+  currentBreakType = "mlb";
+}
+
  
 setTickerLines(loadTickerLines());
 syncTickerSpeedUI();
@@ -2795,6 +3192,7 @@ document.addEventListener("keydown", (e) => {
   closeTitleEditor();
   closeBreakEditor();
   closePromoEditor();
+  closeCustomEntriesEditor();
 });
 const tickerSpeedSlider = document.getElementById("tickerSpeedSlider");
 if (tickerSpeedSlider){
@@ -2805,16 +3203,17 @@ if (tickerSpeedSlider){
     updateTickerMarquee();
   });
 }
-    ["tickerModal","titleModal","breakModal","promoModal","chaseModal"].forEach(id => {
+    ["tickerModal","titleModal","breakModal","promoModal","customEntriesModal","chaseModal"].forEach(id => {
       const m = document.getElementById(id);
       if (!m) return;
       m.addEventListener("click", (e) => {
-        if (e.target === m){
-          if (id === "tickerModal") closeTickerEditor();
-          if (id === "titleModal") closeTitleEditor();
-          if (id === "breakModal") closeBreakEditor();
-          if (id === "promoModal") closePromoEditor();
-        }
+if (e.target === m){
+  if (id === "tickerModal") closeTickerEditor();
+  if (id === "titleModal") closeTitleEditor();
+  if (id === "breakModal") closeBreakEditor();
+  if (id === "promoModal") closePromoEditor();
+  if (id === "customEntriesModal") closeCustomEntriesEditor();
+}
       });
     });
   });
@@ -2888,6 +3287,34 @@ if (tickerSpeedSlider){
     </div>
   </div>
 </div>
+<!-- ===== CUSTOM ENTRIES EDITOR ===== -->
+<div class="modal-backdrop" id="customEntriesModal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Custom Entries Editor">
+    <div class="modal-head">
+      <div class="modal-title">Custom Entries</div>
+      <div class="modal-actions">
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyCustomEntriesFromModal()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeCustomEntriesEditor()">CLOSE</button>
+      </div>
+    </div>
+
+    <div class="ticker-editor" style="flex-direction:column;">
+      <textarea id="customEntriesTitleInput" style="min-height:56px;" placeholder="Custom board title"></textarea>
+      <textarea id="customEntriesTextarea" style="min-height:260px;" placeholder="Paste one entry per line&#10;&#10;OR paste CSV rows&#10;&#10;Example:&#10;Spot 1&#10;Spot 2&#10;Spot 3"></textarea>
+    </div>
+
+    <div class="custom-upload-row">
+      <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="triggerCustomFileImport()">IMPORT CSV / TXT</button>
+      <input class="custom-hidden-file" id="customEntriesFile" type="file" accept=".csv,.txt" onchange="handleCustomFileImport(event)">
+    </div>
+
+    <div class="ticker-hint">
+      One entry per line, or import a CSV/TXT file. First column is used for tile text.
+    </div>
+  </div>
+</div>
+
+
 <!-- ===== Break # Editor Modal ===== -->
 <div class="modal-backdrop" id="breakModal">
   <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Break Number Editor" style="width:520px;">
