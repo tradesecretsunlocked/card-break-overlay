@@ -4649,7 +4649,7 @@ function bridgeWarmupSafe(){
 ========================= */
 function handleSportsEvent(data){
   const payload = (data && typeof data === 'object' && data.data && typeof data.data === 'object') ? data.data : data;
-  if (!payload || String(payload.type || '').toLowerCase() !== 'scores') return;
+  if (!payload || !['scores','scores_update'].includes(String(payload.type || '').toLowerCase())) return;
   handleSSEEvent(payload);
 }
 
@@ -4666,7 +4666,7 @@ function handleSSEEvent(data){
   if (type === 'overlay_warmup') return;
   if (!breakIdMatches(payload)) return;
 
-  if (type === 'scores'){
+  if (type === 'scores' || type === 'scores_update'){
     const games = Array.isArray(payload.games) ? payload.games : [];
     scoresData = games.map(g => ({
       league: String(g.sport || g.league || '').toUpperCase(),

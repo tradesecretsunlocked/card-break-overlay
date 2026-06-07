@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -1559,7 +1559,7 @@ function connectScoresSSE(){
   try{
     sseScores = new EventSource(url);
     sseScores.onmessage = (e) => {
-      try{ const d = JSON.parse(e.data); if(d?.type==="scores") normalizeScorePayloadToText(d); }catch(_){}
+      try{ const d = JSON.parse(e.data); if(d?.type==="scores"||d?.type==="scores_update") normalizeScorePayloadToText(d); }catch(_){}
     };
     sseScores.addEventListener("scores", (e) => {
       try{ const d = JSON.parse(e.data); normalizeScorePayloadToText(d); }catch(_){}
@@ -1787,7 +1787,7 @@ function handleSSEEvent(data){
     return;
   }
 
-  if (type === "scores"){
+  if (type === "scores" || type === "scores_update"){
     normalizeScorePayloadToText(data);
     return;
   }

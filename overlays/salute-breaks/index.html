@@ -2479,7 +2479,7 @@ function connectScoresSSE(base, scoresChannel = "sports"){
       try{
         const data = JSON.parse(e.data);
         if (data?.type === "hello") return;
-        if (String(data?.type || "").toLowerCase() === "scores") {
+        if (["scores","scores_update"].includes(String(data?.type || "").toLowerCase())) {
           handleSSEEvent(data);
         }
       }catch(_){}
@@ -2544,7 +2544,7 @@ function startSSE(){
 
       if (type === 'hello') return;
 
-if (type === 'scores'){
+if (type === 'scores' || type === 'scores_update'){
   const sport = String(data?.sport || data?.league || '').toLowerCase().trim();
   const txt = normalizeScorePayloadToText(data);
 
