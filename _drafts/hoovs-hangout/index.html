@@ -1245,6 +1245,7 @@ function syncTickerSpeedUI(){
 
 let TICKER_LINES = loadTickerLines();
 let SCORE_LINES = [];
+let SCORES_BY_SPORT = {}; // sport → string[] — persists across broadcasts so all 3 sports show together
 
 function normalizeTickerArray(arr){
   return (Array.isArray(arr) ? arr : [])
@@ -2101,6 +2102,7 @@ function resetAll(){
   lastCodeBySaleId.clear();
   clearOverlayState();
   SCORE_LINES = [];
+  SCORES_BY_SPORT = {};
   document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
   updateStats();
   updateSoldList();
@@ -2241,11 +2243,21 @@ function extractScoreLines(data){
   const league = String(payload.sport || payload.league || "").toUpperCase().trim();
 
   return games.slice(0, 4).map(g => {
-    const away = String(g.away || g.a || "AWAY").trim();
-    const home = String(g.home || g.h || "HOME").trim();
-    const awayScore = g.awayScore ?? g.as ?? "";
-    const homeScore = g.homeScore ?? g.hs ?? "";
+    let away = String(g.away || g.a || "").trim();
+    let home = String(g.home || g.h || "").trim();
+    let awayScore = g.awayScore ?? g.as ?? "";
+    let homeScore = g.homeScore ?? g.hs ?? "";
     const status = String(g.status || "").trim();
+
+    // Bridge format: g.teams = [{name, score, home: bool}]
+    if ((!away || !home) && Array.isArray(g.teams)) {
+      const awayTeam = g.teams.find(t => !t.home) || g.teams[0];
+      const homeTeam = g.teams.find(t => !!t.home) || g.teams[1];
+      if (awayTeam) { if (!away) away = String(awayTeam.name || "").trim(); if (String(awayScore) === "") awayScore = awayTeam.score ?? ""; }
+      if (homeTeam) { if (!home) home = String(homeTeam.name || "").trim(); if (String(homeScore) === "") homeScore = homeTeam.score ?? ""; }
+    }
+    away = away || "AWAY";
+    home = home || "HOME";
 
     const core =
       (String(awayScore) !== "" || String(homeScore) !== "")
@@ -2276,8 +2288,19 @@ function handleSportsEvent(data){
 ).toLowerCase();
   if (type !== "scores" && type !== "scores_update") return;
 
+  // Filter to only the sports this overlay supports
+  const sport = String(payload.sport || payload.league || "").toLowerCase().trim();
+  if (sport && !SPORT_ORDER.includes(sport)) return;
+
   const lines = extractScoreLines(payload);
-  setScoreLines(lines);
+  if (sport) {
+    if (lines.length) SCORES_BY_SPORT[sport] = lines;
+    else delete SCORES_BY_SPORT[sport];
+  }
+
+  // Rebuild flat SCORE_LINES from all sports in SPORT_ORDER so all 3 persist
+  SCORE_LINES = SPORT_ORDER.flatMap(s => SCORES_BY_SPORT[s] || []);
+  updateTickerMarquee();
 }
 
 let sse = null;
