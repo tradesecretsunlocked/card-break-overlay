@@ -2284,14 +2284,22 @@ function handleSportsEvent(data){
 ).toLowerCase();
   if (type !== "scores" && type !== "scores_update") return;
 
-  // Only the sports this overlay supports (drops NHL etc.)
   const sport = String(payload.sport || payload.league || "").toLowerCase().trim();
-  if (!SCORES_SPORT_ORDER.includes(sport)) return;
+  const gameCount = Array.isArray(payload.games) ? payload.games.length : 0;
+
+  // Only the sports this overlay supports (drops NHL etc.)
+  if (!SCORES_SPORT_ORDER.includes(sport)){
+    console.log(`[hoovs scores] received ${sport || "unknown"} (${gameCount} game(s)) — ignored (overlay only shows NFL/NBA/MLB)`);
+    return;
+  }
 
   const txt = normalizeScorePayloadToText(payload);
   if (txt){
     SCORES_BY_SPORT[sport]   = txt;
     SCORES_UPDATED_AT[sport] = Date.now();
+    console.log(`%c[hoovs scores] ${sport.toUpperCase()}: ${gameCount} game(s) received → ticker updated`, "color:#3cff8a");
+  } else {
+    console.log(`[hoovs scores] ${sport.toUpperCase()}: event received but no games to display`);
   }
 
   updateTickerMarquee();
@@ -2368,12 +2376,36 @@ function connectSSE(base){
   }
 }
 
+let scoresHeartbeatTimer = null;
+function startScoresHeartbeat(){
+  if (scoresHeartbeatTimer) return; // only ever one
+  const tick = () => {
+    const now = Date.now();
+    const summary = SCORES_SPORT_ORDER.map(s => {
+      const fresh = (now - (SCORES_UPDATED_AT[s] || 0)) < 1000 * 60 * 20;
+      return `${s.toUpperCase()}=${fresh ? "live" : "none"}`;
+    }).join("  ");
+    const any = SCORES_SPORT_ORDER.some(s => (now - (SCORES_UPDATED_AT[s] || 0)) < 1000 * 60 * 20);
+    console.log(
+      `%c[hoovs scores] heartbeat — connection OK | ${summary}${any ? "" : "  (no games received yet — likely none scheduled today)"}`,
+      any ? "color:#3cff8a" : "color:#ffd24d"
+    );
+  };
+  tick();
+  scoresHeartbeatTimer = setInterval(tick, 60000);
+}
+
 function connectScoresSSE(base){
   if (sseScores) { try { sseScores.close(); } catch(_){} }
 
   try{
     const url = `${base}/stream?channel=sports&key=${encodeURIComponent(BRIDGE_KEY)}`;
     sseScores = new EventSource(url);
+
+    sseScores.onopen = () => {
+      console.log("%c[hoovs scores] live-scores stream CONNECTED (channel=sports). Waiting for ESPN updates…", "color:#3cff8a;font-weight:bold");
+      startScoresHeartbeat();
+    };
 
     const ingest = (e) => {
       try{
@@ -2388,6 +2420,7 @@ function connectScoresSSE(base){
     try { sseScores.addEventListener("scores", ingest); } catch(_) {}
 
     sseScores.onerror = () => {
+      console.warn("[hoovs scores] stream disconnected — reconnecting in 2.5s…");
       try { sseScores.close(); } catch(_) {}
       sseScores = null;
       setTimeout(() => connectScoresSSE(base), 2500);
