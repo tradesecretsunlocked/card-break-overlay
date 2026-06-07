@@ -1245,6 +1245,11 @@ function syncTickerSpeedUI(){
 
 let TICKER_LINES = loadTickerLines();
 let SCORE_LINES = [];
+// Per-sport score storage so NFL/NBA/MLB persist together (each broadcast only
+// carries one sport — a flat array would let each update wipe the previous sport).
+const SCORES_BY_SPORT   = { nfl: "", nba: "", mlb: "" };
+const SCORES_UPDATED_AT = { nfl: 0,  nba: 0,  mlb: 0  };
+const SCORES_SPORT_ORDER = ["nfl","nba","mlb"]; // NHL intentionally excluded
 
 function normalizeTickerArray(arr){
   return (Array.isArray(arr) ? arr : [])
@@ -1260,8 +1265,13 @@ function getCustomTickerText(){
 }
 
 function getScoresTickerText(){
-  const lines = normalizeTickerArray(SCORE_LINES);
-  return lines.length ? lines.join("   •   ") : "";
+  const parts = [];
+  for (const s of SCORES_SPORT_ORDER){
+    const txt = String(SCORES_BY_SPORT[s] || "").trim();
+    const fresh = (Date.now() - (SCORES_UPDATED_AT[s] || 0)) < 1000 * 60 * 20;
+    if (txt && fresh) parts.push(txt);
+  }
+  return parts.join("   •   ");
 }
 
 function buildTickerLine(){
@@ -2217,45 +2227,43 @@ function getSportFromPayload(data){
   return String(data?.sport || data?.breakType || "").trim().toLowerCase();
 }
 
-function extractScoreLines(data){
-  if (!data || typeof data !== "object") return [];
+// Build a single-line score string for ONE sport's payload.
+// Handles the bridge's actual shape: { sport, games:[{ id, status, teams:[{name,score,home}] }] }
+function normalizeScorePayloadToText(data){
+  if (!data) return "";
 
-  const payload =
-    (data.data && typeof data.data === "object")
-      ? data.data
-      : data;
-
-  if (typeof payload.text === "string" && payload.text.trim()) {
-    return [payload.text.trim()];
+  // Pre-formatted variants (kept for compatibility)
+  if (typeof data.text === "string" && data.text.trim()) return data.text.trim();
+  if (Array.isArray(data.lines) && data.lines.length){
+    return data.lines.map(s => String(s).trim()).filter(Boolean).join(" • ");
   }
 
-  if (Array.isArray(payload.lines) && payload.lines.length) {
-    return payload.lines
-      .map(x => String(x || "").trim())
-      .filter(Boolean);
-  }
+  const league = String(data.league || data.sport || "").toUpperCase().trim();
+  const games = Array.isArray(data.games) ? data.games : [];
+  if (!games.length) return "";
 
-  const games = Array.isArray(payload.games) ? payload.games : [];
-  if (!games.length) return [];
+  const chunks = games.slice(0, 10).map(g => {
+    let a, h, as, hs;
+    if (Array.isArray(g.teams) && g.teams.length >= 2){
+      const away = g.teams.find(t => !t.home) || g.teams[0];
+      const home = g.teams.find(t =>  t.home) || g.teams[1];
+      a  = String(away.name || "").toUpperCase();
+      h  = String(home.name || "").toUpperCase();
+      as = away.score;
+      hs = home.score;
+    } else {
+      a  = String(g.away || g.a || g.awayTeam || "").toUpperCase();
+      h  = String(g.home || g.h || g.homeTeam || "").toUpperCase();
+      as = (g.awayScore ?? g.as ?? g.aScore);
+      hs = (g.homeScore ?? g.hs ?? g.hScore);
+    }
+    const st = String(g.status || g.state || g.clock || "").trim();
+    const scorePart = (as !== undefined && hs !== undefined) ? `${a} ${as}-${hs} ${h}` : `${a} vs ${h}`;
+    return st ? `${scorePart} (${st})` : scorePart;
+  });
 
-  const league = String(payload.sport || payload.league || "").toUpperCase().trim();
-
-  return games.slice(0, 4).map(g => {
-    const away = String(g.away || g.a || "AWAY").trim();
-    const home = String(g.home || g.h || "HOME").trim();
-    const awayScore = g.awayScore ?? g.as ?? "";
-    const homeScore = g.homeScore ?? g.hs ?? "";
-    const status = String(g.status || "").trim();
-
-    const core =
-      (String(awayScore) !== "" || String(homeScore) !== "")
-        ? `${away} ${awayScore}-${homeScore} ${home}`
-        : `${away} vs ${home}`;
-
-    return league
-      ? `${league}: ${core}${status ? ` (${status})` : ""}`
-      : `${core}${status ? ` (${status})` : ""}`;
-  }).filter(Boolean);
+  const prefix = league ? `${league}: ` : "SCORES: ";
+  return prefix + chunks.join(" • ");
 }
 
 function handleSportsEvent(data){
@@ -2276,8 +2284,17 @@ function handleSportsEvent(data){
 ).toLowerCase();
   if (type !== "scores" && type !== "scores_update") return;
 
-  const lines = extractScoreLines(payload);
-  setScoreLines(lines);
+  // Only the sports this overlay supports (drops NHL etc.)
+  const sport = String(payload.sport || payload.league || "").toLowerCase().trim();
+  if (!SCORES_SPORT_ORDER.includes(sport)) return;
+
+  const txt = normalizeScorePayloadToText(payload);
+  if (txt){
+    SCORES_BY_SPORT[sport]   = txt;
+    SCORES_UPDATED_AT[sport] = Date.now();
+  }
+
+  updateTickerMarquee();
 }
 
 let sse = null;
