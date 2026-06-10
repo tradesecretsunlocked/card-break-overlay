@@ -90,3 +90,14 @@ Commit the repo changes with a descriptive message. Memory file lives outside th
 ## Communication style
 
 Mike runs this business solo. Lead with the diagnosis, not the investigation. Show evidence (Supabase rows, line numbers) so he can verify your reasoning. Be specific about what file:line was changed and why. When you're guessing, say so.
+
+---
+
+## Companion: front-line support guide
+
+For a broader, support-oriented troubleshooting reference — covering machine/OBS
+resource issues (board-freeze, packet drops / "decoding queue overloaded"), key/403
+problems, connection vs. data isolation, deduped revenue, and a copy-paste Supabase
+query reference — see `SUPPORT-GUIDE.md` in this folder. That guide is written for
+front-line TSU support (layer-isolation first); this SKILL.md remains the engineering
+deep-dive for overlay/extension bug fixes.

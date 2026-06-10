@@ -102,8 +102,16 @@ Deno.serve(async (req) => {
 
   const { data: memberships } = await svc.from("client_users").select("bridge_key").eq("user_id", user.id);
   const allowed = (memberships ?? []).map((m: any) => m.bridge_key);
-  if (allowed.length === 0) return json({ error: "No client linked to this account" }, 403);
-  bridge_key = bridge_key && allowed.includes(bridge_key) ? bridge_key : allowed[0];
+  // Admins (app_admins) may act on ANY client by passing bridge_key ("View as").
+  const { data: adminRow } = await svc.from("app_admins").select("user_id").eq("user_id", user.id).maybeSingle();
+  const isAdmin = !!adminRow;
+  if (bridge_key && (isAdmin || allowed.includes(bridge_key))) {
+    // use bridge_key as given (admin view-as, or seller's own key)
+  } else if (allowed.length) {
+    bridge_key = allowed[0];
+  } else {
+    return json({ error: "No client linked to this account" }, 403);
+  }
 
   const health = await getHealth(svc, bridge_key);
 

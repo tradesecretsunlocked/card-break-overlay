@@ -57,6 +57,14 @@ if (SUPABASE_URL && SUPABASE_KEY) {
 
 const keyCache = new Map(); // key → { valid: boolean, clientName: string, ts: number }
 
+// Revoked keys whose stale/abandoned OBS sources should be quietly accepted as
+// IDLE SSE subscribers (they receive zero events — no active publisher — and
+// POST/publish stays blocked) instead of 403-looping every ~2.5s and flooding
+// the logs. TEMPORARY: remove a key here once its overlay is rebuilt/redeployed.
+const QUIET_SUBSCRIBE_KEYS = new Set([
+  "469c3440-7511-4ee2-be2c-671fad9b9e6f", // Jim and Tabby — overlay being rebuilt; automation intentionally off
+]);
+
 async function validateKey(key) {
   // No Supabase configured → open mode (backward compat for local dev / unset env)
   if (!supabase) return { valid: true, clientName: `key-${key.slice(-6)}` };
@@ -78,7 +86,7 @@ async function validateKey(key) {
     const valid      = !error && data?.active === true;
     const clientName = data?.client_name || `key-${key.slice(-6)}`;
     keyCache.set(key, { valid, clientName, ts: Date.now() });
-    if (!valid) console.warn(`[${clientName}] Key rejected`);
+    if (!valid && !QUIET_SUBSCRIBE_KEYS.has(key)) console.warn(`[${clientName}] Key rejected`);
     return { valid, clientName };
   } catch (err) {
     // Supabase down → fail open so a Supabase outage doesn't kill live streams
@@ -93,7 +101,17 @@ async function authMiddleware(req, res, next) {
   if (!key) return res.status(401).json({ error: "Missing bridge key" });
 
   const { valid, clientName } = await validateKey(key);
-  if (!valid) return res.status(403).json({ error: "Invalid or revoked bridge key" });
+  if (!valid) {
+    // Quiet-listed revoked keys: accept the SSE SUBSCRIBE (GET) and hold it idle
+    // so a stale OBS source stops 403-looping. It receives no events (nothing
+    // publishes to a revoked key) and PUBLISH (POST) is still rejected below.
+    if (QUIET_SUBSCRIBE_KEYS.has(key) && req.method === "GET") {
+      req.bridgeKey  = key;
+      req.clientName = clientName;
+      return next();
+    }
+    return res.status(403).json({ error: "Invalid or revoked bridge key" });
+  }
 
   req.bridgeKey  = key;
   req.clientName = clientName;
@@ -138,7 +156,8 @@ async function refreshFeatureFlags() {
       .from("client_services")
       .select("key")
       .eq("service", "scores")
-      .eq("enabled", true);
+      .eq("enabled", true)
+      .eq("entitled", true);   // entitled AND enabled = active
     if (!error && Array.isArray(data)) {
       scoresEnabledKeys = new Set(data.map((r) => r.key));
     }
