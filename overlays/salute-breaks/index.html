@@ -70,6 +70,22 @@
       opacity: .9;
     }
     .overlay > *{ position:relative; z-index:1; }
+    .overlay > .bg-art{
+      position:absolute;
+      inset:0;
+      z-index:0;
+      pointer-events:none;
+      background-position:center center;
+      background-size:cover;
+      background-repeat:no-repeat;
+      border-radius:var(--radius);
+      overflow:hidden;
+    }
+    .overlay > .bg-art::after{
+      content:"";
+      position:absolute; inset:0;
+      background:linear-gradient(180deg, rgba(6,5,2,0.22), rgba(6,5,2,0.40));
+    }
 
         .wick{
       position:relative;
@@ -118,7 +134,7 @@
 
 .header{
   position:relative;
-  z-index:40;
+  z-index:9999;
   display:grid;
   grid-template-columns: 1fr auto;
   gap:10px;
@@ -210,6 +226,9 @@
     .break-box .value,
     .status-box .value{ font-size:14px; color:var(--gold); }
     .status-box.connecting .value{ color:#8fc7ff; }
+    .header{ align-items:start; min-height:92px; }
+    .header .hdr-chip-left{ position:absolute; left:14px; bottom:8px; z-index:8; }
+    .header .hdr-chip-right{ position:absolute; right:14px; bottom:8px; z-index:8; }
     .status-box.connected .value{ color:#47e38b; }
     .status-box.error .value{ color:#ff7e7e; }
 
@@ -941,6 +960,12 @@ body.team-board-mode #soldPanel{
       align-items:center;
       gap:6px;
     }
+    .sold-admin-buttons{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      gap:6px;
+    }
     .sold-list{
       margin-top:8px;
       display:grid;
@@ -1575,7 +1600,7 @@ body.split-team-mode #soldList{
   border:1px solid rgba(255,255,255,0.18);
   background:rgba(0,0,0,0.68);
   color:#fff;
-  font-size:12px;
+  font-size:20px;
   font-weight:1000;
   letter-spacing:.4px;
   text-transform:uppercase;
@@ -1987,11 +2012,11 @@ body.division-board-mode .division-grid .team.sold::after{
 }
 
 .conference-title{display:none !important;}
-.special-banner{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 4px;padding:5px 8px;border-radius:10px;
-  background:linear-gradient(180deg, rgba(238,90,35,0.92) 0%, rgba(176,52,12,0.88) 100%);
+.special-banner{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:6px 0 4px;padding:3px 2px;border-radius:10px;
+  background:linear-gradient(180deg, rgb(252, 230, 59) 0%, rgb(176, 168, 28) 100%);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,0.10), 0 0 12px rgba(216,66,15,0.25);}
 .special-cell{display:flex;align-items:center;gap:8px;cursor:pointer;padding:3px 10px;border-radius:8px;min-height:34px;
-  background:rgba(0,0,0,0.12);border:1px solid rgba(255,255,255,0.16);transition:background .15s;}
+  background:linear-gradient(180deg, rgb(41 76 147) 0%, rgb(16 31 60) 100%);}
 .special-cell:hover{background:rgba(0,0,0,0.22);}
 .special-cell .num{font-size:14px;font-weight:900;color:#fff;opacity:.8;min-width:18px;text-align:center;}
 .special-cell .nm{font-size:17px;font-weight:900;color:#fff;letter-spacing:.5px;text-transform:uppercase;line-height:1;text-shadow:1px 1px 2px rgba(0,0,0,0.5);}
@@ -1999,19 +2024,59 @@ body.division-board-mode .division-grid .team.sold::after{
 .special-cell.sold{background:rgba(0,0,0,0.5);}
 .special-cell.sold .nm{opacity:.5;}
 body.premium-theme{ --gold:#d4af37; --gold2:#f4cf5a; --orange:#d4af37; --bg0:#000000; --bg1:#0a0a0a; --panel:#0c0a04; --panel2:#141008; --line2:rgba(212,175,55,0.42); }
-body.premium-theme .header.salute-header{ background:linear-gradient(180deg, rgba(40,33,8,0.96) 0%, rgba(16,13,4,0.97) 60%, rgba(6,5,2,0.98) 100%) !important; border-color:rgba(212,175,55,0.5) !important; }
-.special-buyer-input{margin-left:auto;width:96px;font-size:11px;font-weight:800;color:#fff;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.35);border-radius:6px;padding:2px 6px;text-transform:uppercase;}
-.premium-buyer-input{width:88%;margin-top:3px;font-size:12px;font-weight:800;color:#fff;text-align:center;background:rgba(0,0,0,0.45);border:1px solid rgba(212,175,55,0.55);border-radius:6px;padding:3px 6px;text-transform:uppercase;}
+body.premium-theme .header.salute-header{ background:linear-gradient(180deg, rgba(40 33 8 / 0%) 0%, rgba(16,13,4,0.97) 60%, rgba(6,5,2,0.98) 100%) !important; border-color:rgba(212,175,55,0.5) !important; }
+.special-buyer-input{margin-left:auto;width:160px;font-size:20px;font-weight:800;color:#fff;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.35);border-radius:6px;padding:2px 6px;text-transform:uppercase;}
+.premium-buyer-input{width:88%;margin-top:3px;font-size:20px;font-weight:800;color:#fff;text-align:center;background:rgba(0,0,0,0.45);border:1px solid rgba(212,175,55,0.55);border-radius:6px;padding:3px 6px;text-transform:uppercase;}
 .premium-cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;min-height:62px;margin:6px 0;border-radius:12px;padding:8px;
-  background:linear-gradient(180deg, rgba(34,27,7,0.96), rgba(10,8,2,0.96));border:2px solid rgba(212,175,55,0.55);box-shadow:0 0 14px rgba(212,175,55,0.18);transition:background .15s;}
+  background:linear-gradient(180deg, rgba(27, 27, 27, 0.96), rgba(10,8,2,0.96));border:2px solid rgba(212,175,55,0.55);box-shadow:0 0 14px rgba(212,175,55,0.18);transition:background .15s;}
 .premium-cell:hover{background:linear-gradient(180deg, rgba(46,37,10,0.97), rgba(16,12,3,0.97));}
 .premium-cell .pnm{font-size:26px;font-weight:900;color:#f4cf5a;letter-spacing:1px;text-transform:uppercase;line-height:1;text-shadow:0 1px 3px #000;}
 .premium-cell .pwho{font-size:12px;font-weight:800;color:#fff;opacity:.85;text-transform:uppercase;letter-spacing:.5px;}
 .premium-cell.sold{background:rgba(0,0,0,0.62);border-color:rgba(212,175,55,0.30);}
 .premium-cell.sold .pnm{opacity:.45;}
+@keyframes premiumSoldFlash{
+  0%   { box-shadow:0 0 0 0 rgba(244,207,90,0); transform:scale(1); }
+  16%  { box-shadow:0 0 30px 7px rgba(244,207,90,0.95), inset 0 0 26px rgba(244,207,90,0.55); background:linear-gradient(180deg, rgba(78,62,16,0.92), rgba(30,23,6,0.92)); transform:scale(1.055); }
+  55%  { box-shadow:0 0 14px 2px rgba(212,175,55,0.55); transform:scale(1.0); }
+  100% { box-shadow:0 0 0 0 rgba(244,207,90,0); transform:scale(1); }
+}
+.premium-cell.just-sold{ animation:premiumSoldFlash 0.8s ease-out 1; z-index:5; }
+/* Premium: traveling gold wick/flare around the board border */
+body.premium-theme #teamsSection{ overflow:visible; }
+body.premium-theme #teamsSection::after{
+  content:"";
+  position:absolute;
+  inset:-3px;
+  border-radius:inherit;
+  pointer-events:none;
+  z-index:30;
+  background: linear-gradient(130deg,
+    rgba(244,207,90,0) 0%,
+    rgba(244,207,90,0) 38%,
+    rgba(255,250,214,1) 48%,
+    rgba(244,207,90,0.95) 52%,
+    rgba(212,175,55,0.85) 58%,
+    rgba(244,207,90,0) 68%,
+    rgba(244,207,90,0) 100%);
+  background-size:300% 300%;
+  animation:wickRun 4.5s ease-in-out infinite alternate;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite:exclude;
+  padding:4px;
+  filter:
+    drop-shadow(0 0 10px rgba(244,207,90,0.95))
+    drop-shadow(0 0 22px rgba(212,175,55,0.75));
+  opacity:1;
+}
 .header.salute-header{
-  height:150px !important;
-  min-height:165px !important;
+
+  height:96px !important;
   padding:0 !important;
   border-radius:16px !important;
   overflow:visible !important;
@@ -2055,9 +2120,9 @@ body.premium-theme .header.salute-header{ background:linear-gradient(180deg, rgb
 }
 
 .brand-logo.salute-logo-head img{
-  height:211px !important;
+  height:263px !important;
   width:auto !important;
-  top:auto !important;
+  top:20px; 
   filter:
     drop-shadow(0 10px 18px rgba(0,0,0,0.78))
     drop-shadow(0 0 12px rgba(255,214,0,0.54))
@@ -2235,6 +2300,7 @@ body.view-list .overlay{
 </head>
 <body data-sport="NFL">
   <div class="overlay">
+    <div class="bg-art" id="bgArt"></div>
        <div class="header salute-header wick">
       <div class="brand salute-brand-text">
         <div class="brand-title" id="brandTitle"></div>
@@ -2245,16 +2311,10 @@ body.view-list .overlay{
         <img id="brandLogo" alt="Salute Breaks logo" src="salute-breaks-logo.png" />
       </div>
 
-      <div class="header-right salute-header-controls">
-        <div class="sport-chip" id="sportChip">NFL</div>
-        <div class="break-box">
-          <span class="label">Break #</span>
-          <span class="value" id="breakIdDisplay">1</span>
-        </div>
-        <div class="status-box error" id="sseStatus">
-          <span class="label">SSE</span>
-          <span class="value" id="sseText">OFF</span>
-        </div>
+      <div class="sport-chip hdr-chip-left" id="sportChip">NFL</div>
+      <div class="break-box hdr-chip-right">
+        <span class="label">Break #</span>
+        <span class="value" id="breakIdDisplay">1</span>
       </div>
     </div>
 
@@ -2317,15 +2377,16 @@ body.view-list .overlay{
 
       <div id="soldControlsWrap" class="sold-controls-wrap active">
         <div class="sold-controls">
+          <div class="status-box error" id="sseStatus"><span class="label">SSE</span><span class="value" id="sseText">OFF</span></div>
           <div class="breaktype-buttons" id="breakTypeButtons"></div>
+          <div class="sold-admin-buttons" id="soldAdminButtons">
           <button class="btn" onclick="openTitlePopup()">Set Title</button>
           <button class="btn" onclick="openTickerPopup()">Set Ticker</button>
           <button class="btn" onclick="openBreakPopup()">Set Break</button>
           <button class="btn" onclick="cycleSport()">Next Sport</button>
          <button class="btn" type="button" id="exportTSVBtn">Export TSV</button>
-<button class="btn" type="button" id="chaserPopupBtn">Chasers</button>
-          <button class="btn" onclick="openCustomImportPopup()">Import Custom</button>
-          <button class="btn" onclick="openTileHeightPopup()">Tile Heights</button>
+<button class="btn" onclick="openTileHeightPopup()">Tile Heights</button>
+          </div>
         </div>
       </div>
 
@@ -2374,34 +2435,6 @@ body.view-list .overlay{
     </div>
   </div>
 
-  <div class="popup-mask" id="customImportPopupMask">
-    <div class="popup">
-      <h2>Import Custom Layout</h2>
-      <label>Mode</label>
-      <select id="customImportMode">
-        <option value="json">JSON array</option>
-        <option value="lines">One code per line</option>
-      </select>
-      <label>Data</label>
-      <textarea id="customImportInput" placeholder='["Slot 1","Slot 2","Slot 3"] or one line per entry'></textarea>
-      <label>Columns</label>
-      <input id="customColsInput" type="number" min="2" max="8" step="1" />
-      <div class="row2">
-        <div>
-          <label>Left Title</label>
-          <input id="customLeftTitleInput" type="text" />
-        </div>
-        <div>
-          <label>Right Title</label>
-          <input id="customRightTitleInput" type="text" />
-        </div>
-      </div>
-      <div class="popup-actions">
-        <button onclick="closePopup('customImportPopupMask')">Cancel</button>
-        <button onclick="applyCustomImport()">Apply</button>
-      </div>
-    </div>
-  </div>
     <div class="popup-mask" id="tileHeightPopupMask">
   <div class="popup">
     <h2>Tile Heights</h2>
@@ -2453,20 +2486,7 @@ body.view-list .overlay{
   </div>
 </div>
 
-<div class="popup-mask" id="chaserPopupMask">
-  <div class="popup">
-    <h2>Choose Chaser Teams</h2>
-    <div class="popup-subnote" id="chaserPopupSportLabel">Current Sport</div>
 
-    <div id="chaserSelectorGrid" class="chaser-grid"></div>
-
-    <div class="popup-actions">
-      <button onclick="clearChasersForCurrentSport()">Clear</button>
-      <button onclick="closePopup('chaserPopupMask')">Cancel</button>
-      <button onclick="applyChaserSelection()">Apply</button>
-    </div>
-  </div>
-</div>
 
 <div class="popup-mask" id="playerListPopupMask">
   <div class="popup">
@@ -2531,6 +2551,12 @@ const BASE = (() => {
 
 const LOGO_PATH = `${BASE}images/logos/salute-breaks-alt-logo.png`;
 const BIG_LUCK_PATH = `${BASE}images/logos/salute-breaks-logo.png`;
+
+const bgArtEl = document.getElementById('bgArt');
+if (bgArtEl){
+  const bgUrl = new URL('salute-breaks-bg.png', location.href).href;
+  bgArtEl.style.backgroundImage = `url("${bgUrl}")`;
+}
 
 const brandLogoEl = document.getElementById('brandLogo');
 if (brandLogoEl){
@@ -2784,80 +2810,6 @@ function applySportTileHeight(){
   document.documentElement.style.setProperty('--team-height', `${h}px`);
 }
 
-function loadChaserSelections(){
-  try{
-    const raw = JSON.parse(localStorage.getItem(LS.CHASERS) || '{}');
-    const out = {};
-    Object.keys(raw || {}).forEach(key => {
-      out[key] = new Set(
-        (Array.isArray(raw[key]) ? raw[key] : [])
-          .map(v => String(v || '').toUpperCase().trim())
-          .filter(Boolean)
-      );
-    });
-    return out;
-  }catch(_){
-    return {};
-  }
-}
-
-function saveChaserSelections(){
-  const out = {};
-  Object.keys(chaserSelections).forEach(key => {
-    out[key] = Array.from(chaserSelections[key] || []);
-  });
-  localStorage.setItem(LS.CHASERS, JSON.stringify(out));
-}
-
-function getChaserStorageKey(type = currentBreakType){
-  const normalized = normalizeSport(type) || currentBreakType;
-  return normalized.startsWith('nfl') ? 'nfl' : normalized;
-}
-
-function getActiveChaserSet(type = currentBreakType){
-  const key = getChaserStorageKey(type);
-  if (!chaserSelections[key]) chaserSelections[key] = new Set();
-  return chaserSelections[key];
-}
-
-function isChaserCode(code, type = currentBreakType){
-  return getActiveChaserSet(type).has(String(code || '').toUpperCase().trim());
-}
-
-function getChaserEntriesForType(type = currentBreakType){
-  const baseType = getChaserStorageKey(type);
-
-  if (baseType === 'custom'){
-    return customLayout.entries.map(item => ({
-      code: String(item.code || '').toUpperCase(),
-      name: String(item.name || item.code || '').trim(),
-      image: ''
-    })).filter(x => x.code);
-  }
-
-  const cfg = BREAK_TYPES[baseType];
-  if (!cfg || !cfg.divisions) return [];
-
-  const out = [];
-  cfg.conferences.forEach(conf => {
-    Object.values(cfg.divisions[conf]).forEach(group => {
-      group.forEach(team => {
-        out.push({
-          code: String(team.code || '').toUpperCase(),
-          name: String(team.name || team.code || '').trim(),
-          image: String(team.image || '').trim()
-        });
-      });
-    });
-  });
-
-  return uniqueCodes(out);
-}
-
-let chaserSelections = loadChaserSelections();
-let modalChaserSet = new Set();
-
-
 function loadPlayerListBySport(){
   try{
     const raw = JSON.parse(localStorage.getItem(LS.CUSTOM_PLAYER_LIST) || '{}');
@@ -2914,73 +2866,6 @@ function parsePlayerListText(raw){
 
 let playerListBySport = loadPlayerListBySport();
 let playerHighlightsBySport = loadPlayerHighlightsBySport();
-
-function renderChaserSelectorGrid(){
-  const grid = document.getElementById('chaserSelectorGrid');
-  const items = getChaserEntriesForType(currentBreakType);
-  grid.innerHTML = '';
-
-  if (!items.length){
-    grid.innerHTML = `<div class="popup-subnote">No entries available for this sport.</div>`;
-    return;
-  }
-
-  items.forEach(item => {
-    const active = modalChaserSet.has(item.code);
-
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'chaser-option' + (active ? ' active' : '');
-    btn.dataset.code = item.code;
-
-    if (item.image){
-      const img = document.createElement('img');
-      img.src = item.image;
-      img.alt = item.name || item.code;
-      img.onerror = () => img.remove();
-      btn.appendChild(img);
-    }
-
-    const code = document.createElement('div');
-    code.className = 'code';
-    code.textContent = item.code;
-
-    const name = document.createElement('div');
-    name.className = 'name';
-    name.textContent = item.name || item.code;
-
-    btn.appendChild(code);
-    btn.appendChild(name);
-
-    btn.onclick = () => {
-      if (modalChaserSet.has(item.code)) modalChaserSet.delete(item.code);
-      else modalChaserSet.add(item.code);
-      btn.classList.toggle('active', modalChaserSet.has(item.code));
-    };
-
-    grid.appendChild(btn);
-  });
-}
-
-function openChaserPopup(){
-  modalChaserSet = new Set(Array.from(getActiveChaserSet(currentBreakType)));
-  document.getElementById('chaserPopupSportLabel').textContent = `${getSportLabel(currentBreakType)} • CHASER SELECTOR`;
-  renderChaserSelectorGrid();
-  openPopup('chaserPopupMask');
-}
-
-function applyChaserSelection(){
-  const key = getChaserStorageKey(currentBreakType);
-  chaserSelections[key] = new Set(Array.from(modalChaserSet));
-  saveChaserSelections();
-  buildLayout();
-  closePopup('chaserPopupMask');
-}
-
-function clearChasersForCurrentSport(){
-  modalChaserSet = new Set();
-  renderChaserSelectorGrid();
-}
 
 function openPlayerListPopup(){
   const input = document.getElementById('playerListInput');
@@ -3490,7 +3375,7 @@ function loadSoldState(){
 ========================= */
 function teamTile(teamObj, state, soldCode){
   const boardCode = String(teamObj?.code || soldCode || '').toUpperCase().trim();
-  const chaser = isChaserCode(boardCode, currentBreakType);
+  const chaser = false;
 
   const el = document.createElement('div');
   el.className = 'team'
@@ -3674,7 +3559,7 @@ function renderPremiumBoard(leftEl, rightEl){
       const state = boardState[code];
       const buyerName = safeBuyer(state.buyer || '');
       const cell = document.createElement('div');
-      cell.className = 'premium-cell' + (state.sold ? ' sold' : '');
+      cell.className = 'premium-cell' + (state.sold ? ' sold' : '') + (state.sold && code === justSoldCode ? ' just-sold' : '');
       cell.dataset.divisionCode = code;
       const nm = document.createElement('div'); nm.className='pnm'; nm.textContent = d.name;
       cell.appendChild(nm);
@@ -3698,6 +3583,7 @@ function renderPremiumBoard(leftEl, rightEl){
       container.appendChild(cell);
     });
   });
+  justSoldCode = null;
 }
 
 function buildConference(container, side, title, rows){
@@ -4071,7 +3957,6 @@ function buildLayout(){
   updateStats();
   renderSoldPanel();
   renderSpecialBanner();
-  renderChaserListPanel();
   renderPlayerListPanel();
   renderBreakTypeButtons();
   setSportUI();
@@ -4083,12 +3968,14 @@ function buildLayout(){
 function soldEntry(code){
   return soldTeamsList.find(x => String(x.code).toUpperCase() === String(code).toUpperCase());
 }
+let justSoldCode = null;
 function applySale(code, buyerName, sold){
   const key = String(code || '').toUpperCase().trim();
   if (!key || !boardState[key]) return;
 
   boardState[key].sold = !!sold;
   boardState[key].buyer = sold ? safeBuyer(buyerName || '') : '';
+  justSoldCode = sold ? key : null;
 
   if (sold){
     soldTeams.add(key);
@@ -4219,33 +4106,10 @@ function renderSoldPanel(){
   }
 
   const controls = document.getElementById('soldControlsWrap');
-  if (controls) controls.classList.toggle('active', soldPanelEnabled && isMainView());
+  if (controls) controls.classList.toggle('active', isMainView());
+  const adminBtns = document.getElementById('soldAdminButtons');
+  if (adminBtns) adminBtns.style.display = (soldPanelEnabled && isMainView()) ? '' : 'none';
 }
-
-function renderChaserListPanel(){
-  const host = document.getElementById('chaserListFloating');
-  if (!host) return;
-
-  host.innerHTML = '';
-
-  const entries = getChaserEntriesForType(currentBreakType)
-    .filter(item => isChaserCode(item.code, currentBreakType))
-    .sort((a,b) => String(a.code).localeCompare(String(b.code)));
-
-  if (!entries.length){
-    host.innerHTML = `<div class="chaser-pill"><div class="code">NONE</div><div class="name">No chasers selected</div></div>`;
-    return;
-  }
-
-  entries.forEach(entry => {
-    const item = document.createElement('div');
-    item.className = 'chaser-pill';
-    item.innerHTML = `<div class="code">${entry.code}</div><div class="name">${entry.name || entry.code}</div>`;
-    host.appendChild(item);
-  });
-}
-
-
 
 function toggleSoldControls(){
   if (!isMainView()) return;
@@ -4389,61 +4253,6 @@ function applyBreakEdit(){
   });
   closePopup('breakPopupMask');
 }
-function openCustomImportPopup(){
-  document.getElementById('customImportMode').value = 'json';
-  document.getElementById('customImportInput').value = '';
-  document.getElementById('customColsInput').value = String(customLayout.cols || 5);
-  document.getElementById('customLeftTitleInput').value = customLayout.leftTitle || 'LEFT BOARD';
-  document.getElementById('customRightTitleInput').value = customLayout.rightTitle || 'RIGHT BOARD';
-  openPopup('customImportPopupMask');
-}
-function applyCustomImport(){
-  let entries = [];
-  const mode = document.getElementById('customImportMode').value;
-  const raw = document.getElementById('customImportInput').value.trim();
-
-  try{
-    if (mode === 'json'){
-      const parsed = JSON.parse(raw || '[]');
-      if (Array.isArray(parsed)){
-        entries = parsed.map((item, idx) => {
-          if (typeof item === 'string'){
-            return { code: item.toUpperCase(), name: item };
-          }
-          const code = String(item.code || item.name || `TILE ${idx+1}`).toUpperCase();
-          return { code, name: String(item.name || item.code || code) };
-        });
-      }
-    } else {
-      entries = raw.split(/\r?\n/)
-        .map(v => v.trim())
-        .filter(Boolean)
-        .map(v => ({ code:v.toUpperCase(), name:v }));
-    }
-  }catch(_){
-    entries = [];
-  }
-
-  if (!entries.length){
-    entries = JSON.parse(JSON.stringify(DEFAULT_CUSTOM_LAYOUT.entries));
-  }
-
-  customLayout = {
-    leftTitle: document.getElementById('customLeftTitleInput').value.trim() || 'LEFT BOARD',
-    rightTitle: document.getElementById('customRightTitleInput').value.trim() || 'RIGHT BOARD',
-    cols: Math.max(2, Math.min(8, parseInt(document.getElementById('customColsInput').value || '5', 10) || 5)),
-    entries
-  };
-
-  localStorage.setItem(LS.CUSTOM_LAYOUT, JSON.stringify(customLayout));
-  if (currentBreakType === 'custom'){
-    boardState = {};
-    ensureBoardState();
-    buildLayout();
-  }
-  closePopup('customImportPopupMask');
-}
-
 function openTileHeightPopup(){
   const heights = loadSportTileHeights();
   document.getElementById('tileHeightNFLInput').value = String(heights.nfl || 58);
@@ -4862,7 +4671,6 @@ function applyViewModeUI(){
   if (soldControlsWrap) soldControlsWrap.classList.remove('active');
 if (soldList) soldList.classList.add('hidden');
     if (isListView()){
-    renderChaserListPanel();
     renderPlayerListPanel();
   }
 }
@@ -5062,17 +4870,7 @@ function bindPlayerListModalActionButtons(){
 
 /* ===== TSU PATCH: OBS-safe main control bindings for Chasers + Export TSV ===== */
 function bindMainControlActionButtons(){
-  const chaserBtn = document.getElementById('chaserPopupBtn');
   const exportBtn = document.getElementById('exportTSVBtn');
-
-  if (chaserBtn){
-    chaserBtn.onclick = null;
-    chaserBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      openChaserPopup();
-    }, true);
-  }
 
   if (exportBtn){
     exportBtn.onclick = null;
@@ -5117,13 +4915,8 @@ document.addEventListener('click', function(e){
     return;
   }
 
-  const chaserBtn = e.target.closest('#chaserPopupBtn');
-  if (chaserBtn){
-    e.preventDefault();
-    e.stopPropagation();
-    openChaserPopup();
-  }
 }, true);
 </script>
 </body>
 </html>
+                                                                    
