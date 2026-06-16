@@ -36,6 +36,7 @@ Ask Mike to paste recent rows from `bridge_events` filtered by the client's `bri
 - **`team_sold` for the same `saleId` repeating rapidly with empty/null `listingId`** → reassignment retry storm from sold-without-unsold. See Bug 3.
 - **A burst of `team_sold` events all within ~1 second covering most of the break** → replay-on-reload. See Bug 5.
 - **`code: ""` (empty) in events** → unresolved title; extension dropped it. Check what title triggered it.
+- **`[TSU] poll error: Internal server error...` repeating every few seconds, and `team_sold` events stop partway through the day on a 24/7 seller** → Whatnot 500 on deep pagination of a marathon stream's sold-items list. See Bug 10.
 
 ## Step 3 — Match against the known-bug catalog
 
@@ -54,6 +55,9 @@ Read `project_infrastructure.md` for the full catalog. Quick reference:
 | 7 | localStorage shows old sold state on overlay reload | Intentional — overlay restores from localStorage | Use Reset button. Document only, not a bug. |
 | 8 | Extension events 403 in Render logs | `bridge_keys.active` not `true` in Supabase | Set `active = true` in Supabase |
 | 9 | OBS URL had stale Render bridge | `?bridge=` param overriding hardcoded constants | Use clean URL with no params |
+| 10 | 24/7 stream: poll errors + automation goes dark mid-day | Whatnot 500s on deep pagination of a marathon stream's huge sold-list; one failed page killed the whole poll | Extension `fetchAllSoldEdges` — adaptive early-stop + per-page isolation (v2.2.1+) |
+| 11 | OBS floods `Error decoding video` continuously (`repeated for N more lines`, ~30/sec) | Live iPhone `ios-camera-source` undecodable every frame — old obs-ios-camera plugin version/format mismatch, or Continuity Camera contending for the iPhone. NOT TSU | Client-side — hide source to confirm; disable Continuity Camera; match app/plugin versions; portrait shooters use Camo. SUPPORT-GUIDE §4 |
+| 12 | Stream keeps disconnecting, `Reconnecting…`, WHIP `404` | Outbound OBS→Whatnot WebRTC/WHIP session ended/expired on Whatnot's side — NOT TSU | Client-side — restart the Whatnot stream (fresh WHIP session); check network. SUPPORT-GUIDE §11 |
 
 ## Step 4 — Verify the affected extension/overlay against the standards audit
 
@@ -80,6 +84,30 @@ Commit the repo changes with a descriptive message. Memory file lives outside th
 - Tell the user what was wrong, what was fixed, and what they need to do (refresh OBS, re-deploy extension, ask co-host to update, etc.)
 - If the stream is live, distinguish "fix now" vs "fix after stream"
 - If there are loose ends (e.g. another host still on old extension), name them explicitly
+
+## Bug 10 (detail) — 24/7 marathon-stream deep-pagination 500
+
+**Symptom.** A high-volume seller running one continuous stream all day (e.g. Northland, 8am–2am) sees the extension console fill with `[TSU] poll error: Internal server error has occured. (ID: …)` every few seconds, and `team_sold` events stop reaching the bridge partway through the day. Mornings are fine; it degrades as the list grows. Intermittent — some days run clean.
+
+**Root cause.** The message + trace ID come from **Whatnot's** GraphQL API, relayed by `injected.js` (`payload.errors[0].message`) — not from TSU's bridge or overlay. The `soldItems` query uses `sort: null`, so the old `fetchAllSoldEdges` walked up to `MAX_PAGES` (12 × 24 = 288 items) every poll. On a never-ending stream the sold-items list grows into the thousands, and Whatnot 500s on deep cursor pagination of that list. Worse, one failed page threw away the **entire** poll, so a persistent 500 left the automation dark until the next morning's restart.
+
+**Confirm via Supabase.** Bucket the client's `team_sold` events by hour in their timezone. Healthy day = sales every hour from stream start to ~2am. Failure day = a stall, often a catch-up spike when it briefly recovers, then a hard stop mid-day with no events until the next morning. The bridge cannot see the poll error itself — it only logs sales that got through.
+
+**Fix (extension `fetchAllSoldEdges`, v2.2.1+).** Adaptive pagination:
+- **Early-stop** — page from the newest items, stop after **2 consecutive fully-already-seen pages**. Steady state reads 1–2 pages instead of dragging the whole tail → no deep-cursor 500. Still pages as deep as *new* data requires (bursts/backlog), so accuracy is unchanged.
+- **Per-page isolation** — a failed page keeps the edges already pulled and resumes next poll instead of discarding the whole poll → transient 500s self-heal instead of going dark.
+- **Diagnostics** — each poll logs `[TSU] paged Np | N edges | totalCount~N`; poll errors append `totalCount`. Normal late-day polls should read `1p`/`2p` even with `totalCount` in the thousands.
+
+Relies on Whatnot returning newest-first (the existing `.reverse()` already assumes this). If a future case shows new sales landing on deep pages, the fallback is an explicit newest-first `sort` (`ShopSortInput`) captured from a live Whatnot session.
+
+**Operational stopgap** (no code): have the seller end + restart the Whatnot stream periodically → new `liveId` → small list → full pagination works.
+
+## Extension version log
+
+| Version | Date | Change |
+|---|---|---|
+| v2.2 (`extension-UPDATED-04-14-2026`) | 2026-04-14 | Canonical baseline — multi-tenant bridge, full pagination, retry, stable IDs, `loadPersistedMaps`. |
+| **v2.2.1** | 2026-06-15 | **Adaptive pagination** (early-stop + per-page isolation + diagnostics) — fixes Bug 10. Deployed to **Northland** for live test; **propagate to canonical templates after confirmation.** |
 
 ## When NOT to use this skill
 

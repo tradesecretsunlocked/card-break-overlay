@@ -36,9 +36,9 @@
 
   // Windy City Breaks client config
   const DEFAULTS = {
-    bridgeKey:    "7a3f27810f6f176328923680df0c8aeb",  // Windy City Breaks bridge key
+    bridgeKey:    "643085826c888a79ee0b63471f536006",  // Windy City Breaks bridge key
     sport:        "nil",                                // combo break — infers NFL/NBA/MLB from title
-    overlayId:    "windy-city-breaks",
+    overlayId:    "lakefront-breaks",
     channel:      "main",
     pollMs:       3000,
     summaryEvery: 5

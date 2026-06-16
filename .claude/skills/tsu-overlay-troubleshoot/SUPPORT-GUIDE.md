@@ -136,6 +136,20 @@ the machine can't decode/encode the incoming feed fast enough.
 It can *coincide* with §1 because a starved machine hurts both the video pipeline and the
 browser source — but fix it as an OBS/machine problem.
 
+**Common variant — iPhone-as-camera (`ios-camera-source`):** if `Error decoding video`
+floods **continuously** (OBS collapses it as `Last log entry repeated for N more lines`,
+~30/sec = one error per frame), it's the **live iPhone feed failing to decode every frame** —
+NOT the short promo media clips (those play once) and NOT machine horsepower (seen on an M4).
+Every-frame total failure = a **format/version incompatibility**, not a loose cable (confirm
+the seller is on wired USB, not Wi-Fi). The old, abandoned `obs-ios-camera` plugin (e.g.
+v2.9.6) is the usual weak link on newer iPhones/iOS + Apple Silicon. **Also suspect Continuity
+Camera fighting for the iPhone's camera** — plugging in over USB can auto-trigger it. Fix
+order: (1) hide the camera source to confirm the flood is the camera; (2) **disable Continuity
+Camera** on the iPhone (Settings → General → AirPlay & Continuity → Continuity Camera off) to
+remove contention; (3) **match the iPhone OBS-Camera app version to the desktop plugin**;
+(4) portrait shooters can't use Continuity (it's landscape-only) — switch to a maintained
+portrait-capable capture app (e.g. Camo) instead of the old plugin. Still **not a TSU issue.**
+
 ---
 
 ## 5. Sales numbers look wrong / double-counted
@@ -203,6 +217,33 @@ points at the **deactivated** key and auto-reconnects forever.
 select key, client_name, active, notes from bridge_keys where active = false;
 -- match the 403 key prefix in Render logs to a client_name
 ```
+
+---
+
+## 10. 24/7 / all-day stream: automation dies mid-day, console shows "poll error"
+
+**Symptom:** A seller who runs ONE stream all day (doesn't restart between breaks) reports the board stops updating partway through the day — usually afternoon/evening. The extension console shows repeating `[TSU] poll error: Internal server error has occured. (ID: …)`. Mornings are fine.
+
+**Cause:** Not a TSU bug — Whatnot's API starts failing when the day-long stream's sold-items list gets huge, and the old extension re-read the whole list every few seconds. Engineering fix is the **v2.2.1** extension (adaptive pagination).
+
+**Front-line fix:**
+- **Immediate, no update needed:** have them END and RESTART the Whatnot stream — a fresh stream resets the list. A once-daily restart prevents it.
+- **Permanent:** confirm they're on extension **v2.2.1+** (check `manifest.json` `version`, or the console should log `[TSU] paged 1p…`). If on v2.2 or older, send the updated extension.
+
+**Confirm it's this (Supabase):** bucket their `team_sold` by hour — a healthy day has sales every hour to ~2am; this failure shows a hard stop mid-day with nothing until the next morning. Escalate to engineering (Bug 10) only if they're already on v2.2.1 and still failing.
+
+---
+
+## 11. Stream keeps disconnecting / won't reconnect (WHIP 404, "Reconnecting…")
+
+*(OBS log shows `[obs-webrtc] [whip_output] PeerConnection ... Disconnected`, repeated `Output 'adv_stream': Reconnecting in N seconds`, and `Connect failed: HTTP endpoint returned response code 404`.)*
+
+**This is NOT a TSU issue** — it's the outbound broadcast from OBS to Whatnot (WebRTC/WHIP). A **404 from the WHIP endpoint** almost always means the **Whatnot stream session ended or expired** on Whatnot's side, so OBS is retrying a dead endpoint with growing backoff.
+
+**Fix:**
+- **Restart the stream from Whatnot** — that mints a fresh WHIP session/stream key; then start the OBS output again.
+- If it drops *mid-stream*, suspect **network instability** (Wi-Fi/ISP) or the Whatnot session timing out — not OBS settings.
+- When the broadcast drops, the overlay appears to "stop" too — that's downstream of the stream being down, the overlay itself is fine.
 
 ---
 
