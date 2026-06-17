@@ -720,6 +720,61 @@ z-index: 1;
     55%{ transform:scale(0.95); filter:brightness(0.92); }
     100%{ transform:scale(1); filter:brightness(1); }
   }
+
+/* ===== Gold wick flare border (traces the board edge, back & forth) ===== */
+.wick{ position: relative; }
+.wick::after{
+  content:""; position:absolute; inset:-2px; border-radius: inherit;
+  pointer-events:none; z-index: 20;
+  background: linear-gradient(130deg,
+    rgba(255,221,122,0) 0%, rgba(255,221,122,0) 38%,
+    rgba(255,250,210,1) 48%, rgba(255,221,122,0.95) 52%,
+    rgba(216,178,76,0.85) 58%, rgba(255,221,122,0) 68%, rgba(255,221,122,0) 100%);
+  background-size: 300% 300%;
+  animation: wickRun 5s ease-in-out infinite alternate;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  padding: 4px;
+  filter: drop-shadow(0 0 10px rgba(255,221,122,0.95)) drop-shadow(0 0 22px rgba(216,178,76,0.75));
+  opacity: 1;
+}
+@keyframes wickRun{
+  0%   { background-position:   0% 50%; }
+  100% { background-position: 100% 100%; }
+}
+
+/* ===== Chase identifier: CHASE tag + continuous gold shimmer ===== */
+.team.chase{
+  border-color: #ffd76a !important;
+  box-shadow: 0 0 14px rgba(255,213,74,0.55), inset 0 0 10px rgba(255,213,74,0.25);
+}
+.team.chase::after{
+  content:""; position:absolute; inset:0; pointer-events:none; z-index:7; opacity:1;
+  background: linear-gradient(115deg,
+    transparent 0%, rgba(255,255,255,0) 38%,
+    rgba(255,236,160,0.55) 48%, rgba(255,213,74,0.9) 54%,
+    rgba(255,236,160,0.5) 60%, transparent 72%);
+  transform: translateX(-160%) skewX(-22deg);
+  animation: chaseShimmer 2.8s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+@keyframes chaseShimmer{
+  0%   { transform: translateX(-160%) skewX(-22deg); }
+  55%  { transform: translateX(175%)  skewX(-22deg); }
+  100% { transform: translateX(175%)  skewX(-22deg); }
+}
+.chase-tag{
+  position:absolute; top:4px; left:4px; z-index:9;
+  background: linear-gradient(180deg,#ffe9a6,#d4af37);
+  color:#1a1400; font-weight:900; font-size:10px; letter-spacing:1px;
+  padding:2px 7px; border-radius:6px; text-transform:uppercase;
+  box-shadow:0 1px 4px rgba(0,0,0,.5); pointer-events:none;
+}
+.chaseGrid{ display:grid; grid-template-columns: repeat(2,1fr); gap:6px 14px; max-height:50vh; overflow:auto; padding:4px 2px; }
+.chaseRow{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; }
+.chaseRow input{ width:16px; height:16px; }
   </style>
 </head>
 <body>
@@ -738,9 +793,9 @@ z-index: 1;
       </div>
     </div>
 
-    <div class="board">
+    <div class="board wick">
       <div class="grid" id="grid"></div>
-      <div class="tickerBar">
+      <div class="tickerBar wick">
         <div class="statPill" id="soldLabel">SOLD</div>
         <div class="tickerTrack">
           <div class="tickerText" id="tickerText">T I C K E R</div>
@@ -760,6 +815,7 @@ z-index: 1;
 <button class="btn" onclick="openBreakPopup()">BREAK #</button>
 <button class="btn" onclick="openTickerPopup()">TICKER</button>
 <button class="btn" onclick="openTitlePopup()">TITLE</button>
+<button class="btn" onclick="openChaseModal()">CHASE</button>
 
 
             <div class="sseStatus" id="sseStatus">
@@ -1089,6 +1145,38 @@ function newBreak(){
 /* =========================
    GRID LAYOUT MAPS (by screenshot)
 ========================= */
+/* ===== Chase identifier state + picker ===== */
+const CHASE_KEY = "lakefront.chaseCodes";
+let chaseSet = new Set();
+function loadChase(){ try{ const a = JSON.parse(localStorage.getItem(CHASE_KEY) || "[]"); chaseSet = new Set(Array.isArray(a) ? a : []); }catch(_){ chaseSet = new Set(); } }
+function saveChase(){ try{ localStorage.setItem(CHASE_KEY, JSON.stringify([...chaseSet])); }catch(_){} }
+function applyChaseTag(d, code){
+  if (!chaseSet.has(code)) return;
+  d.classList.add("chase");
+  if (!d.querySelector(".chase-tag")){
+    const t = document.createElement("div");
+    t.className = "chase-tag"; t.textContent = "CHASE";
+    d.appendChild(t);
+  }
+}
+function openChaseModal(){
+  loadChase();
+  const host = document.getElementById("chaseRows");
+  if (!host) return;
+  const teams = (breakTypes[currentSport] && breakTypes[currentSport].teams) || [];
+  host.innerHTML = teams.map(t => `<label class="chaseRow"><input type="checkbox" value="${String(t.code).replace(/"/g,'&quot;')}" ${chaseSet.has(t.code) ? "checked" : ""}><span>${t.name || t.code}</span></label>`).join("");
+  document.getElementById("chaseModal").classList.add("show");
+}
+function closeChaseModal(){ document.getElementById("chaseModal") && document.getElementById("chaseModal").classList.remove("show"); }
+function applyChase(){
+  const checks = document.querySelectorAll("#chaseRows input[type=checkbox]");
+  chaseSet = new Set([...checks].filter(c => c.checked).map(c => c.value));
+  saveChase();
+  buildGrid();
+  closeChaseModal();
+}
+loadChase();
+
 function makeTeamCell(team){
   const d = document.createElement("div");
   d.className = "cell team";
@@ -1100,11 +1188,13 @@ function makeTeamCell(team){
 
   img.onerror = () => {
     d.innerHTML = `<div class="fallback">${team.code || "?"}</div>`;
+    applyChaseTag(d, team.code);
   };
 
   d.appendChild(img);
 
   if (soldSet.has(team.code)) d.classList.add("sold");
+  applyChaseTag(d, team.code);
 
   d.addEventListener("click", () => toggleTeam(team.code, ""));
   return d;
@@ -1983,6 +2073,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+
+<div class="modal" id="chaseModal">
+  <div class="modalCard" role="dialog" aria-modal="true">
+    <div class="modalTitle">CHASE TEAMS</div>
+    <div class="modalRow">
+      <div class="modalLabel">Tag spots as Chase (adds CHASE badge + gold shimmer)</div>
+      <div id="chaseRows" class="chaseGrid"></div>
+    </div>
+    <div class="modalActions">
+      <button class="btn" onclick="closeChaseModal()">CANCEL</button>
+      <button class="btn" onclick="applyChase()">APPLY</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
