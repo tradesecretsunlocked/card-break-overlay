@@ -3162,32 +3162,29 @@ function updateHeader(){
         });
       });
 
-      // ── Custom NFL spots — appended to right conference panel ────────────────
+      // ── Custom NFL spots — split evenly across BOTH conference panels ────────
       if (currentBreakType === 'nfl'){
         const enabledSpots = loadCustomNflSpots().filter(s => s.enabled && s.title);
         if (enabledSpots.length){
-          const divWrap = document.createElement('div');
-          divWrap.className = 'division';
-
-          const divTitle = document.createElement('div');
-          divTitle.className = 'division-name';
-          divTitle.textContent = 'CUSTOM';
-          divWrap.appendChild(divTitle);
-
-          const teamGrid = document.createElement('div');
-          teamGrid.className = 'division-teams';
-
-          enabledSpots.forEach(spot => {
-            teamGrid.appendChild(makeTeamDiv({
-              code:  spot.code,
-              name:  spot.title,
-              title: spot.title,
-              image: ''
-            }));
-          });
-
-          divWrap.appendChild(teamGrid);
-          right.appendChild(divWrap);
+          const makeCustomDiv = (spots) => {
+            const divWrap = document.createElement('div');
+            divWrap.className = 'division';
+            const divTitle = document.createElement('div');
+            divTitle.className = 'division-name';
+            divTitle.textContent = 'CUSTOM';
+            divWrap.appendChild(divTitle);
+            const teamGrid = document.createElement('div');
+            teamGrid.className = 'division-teams';
+            spots.forEach(spot => {
+              teamGrid.appendChild(makeTeamDiv({ code: spot.code, name: spot.title, title: spot.title, image: '' }));
+            });
+            divWrap.appendChild(teamGrid);
+            return divWrap;
+          };
+          const half = Math.ceil(enabledSpots.length / 2);
+          left.appendChild(makeCustomDiv(enabledSpots.slice(0, half)));
+          const rest = enabledSpots.slice(half);
+          if (rest.length) right.appendChild(makeCustomDiv(rest));
         }
       }
 
@@ -3241,7 +3238,7 @@ function updateHeader(){
 
         teamDiv.dataset.nilTitle = title.textContent;
       } else {
-        label.textContent = teamObj.code || teamObj.name || '';
+        label.textContent = teamObj.title || teamObj.code || teamObj.name || '';
       }
 
       teamDiv.appendChild(label);
@@ -4243,6 +4240,16 @@ case 'set_title': {
             if (t.name) map.set(norm(t.name), code);
             if (t.title) map.set(norm(t.title), code);
           }
+        }
+      }
+      // Custom NFL spots: match the exact entered spot title to its code (automation).
+      if (sportKey === 'nfl' && typeof loadCustomNflSpots === 'function'){
+        for (const sp of loadCustomNflSpots()){
+          if (!sp.enabled || !sp.title) continue;
+          const code = String(sp.code || '').toUpperCase().trim();
+          if (!code) continue;
+          map.set(norm(code), code);
+          map.set(norm(sp.title), code);
         }
       }
       return map;
