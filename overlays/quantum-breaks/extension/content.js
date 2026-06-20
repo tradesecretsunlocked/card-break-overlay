@@ -611,6 +611,7 @@
     const restored = await loadPersistedMaps(liveId);
     const seen             = restored.seen;           // itemId → last-seen title (set ONLY after successful send)
     const lastCodeByItem   = restored.lastCodeByItem; // itemId → last team code sent (for unsold detection)
+    const sentCombos       = new Set();               // "itemId|code" already sent this session — kills reassignment-flap re-fires
 
     // Prune stale liveId entries from previous streams.
     cleanupOldPersistedMaps(liveId);
@@ -676,6 +677,17 @@
             continue;
           }
 
+          // ── Composite dedup: never re-fire the same (item, code) twice this session.
+          //    Kills the reassignment-flap storm where one sold node's title cycles
+          //    between a team and a custom spot (e.g. "Jacksonville Jaguars" ↔ "#13"),
+          //    which the title-only dedup above can't catch. A genuinely new code for
+          //    this item still passes through (real reassignment is preserved). ──
+          const combo = id + "|" + code;
+          if (sentCombos.has(combo)) {
+            seenSet(seen, id, title);
+            continue;
+          }
+
           // ── Unsold detection: same item, different real code = reassignment ──
           const prevCode    = lastCodeByItem.get(id);
           const prevIsReal  = prevCode && !prevCode.startsWith("CUSTOM_");
@@ -717,6 +729,7 @@
           if (ok) {
             seenSet(seen, id, title);
             lastCodeByItem.set(id, code);
+            sentCombos.add(combo);
             dirty = true;
 
             lastSaleText = `${buyer} • ${title} • $${amount.toFixed(2)}`;
