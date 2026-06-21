@@ -641,6 +641,7 @@ Run these checks on every overlay before marking it ready for review.
 | SSE 401 "Missing bridge key" | All `/stream` connections return 401, overlay never receives events | `EventSource` doesn't support headers; `x-bridge-key` header is ignored on SSE connections | Append `&key=${encodeURIComponent(getBridgeKey())}` to SSE URLs — applies to both main and sports channels |
 | Scores not showing (no 401) | SSE connects but ticker never shows scores | Client not added to `client_services` table, or `tsu-score-bridge` not reading Supabase | Insert row into `client_services` with `service='scores'`; confirm score-bridge env vars set; check `/status` endpoint |
 | All clients get/lose scores at once | Scores toggle affects every overlay | Using global `channel="sports"` in `getScoresChannel()` instead of per-client channel | Set `SCORES_NAMESPACE` constant and return `` `sports-${SCORES_NAMESPACE}` `` from `getScoresChannel()` |
+| Another stream's sales bleed onto the board | Tiles get marked/unmarked by a different client's events | Bridge read from `localStorage` as primary **and/or** SSE subscribed without `&key=` → overlay joins the wrong/shared scope | Hardcode `BRIDGE_URL` + `BRIDGE_KEY`; always append `&key=` to every SSE URL (main + scores). Never localStorage-primary. (SSC + SMS-source class — `overlays/sms` patched 2026-06-20) |
 
 ---
 

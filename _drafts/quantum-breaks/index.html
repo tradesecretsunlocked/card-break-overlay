@@ -4017,17 +4017,32 @@ function markSold(code, buyer = '', opts = {}){
       const saleKey = listingKey || `${code}|${buyer}`;
       const duplicate = isDuplicateSale(saleKey);
 
+      // Reassignment guard: a later event for the SAME sale (saleId) with a new
+      // code is a spot being re-labeled live (e.g. "#13" → "Jacksonville Jaguars"
+      // on a randomizer/draft break). Update the board, but do NOT replay the sold
+      // animation — only the FIRST assignment of a sale animates. This stops the
+      // "sold animation running over and over" storm when a sold node's title flaps.
+      // A real team already sold for this sale must NOT be un-marked by a transient
+      // revert to a slot number (CUSTOM_NNN / "#NN") on the SAME sale — that was
+      // dropping picks ("team not marked sold") on See2Pick1 / Stash-or-Pass reassigns.
+      const isCustomCode = c => /^CUSTOM_/i.test(c) || /^#?\d+$/.test(c);
+      const codeIsCustom = isCustomCode(code);
+      let isReassignment = false;
       if (listingKey){
         const previousCode = lastCodeByListingKey.get(listingKey);
         if (previousCode && previousCode !== code){
+          if (!isCustomCode(previousCode) && codeIsCustom){
+            return; // ignore real->slot downgrade; keep the real team marked
+          }
           markUnsold(previousCode);
+          isReassignment = true;
         }
         lastCodeByListingKey.set(listingKey, code);
       }
 
-      // State stays idempotent (markSold is safe to call again); only the
-      // animation is suppressed for a duplicate so it fires exactly once.
-      markSold(code, buyer, { animate: !duplicate });
+      // State stays idempotent (markSold is safe to call again); the animation
+      // fires exactly once per sale — suppressed for duplicate deliveries AND reassignments.
+      markSold(code, buyer, { animate: !duplicate && !isReassignment });
     }
 
     function applyUnsoldPayload(payload){

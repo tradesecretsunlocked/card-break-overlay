@@ -693,6 +693,10 @@
           const prevIsReal  = prevCode && !prevCode.startsWith("CUSTOM_");
           const newIsReal   = !code.startsWith("CUSTOM_");
 
+          // Source-side downgrade guard: a transient slot/custom revert ("#NN") must not
+          // unmark a real team already sold for this sale (See2Pick1 / Stash-or-Pass).
+          if (prevIsReal && !newIsReal) { continue; }
+
           if (prevIsReal && newIsReal && prevCode !== code) {
             // Send unsold for the previous assignment before marking the new one
             await sendEvent(cfg, {
