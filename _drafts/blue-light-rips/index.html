@@ -398,6 +398,85 @@ background-size: 140% auto; /* try 140–220% */
       animation: none;
     }
 
+    /* ===== Team SOLD animation (flying card — no glass break, no audio) ===== */
+    .sold-fx-layer{ position:fixed; inset:0; pointer-events:none; z-index:99990; overflow:visible; }
+    .sold-fx-card{
+      position:absolute; left:0; top:0; width:420px; height:250px; opacity:0;
+      transform: translate3d(0,0,0) scale(.28); transform-origin:center center;
+      filter: drop-shadow(0 18px 28px rgba(0,0,0,0.74)) drop-shadow(0 0 24px rgba(30,102,255,0.22)) drop-shadow(0 0 24px rgba(91,140,255,0.18));
+      will-change: transform, opacity;
+    }
+    .sold-fx-card.play{ animation: soldFxCardTravel 1850ms cubic-bezier(.18,.84,.18,1) forwards; }
+    .sold-fx-spin{ position:absolute; inset:0; transform-style:preserve-3d; will-change:transform; }
+    .sold-fx-card.play .sold-fx-spin{ animation: soldFxSpin 760ms cubic-bezier(.2,.8,.2,1) 120ms forwards; }
+    .sold-fx-inner{
+      position:relative; width:100%; height:100%; border-radius:20px; overflow:hidden;
+      background:
+        radial-gradient(240px 110px at 20% 14%, rgba(30,102,255,0.20), transparent 60%),
+        radial-gradient(240px 110px at 80% 86%, rgba(91,140,255,0.18), transparent 60%),
+        linear-gradient(180deg, rgba(10,10,12,0.98), rgba(3,3,5,0.98));
+      border:2px solid rgba(255,255,255,0.22);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), 0 0 30px rgba(0,0,0,0.35);
+      transform: translateZ(0); backface-visibility:hidden;
+    }
+    .sold-fx-inner::before{
+      content:""; position:absolute; inset:0;
+      background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, rgba(0,0,0,0) 3px, rgba(0,0,0,0) 6px);
+      opacity:.12; pointer-events:none;
+    }
+    .sold-fx-team-img{
+      position:absolute; inset:14px 14px 54px 14px; width:calc(100% - 28px); height:calc(100% - 68px);
+      object-fit:cover; border-radius:14px; border:2px solid rgba(255,255,255,0.14); background:#000;
+      box-shadow: 0 0 16px rgba(30,102,255,0.10), 0 0 16px rgba(91,140,255,0.10);
+    }
+    .sold-fx-name{
+      position:absolute; left:14px; right:14px; bottom:14px; text-align:center;
+      font-size:20px; letter-spacing:1px; font-weight:900; color:#fff; text-transform:uppercase;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.95), 0 0 12px rgba(30,102,255,0.18);
+    }
+    .sold-fx-stamp{
+      position:absolute; left:50%; top:50%;
+      transform: translate(-50%,-50%) rotate(-12deg) scale(1.8);
+      padding:12px 28px; border-radius:14px; border:3px solid rgba(255,255,255,0.92);
+      background: linear-gradient(135deg, rgba(30,102,255,0.96), rgba(12,40,140,0.98));
+      color:#fff; font-size:40px; font-weight:900; letter-spacing:3px; text-transform:uppercase;
+      text-shadow:0 2px 8px rgba(0,0,0,0.84);
+      box-shadow: 0 0 24px rgba(30,102,255,0.40), 0 10px 24px rgba(0,0,0,0.42);
+      opacity:0;
+    }
+    .sold-fx-card.play .sold-fx-stamp{ animation: soldFxStamp 620ms cubic-bezier(.12,.84,.22,1) 760ms forwards; }
+    .sold-fx-burst{
+      position:absolute; inset:-10%; pointer-events:none; opacity:0;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,0.28) 0 5%, transparent 16%),
+        radial-gradient(circle at 50% 50%, rgba(30,102,255,0.26) 0 16%, transparent 38%),
+        radial-gradient(circle at 50% 50%, rgba(91,140,255,0.20) 0 24%, transparent 52%);
+    }
+    .sold-fx-card.play .sold-fx-burst{ animation: soldFxBurst 850ms ease-out 140ms forwards; }
+    @keyframes soldFxCardTravel{
+      0%{ opacity:.25; transform: translate3d(var(--fx-start-x), var(--fx-start-y), 0) scale(.20); }
+      20%{ opacity:1; transform: translate3d(var(--fx-mid-x), var(--fx-mid-y), 0) scale(.72); }
+      36%{ opacity:1; transform: translate3d(var(--fx-end-x), var(--fx-end-y), 0) scale(1.02); }
+      72%{ opacity:1; transform: translate3d(var(--fx-end-x), var(--fx-end-y), 0) scale(1); }
+      100%{ opacity:0; transform: translate3d(var(--fx-end-x), calc(var(--fx-end-y) - 18px), 0) scale(.92); }
+    }
+    @keyframes soldFxSpin{
+      0%{ transform: perspective(1200px) rotateY(-95deg) rotateX(6deg); }
+      55%{ transform: perspective(1200px) rotateY(18deg) rotateX(-2deg); }
+      75%{ transform: perspective(1200px) rotateY(-8deg) rotateX(0deg); }
+      100%{ transform: perspective(1200px) rotateY(0deg) rotateX(0deg); }
+    }
+    @keyframes soldFxStamp{
+      0%{ opacity:0; transform: translate(-50%,-105%) rotate(-18deg) scale(1.85); }
+      60%{ opacity:1; transform: translate(-50%,-50%) rotate(-10deg) scale(.92); }
+      100%{ opacity:1; transform: translate(-50%,-50%) rotate(-12deg) scale(1); }
+    }
+    @keyframes soldFxBurst{
+      0%{ opacity:0; transform: scale(.55); }
+      28%{ opacity:.78; }
+      100%{ opacity:0; transform: scale(1.28); }
+    }
+
     .sideStack{
       display:flex;
       flex-direction: column;
@@ -1331,6 +1410,50 @@ function buildTile(team){
   /* =========================
      Sold / Toggle
   ========================== */
+function getTeamByCode(code){
+  const c = String(code||'').toUpperCase();
+  const cfg = breakTypes[currentSport];
+  if (cfg && Array.isArray(cfg.teams)){ const h = cfg.teams.find(t => String(t.code||'').toUpperCase() === c); if (h) return h; }
+  for (const k in breakTypes){ const arr = breakTypes[k] && breakTypes[k].teams; if (Array.isArray(arr)){ const h = arr.find(t => String(t.code||'').toUpperCase() === c); if (h) return h; } }
+  return { code:String(code||''), name:String(code||''), image:'' };
+}
+function playSoldAnimation(code){
+  const team = getTeamByCode(code); if (!team) return;
+  const fxLayer = document.getElementById("soldFxLayer");
+  const tile = document.querySelector(`[data-team-code="${code}"]`);
+  if (!fxLayer || !tile) return;
+  const tileRect = tile.getBoundingClientRect();
+  const layerRect = fxLayer.getBoundingClientRect();
+  const cardW = 420, cardH = 250;
+  const startCenterX = (tileRect.left - layerRect.left) + (tileRect.width/2);
+  const startCenterY = (tileRect.top - layerRect.top) + (tileRect.height/2);
+  const startX = startCenterX - cardW/2, startY = startCenterY - cardH/2;
+  const endX = (layerRect.width/2) - cardW/2;
+  const endY = Math.max(40, layerRect.height*0.19);
+  const midX = startX + (endX-startX)*0.48, midY = startY + (endY-startY)*0.48 - 28;
+  const card = document.createElement("div");
+  card.className = "sold-fx-card";
+  card.style.setProperty("--fx-start-x", `${startX}px`);
+  card.style.setProperty("--fx-start-y", `${startY}px`);
+  card.style.setProperty("--fx-mid-x", `${midX}px`);
+  card.style.setProperty("--fx-mid-y", `${midY}px`);
+  card.style.setProperty("--fx-end-x", `${endX}px`);
+  card.style.setProperty("--fx-end-y", `${endY}px`);
+  card.innerHTML = `
+    <div class="sold-fx-spin">
+      <div class="sold-fx-inner">
+        <div class="sold-fx-burst"></div>
+        ${team.image ? `<img class="sold-fx-team-img" src="${team.image}" alt="${team.name||team.code}">` : ""}
+        <div class="sold-fx-stamp">SOLD</div>
+        <div class="sold-fx-name">${String(team.name||team.code||'').toUpperCase()}</div>
+      </div>
+    </div>`;
+  fxLayer.appendChild(card);
+  const img = card.querySelector(".sold-fx-team-img");
+  if (img) img.onerror = () => img.remove();
+  requestAnimationFrame(() => card.classList.add("play"));
+  setTimeout(() => card.remove(), 2100);
+}
  function markSold(code){
   if (!code) return;
 
@@ -1357,7 +1480,8 @@ function markUnsold(code){
 }
 
   function toggleTeam(code){
-    soldSet.has(code) ? markUnsold(code) : markSold(code);
+    if (soldSet.has(code)){ markUnsold(code); }
+    else { markSold(code); if (typeof playSoldAnimation==='function') playSoldAnimation(code); }
     updateStats();
     renderSoldPanel();
   }
@@ -1809,7 +1933,9 @@ let code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.titl
     }
 
     // Mark the current team sold
+    const _freshSold = !soldSet.has(code);
     markSold(code);
+    if (_freshSold && typeof playSoldAnimation==='function') playSoldAnimation(code);
 console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "tile exists?", !!document.querySelector(`[data-team-code="${code}"]`));
     // If buyer provided, store it on the soldList row
     if (payload.buyer){
@@ -2062,5 +2188,6 @@ if (BRIDGE_URL) {
     setInterval(rotateBanner, 9000);
   });
 </script>
+<div id="soldFxLayer" class="sold-fx-layer" aria-hidden="true"></div>
 </body>
 </html>
