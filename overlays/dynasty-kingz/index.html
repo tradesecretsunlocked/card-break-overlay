@@ -164,7 +164,7 @@ background-size: 140% auto; /* try 140–220% */
       z-index: 5;
     }
     .brand-center img{
-      height: 255px;
+      height: 143px;
       width:auto;
       top: -6px;
       position:relative;
@@ -303,8 +303,8 @@ background-size: 140% auto; /* try 140–220% */
       background:
         radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), transparent 55%),
         radial-gradient(circle at 70% 70%, rgba(255,45,149,0.10), transparent 55%),
-        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.20));
-      opacity: .9;
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.30));
+      opacity: .32;
       pointer-events:none;
     }
 
@@ -398,6 +398,34 @@ background-size: 140% auto; /* try 140–220% */
       animation: none;
     }
 
+    /* Chaser highlight: gold glow + shimmer + tag */
+    .tile.chaser{
+      border-color: rgba(255,205,90,0.95);
+      animation: chaserShimmer 2.2s ease-in-out infinite;
+    }
+    @keyframes chaserShimmer{
+      0%,100%{ box-shadow: inset 0 0 0 2px rgba(255,205,90,0.45), 0 0 10px 1px rgba(255,190,60,0.40), 0 6px 14px rgba(0,0,0,0.45); }
+      50%    { box-shadow: inset 0 0 0 2px rgba(255,228,150,0.90), 0 0 22px 5px rgba(255,200,70,0.80), 0 6px 14px rgba(0,0,0,0.45); }
+    }
+    .tile.chaser .fx{
+      position:absolute; inset:0; z-index:3; pointer-events:none;
+      background: linear-gradient(115deg, transparent 38%, rgba(255,231,160,0.40) 50%, transparent 62%);
+      background-size: 250% 100%;
+      animation: chaserSweep 2.6s linear infinite;
+    }
+    @keyframes chaserSweep{ 0%{ background-position:200% 0; } 100%{ background-position:-60% 0; } }
+    .tile .chaser-tag{
+      position:absolute; top:3px; left:3px; z-index:4;
+      display:none; align-items:center; gap:3px;
+      font-size:9px; font-weight:900; letter-spacing:.4px;
+      padding:2px 5px; border-radius:6px;
+      background: linear-gradient(180deg,#ffe07a,#e0a020);
+      color:#3a2400; text-transform:uppercase;
+      box-shadow: 0 1px 4px rgba(0,0,0,.55);
+      pointer-events:none;
+    }
+    .tile.chaser .chaser-tag{ display:inline-flex; }
+
     .sideStack{
       display:flex;
       flex-direction: column;
@@ -447,6 +475,7 @@ background-size: 140% auto; /* try 140–220% */
     .banner{
       margin-top: 10px;
       height: var(--bannerH);
+      perspective: 900px;
       border-radius: 14px;
       background: rgba(0,0,0,0.55);
       border: 1px solid rgba(255,255,255,0.10);
@@ -460,15 +489,24 @@ background-size: 140% auto; /* try 140–220% */
       position:absolute;
       inset:0;
       opacity: 0;
-      transform: translateY(50px);
-      transition: opacity .85s ease, transform .85s ease;
+      transform: rotateY(90deg) scale(0.9);
+      transform-origin: center center;
       border-radius: 14px;
       overflow:hidden;
+      backface-visibility: hidden;
     }
 
     .banner-inner.active{
       opacity: 1;
-      transform: translateY(0);
+      transform: rotateY(0deg) scale(1);
+      animation: bannerFlipIn .8s cubic-bezier(.2,.9,.25,1.15);
+    }
+
+    @keyframes bannerFlipIn{
+      0%   { opacity:0; transform: rotateY(90deg) scale(0.86); }
+      55%  { opacity:1; transform: rotateY(-12deg) scale(1.05); }
+      78%  { transform: rotateY(6deg) scale(0.99); }
+      100% { opacity:1; transform: rotateY(0deg) scale(1); }
     }
 
     .banner-inner .bg{
@@ -487,6 +525,7 @@ background-size: 140% auto; /* try 140–220% */
       height:100%;
       display:flex;
       align-items:center;
+      justify-content:center;
       gap: 6px;
       padding: 0 8px;
       border:solid 1px rgba(255,111,181,0.55);
@@ -511,6 +550,9 @@ background-size: 140% auto; /* try 140–220% */
     .banner-text{
       display:flex;
       flex-direction:column;
+      align-items:center;
+      text-align:center;
+      width:100%;
       gap: 2px;
       line-height: 1.05;
       text-shadow: 0 2px 0 rgba(0,0,0,0.85);
@@ -523,9 +565,17 @@ background-size: 140% auto; /* try 140–220% */
       opacity: 0.85;
     }
     .banner-text .main{
-      font-size: 20px;
+      display: block;               /* override the global .main grid rule that pushed text into the left column */
+      font-size: 29px;
       font-weight: 900;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      width: 100%;
+      text-align: center;
+      white-space: normal;
+      color: #ffffff;
+      text-shadow: 0 0 12px rgba(255,45,149,0.95), 0 2px 0 rgba(0,0,0,0.9);
+      -webkit-text-stroke: 0.6px rgba(255,45,149,0.55);
     }
 
     /* =========================
@@ -723,7 +773,24 @@ background-size: 140% auto; /* try 140–220% */
       font-weight:900;
       outline:none;
     }
-  </style>
+  
+/* ===== TSU FLOATING RANDOMIZER WHEEL (Dynasty Kingz — black/neon-pink) ===== */
+#wheel-float{position:absolute;left:50%;top:54%;transform:translate(-50%,-50%);z-index:9000;width:var(--wheel-size,420px);height:var(--wheel-size,420px);cursor:grab;pointer-events:auto;box-sizing:border-box;display:none;}
+#wheel-float.dragging{cursor:grabbing;}
+#wheel-float.resizing{cursor:nwse-resize;}
+#wheel-resize-handle{position:absolute;right:-8px;bottom:-8px;width:24px;height:24px;border-radius:50%;background:linear-gradient(180deg,#ff6fb5,#ff2d95);border:2px solid rgba(0,0,0,.55);box-shadow:0 4px 10px rgba(0,0,0,.45);z-index:5;cursor:nwse-resize;}
+#wheelCanvasFloat{display:block;width:100%;height:100%;opacity:.98;filter:drop-shadow(0 10px 28px rgba(0,0,0,.75)) drop-shadow(0 0 18px rgba(255,45,149,.3));}
+.wheel-pointer-float{position:absolute;top:50%;right:-10px;transform:translateY(-50%);width:0;height:0;border-top:16px solid transparent;border-bottom:16px solid transparent;border-right:28px solid #ff2d95;filter:drop-shadow(0 0 10px rgba(255,45,149,.45)) drop-shadow(0 4px 8px rgba(0,0,0,.55));z-index:4;pointer-events:none;}
+#wheel-winner-banner{position:absolute;left:50%;top:calc(54% + var(--wheel-size,420px) * 0.43);transform:translateX(-50%);z-index:9001;min-width:calc(var(--wheel-size,420px) * 0.70);max-width:calc(var(--wheel-size,420px) * 1.05);padding:calc(var(--wheel-size,420px) * 0.024) calc(var(--wheel-size,420px) * 0.038);border-radius:999px;border:2px solid rgba(255,45,149,.5);background:linear-gradient(180deg,rgba(0,0,0,.9),rgba(40,10,30,.92));box-shadow:0 10px 24px rgba(0,0,0,.45);text-align:center;font-weight:900;font-size:calc(var(--wheel-size,420px) * 0.052);letter-spacing:1px;color:#ff9fd0;text-transform:uppercase;pointer-events:none;opacity:0;transition:opacity .18s ease;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#wheel-winner-banner.show{opacity:1;}
+#wheel-winner-label{opacity:.78;font-size:calc(var(--wheel-size,420px) * 0.028);margin-right:8px;}
+#wheel-winner-text{color:#fff;}
+#wheel-controls{position:absolute;left:14px;bottom:14px;z-index:9002;display:flex;gap:8px;}
+#wheel-controls button{font-family:Arial,sans-serif;font-weight:800;font-size:13px;padding:9px 16px;border-radius:10px;border:1px solid rgba(255,45,149,.6);cursor:pointer;}
+#wheel-controls .wbtn-spin{background:linear-gradient(180deg,#ff6fb5,#ff2d95);color:#0a0a0a;}
+#wheel-controls .wbtn-toggle{background:#0a0a0a;color:#ff9fd0;}
+#wheel-controls .wbtn-alt{background:#1a0a14;color:#ffd76a;border-color:rgba(255,205,90,.6);}
+</style>
 </head>
 
 <body>
@@ -822,8 +889,56 @@ background-size: 140% auto; /* try 140–220% */
       <div class="pill" id="exportBtn">Export CSV</div>
       <div class="pill" id="chasersBtn">Pick Chasers</div>
       <div class="pill" id="sportBtn">Change Sport</div>
+      <div class="pill" id="customBtn">Custom Spots</div>
+      <div class="pill" id="bannerBtn">Edit Banner</div>
     </div>
     <div class="sold-grid" id="soldGrid"></div>
+  </div>
+
+  <!-- Custom Spots Popup -->
+  <div class="popup" id="customPopup">
+    <div class="popup-card">
+      <h2>Custom Spot Names</h2>
+      <div style="font-size:12px;opacity:.8;margin:0 0 6px">One name per line — paste or type (up to 30; that's the board's capacity: 10 + 10 + 10). The board fills with these tiles.</div>
+      <textarea id="customBox" placeholder="Player 1&#10;Player 2&#10;Player 3"></textarea>
+      <div class="popup-btns"><button id="applyCustom">Apply</button><button id="closeCustom">Cancel</button></div>
+    </div>
+  </div>
+
+  <!-- Edit Banner Popup -->
+  <div class="popup" id="bannerPopup">
+    <div class="popup-card">
+      <h2>Promo Banner Messages</h2>
+      <div style="font-size:12px;opacity:.8;margin:0 0 6px">One message per line — each line is its own banner (flips between).</div>
+      <textarea id="bannerBox" placeholder="FOLLOW ON IG&#10;JOIN THE DISCORD&#10;BIG BREAK TONIGHT"></textarea>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;margin:8px 0 2px">
+        <label for="bannerSecs">Seconds between messages</label>
+        <input id="bannerSecs" type="number" min="2" max="60" step="1" value="9" style="width:64px;padding:4px 6px;border-radius:6px;border:1px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.4);color:#fff">
+      </div>
+      <div class="popup-btns"><button id="applyBanner">Apply</button><button id="closeBanner">Cancel</button></div>
+    </div>
+  </div>
+
+  <!-- Wheel Spots Popup -->
+  <div class="popup" id="wheelPopup">
+    <div class="popup-card">
+      <h2>Wheel Spots</h2>
+      <div style="font-size:12px;opacity:.8;margin:0 0 8px">Add spots, paste/override the full list (one per line), import a CSV, shuffle, or sync back to the board's teams. Use ✖ Remove on the controls to drop the last winner.</div>
+      <div style="display:flex;gap:8px;margin:0 0 8px">
+        <input id="wheelAddInput" type="text" placeholder="Add a single spot…" style="flex:1;padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.25);background:rgba(0,0,0,0.4);color:#fff">
+        <button id="wheelAddBtn">Add</button>
+      </div>
+      <textarea id="wheelBox" placeholder="Spot 1&#10;Spot 2&#10;Spot 3"></textarea>
+      <div style="display:flex;align-items:center;gap:8px;font-size:12px;margin:8px 0 2px">
+        <label for="wheelCsv">Import CSV</label>
+        <input id="wheelCsv" type="file" accept=".csv,text/csv" style="font-size:12px;color:#fff">
+      </div>
+      <div class="popup-btns">
+        <button id="applyWheel">Apply List</button>
+        <button id="wheelSyncBtn">Sync to Board</button>
+        <button id="closeWheel">Close</button>
+      </div>
+    </div>
   </div>
 
   <!-- Export Popup -->
@@ -884,11 +999,14 @@ background-size: 140% auto; /* try 140–220% */
      Paths (standard BASE)
   ========================== */
   const BASE = (() => {
-    const isGhPages = location.hostname.endsWith('github.io');
-    if (isGhPages) {
+    // Repo root = everything up to and including the slash before "/overlays/".
+    // Correct on GitHub Pages, file://, and any server rooted at the repo.
+    const path = location.href.split(/[?#]/)[0];
+    const i = path.indexOf('/overlays/');
+    if (i !== -1) return path.slice(0, i + 1);
+    if (location.hostname.endsWith('github.io')) {
       const parts = location.pathname.split('/').filter(Boolean);
-      const repo = parts.length ? parts[0] : '';
-      return `/${repo}/`;
+      return `/${parts.length ? parts[0] : ''}/`;
     }
     return '../../';
   })();
@@ -914,6 +1032,17 @@ document.documentElement.style.setProperty(
   '--skyline',
   `url('${BASE}images/logos/dynasty-kingz-bg.png')`
 );
+
+// Camera box studio backdrop (studio-bg-2.png in repo root)
+(() => {
+  const camEl = document.getElementById('camFrame');
+  if (camEl){
+    camEl.style.backgroundImage = `url('${new URL('studio-bg-2.png', location.href).href}')`;
+    camEl.style.backgroundSize = 'cover';
+    camEl.style.backgroundPosition = 'center';
+    camEl.style.backgroundRepeat = 'no-repeat';
+  }
+})();
 
 
   // Sport image helpers
@@ -1055,19 +1184,31 @@ const CHANNELS = (() => {
   /* =========================
      Banners (3 rotating)
   ========================== */
-  const BANNERS = [
-    { badge: "IG",   image: bannerImg('ig.png') },
-    { badge: "DIS",  image: bannerImg('discord.png') },
-    { badge: "PRO",  image: bannerImg('promo.png') }
-  ];
+  // Promo banner — single bg (promo.png, repo root); each text line is its own banner (flips between).
+  const PROMO_BG = new URL('promo.png', location.href).href; // promo.png lives in this overlay's own folder
+  const DEFAULT_BANNER_LINES = ["FOLLOW ON IG @DYNASTYKINGZ", "JOIN THE DISCORD", "DYNASTY KINGZ • LIVE BREAKS"];
+  function loadBannerLines(){ try{ const raw=LS.get('bannerLines',''); const a=raw?JSON.parse(raw):null; return (Array.isArray(a)&&a.length)?a:DEFAULT_BANNER_LINES.slice(); }catch(_){ return DEFAULT_BANNER_LINES.slice(); } }
+  function saveBannerLines(a){ LS.set('bannerLines', JSON.stringify(a||[])); }
+  let bannerLines = loadBannerLines();
+  function loadBannerSecs(){ const n = parseInt(LS.get('bannerSecs','9'),10); return (isFinite(n)&&n>=2&&n<=60)?n:9; }
+  function saveBannerSecs(n){ LS.set('bannerSecs', String(n)); }
+  let bannerSecs = loadBannerSecs();
+  let bannerTimer = null;
+  function startBannerTimer(){ if (bannerTimer) clearInterval(bannerTimer); bannerTimer = setInterval(rotateBanner, Math.max(2, bannerSecs) * 1000); }
 
   /* =========================
      Sport / Layout Config
   ========================== */
+  // Custom layout — seller-entered spot names (one per line via "Custom Spots"). Board fills with the names.
+  function loadCustomNames(){ try{ const raw=LS.get('customNames',''); const a=raw?JSON.parse(raw):[]; return Array.isArray(a)?a:[]; }catch(_){ return []; } }
+  function saveCustomNames(a){ LS.set('customNames', JSON.stringify(a||[])); }
+  function buildCustomTeams(names){ return (names||[]).map(n=>String(n||'').trim()).filter(Boolean).map((nm,i)=>({ code:'C'+(i+1), name:nm, image:'' })); }
+  let CUSTOM = buildCustomTeams(loadCustomNames());
   const breakTypes = {
     nba: { name: "NBA", teams: NBA, count: 30, bottomCols: 5, bottomCount: 10 },
     mlb: { name: "MLB", teams: MLB, count: 30, bottomCols: 5, bottomCount: 10 },
-    nfl: { name: "NFL", teams: NFL, count: 32, bottomCols: 6, bottomCount: 12 }
+    nfl: { name: "NFL", teams: NFL, count: 32, bottomCols: 6, bottomCount: 12 },
+    custom: { name: "CUSTOM", teams: CUSTOM, count: CUSTOM.length, bottomCols: 5, bottomCount: Math.min(10, CUSTOM.length) }
   };
 
   /* =========================
@@ -1277,6 +1418,12 @@ function applySportCSS(){
   /* =========================
      Tile / Render
   ========================== */
+function applyChaserHighlights(){
+  document.querySelectorAll('.tile').forEach(t => {
+    const code = t.dataset.teamCode ? String(t.dataset.teamCode).toUpperCase() : '';
+    t.classList.toggle('chaser', !!(code && chasersSet.has(code)));
+  });
+}
 function buildTile(team){
   const d = document.createElement('div');
   d.className = 'tile';
@@ -1287,10 +1434,16 @@ function buildTile(team){
   fx.className = 'fx';
   d.appendChild(fx);
 
+  const chTag = document.createElement('div');
+  chTag.className = 'chaser-tag';
+  chTag.textContent = '★ Chaser';
+  d.appendChild(chTag);
+
   const img = document.createElement('img');
-  img.src = team.image;
+  img.src = team.image || '';
   img.alt = team.name;
-  img.onerror = () => { d.textContent = team.code; };
+  img.onerror = () => { d.textContent = team.name || team.code; };
+  if (!team.image){ img.style.display = 'none'; d.textContent = team.name || team.code; }
 
   d.appendChild(img);
   d.addEventListener('click', () => toggleTeam(team.code));
@@ -1324,6 +1477,7 @@ function buildTile(team){
       if (el) el.classList.add('sold');
     });
 
+    applyChaserHighlights();
     updateStats();
     renderSoldPanel();
   }
@@ -1383,9 +1537,9 @@ const _cycleOrder = ["nba","nfl","mlb"];
 
   function renderSoldPanel(){
     soldGrid.innerHTML = '';
+    // Panel visibility is controlled ONLY by the Sold-stat toggle (toggleSold).
+    // Do NOT auto open/close here just because sales changed.
     if (soldList.length === 0){
-      soldOpen = false;
-      soldWrap.classList.remove('active');
       return;
     }
 
@@ -1413,9 +1567,6 @@ const _cycleOrder = ["nba","nfl","mlb"];
       row.appendChild(input);
       soldGrid.appendChild(row);
     });
-
-    soldOpen = true;
-    soldWrap.classList.add('active');
   }
 
   /* =========================
@@ -1571,51 +1722,37 @@ function setScoreboard(games, sport){
   ========================== */
   function renderBanner(){
     const host = document.getElementById('banner');
+    if (!host) return;
     host.innerHTML = '';
+    if (bannerIdx >= bannerLines.length) bannerIdx = 0;
 
-    BANNERS.forEach((b, i) => {
+    bannerLines.forEach((line, i) => {
       const slide = document.createElement('div');
       slide.className = 'banner-inner' + (i === bannerIdx ? ' active' : '');
 
-      if (b.image){
-        const bg = document.createElement('img');
-        bg.className = 'bg';
-        bg.src = b.image;
-        bg.alt = '';
-        slide.appendChild(bg);
-      }
+      const bg = document.createElement('img');
+      bg.className = 'bg';
+      bg.src = PROMO_BG;
+      bg.alt = '';
+      bg.onerror = () => { bg.style.display = 'none'; };
+      slide.appendChild(bg);
 
       const content = document.createElement('div');
       content.className = 'banner-content';
-
-      const badge = document.createElement('div');
-      badge.className = 'banner-badge';
-      badge.textContent = b.badge || '';
-
       const text = document.createElement('div');
       text.className = 'banner-text';
-
-      const top = document.createElement('div');
-      top.className = 'top';
-      top.textContent = b.top || '';
-
       const main = document.createElement('div');
       main.className = 'main';
-      main.textContent = b.main || '';
-
-      text.appendChild(top);
+      main.textContent = String(line || '');
       text.appendChild(main);
-
-      content.appendChild(badge);
       content.appendChild(text);
-
       slide.appendChild(content);
       host.appendChild(slide);
     });
   }
 
   function rotateBanner(){
-    bannerIdx = (bannerIdx + 1) % BANNERS.length;
+    bannerIdx = (bannerIdx + 1) % Math.max(1, bannerLines.length);
     const slides = document.querySelectorAll('.banner-inner');
     slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
   }
@@ -1628,6 +1765,7 @@ function setScoreboard(games, sport){
     if (!breakTypes[next]) return;
 
     currentSport = next;
+    if (typeof refreshWheelEntries === 'function') refreshWheelEntries();
     saveSport();
     applySportCSS();
 
@@ -1646,7 +1784,7 @@ function setScoreboard(games, sport){
   }
 
   function cycleSport(){
-    const order = ['nba','nfl','mlb'];
+    const order = ['nba','nfl','mlb','custom'];
     const idx = order.indexOf(currentSport);
     const next = order[(idx + 1 + order.length) % order.length];
     setSport(next);
@@ -1940,6 +2078,8 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
   document.getElementById("applyChasers").addEventListener("click", () => {
     saveChasers();
     updateStreamStatsBox();
+    if (typeof applyChaserHighlights === 'function') applyChaserHighlights();
+    if (typeof drawWheel === 'function') drawWheel();
     chasersPopup.classList.remove("active");
   });
 
@@ -2059,8 +2199,161 @@ if (BRIDGE_URL) {
 
   
 
-    setInterval(rotateBanner, 9000);
+    startBannerTimer();
   });
+
+/* ===== TSU Randomizer Wheel (Dynasty Kingz) — default = current sport's teams (incl. CUSTOM) ===== */
+let wheelEntries = [];
+let wheelRotation = 0;
+let wheelSpinning = false;
+let wheelWinner = null;
+let wheelIdleRAF = null;
+let wheelLastIdleTs = 0;
+let wheelVisible = false;
+const WHEEL_IDLE_SPEED = 0.08;
+
+function collectWheelEntries(){
+  const cfg = breakTypes[currentSport];
+  if (!cfg || !Array.isArray(cfg.teams)) return [];
+  return cfg.teams.map(t => ({
+    code: String(t.code || '').trim(),
+    label: String(t.name || t.title || t.code || ''),
+    sold: (typeof soldSet !== 'undefined' && soldSet) ? soldSet.has(String(t.code || '').trim()) : false
+  }));
+}
+function pickWheelWinner(){
+  if (!wheelEntries.length) return null;
+  const slice = (Math.PI * 2) / wheelEntries.length;
+  const normalized = ((Math.PI * 2) - (wheelRotation % (Math.PI * 2))) % (Math.PI * 2);
+  const index = Math.floor(normalized / slice) % wheelEntries.length;
+  return wheelEntries[index] || null;
+}
+function drawWheel(){
+  const canvas = document.getElementById('wheelCanvasFloat');
+  const wheel = document.getElementById('wheel-float');
+  if (!canvas || !wheel) return;
+  const rect = wheel.getBoundingClientRect();
+  const cssSize = Math.max(240, Math.round(rect.width || 420));
+  const pr = Math.max(1, window.devicePixelRatio || 1);
+  const internal = Math.round(cssSize * pr);
+  if (canvas.width !== internal || canvas.height !== internal){ canvas.width = internal; canvas.height = internal; }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,canvas.width,canvas.height); ctx.scale(pr,pr);
+  const w = cssSize, cx = w/2, cy = w/2, radius = cssSize*0.444, hubR = cssSize*0.08;
+  const labelFont = Math.max(10, Math.round(cssSize*0.043));
+  const labelPad = Math.max(18, Math.round(cssSize*0.04));
+  const maxChars = cssSize>=560?20:cssSize>=460?17:cssSize>=360?14:11;
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(wheelRotation);
+  if (!wheelEntries.length){
+    ctx.beginPath(); ctx.arc(0,0,radius,0,Math.PI*2); ctx.fillStyle='#1a0a14'; ctx.fill();
+    ctx.lineWidth=Math.max(4,cssSize*0.008); ctx.strokeStyle='rgba(255,159,208,0.45)'; ctx.stroke();
+    ctx.fillStyle='#ff9fd0'; ctx.font=`900 ${Math.max(18,Math.round(cssSize*0.06))}px ui-sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('NO ENTRIES',0,0); ctx.restore(); return;
+  }
+  const slice = (Math.PI*2)/wheelEntries.length;
+  wheelEntries.forEach((entry,i)=>{
+    const start=i*slice, end=start+slice;
+    const isCh = !!(entry.code && typeof chasersSet!=='undefined' && chasersSet && chasersSet.has(String(entry.code).toUpperCase()));
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,radius,start,end); ctx.closePath();
+    ctx.fillStyle = isCh ? 'rgba(255,193,60,0.97)' : ((i%2===0) ? 'rgba(255,45,149,0.92)' : 'rgba(18,18,18,0.95)'); ctx.fill();
+    ctx.lineWidth = isCh ? Math.max(3,cssSize*0.009) : Math.max(2,cssSize*0.0045);
+    ctx.strokeStyle = isCh ? 'rgba(255,240,190,0.98)' : 'rgba(255,159,208,0.85)'; ctx.stroke();
+    ctx.save(); ctx.rotate(start+slice/2); ctx.textAlign='right'; ctx.textBaseline='middle';
+    ctx.fillStyle = isCh ? '#2a1c00' : '#FFFFFF'; ctx.font=`900 ${labelFont}px ui-sans-serif`;
+    const txt=(isCh?'★ ':'')+String(entry.label||entry.code||'').toUpperCase();
+    ctx.fillText(txt.length>maxChars?txt.slice(0,maxChars)+'…':txt, radius-labelPad, 0); ctx.restore();
+  });
+  ctx.restore();
+  ctx.beginPath(); ctx.arc(cx,cy,hubR,0,Math.PI*2); ctx.fillStyle='rgba(0,0,0,0.9)'; ctx.fill();
+  ctx.lineWidth=Math.max(3,cssSize*0.007); ctx.strokeStyle='rgba(255,45,149,0.9)'; ctx.stroke();
+  ctx.fillStyle='#ff9fd0'; ctx.font=`900 ${Math.max(12,Math.round(cssSize*0.035))}px ui-sans-serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('DK',cx,cy);
+}
+function refreshWheelEntries(){ if(!(wheelManual && wheelEntries.length)) wheelEntries = collectWheelEntries(); wheelWinner=null; drawWheel(); clearWheelWinnerBanner(); if(!wheelSpinning) startWheelIdleSpin(); }
+let wheelManual = false;
+function saveWheelState(){ try{ LS.set('wheelEntries', JSON.stringify({manual:wheelManual, entries:(wheelEntries||[]).map(e=>({code:e.code||'',label:e.label||''}))})); }catch(_){ } }
+function loadWheelState(){ try{ const raw=LS.get('wheelEntries',''); if(!raw) return; const o=JSON.parse(raw); if(o && o.manual && Array.isArray(o.entries) && o.entries.length){ wheelManual=true; wheelEntries=o.entries.map(e=>({code:String(e.code||''),label:String(e.label||e.code||''),sold:false})); } }catch(_){ } }
+function wheelShuffle(){ for(let i=wheelEntries.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const tmp=wheelEntries[i]; wheelEntries[i]=wheelEntries[j]; wheelEntries[j]=tmp; } wheelManual=true; wheelWinner=null; saveWheelState(); clearWheelWinnerBanner(); drawWheel(); }
+function wheelRemoveWinner(){ if(!wheelWinner) return; const key=(wheelWinner.code||'')+'|'+(wheelWinner.label||''); const idx=wheelEntries.findIndex(e=>((e.code||'')+'|'+(e.label||''))===key); if(idx!==-1) wheelEntries.splice(idx,1); wheelManual=true; wheelWinner=null; saveWheelState(); clearWheelWinnerBanner(); drawWheel(); }
+function wheelAddItem(label){ const s=String(label||'').trim(); if(!s) return; wheelEntries.push({code:'',label:s,sold:false}); wheelManual=true; saveWheelState(); drawWheel(); }
+function wheelOverride(list){ const arr=(list||[]).map(s=>String(s).trim()).filter(Boolean).map(s=>({code:'',label:s,sold:false})); if(!arr.length) return; wheelEntries=arr; wheelManual=true; wheelWinner=null; saveWheelState(); clearWheelWinnerBanner(); drawWheel(); }
+function wheelImportCSV(text){ let rows=String(text||'').split(/\r?\n/).map(r=>r.trim()).filter(Boolean).map(r=>r.split(',')[0].trim()).filter(Boolean); if(rows.length && /^(name|team|spot|item|entry|label)$/i.test(rows[0])) rows.shift(); wheelOverride(rows); }
+function wheelSyncToBoard(){ wheelManual=false; wheelEntries=collectWheelEntries(); wheelWinner=null; saveWheelState(); clearWheelWinnerBanner(); drawWheel(); }
+function openWheelEditor(){ const pop=document.getElementById('wheelPopup'), box=document.getElementById('wheelBox'); if(!pop) return; if(box) box.value=(wheelEntries||[]).map(e=>e.label||e.code||'').join('\n'); pop.classList.add('active'); }
+function updateWheelWinnerBanner(){ const b=document.getElementById('wheel-winner-banner'),x=document.getElementById('wheel-winner-text'); if(!b||!x) return; if(wheelWinner&&(wheelWinner.label||wheelWinner.code)){ x.textContent=String(wheelWinner.label||wheelWinner.code).toUpperCase(); b.classList.add('show'); } else { x.textContent='—'; b.classList.remove('show'); } }
+function clearWheelWinnerBanner(){ const b=document.getElementById('wheel-winner-banner'),x=document.getElementById('wheel-winner-text'); if(!b||!x) return; x.textContent='—'; b.classList.remove('show'); }
+function startWheelIdleSpin(){ stopWheelIdleSpin(); wheelLastIdleTs=0; function frame(ts){ if(wheelSpinning){ wheelIdleRAF=null; return; } if(!wheelLastIdleTs) wheelLastIdleTs=ts; const dt=(ts-wheelLastIdleTs)/1000; wheelLastIdleTs=ts; wheelRotation+=WHEEL_IDLE_SPEED*dt; drawWheel(); wheelIdleRAF=requestAnimationFrame(frame); } wheelIdleRAF=requestAnimationFrame(frame); }
+function stopWheelIdleSpin(){ if(wheelIdleRAF){ cancelAnimationFrame(wheelIdleRAF); wheelIdleRAF=null; } wheelLastIdleTs=0; }
+function applyWheelVisibility(){ const wheel=document.getElementById('wheel-float'), btn=document.getElementById('wheelToggleBtn'); if(wheel) wheel.style.display=wheelVisible?'block':'none'; if(btn) btn.textContent=wheelVisible?'🎡 Hide':'🎡 Wheel'; if(wheelVisible){ refreshWheelEntries(); drawWheel(); if(!wheelSpinning) startWheelIdleSpin(); } else { stopWheelIdleSpin(); } }
+function toggleWheelVisibility(){ wheelVisible=!wheelVisible; applyWheelVisibility(); }
+function spinWheel(){ if(!wheelVisible){ wheelVisible=true; applyWheelVisibility(); } if(wheelSpinning) return; refreshWheelEntries(); if(!wheelEntries.length) return; wheelSpinning=true; wheelWinner=null; stopWheelIdleSpin(); const extra=(Math.PI*2)*(5+Math.random()*2); const off=Math.random()*Math.PI*2; const startRot=wheelRotation; const target=startRot+extra+off; const dur=5200; const t0=performance.now(); const ease=t=>1-Math.pow(1-t,3); function frame(now){ const t=Math.min(1,(now-t0)/dur); wheelRotation=startRot+(target-startRot)*ease(t); drawWheel(); if(t<1){ requestAnimationFrame(frame); return; } wheelSpinning=false; wheelWinner=pickWheelWinner(); updateWheelWinnerBanner(); startWheelIdleSpin(); } requestAnimationFrame(frame); }
+function initFloatingWheelDrag(){ const wheel=document.getElementById('wheel-float'); const handle=document.getElementById('wheel-resize-handle'); if(!wheel) return; let dragging=false,resizing=false,sx=0,sy=0,ol=0,ot=0,ss=420; wheel.addEventListener('mousedown',(e)=>{ if(e.target===handle) return; dragging=true; wheel.classList.add('dragging'); const r=wheel.getBoundingClientRect(); ol=r.left; ot=r.top; sx=e.clientX; sy=e.clientY; wheel.style.left=ol+'px'; wheel.style.top=ot+'px'; wheel.style.transform='none'; e.preventDefault(); }); if(handle){ handle.addEventListener('mousedown',(e)=>{ resizing=true; wheel.classList.add('resizing'); const r=wheel.getBoundingClientRect(); ss=r.width; sx=e.clientX; sy=e.clientY; wheel.style.left=r.left+'px'; wheel.style.top=r.top+'px'; wheel.style.transform='none'; e.preventDefault(); e.stopPropagation(); }); } document.addEventListener('mousemove',(e)=>{ if(dragging){ wheel.style.left=(ol+e.clientX-sx)+'px'; wheel.style.top=(ot+e.clientY-sy)+'px'; } if(resizing){ const n=Math.max(240,Math.min(760,ss+Math.max(e.clientX-sx,e.clientY-sy))); wheel.style.setProperty('--wheel-size',n+'px'); drawWheel(); } }); document.addEventListener('mouseup',()=>{ dragging=false; resizing=false; wheel.classList.remove('dragging'); wheel.classList.remove('resizing'); }); }
+document.addEventListener('DOMContentLoaded', ()=>{ try{ loadWheelState(); initFloatingWheelDrag(); refreshWheelEntries(); }catch(_){} });
+
+
+/* ===== Custom Spots + Edit Banner modals ===== */
+(() => {
+  const pop = document.getElementById('customPopup');
+  const box = document.getElementById('customBox');
+  if (pop && box){
+    document.getElementById('customBtn')?.addEventListener('click', () => { box.value = (loadCustomNames()||[]).join('\n'); pop.classList.add('active'); });
+    document.getElementById('closeCustom')?.addEventListener('click', () => pop.classList.remove('active'));
+    document.getElementById('applyCustom')?.addEventListener('click', () => {
+      const names = box.value.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,30);
+      saveCustomNames(names);
+      const teams = buildCustomTeams(names);
+      CUSTOM = teams;
+      breakTypes.custom.teams = teams;
+      breakTypes.custom.count = teams.length;
+      breakTypes.custom.bottomCount = Math.min(10, teams.length);
+      if (currentSport === 'custom'){ try{ resetAll(); }catch(_){} try{ renderTeams(); }catch(_){} if (typeof refreshWheelEntries==='function') refreshWheelEntries(); }
+      pop.classList.remove('active');
+    });
+  }
+  const bpop = document.getElementById('bannerPopup');
+  const bbox = document.getElementById('bannerBox');
+  if (bpop && bbox){
+    const bsecs = document.getElementById('bannerSecs');
+    document.getElementById('bannerBtn')?.addEventListener('click', () => { bbox.value = (bannerLines||[]).join('\n'); if (bsecs) bsecs.value = bannerSecs; bpop.classList.add('active'); });
+    document.getElementById('closeBanner')?.addEventListener('click', () => bpop.classList.remove('active'));
+    document.getElementById('applyBanner')?.addEventListener('click', () => {
+      const lines = bbox.value.split('\n').map(s=>s.trim()).filter(Boolean);
+      bannerLines = lines.length ? lines : DEFAULT_BANNER_LINES.slice();
+      saveBannerLines(bannerLines);
+      if (bsecs){ let n = parseInt(bsecs.value,10); if(!isFinite(n)) n=9; n=Math.min(60,Math.max(2,n)); bannerSecs=n; saveBannerSecs(n); }
+      bannerIdx = 0; renderBanner(); startBannerTimer();
+      bpop.classList.remove('active');
+    });
+  }
+})();
+
+/* ===== Wheel editor modal wiring ===== */
+(() => {
+  const pop = document.getElementById('wheelPopup'); if (!pop) return;
+  const box = document.getElementById('wheelBox');
+  const refresh = () => { if (box) box.value = (wheelEntries||[]).map(e=>e.label||e.code||'').join('\n'); };
+  document.getElementById('closeWheel')?.addEventListener('click', () => pop.classList.remove('active'));
+  document.getElementById('wheelAddBtn')?.addEventListener('click', () => { const i=document.getElementById('wheelAddInput'); if(i){ wheelAddItem(i.value); i.value=''; } refresh(); });
+  document.getElementById('applyWheel')?.addEventListener('click', () => { if (box) wheelOverride(box.value.split('\n')); pop.classList.remove('active'); });
+  document.getElementById('wheelSyncBtn')?.addEventListener('click', () => { wheelSyncToBoard(); refresh(); });
+  const csv = document.getElementById('wheelCsv');
+  csv?.addEventListener('change', (e) => { const f=e.target.files && e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ wheelImportCSV(String(r.result||'')); refresh(); }; r.readAsText(f); if(csv) csv.value=''; });
+})();
+
 </script>
+
+<div id="wheel-controls">
+  <button class="wbtn-toggle" id="wheelToggleBtn" onclick="toggleWheelVisibility()">🎡 Wheel</button>
+  <button class="wbtn-spin" onclick="spinWheel()">Spin</button>
+  <button class="wbtn-alt" onclick="wheelShuffle()">🔀 Shuffle</button>
+  <button class="wbtn-alt" onclick="wheelRemoveWinner()">✖ Remove</button>
+  <button class="wbtn-alt" onclick="openWheelEditor()">⚙ Edit</button>
+</div>
+<div id="wheel-float">
+  <canvas id="wheelCanvasFloat" width="720" height="720"></canvas>
+  <div class="wheel-pointer-float"></div>
+  <div id="wheel-resize-handle"></div>
+  <div id="wheel-winner-banner"><span id="wheel-winner-label">Winner:</span><span id="wheel-winner-text">—</span></div>
+</div>
 </body>
 </html>
