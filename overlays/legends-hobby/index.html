@@ -731,6 +731,14 @@
       padding-left: 2px;
       text-transform: uppercase;
     }
+    .next-pick-chip{
+      display:none; align-items:center; gap:6px;
+      margin-left:8px; padding:3px 10px; border-radius:999px;
+      font-size:12px; font-weight:900; letter-spacing:.4px; text-transform:uppercase;
+      color:#0a0a0a; background:linear-gradient(180deg,#ffe07a,#e0a020);
+      border:1px solid rgba(255,255,255,0.35); cursor:pointer;
+      box-shadow:0 1px 6px rgba(0,0,0,.45); white-space:nowrap;
+    }
 
     .sold-controls{
       display:flex;
@@ -1248,6 +1256,7 @@
   <div class="sold-list-container">
     <div class="sold-top-row">
       <div class="sold-list-title">SOLD TEAMS</div>
+      <div id="nextPickChip" class="next-pick-chip" style="display:none" title="Click to skip this winner" onclick="skipPendingBuyer()"></div>
 
       <div class="sold-controls">
         <!-- ✅ rearranged: New Break, Break#, Sport ... Copy Sold List LAST -->
@@ -1803,6 +1812,7 @@ function saveOverlayState(){
       code: String(x.code || "").toUpperCase(),
       buyer: String(x.buyer || "")
     })),
+    pendingBuyers: pendingBuyers.slice(),
     ts: Date.now()
   };
   saveAllOverlayState(all);
@@ -1830,6 +1840,11 @@ function restoreOverlayState(){
       buyer: String(x.buyer || "")
     }))
     .filter(x => x.code);
+
+  pendingBuyers = Array.isArray(state.pendingBuyers)
+    ? state.pendingBuyers.map(s => String(s||"").trim()).filter(Boolean)
+    : [];
+  if (typeof refreshNextPickChip === 'function') refreshNextPickChip();
 }
 
 function clearOverlayState(){
@@ -2070,6 +2085,7 @@ custom: {
   let currentBreakType = "nfl";
   let soldTeams = new Set();
   let soldTeamsList = [];
+  let pendingBuyers = [];   // FIFO queue of auction winners awaiting manual team assignment
   let chaseTeams = new Set();
 
   function applyTileSizing(){
@@ -2422,6 +2438,33 @@ r1.className = "row-grid row-logo";
     applyAllTeamStylesForSport(currentBreakType);
   }
 
+  function refreshNextPickChip(){
+    const chip = document.getElementById('nextPickChip');
+    if (!chip) return;
+    if (pendingBuyers.length){
+      const n = pendingBuyers.length;
+      chip.textContent = 'NEXT: ' + pendingBuyers[0] + (n>1 ? '  (+'+(n-1)+' waiting)' : '');
+      chip.style.display = 'inline-flex';
+    } else {
+      chip.style.display = 'none';
+      chip.textContent = '';
+    }
+  }
+  function enqueuePendingBuyer(name){
+    const n = String(name||'').trim();
+    if (!n) return;
+    if (pendingBuyers[pendingBuyers.length-1] === n) return; // ignore duplicate consecutive sends
+    pendingBuyers.push(n);
+    refreshNextPickChip();
+    saveOverlayState();
+  }
+  function skipPendingBuyer(){
+    if (!pendingBuyers.length) return;
+    pendingBuyers.shift();
+    refreshNextPickChip();
+    saveOverlayState();
+  }
+
   function toggleTeam(code, buyerFromSSE=""){
     const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
     if (!tile) return;
@@ -2433,7 +2476,12 @@ r1.className = "row-grid row-logo";
       tile.classList.remove("sold");
       if (listIndex !== -1) soldTeamsList.splice(listIndex, 1);
     } else {
-      if (listIndex === -1) soldTeamsList.push({ code, buyer: buyerFromSSE || "" });
+      let assignBuyer = buyerFromSSE || "";
+      if (!assignBuyer && pendingBuyers.length){
+        assignBuyer = pendingBuyers.shift();   // attach the next queued auction winner
+        refreshNextPickChip();
+      }
+      if (listIndex === -1) soldTeamsList.push({ code, buyer: assignBuyer });
       playSoldAnimation(code);
       soldTeams.add(code);
       tile.classList.add("sold");
@@ -2520,6 +2568,8 @@ function resetAll(){
   soldTeams.clear();
   soldTeamsList = [];
   lastCodeBySaleId.clear();
+  pendingBuyers = [];
+  if (typeof refreshNextPickChip === 'function') refreshNextPickChip();
   clearOverlayState();
   SCORE_LINES = [];
   document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
@@ -3027,7 +3077,10 @@ function handleSSEEvent(data){
         sport || currentBreakType
       );
     }
-    if (!code) return;
+    if (!code){
+      if (buyer) enqueuePendingBuyer(buyer);   // auction win with no resolvable team -> queue for manual assignment
+      return;
+    }
 
     // if payload explicitly says another supported sport, switch board
     if (sport && breakTypes[sport] && sport !== currentBreakType){

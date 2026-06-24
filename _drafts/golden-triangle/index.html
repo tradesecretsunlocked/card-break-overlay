@@ -2879,8 +2879,10 @@ function normalizeCode(code){
 
     function ensureSportFromPayload(payload){
       const sport = payloadSport(payload);
-      // Never auto-switch to 'nil' from an SSE event — nil is set manually by the breaker.
-      // Prevents extension sending sport:"nil" (multi-sport config) from triggering layout switch.
+      // Only auto-detect the sport while the board is still in 'nil' (combo) mode.
+      // Once a specific sport is active (host-selected, or auto-detected on the first sale),
+      // NEVER let a later sale flip the layout — a mis-detected title was switching e.g. NBA -> MLB mid-break.
+      if (currentBreakType !== 'nil') return;
       if (sport && sport !== 'nil' && breakTypes[sport] && sport !== currentBreakType){
         currentBreakType = sport;
         loadSoldState();
@@ -2890,8 +2892,11 @@ function normalizeCode(code){
 
     function resolveCodeFromPayload(payload){
       const rawSport = payloadSport(payload);
-      // If extension sends sport:"nil" (multi-sport mode), use currentBreakType for lookup instead
-      const sport = (rawSport && rawSport !== 'nil') ? rawSport : currentBreakType;
+      // Honor the active board first: once a specific sport is selected, resolve codes in THAT sport
+      // (ignore a mis-detected payload sport). Only fall back to the payload sport in 'nil' combo mode.
+      const sport = (currentBreakType && currentBreakType !== 'nil')
+        ? currentBreakType
+        : ((rawSport && rawSport !== 'nil') ? rawSport : currentBreakType);
       let code = normalizeCode(payload?.code || payload?.teamCode || payload?.team || payload?.selection || '');
 
       const titleRaw = String(payload?.title || payload?.listingTitle || payload?.itemTitle || payload?.label || '').trim();
@@ -3046,6 +3051,7 @@ function markSold(code, buyer = ''){
           case 'overlay_warmup':
             return;
 
+case 'scores_update':
 case 'scores':
   applyScoresPayload(payload);
   return;
