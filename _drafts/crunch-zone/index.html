@@ -820,6 +820,18 @@ body.draft-mode .soldPanel{ order:5; }
         </div>
       </div>
       </div><!-- /draftTop -->
+
+      <div id="czCustomPopup" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(3,8,18,.72);align-items:center;justify-content:center;">
+        <div style="width:min(560px,92vw);background:#0c1322;border:1px solid rgba(104,206,255,.5);border-radius:12px;padding:16px 18px;box-shadow:0 20px 50px rgba(0,0,0,.6);">
+          <h2 style="margin:0 0 6px;color:#68ceff;font-size:18px;letter-spacing:1px;">CUSTOM SPOTS</h2>
+          <div style="font-size:12px;opacity:.85;color:#cfe6ff;margin:0 0 8px">One spot name per line — paste or type. Board auto-sizes; past ~60 it scrolls. Sales mark by name.</div>
+          <textarea id="czCustomBox" style="width:100%;height:200px;background:#141c2e;border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:8px;font-size:15px;font-weight:700;" placeholder="Patrick&#10;Mike&#10;Sarah"></textarea>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+            <button class="btn" onclick="applyCustom()">Apply</button>
+            <button class="btn" onclick="closeCustomPopup()">Cancel</button>
+          </div>
+        </div>
+      </div>
       <div class="grid" id="grid"></div>
       <div id="dfBoard" class="dfBoard"></div>
       <div class="tickerBar">
@@ -843,6 +855,7 @@ body.draft-mode .soldPanel{ order:5; }
 <button class="btn" onclick="openTickerPopup()">TICKER</button>
 <button class="btn" onclick="openTitlePopup()">TITLE</button>
 <button class="btn" onclick="openDraftPopup()">DRAFT</button>
+<button class="btn" onclick="openCustomPopup()">CUSTOM</button>
 
 
             <div class="sseStatus" id="sseStatus">
@@ -1112,6 +1125,12 @@ const breakTypes = {
   }
 };
 
+// ===== Custom layout (seller-editable spot names) =====
+function czLoadCustomNames(){ try{ const r=localStorage.getItem('crunchzone.customNames'); const a=r?JSON.parse(r):null; return Array.isArray(a)?a:[]; }catch(_){ return []; } }
+function czSaveCustomNames(a){ try{ localStorage.setItem('crunchzone.customNames', JSON.stringify(a||[])); }catch(_){ } }
+function czBuildCustomTeams(names){ return (names||[]).slice(0,100).map((nm,i)=>({ code:'CUSTOM_'+(i+1), name:String(nm||('Spot '+(i+1))), image:'' })); }
+breakTypes.custom = { name:'CUSTOM', teams: czBuildCustomTeams(czLoadCustomNames()), layout:'CUSTOM' };
+
 let currentSport = "mlb";
 
 // Canonical TSU sold-state layers
@@ -1178,15 +1197,15 @@ function makeTeamCell(team){
   d.className = "cell team";
   d.dataset.teamCode = team.code;
 
-  const img = document.createElement("img");
-  img.src = team.image;
-  img.alt = team.name || team.code;
-
-  img.onerror = () => {
-    d.innerHTML = `<div class="fallback">${team.code || "?"}</div>`;
-  };
-
-  d.appendChild(img);
+  if (team.image){
+    const img = document.createElement("img");
+    img.src = team.image;
+    img.alt = team.name || team.code;
+    img.onerror = () => { d.innerHTML = `<div class="fallback">${team.name || team.code || "?"}</div>`; };
+    d.appendChild(img);
+  } else {
+    d.innerHTML = `<div class="fallback">${team.name || team.code || "?"}</div>`;
+  }
 
   if (soldSet.has(team.code)) d.classList.add("sold");
 
@@ -1264,6 +1283,24 @@ function getSlotsForSport(){
 function buildGrid(){
   const grid = document.getElementById("grid");
   grid.innerHTML = "";
+  grid.style.gridTemplateColumns = "";
+  grid.style.gridAutoRows = "";
+  grid.style.maxHeight = "";
+  grid.style.overflowY = "";
+
+  if (currentSport === "custom"){
+    const teams = (breakTypes.custom.teams || []);
+    const n = teams.length;
+    const cols = n <= 12 ? 4 : n <= 24 ? 6 : n <= 40 ? 8 : 10;
+    const rowH = n <= 24 ? 64 : n <= 40 ? 54 : n <= 60 ? 46 : 40;
+    grid.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
+    grid.style.gridAutoRows = rowH + "px";
+    const board = grid.parentElement;
+    if (board && board.clientHeight){ grid.style.maxHeight = board.clientHeight + "px"; grid.style.overflowY = "auto"; }
+    teams.forEach(tm => { const cell = makeTeamCell(tm); cell.style.gridColumn=""; cell.style.gridRow=""; grid.appendChild(cell); });
+    updateStats(); updateSoldList(); setHeader();
+    return;
+  }
 
   // ensure tile height sport tuning (NFL a touch taller)
   document.documentElement.style.setProperty("--tileH", currentSport === "nfl" ? "68px" : "68px");
@@ -1460,7 +1497,7 @@ function resetSoldState(){
    Sport Switching (NBA -> NFL -> MLB)
 ========================= */
 function cycleSport(){
-  const order = ["nba","nfl","mlb"];
+  const order = ["nba","nfl","mlb","custom"];
   const idx = order.indexOf(currentSport);
   currentSport = order[(idx + 1) % order.length];
 
@@ -1666,7 +1703,18 @@ function connectScoresSSE(){
 function normalizeTeamCode(data){
   const direct = String(data?.teamCode || data?.code || data?.team || "").trim().toUpperCase();
   if (direct) return direct;
-  return inferTeamCodeFromTitle(data?.title || data?.listingTitle || data?.name || "");
+  const title = data?.title || data?.listingTitle || data?.name || "";
+  if (currentSport === "custom"){
+    const t = String(title).trim().toLowerCase();
+    if (t){
+      const hit = (breakTypes.custom.teams || []).find(tm => {
+        const nm = String(tm.name || "").trim().toLowerCase();
+        return nm && (nm === t || t === nm || t.includes(nm));
+      });
+      if (hit) return hit.code;
+    }
+  }
+  return inferTeamCodeFromTitle(title);
 }
 function normalizeBuyer(data){
   return String(data?.buyerName || data?.buyer || data?.username || "").trim();
@@ -1856,6 +1904,8 @@ function handleSSEEvent(data){
     type === "purchase" ||
     type === "whatnot_purchase"
   ){
+    const _spot = czSpotNumber(data);
+    if (_spot){ czFillDraftSpot(_spot, normalizeBuyer(data)); return; }
     sseMarkSold(data);
     return;
   }
@@ -2032,6 +2082,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 /* ===== TSU DRAFT LAYOUT ENGINE (additive) ===== */
+function openCustomPopup(){ const box=document.getElementById('czCustomBox'); if(box) box.value=(czLoadCustomNames()||[]).join('\n'); const p=document.getElementById('czCustomPopup'); if(p) p.style.display='flex'; }
+function closeCustomPopup(){ const p=document.getElementById('czCustomPopup'); if(p) p.style.display='none'; }
+function applyCustom(){ const box=document.getElementById('czCustomBox'); const names=((box?box.value:'')||'').split('\n').map(s=>s.trim()).filter(Boolean).slice(0,100); czSaveCustomNames(names); breakTypes.custom.teams=czBuildCustomTeams(names); closeCustomPopup(); setSport('custom'); }
+function czSpotNumber(data){ const sp=parseInt(data && (data.spot!=null?data.spot:data.spotNumber), 10); if (Number.isFinite(sp) && sp>0) return sp; const tt=String((data&&(data.title||data.listingTitle||data.name))||''); const m=tt.match(/^\s*(?:draft\s*)?spot\s*#?\s*(\d+)\b/i); return m ? parseInt(m[1],10) : 0; }
+function czFillDraftSpot(spot, buyer){ if(!spot) return; try{ draft.names[spot]=(buyer&&buyer.trim())?buyer.trim():(draft.names[spot]||('Spot '+spot)); const inp=document.getElementById('dfName-'+spot); if(inp) inp.value=draft.names[spot]; if(draft.active){ renderDraftBoard(); draftTicker(); } }catch(_){ } }
 var draft = { active:false, picks:[], current:0, snake:true, reverse:false, names:{}, spots:15, rounds:2, showFull:false };
 function dfNameInputs(n){ let h=''; for(let i=1;i<=n;i++){ h+='<div class="dfSpot"><label>Spot '+i+'</label><input id="dfName-'+i+'" type="text" placeholder="Buyer\u2026" value="'+((draft.names[i]||'').replace(/"/g,'&quot;'))+'"></div>'; } return h; }
 function openDraftPopup(){ document.body.classList.add('draft-mode'); document.getElementById('dfBoard').style.display='none'; const n=draft.spots||15; document.getElementById('dfSpotCount').value=n; document.getElementById('dfRounds').value=draft.rounds||2; document.getElementById('dfSnake').checked=draft.snake; document.getElementById('dfReverse').checked=draft.reverse; document.getElementById('dfSpots').innerHTML=dfNameInputs(n); document.getElementById('dfEntry').style.display='block'; }
