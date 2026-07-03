@@ -256,7 +256,7 @@
         }, '*');
       } catch (error) {
         window.postMessage({
-                   type: 'WHATNOT_SPY_FETCH_LIVESTREAM_RESULT',
+          type: 'WHATNOT_SPY_FETCH_LIVESTREAM_RESULT',
           requestId,
           success: false,
           error: error.message

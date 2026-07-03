@@ -23,14 +23,10 @@
 
   const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com";
 
-  // ⚠️ CANONICAL TEMPLATE — replace these three per client (see tsu-overlay-agent skill Step 7).
-  //    bridgeKey: get from bridge_keys row created for this client
-  //    sport:     "nfl" | "nba" | "mlb" | "nil" (multi-sport / infer from title)
-  //    overlayId: {client-slug}-overlay (must match overlay HTML's overlayId in the warmup POST)
   const DEFAULTS = {
-    bridgeKey:    "REPLACE_WITH_CLIENT_UUID_FROM_SUPABASE",
+    bridgeKey:    "a22c0803-7df2-49ec-a48c-5c66de3aab18",
     sport:        "nil",
-    overlayId:    "REPLACE_WITH_CLIENT_SLUG-overlay",
+    overlayId:    "northland-breaks-2-overlay",
     channel:      "main",
     pollMs:       3000,
     summaryEvery: 5

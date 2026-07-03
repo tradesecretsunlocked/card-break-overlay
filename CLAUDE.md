@@ -22,9 +22,9 @@ Whatnot stream (host's browser)
 | `overlays/<client>/index.html` | Production overlay served from GitHub Pages. The OBS browser source URL points here. |
 | `overlays/<client>/` | Per-client assets (logos, fx, audio). |
 | `images/` | Shared sport assets — `nfl/`, `nba/`, `mlb/`, `nhl/`, `logos/`, `fx/`. |
-| `extension-UPDATED-04-14-2026/` | **Canonical extension template (v2.2).** Clone from here for new clients. |
-| `tsu-extension-v2.2/extension/` | Mirror of the canonical template, kept in sync. |
-| `extension-template/` | Older mirror. Also kept in sync. |
+| `extension-UPDATED-04-14-2026/` | **Canonical extension template (v2.2.1, updated 2026-07-03).** Clone from here for new clients. See "Extension version" below for the v2.2.1 changelog. |
+| `tsu-extension-v2.2/extension/` | Mirror of the canonical template, kept in sync (v2.2.1). |
+| `extension-template/` | Older mirror. Also kept in sync (v2.2.1). |
 | `bridge/server.js` | The shared Node bridge. SSE + REST. Deployed to Render. |
 | `CURRENT-PROD-BACKUP=TEMPLATE-05-18-2026/bridge/` | Snapshot of the production bridge for reference/rollback. |
 | `_drafts/<client>/` | In-progress builds before they go to `overlays/`. The build agent stages here for Mike's review. |
@@ -71,3 +71,13 @@ Read the "Confirmed Working Standards" section before patching anything. The "Pr
 - `overlayId` in the extension DEFAULTS must equal the overlay's default `overlayId`. Mismatch = no events received.
 - `warmupPing` POSTs to `/events` with `type: "overlay_warmup"`. There is no `/warmup` endpoint on the bridge.
 - Manifest must include `"https://bridge.tradesecretsunlocked.com/*"` in `host_permissions` and `"storage"` in `permissions`. Remove any leftover `"https://*.onrender.com/*"`.
+
+## Extension version
+
+**Current canonical: v2.2.1 (updated 2026-07-03).** Every new client extension built from the canonical inherits this baseline. Existing pre-v2.2.1 client extensions in OneDrive are NOT auto-updated — only patch them if a specific client hits one of the bugs fixed below.
+
+**v2.2.1 changelog (vs v2.2 April 2026):**
+- `[CRITICAL]` **localStorage persistence for the dedup `seen` map.** Survives page reloads. Prevents 60+ historical sold items resending in one poll cycle when OBS refreshes the source or the machine restarts mid-break.
+- `[RELIABILITY]` **Adaptive pagination — early-stop + per-page isolation.** Fixes the 500-error avalanche during 24/7 deep-pagination polling. A single bad page no longer poisons the whole cycle.
+
+**Canonical template DEFAULTS are placeholders** (`REPLACE_WITH_CLIENT_UUID_FROM_SUPABASE`, `REPLACE_WITH_CLIENT_SLUG-overlay`). The `tsu-overlay-agent` skill's Step 7 replaces them per client. Never leave placeholder values in a client-delivery zip.

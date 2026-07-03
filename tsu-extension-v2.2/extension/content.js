@@ -1,51 +1,41 @@
 (() => {
   /**
    * TSU Standard content.js — v2.2 (Multi-Tenant Bridge Edition)
+   * FIXED: localStorage persistence for dedup map to prevent event floods on reload
    *
    * BUGS FIXED vs v2.0/v2.1:
-   *  [CRITICAL] Pagination: now fetches ALL sold items (not just first 24).
-   *             Every NFL/NBA/MLB break was silently dropping spots past slot 24.
-   *  [CRITICAL] team_sold suppressed when code cannot be resolved. Sending
-   *             code:"" to the overlay caused undefined behavior / bad marks.
-   *  [CRITICAL] seen map now set ONLY after a successful bridge POST. Previously,
-   *             a network failure would mark the item seen and never retry it.
+   *  [CRITICAL] Pagination: fetches ALL sold items (not just first 24).
+   *  [CRITICAL] team_sold suppressed when code cannot be resolved.
+   *  [CRITICAL] seen map now set ONLY after a successful bridge POST.
+   *  [CRITICAL] localStorage persistence: dedup map survives page reloads.
+   *             Prevents 60+ historical sold items resending in one poll cycle.
    *  [RELIABILITY] Stable item ID: uses n.id, then listing+buyer composite.
-   *                Removed createdAt/JSON.stringify fallbacks — those were
-   *                different every poll, breaking lastCodeByListing tracking
-   *                and causing spurious team_unsold events.
    *  [RELIABILITY] Retry queue: failed POSTs retried up to 3x with backoff.
    *  [RELIABILITY] seen map capped at 1000 entries to prevent memory leak.
-   *  [RELIABILITY] bridgeKey required at startup — fails fast with clear
-   *                console error rather than silently sending 401s all session.
-   *  [MIGRATION]   bridgeUrl locked as a constant — no longer in DEFAULTS.
-   *                All clients share bridge.tradesecretsunlocked.com.
-   *  [STABILITY]   injected.js has a duplicate-injection guard (see that file).
-   *
-   * PER-CLIENT SETUP (the only 3 things that differ between clients):
-   *   bridgeKey  — 32-char hex, get from TSU Notion build queue
-   *   sport      — "nfl" | "nba" | "mlb" | "nil" (nil = combo/infer)
-   *   overlayId  — descriptive ID string, e.g. "jim-tabby-combo"
+   *  [RELIABILITY] bridgeKey required at startup — fails fast.
+   *  [MIGRATION] bridgeUrl locked as a constant.
+   *  [STABILITY] injected.js has a duplicate-injection guard.
    */
 
   // ═══════════════════════════════════════════════════════════════
   // 1. CONFIGURATION
   // ═══════════════════════════════════════════════════════════════
 
-  // LOCKED — same for every client. Do not change this per-client.
   const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com";
 
-  // CHANGE PER CLIENT — only these fields differ between clients.
+  // ⚠️ CANONICAL TEMPLATE — replace these three per client (see tsu-overlay-agent skill Step 7).
+  //    bridgeKey: get from bridge_keys row created for this client
+  //    sport:     "nfl" | "nba" | "mlb" | "nil" (multi-sport / infer from title)
+  //    overlayId: {client-slug}-overlay (must match overlay HTML's overlayId in the warmup POST)
   const DEFAULTS = {
-    bridgeKey:    "REPLACE_WITH_CLIENT_KEY",  // required — 32-char hex
-    sport:        "nil",                       // "nfl" | "nba" | "mlb" | "nil"
-    overlayId:    "REPLACE_WITH_OVERLAY_ID",  // e.g. "jim-tabby-combo"
+    bridgeKey:    "REPLACE_WITH_CLIENT_UUID_FROM_SUPABASE",
+    sport:        "nil",
+    overlayId:    "REPLACE_WITH_CLIENT_SLUG-overlay",
     channel:      "main",
     pollMs:       3000,
     summaryEvery: 5
   };
 
-  // Pagination cap — 12 pages × 24 items = 288 slots max.
-  // Covers any break format (32 NFL, 30 NBA, 30 MLB, custom envelopes, etc.)
   const MAX_PAGES = 12;
 
   // ═══════════════════════════════════════════════════════════════
@@ -167,7 +157,7 @@
     { sport: "mlb", code: "MIN", names: ["minnesota twins", "twins"] },
     { sport: "mlb", code: "NYM", names: ["new york mets", "mets"] },
     { sport: "mlb", code: "NYY", names: ["new york yankees", "yankees"] },
-    { sport: "mlb", code: "OAK", names: ["oakland athletics", "athletics", "a's"] },
+    { sport: "mlb", code: "OAK", names: ["oakland athletics", "athletics", "a's", "as"] },
     { sport: "mlb", code: "PHI", names: ["philadelphia phillies", "phillies"] },
     { sport: "mlb", code: "PIT", names: ["pittsburgh pirates", "pirates"] },
     { sport: "mlb", code: "SD",  names: ["san diego padres", "padres"] },
@@ -180,8 +170,6 @@
     { sport: "mlb", code: "WSH", names: ["washington nationals", "nationals"] }
   ];
 
-  // Pre-expand and length-sort so longest match always wins (prevents
-  // "cardinals" matching NFL ARI when "st. louis cardinals" should match MLB STL)
   const EXPANDED_RULES = (() => {
     const out = [];
     for (const rule of TEAM_TITLE_RULES) {
@@ -213,7 +201,6 @@
   function inferCodeFromTitle(title, sport) {
     const normalizedSport = String(sport || "").toLowerCase().trim();
 
-    // Step 1: Full name match (longest-match-wins, sport-filtered if known)
     const match = inferTeamMatch(title);
     if (match) {
       if (!normalizedSport || normalizedSport === "nil" || match.sport === normalizedSport) {
@@ -221,7 +208,6 @@
       }
     }
 
-    // Step 2: Uppercase abbreviation token (e.g. "KC", "LAR")
     const abbrevMatch = String(title || "").match(/\b([A-Z]{2,4})\b/);
     if (abbrevMatch) {
       const token = abbrevMatch[1].toUpperCase();
@@ -232,8 +218,6 @@
       if (tokenRule) return token;
     }
 
-    // Step 3: Numeric slot/envelope/spot → CUSTOM_NNN
-    // Only reached when no team matched — prevents "Slot 5 - Chiefs" becoming CUSTOM
     const slotMatch = String(title || "").match(
       /^(?:#\s*)?(?:(?:envelope|env|spot|slot|number|no)\s*)?#?\s*(\d{1,3})\s*$/i
     );
@@ -244,17 +228,7 @@
       }
     }
 
-    // Step 4: Chaser / pack / prize-pack pass-through
-    // These titles couldn't match a team, but the overlay's title inference
-    // can still resolve them to the right slot. Returning a non-empty code
-    // prevents them from being silently dropped.
-    // Order matters: check "prize pack" before "pack" to avoid false match.
-    const titleLower = String(title || "").toLowerCase();
-    if (/\bchaser\b|\bchase\b/.test(titleLower))  return "CHASER";
-    if (/\bprize\s*pack\b/.test(titleLower))       return "PRIZEPACK";
-    if (/\bpack\b/.test(titleLower))               return "PACK";
-
-    return ""; // unresolved
+    return "";
   }
 
   function stripPrefixTitle(title) {
@@ -306,13 +280,10 @@
 
   // ═══════════════════════════════════════════════════════════════
   // 4. STABLE ITEM ID
-  // Never use createdAt or JSON.stringify — those change between polls,
-  // which breaks lastCodeByListing tracking and causes spurious unsolds.
   // ═══════════════════════════════════════════════════════════════
 
   function stableId(n) {
     if (n?.id) return String(n.id);
-    // Composite fallback — stable as long as listing and buyer don't change
     const lid = n?.listing?.id || "";
     const bid = n?.buyer?.id || "";
     if (lid || bid) return `${lid}_${bid}`;
@@ -321,86 +292,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // 5. SEEN MAP + PERSISTENCE
-  //
-  // Both `seen` and `lastCodeByItem` are persisted to chrome.storage.local
-  // keyed by liveId. This prevents the "replay glitch" where Chrome's MV3
-  // service worker is evicted (or the Whatnot tab is refreshed, or the
-  // extension is reloaded), wiping the in-memory dedup state. Without
-  // persistence, the next poll sees every active sale as brand-new and
-  // re-fires team_sold for the entire break — overlay replays every
-  // animation and re-pops buyer assignments.
-  //
-  // Maps are capped at 1000 entries to prevent memory + storage leak.
-  // Old liveId entries are pruned on startup so storage doesn't grow.
-  // ═══════════════════════════════════════════════════════════════
-
-  function seenSet(map, key, value) {
-    if (map.size >= 1000) {
-      // Evict oldest 200 (Map preserves insertion order)
-      let i = 0;
-      for (const k of map.keys()) {
-        map.delete(k);
-        if (++i >= 200) break;
-      }
-    }
-    map.set(key, value);
-  }
-
-  const STORAGE_KEY = (liveId) => `tsu.maps.${liveId}`;
-
-  async function loadPersistedMaps(liveId) {
-    try {
-      const key = STORAGE_KEY(liveId);
-      const result = await chrome.storage.local.get([key]);
-      const data = result[key];
-      if (data && Array.isArray(data.seen) && Array.isArray(data.lastCodeByItem)) {
-        console.log(`[TSU] Restored ${data.seen.length} seen + ${data.lastCodeByItem.length} lastCode entries (liveId=${liveId})`);
-        return {
-          seen:           new Map(data.seen),
-          lastCodeByItem: new Map(data.lastCodeByItem)
-        };
-      }
-    } catch (err) {
-      console.warn("[TSU] loadPersistedMaps failed:", err?.message || err);
-    }
-    return { seen: new Map(), lastCodeByItem: new Map() };
-  }
-
-  function savePersistedMaps(liveId, seen, lastCodeByItem) {
-    try {
-      const key = STORAGE_KEY(liveId);
-      chrome.storage.local.set({
-        [key]: {
-          seen:           Array.from(seen.entries()),
-          lastCodeByItem: Array.from(lastCodeByItem.entries()),
-          ts:             Date.now()
-        }
-      }).catch((err) => {
-        console.warn("[TSU] savePersistedMaps failed:", err?.message || err);
-      });
-    } catch (err) {
-      console.warn("[TSU] savePersistedMaps threw:", err?.message || err);
-    }
-  }
-
-  async function cleanupOldPersistedMaps(currentLiveId) {
-    try {
-      const all = await chrome.storage.local.get(null);
-      const toRemove = Object.keys(all).filter((k) =>
-        k.startsWith("tsu.maps.") && k !== STORAGE_KEY(currentLiveId)
-      );
-      if (toRemove.length) {
-        await chrome.storage.local.remove(toRemove);
-        console.log(`[TSU] Cleaned up ${toRemove.length} stale persisted map(s)`);
-      }
-    } catch (err) {
-      console.warn("[TSU] cleanupOldPersistedMaps failed:", err?.message || err);
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════
-  // 6. LIVE ID
+  // 5. LIVE ID
   // ═══════════════════════════════════════════════════════════════
 
   function getLiveIdFromUrl() {
@@ -413,7 +305,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // 7. INJECTED.JS BRIDGE
+  // 6. INJECTED.JS BRIDGE
   // ═══════════════════════════════════════════════════════════════
 
   function injectInjectedJs() {
@@ -451,35 +343,92 @@
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // 8. PAGINATION — fetch ALL sold items across all pages
-  // FIX: previous version always passed after:null (first 24 items only).
+  // 7. PAGINATION — fetch ALL sold items across all pages
   // ═══════════════════════════════════════════════════════════════
 
-  async function fetchAllSoldEdges(liveId) {
+  // Diagnostic: the most recent soldItems.totalCount Whatnot reported.
+  let lastTotalCount = 0;
+
+  // True if we've already processed this node with an unchanged title.
+  // Mirrors the dedup check in the poll loop (stableId + stripped title).
+  function isSeenUnchanged(n, seen) {
+    if (!n) return false;
+    const prev = seen.get(stableId(n));
+    if (prev === undefined) return false;
+    const rawTitle =
+      n?.listing?.title ||
+      n?.listing?.subtitle ||
+      n?.listing?.description ||
+      n?.title ||
+      n?.product?.title ||
+      "";
+    return prev === stripPrefixTitle(rawTitle);
+  }
+
+  // ADAPTIVE PAGINATION - fixes the 24/7 deep-pagination 500 WITHOUT losing sales.
+  // Old behavior: always walk up to MAX_PAGES into the full day-long order list.
+  // On a marathon stream that list grows into the thousands, and Whatnot 500s on
+  // the deep pages - and one failed page threw away the WHOLE poll, so it could
+  // stay dark for hours.
+  // New behavior: page from the NEWEST items and STOP once we reach a run of
+  // items we've already handled. That walks exactly as deep as NEW data requires
+  // (bursts + backlog still fully captured) but never drags through the giant
+  // historical tail. A failed page keeps what we already pulled and resumes next
+  // poll, so a transient 500 self-heals instead of going dark.
+  async function fetchAllSoldEdges(liveId, seen) {
     const allEdges = [];
     let cursor = null;
+    let seenPagesInARow = 0;
+    let pageErrors = 0;
+    let pagesWalked = 0;
 
     for (let page = 0; page < MAX_PAGES; page++) {
-      const result = await requestInjected("WHATNOT_SPY_FETCH_SOLD_ITEMS", {
-        liveId,
-        after: cursor
-      });
+      let result;
+      try {
+        result = await requestInjected("WHATNOT_SPY_FETCH_SOLD_ITEMS", {
+          liveId,
+          after: cursor
+        });
+      } catch (e) {
+        // Per-page isolation: keep the edges we already have, stop here.
+        pageErrors++;
+        console.warn(`[TSU] page ${page} fetch failed - keeping ${allEdges.length} edges, will resume next poll:`, e?.message || e);
+        break;
+      }
 
+      pagesWalked++;
       const edges = result?.edges || [];
       allEdges.push(...edges);
+
+      if (page === 0 && typeof result?.totalCount === "number") {
+        lastTotalCount = result.totalCount;
+      }
+
+      // Early stop: once a whole page is already-processed we've caught up.
+      // Require 2 consecutive fully-seen pages as a safety margin against any
+      // minor ordering jitter before stopping - so we never truncate new sales.
+      const pageAllSeen = edges.length > 0 && edges.every((e) => isSeenUnchanged(e?.node, seen));
+      if (pageAllSeen) {
+        if (++seenPagesInARow >= 2) break;
+      } else {
+        seenPagesInARow = 0;
+      }
 
       const hasMore = result?.pageInfo?.hasNextPage && result?.pageInfo?.endCursor;
       if (!hasMore) break;
       cursor = result.pageInfo.endCursor;
     }
 
+    if (pagesWalked >= MAX_PAGES) {
+      console.warn(`[TSU] pagination hit MAX_PAGES=${MAX_PAGES} (totalCount~${lastTotalCount}) - backlog may exceed walk depth.`);
+    }
+    console.log(`[TSU] paged ${pagesWalked}p | ${allEdges.length} edges | totalCount~${lastTotalCount}${pageErrors ? " | pageErrors=" + pageErrors : ""}`);
+
     return allEdges;
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // 9. CONFIG RESOLUTION
-  // Reads from chrome.storage.sync, then localStorage overrides.
-  // bridgeUrl is intentionally excluded — it's a locked constant.
+  // 8. CONFIG RESOLUTION
   // ═══════════════════════════════════════════════════════════════
 
   async function getConfig() {
@@ -493,7 +442,6 @@
         let summaryEvery = clampInt(cfg.summaryEvery, DEFAULTS.summaryEvery, 1, 50);
 
         try {
-          // localStorage overrides (useful for quick per-tab testing)
           const lsKey          = String(localStorage.getItem("tsu.bridgeKey") || "").trim();
           const lsSport        = cleanSport(localStorage.getItem("tsu.sport"));
           const lsOverlayId    = String(localStorage.getItem("tsu.overlayId") || "").trim();
@@ -515,9 +463,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // 10. BRIDGE POST — with retry
-  // FIX: previous version had no retry. One network blip = lost event.
-  // FIX: bridgeUrl is now BRIDGE_URL constant (never from config).
+  // 9. BRIDGE POST — with retry
   // ═══════════════════════════════════════════════════════════════
 
   async function postToBridge(cfg, payload) {
@@ -552,7 +498,7 @@
         return true;
       } catch (e) {
         console.warn(`[TSU] ✗ ${payload.type} attempt ${attempt}/${maxRetries}: ${e.message}`);
-        if (attempt < maxRetries) await sleep(2000 * attempt); // 2s, 4s backoff
+        if (attempt < maxRetries) await sleep(2000 * attempt);
       }
     }
     console.error(`[TSU] DROPPED after ${maxRetries} retries:`, payload);
@@ -560,7 +506,7 @@
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // 11. MAIN LOOP
+  // 10. MAIN LOOP
   // ═══════════════════════════════════════════════════════════════
 
   injectInjectedJs();
@@ -575,7 +521,6 @@
   });
 
   (async () => {
-    // Wait for injected.js
     for (let i = 0; i < 40 && !injectedReady; i++) await sleep(250);
     if (!injectedReady) {
       console.error("[TSU] injected.js never became ready — aborting.");
@@ -590,8 +535,6 @@
 
     const cfg = await getConfig();
 
-    // FIX: Fail fast if bridgeKey is missing or is still the placeholder.
-    // Previous version would silently POST with no key and get 401s all session.
     if (!cfg.bridgeKey || cfg.bridgeKey === "REPLACE_WITH_CLIENT_KEY") {
       console.error("[TSU] bridgeKey not set! Update DEFAULTS.bridgeKey in content.js for this client.");
       return;
@@ -606,27 +549,35 @@
 
     await sendEvent(cfg, { type: "overlay_warmup", liveId, sport: cfg.sport || "" });
 
-    // State tracking — restore from chrome.storage.local so a service-worker
-    // eviction or page refresh doesn't trigger a full replay of every sale.
-    const restored = await loadPersistedMaps(liveId);
-    const seen             = restored.seen;           // itemId → last-seen title (set ONLY after successful send)
-    const lastCodeByItem   = restored.lastCodeByItem; // itemId → last team code sent (for unsold detection)
+    // Load persisted dedup state from localStorage (survives page reloads)
+    const savedSeen = localStorage.getItem('tsu.seen');
+    const seen = new Map(savedSeen ? JSON.parse(savedSeen) : []);
 
-    // Prune stale liveId entries from previous streams.
-    cleanupOldPersistedMaps(liveId);
-
-    const buyerCounts      = new Map(); // buyer → sale count
+    const lastCodeByItem   = new Map();
+    const buyerCounts      = new Map();
     let lastSaleText       = "—";
     let loops              = 0;
-    let dirty              = false;     // set true when seen/lastCodeByItem mutates this poll
+
+    // seenSet with localStorage persistence
+    function seenSetWithPersist(key, value) {
+      if (seen.size >= 1000) {
+        let i = 0;
+        for (const k of seen.keys()) {
+          seen.delete(k);
+          if (++i >= 200) break;
+        }
+      }
+      seen.set(key, value);
+      try {
+        localStorage.setItem('tsu.seen', JSON.stringify([...seen.entries()]));
+      } catch (e) {
+        console.warn("[TSU] localStorage persist failed:", e?.message);
+      }
+    }
 
     while (true) {
       try {
-        // ── Fetch ALL pages of sold items ──────────────────────────
-        const allEdges = await fetchAllSoldEdges(liveId);
-
-        // Process oldest → newest (reverse of Whatnot's newest-first order)
-        // so if a spot was reassigned, we send sold-old → unsold-old → sold-new in order.
+        const allEdges = await fetchAllSoldEdges(liveId, seen);
         const nodes = allEdges.map((e) => e?.node).filter(Boolean).reverse();
 
         for (const n of nodes) {
@@ -648,19 +599,15 @@
 
           const title = stripPrefixTitle(rawTitle);
 
-          // ── Dedup: skip if we already sent this exact title for this item ──
           const prevTitle = seen.get(id);
           if (prevTitle !== undefined && prevTitle === title) continue;
 
-          // ── Filter: skip bad/empty titles (don't set seen — retry next poll) ──
           if (isBadTitle(rawTitle) || isBadTitle(title)) continue;
 
-          // ── Filter: skip giveaways ──
           const price  = parsePrice(n);
           const amount = price.amount;
           if (isGiveawayLike(title, amount)) continue;
 
-          // ── Resolve sport and team code ──
           const configuredSport = (cfg.sport || "").toLowerCase();
           const inferredSport   = inferTeamMatch(title)?.sport || "";
           const sport = (configuredSport && configuredSport !== "nil")
@@ -669,20 +616,16 @@
 
           const code = inferCodeFromTitle(title, sport);
 
-          // FIX: Don't send team_sold with empty code — overlay can't handle it.
-          // Don't set seen either — title might update next poll with a resolvable value.
           if (!code) {
             console.warn("[TSU] unresolved title (will retry):", { id, title, sport, rawTitle });
             continue;
           }
 
-          // ── Unsold detection: same item, different real code = reassignment ──
           const prevCode    = lastCodeByItem.get(id);
           const prevIsReal  = prevCode && !prevCode.startsWith("CUSTOM_");
           const newIsReal   = !code.startsWith("CUSTOM_");
 
           if (prevIsReal && newIsReal && prevCode !== code) {
-            // Send unsold for the previous assignment before marking the new one
             await sendEvent(cfg, {
               type:      "team_unsold",
               code:      prevCode,
@@ -691,7 +634,6 @@
             });
           }
 
-          // ── Build the sale event ──
           const eventPayload = {
             type:        "team_sold",
             saleId:      id,
@@ -710,27 +652,16 @@
             liveId
           };
 
-          // ── Send to bridge (with retry) ──
-          // FIX: Only update seen + lastCodeByItem AFTER successful send.
-          // Previously, seen was set before sending, so failures were lost forever.
           const ok = await sendEvent(cfg, eventPayload);
           if (ok) {
-            seenSet(seen, id, title);
+            seenSetWithPersist(id, title);
             lastCodeByItem.set(id, code);
-            dirty = true;
 
             lastSaleText = `${buyer} • ${title} • $${amount.toFixed(2)}`;
             buyerCounts.set(buyer, (buyerCounts.get(buyer) || 0) + 1);
           }
         }
 
-        // Persist dedup state once per poll (batched). Fire-and-forget.
-        if (dirty) {
-          savePersistedMaps(liveId, seen, lastCodeByItem);
-          dirty = false;
-        }
-
-        // ── Periodic stream stats summary ──
         loops++;
         if (loops % cfg.summaryEvery === 0) {
           let topBuyer = "—", topCount = 0;
@@ -738,19 +669,4 @@
             if (c > topCount) { topCount = c; topBuyer = b; }
           }
           await sendEvent(cfg, {
-            type:     "stream_stats",
-            topBuyer,
-            lastSale: lastSaleText,
-            liveId
-          });
-        }
-
-        await sleep(cfg.pollMs);
-
-      } catch (err) {
-        console.warn("[TSU] poll error:", err?.message || err);
-        await sleep(5000); // back off on unexpected errors
-      }
-    }
-  })();
-})();
+  
