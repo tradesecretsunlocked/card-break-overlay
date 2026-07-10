@@ -2228,7 +2228,9 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
   }
 }
 
-     if (type === "scores" && Array.isArray(payload.games)){
+     // Bridge broadcasts type "scores_update" (server.js line 357); some legacy
+     // paths use "scores". Accept both.
+     if ((type === "scores_update" || type === "scores") && Array.isArray(payload.games)){
   const s = String(payload.sport || "").toLowerCase();
   if (s === "nba" || s === "nfl" || s === "mlb"){
     setScoreboard(payload.games, s);
@@ -2388,10 +2390,16 @@ if (SCORE_MODE === "cycle") {
     setTopBuyer('');
 
 if (BRIDGE_URL) {
+  // Main channel — sales, break control, stream stats, banner control, etc.
   CHANNELS.forEach(ch => {
     const url = `${BRIDGE_URL}/stream?channel=${encodeURIComponent(ch)}&key=${encodeURIComponent(BRIDGE_KEY)}`;
     connectSSE(url);
   });
+  // Scores channel — live sports scores are broadcast on 'sports' (not 'main').
+  // Same bridge_key; connectSSE dedupes by URL so this is a distinct EventSource.
+  // handleSSEEvent already handles type==='scores' payloads (line ~2231).
+  const scoresUrl = `${BRIDGE_URL}/stream?channel=${encodeURIComponent('sports')}&key=${encodeURIComponent(BRIDGE_KEY)}`;
+  connectSSE(scoresUrl);
 } else {
   console.warn("[Overlay] No BRIDGE_URL set. Set localStorage tsu.bridge or add ?bridge=https://...");
 }

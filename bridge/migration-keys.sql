@@ -52,7 +52,8 @@ INSERT INTO bridge_keys (key, client_name, active, notes) VALUES
   ('becbe090-0aca-419b-a77e-71dcf418d96f', 'Wizards Trading Cards', true, 'migrated May 2026'),
   ('03856a9b-fa07-43b7-acde-49fcde946da9', '808st_ripz', true, 'added May 2026'),
   ('b85fc2e5-0f86-4770-a507-4a4a0982df55', 'Legends Hobby', true, 'added May 2026'),
-  ('a22c0803-7df2-49ec-a48c-5c66de3aab18', 'Northland Breaks — Stream 2', true, 'added 2026-07-03 for second host / second computer, uses overlays/northland-breaks-2/')
+  ('a22c0803-7df2-49ec-a48c-5c66de3aab18', 'Northland Breaks — Stream 2', true, 'added 2026-07-03 for second host / second computer, uses overlays/northland-breaks-2/'),
+  ('d8060302-7fe9-4478-974f-67b5344d132d', 'Collect 4 Good (Cory Donahue)', true, 'added 2026-07-09 — WNBA overlay custom build for Cory Donahue, $650 package received off-books before automation update, uses overlays/collect-4-good/')
 ;
 
 -- ─────────────────────────────────────────────────────────────────
@@ -94,6 +95,7 @@ INSERT INTO bridge_keys (key, client_name, active, notes) VALUES
 -- mcm-breaks                       469081bd-bd5b-4f3b-a01e-702962a3d91a
 -- northland-breaks                 6405252d-d27a-40df-bc2e-d04fe56aa6bd
 -- northland-breaks-2               a22c0803-7df2-49ec-a48c-5c66de3aab18   (added 2026-07-03, second computer/host)
+-- collect-4-good                   d8060302-7fe9-4478-974f-67b5344d132d   (added 2026-07-09, WNBA overlay for Cory Donahue)
 -- pack-smashers                    e144bc88-806d-4d54-af51-4baf963b4b46
 -- powerv2                          75062501-bd68-400c-a08a-64e5e40beacb
 -- quantum-breaks                   630cb940-153e-4f39-8436-b83c3e12764e  ← PRIORITY
