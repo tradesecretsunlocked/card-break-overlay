@@ -362,6 +362,25 @@ background-size: 140% auto; /* try 140–220% */
       position: relative;
     }
 
+    /* Custom spot tiles (box breaks) — text label, no logo */
+    .tile.custom-spot{
+      background: linear-gradient(160deg, rgba(46,123,255,0.28), rgba(16,22,44,0.92));
+    }
+    .tile.custom-spot .spot-label{
+      position: relative;
+      z-index: 2;
+      padding: 2px 4px;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.05;
+      text-align: center;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.85);
+      word-break: break-word;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
     .tile::before{
       content:"";
       position:absolute;
@@ -509,7 +528,11 @@ background-size: 140% auto; /* try 140–220% */
       border-radius: 14px;
       padding: 10px 12px;
       box-shadow: inset 0 0 0 1px rgba(248,184,56,0.12);
-      min-height: 108px;
+      /* FIXED height — LIVE SCORES / STREAM STATS never resize the overlay,
+         no matter how many game rows come in. Content clips inside. */
+      height: 150px;
+      display: flex;
+      flex-direction: column;
     }
 
     .infoPanel > *{ position: relative; z-index: 2; }
@@ -522,6 +545,7 @@ background-size: 140% auto; /* try 140–220% */
       color: var(--orange2);
       opacity: 0.95;
       margin-bottom: 8px;
+      flex: 0 0 auto;
     }
 
     .infoBody{
@@ -529,6 +553,10 @@ background-size: 140% auto; /* try 140–220% */
       flex-direction: column;
       gap: 8px;
       font-weight: 800;
+      /* fill the fixed panel and clip overflow instead of growing it */
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
     }
 
     .scoreRow{
@@ -962,6 +990,7 @@ background-size: 140% auto; /* try 140–220% */
       <div class="pill" id="camBgBtn">📷 Cam BG</div>
       <div class="pill" id="bannerBtn">Edit Banner</div>
       <div class="pill" id="tickerBtn">Edit Ticker</div>
+      <div class="pill" id="spotsBtn">➕ Add Spots</div>
     </div>
     <div class="sold-grid" id="soldGrid"></div>
   </div>
@@ -975,6 +1004,16 @@ background-size: 140% auto; /* try 140–220% */
       <label style="display:block;font-size:12px;opacity:.8;margin:10px 0 4px">Scroll timer — seconds per full loop (2–180, blank/0 = auto)</label>
       <input id="tickerSecsInput" type="number" min="0" max="180" step="1" />
       <div class="popup-btns"><button id="applyTicker">Apply</button><button id="closeTicker">Cancel</button></div>
+    </div>
+  </div>
+
+  <!-- Add Custom Spots Popup (box breaks — e.g. Donruss multi-sport) -->
+  <div class="popup" id="spotsPopup">
+    <div class="popup-card">
+      <h2>Add Custom Spots</h2>
+      <div style="font-size:12px;opacity:.8;margin:0 0 6px">One spot per line — for box breaks like Donruss that mix teams/sports. They appear as extra tiles in the bottom row and work with sold + the buyer panel. Clear the box and Apply to remove them.</div>
+      <textarea id="spotsInput" placeholder="Bonus Auto&#10;Case Hit&#10;Rookie RC"></textarea>
+      <div class="popup-btns"><button id="applySpots">Apply</button><button id="closeSpots">Cancel</button></div>
     </div>
   </div>
 
@@ -1329,7 +1368,7 @@ const CHANNELS = (() => {
   let soldList = []; // {code,buyer}
   let breakNum = 1;
   let bannerIdx = 0;
-  let soldOpen = false;
+  let soldOpen = (LS.get('soldOpen','0') === '1');  // admin controls state persists across OBS refresh
 
   // per-break stream stats
   let highBid = 0;
@@ -1538,17 +1577,39 @@ function buildTile(team){
   fx.className = 'fx';
   d.appendChild(fx);
 
-  const img = document.createElement('img');
-  img.src = team.image;
-  img.alt = team.name;
-  img.onerror = () => { d.textContent = team.code; };
+  if (team.image){
+    const img = document.createElement('img');
+    img.src = team.image;
+    img.alt = team.name;
+    img.onerror = () => { d.textContent = team.code; };
+    d.appendChild(img);
+  } else {
+    // Custom spot (no logo) — render its name as a readable label
+    d.classList.add('custom-spot');
+    const lbl = document.createElement('span');
+    lbl.className = 'spot-label';
+    lbl.textContent = team.name || team.code;
+    d.appendChild(lbl);
+  }
 
-  d.appendChild(img);
   d.addEventListener('click', () => toggleTeam(team.code));
   return d;
 }
 
   function getSportCount(){ return breakTypes[currentSport].count; }
+
+  // ===== Custom spots (box breaks — e.g. Donruss, mixed sports) =====
+  // Seller-added extra tiles appended to the bottom tile group. Sport-independent
+  // (they persist across sport switches so a mixed box break can span sports).
+  function loadCustomSpotsRaw(){ try{ return LS.get('customSpots',''); }catch(_){ return ''; } }
+  function saveCustomSpotsRaw(v){ try{ LS.set('customSpots', String(v||'')); }catch(_){ } }
+  function getCustomSpots(){
+    return loadCustomSpotsRaw()
+      .split('\n')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map((name, i) => ({ code: 'CS' + (i + 1), name: name, image: '' }));
+  }
 
   function renderTeams(){
     const cfg = breakTypes[currentSport];
@@ -1569,6 +1630,8 @@ function buildTile(team){
     leftTeams.forEach(t => leftGrid.appendChild(buildTile(t)));
     rightTeams.forEach(t => rightGrid.appendChild(buildTile(t)));
     bottomTeams.forEach(t => bottomGrid.appendChild(buildTile(t)));
+    // Append seller-added custom spots to the bottom tile group
+    getCustomSpots().forEach(t => bottomGrid.appendChild(buildTile(t)));
 
     soldSet.forEach(code => {
       const el = document.querySelector(`[data-team-code="${code}"]`);
@@ -1670,6 +1733,7 @@ function markUnsold(code){
   function toggleSold(){
     soldOpen = !soldOpen;
     soldWrap.classList.toggle('active', soldOpen);
+    LS.set('soldOpen', soldOpen ? '1' : '0');
   }
 // ===== Scores (NBA/NFL/MLB) =====
 // RIPPIN N SIPPIN: rotate NBA -> NFL -> MLB in the LIVE SCORES box
@@ -1688,11 +1752,11 @@ const _cycleOrder = ["nba","nfl","mlb"];
 
   function renderSoldPanel(){
     soldGrid.innerHTML = '';
-    if (soldList.length === 0){
-      soldOpen = false;
-      soldWrap.classList.remove('active');
-      return;
-    }
+    // NOTE: renderSoldPanel only renders the sold list. It must NOT open or close
+    // the admin controls — that state is owned solely by the user's Sold toggle
+    // (toggleSold). Previously this force-closed on empty / force-opened on sale,
+    // which snapped the admin pills shut on every SSE render.
+    if (soldList.length === 0) return;
 
     soldList.forEach(entry => {
       const tile = document.querySelector(`[data-team-code="${entry.code}"]`);
@@ -1718,9 +1782,6 @@ const _cycleOrder = ["nba","nfl","mlb"];
       row.appendChild(input);
       soldGrid.appendChild(row);
     });
-
-    soldOpen = true;
-    soldWrap.classList.add('active');
   }
 
   /* =========================
@@ -1798,7 +1859,7 @@ const _cycleOrder = ["nba","nfl","mlb"];
   }
 
   function updateStats(){
-    const total = getSportCount();
+    const total = getSportCount() + getCustomSpots().length;
     safeText('soldCount', soldSet.size);
     safeText('leftCount', total - soldSet.size);
     updateStreamStatsBox();
@@ -2375,6 +2436,7 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
     renderTeams();
     renderBanner();
     updateStreamStatsBox();
+    soldWrap.classList.toggle('active', soldOpen);  // restore admin-controls state after refresh
 renderScores();
 
 if (SCORE_MODE === "cycle") {
@@ -2421,6 +2483,17 @@ if (BRIDGE_URL) {
         const t=(box.value||'').trim(); tickerText = t || DEFAULT_TICKER; saveTicker(tickerText);
         const n=parseInt((secs&&secs.value)||'',10); tickerSecs = (isFinite(n)&&n>=2&&n<=180)?n:0; saveTickerSecs(tickerSecs);
         buildTicker(); pop.classList.remove('active');
+      });
+    })();
+
+    // Add Custom Spots control (box breaks — Donruss multi-sport, etc.)
+    (function(){
+      const pop=document.getElementById('spotsPopup'), btn=document.getElementById('spotsBtn'), box=document.getElementById('spotsInput');
+      if(!btn||!pop) return;
+      btn.addEventListener('click', ()=>{ box.value=loadCustomSpotsRaw(); pop.classList.add('active'); });
+      document.getElementById('closeSpots').addEventListener('click', ()=>pop.classList.remove('active'));
+      document.getElementById('applySpots').addEventListener('click', ()=>{
+        saveCustomSpotsRaw(box.value||''); renderTeams(); pop.classList.remove('active');
       });
     })();
 
