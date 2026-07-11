@@ -1255,6 +1255,19 @@
   z-index: 6;
 }
 
+/* SOLD chaser — electricity retires once the sold animation finishes.
+   Tile drops back flat, stops pulsing/glitching, keeps its normal sold look. */
+.team.chase.chase-retired{
+  animation: none;
+  transform: none;
+  overflow: hidden;
+  z-index: auto;
+}
+.team.chase.chase-retired .chase-bolt,
+.team.chase.chase-retired .chase-glitch{
+  display: none;
+}
+
 /* the tile's own lightning border — same filter family as the board */
 .chase-bolt{
   position: absolute;
@@ -2454,6 +2467,8 @@ custom: {
 
   // ===== CHASE SHOCK — 520ms electric hit, played BEFORE the sold animation =====
   const CHASE_SHOCK_MS = 520;
+  // How long the sold card FX runs (must match the strike/card cleanup in playSoldAnimation).
+  const SOLD_FX_MS = 2100;
   const SHOCK_BOLTS = [
     "50,50 34,40 40,28 22,14",   // up-left
     "50,50 66,41 60,27 78,12",   // up-right
@@ -2498,6 +2513,14 @@ custom: {
 
   // Adds/removes the whole chase FX stack on a tile. Driven by the CHASE modal.
   function syncChaseZap(tile, isChase){
+    if (!tile) return;
+
+    // A chaser that's already SOLD never wears the electricity — it stays retired
+    // through every rebuild (page reload, sport swap, spot toggle).
+    const isSold = tile.classList.contains("sold");
+    if (isSold) isChase = false;
+    tile.classList.toggle("chase-retired", isSold);
+
     const hasBolt   = tile.querySelector(".chase-bolt");
     const hasGlitch = tile.querySelector(".chase-glitch");
 
@@ -2921,6 +2944,14 @@ if (config.layout === "CUSTOM_30"){
         t.classList.add("sold");
         t.classList.add("flash");
         setTimeout(()=>t.classList.remove("flash"), 280);
+
+        // Chaser: kill the electricity once the sold card animation has finished.
+        if (chaseTeams.has(code)){
+          setTimeout(() => {
+            const tt = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+            if (tt) syncChaseZap(tt, false);   // .sold is set, so this also retires it
+          }, SOLD_FX_MS);
+        }
       };
 
       if (chaseTeams.has(code)){
