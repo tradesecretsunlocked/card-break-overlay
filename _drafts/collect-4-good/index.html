@@ -266,7 +266,7 @@ background-size: 140% auto; /* try 140–220% */
 
     .colgrid{
       display:grid;
-      grid-template-columns: repeat(3, 1fr);   /* 3 tiles per row on each side stack (mockup match) */
+      grid-template-columns: repeat(var(--sideCols, 3), 1fr);   /* 3/side normally; JS raises --sideCols at high density */
       gap: 6px;
     }
 
@@ -410,6 +410,55 @@ background-size: 140% auto; /* try 140–220% */
       opacity: 0.12;
       animation: none;
     }
+
+    /* ===== Chaser spots — identity hidden until reveal (jim-and-tabby pattern, CFG cyan) ===== */
+    .tile.chaser{
+      border-color: rgba(123,209,240,0.95);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,0.08),
+        0 0 16px rgba(79,182,224,0.45),
+        0 0 28px rgba(79,182,224,0.22);
+    }
+    .tile.chaser img{ display:none !important; }
+    .tile.chaser::after{
+      content:attr(data-chaser-label);
+      position:absolute; inset:3px;
+      display:flex; align-items:center; justify-content:center; text-align:center;
+      color:#eaf7ff; font-size:clamp(11px, 1.4vw, 16px); line-height:1.05;
+      font-weight:900; letter-spacing:.5px; text-transform:uppercase; overflow:hidden;
+      text-shadow:0 2px 8px rgba(0,0,0,0.9), 0 0 10px rgba(79,182,224,0.5);
+      z-index:3; pointer-events:none;
+    }
+    .tile.chaser.sold::after{
+      content:attr(data-chaser-label);
+      font-size:clamp(11px, 1.4vw, 16px);
+      color:#9fc6d8;
+    }
+    .tile .chaser-tag{
+      position:absolute; top:2px; left:3px; z-index:5;
+      padding:1px 5px; border-radius:999px;
+      font-size:9px; font-weight:900; letter-spacing:.5px; color:#03222e;
+      background:linear-gradient(180deg, #7BD1F0, #4FB6E0);
+      border:1px solid rgba(255,255,255,0.7);
+      box-shadow:0 0 8px rgba(79,182,224,0.4);
+    }
+
+    /* ===== Custom entries — brand logo as tile background + label ===== */
+    .tile.custom img{ object-fit:contain; opacity:0.30; padding:4px; }
+    .tile.custom .custom-label{
+      position:absolute; inset:2px; z-index:3;
+      display:flex; align-items:center; justify-content:center; text-align:center;
+      font-weight:900; color:#fff; font-size:clamp(10px, 1.2vw, 14px); line-height:1.05;
+      letter-spacing:.4px; text-shadow:0 2px 6px #000, 0 0 8px rgba(79,182,224,0.4);
+      overflow:hidden; pointer-events:none;
+    }
+    .tile.custom.sold .custom-label{ color:rgba(255,255,255,0.55); }
+
+    /* ===== Scroll overflow at max density (wizards pattern) ===== */
+    .board.scrollY{ overflow-y:auto; scrollbar-width:thin; scrollbar-color:rgba(79,182,224,0.45) transparent; }
+    .board.scrollY::-webkit-scrollbar{ width:6px; }
+    .board.scrollY::-webkit-scrollbar-thumb{ background:rgba(79,182,224,0.45); border-radius:3px; }
+    .board.scrollY::-webkit-scrollbar-track{ background:transparent; }
 
     .sideStack{
       display:flex;
@@ -1096,8 +1145,37 @@ background-size: 140% auto; /* try 140–220% */
       <div class="pill" id="tickerBtn">Set Ticker</div>
       <div class="pill" id="exportBtn">Export CSV</div>
       <div class="pill" id="sportBtn">Change Sport</div>
+      <div class="pill" id="modeBtn">Mode</div>
+      <div class="pill" id="chasersBtn">Chasers</div>
+      <div class="pill" id="revealBtn">Reveal Chasers</div>
+      <div class="pill" id="customBtn">Custom Spots</div>
     </div>
     <div class="sold-grid" id="soldGrid"></div>
+  </div>
+
+  <!-- Chasers Picker Popup -->
+  <div class="popup" id="chasersPopup">
+    <div class="popup-card">
+      <h2>Chaser Spots</h2>
+      <p style="font-size:12px; opacity:.75; margin:4px 0 10px;">Selected teams become hidden CHASER spots in Team + Chase mode. Identities stay hidden until you hit Reveal Chasers.</p>
+      <div id="chasersGrid" style="display:grid; grid-template-columns:repeat(5,1fr); gap:6px; max-height:300px; overflow-y:auto;"></div>
+      <div class="popup-btns">
+        <button id="closeChasers">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Entries Popup -->
+  <div class="popup" id="customPopup">
+    <div class="popup-card">
+      <h2>Custom Spots</h2>
+      <p style="font-size:12px; opacity:.75; margin:4px 0 10px;">One spot per line (players, packs, anything). Each becomes a tile with the Collect 4 Good logo background. In Team modes they fill the bottom row; in Custom Board mode they ARE the board (up to 180).</p>
+      <textarea id="customEntriesInput" placeholder="Caitlin Clark&#10;Angel Reese&#10;Pack 1&#10;Pack 2" style="min-height:160px;"></textarea>
+      <div class="popup-btns">
+        <button id="applyCustom">Apply</button>
+        <button id="closeCustom">Close</button>
+      </div>
+    </div>
   </div>
 
   <!-- Export Popup -->
@@ -1215,7 +1293,7 @@ document.documentElement.style.setProperty(
   const bannerImg = (f) => new URL(f, location.href).href;
 
   // === Bridge URL (NO KEY in URL) ===
-  // Provide via ?bridge=https://YOUR-RENDER-APP.onrender.com
+  // Optional override via ?bridge=<custom bridge base URL> (testing only)
 
 // ── Multi-tenant bridge — LOCKED, do not change ──
 const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com";
@@ -1350,8 +1428,37 @@ function rememberSaleId(saleId){
 
   // chasers
   const CHASERS_KEY = "collect-4-good.chasers";
-  const DEFAULT_CHASERS = new Set(["LAL","OKC","GSW","DAL","HOU","BOS","KC","BUF","SF","LAD"]);
+  const DEFAULT_CHASERS = new Set(); // WNBA-only build: no default chasers (bird-dogz NBA/NFL defaults removed)
   let chasersSet = new Set(DEFAULT_CHASERS);
+
+  // ===== Layout modes · custom entries · chase-at-end state =====
+  const MODE_KEY    = "collect-4-good.layoutMode";
+  const CUSTOM_KEY  = "collect-4-good.customEntries";
+  const REVEAL_KEY  = "collect-4-good.chasersRevealed";
+  const MODES = ["team","team-chase","custom"];
+  const MODE_LABEL = { "team":"Team + Player", "team-chase":"Team + Chase", "custom":"Custom Board" };
+  let layoutMode = localStorage.getItem(MODE_KEY) || "team";
+  if (!MODES.includes(layoutMode)) layoutMode = "team";
+  let customEntries = [];
+  try{ const a=JSON.parse(localStorage.getItem(CUSTOM_KEY)||"[]"); if(Array.isArray(a)) customEntries=a.map(String).filter(Boolean).slice(0,180); }catch(_){}
+  let chasersRevealed = localStorage.getItem(REVEAL_KEY) === "1";
+  function saveMode(){ localStorage.setItem(MODE_KEY, layoutMode); }
+  function saveCustomEntries(){ localStorage.setItem(CUSTOM_KEY, JSON.stringify(customEntries)); }
+  function saveRevealed(){ localStorage.setItem(REVEAL_KEY, chasersRevealed ? "1" : "0"); }
+  function customTeamObjects(){
+    return customEntries.map((label,i)=>({ code:"SPOT"+(i+1), name:label, image:`${BASE}images/logos/collect-4-good-logo.png`, custom:true }));
+  }
+  function orderedChaserCodes(){
+    // stable label order: board order of the current sport roster
+    return breakTypes[currentSport].teams.map(t=>t.code).filter(c=>chasersSet.has(c));
+  }
+  function chaserLabelFor(code){
+    const i = orderedChaserCodes().indexOf(code);
+    return i<0 ? "CHASER" : "CHASER "+(i+1);
+  }
+  function isChaserHidden(code){
+    return layoutMode==="team-chase" && chasersSet.has(code) && !chasersRevealed;
+  }
 
   // title
   let headerTitleText = "COLLECT 4 GOOD • WNBA";
@@ -1535,6 +1642,23 @@ function buildTile(team){
   img.onerror = () => { d.textContent = team.code; };
 
   d.appendChild(img);
+
+  if (team.custom){
+    d.classList.add('custom');
+    const lab = document.createElement('span');
+    lab.className = 'custom-label';
+    lab.textContent = team.name;
+    d.appendChild(lab);
+  } else if (isChaserHidden(team.code)){
+    d.classList.add('chaser');
+    d.setAttribute('data-chaser-label', chaserLabelFor(team.code));
+  } else if (layoutMode==="team-chase" && chasersSet.has(team.code) && chasersRevealed){
+    const tag = document.createElement('span');
+    tag.className = 'chaser-tag';
+    tag.textContent = chaserLabelFor(team.code).replace('CHASER ','C');
+    d.appendChild(tag);
+  }
+
   d.addEventListener('click', () => toggleTeam(team.code));
   return d;
 }
@@ -1555,22 +1679,40 @@ function buildTile(team){
     // (bottom row reserved for player spots in team+player mode).
     // Distribution scales up automatically as total tile count grows (custom-break mode with up to
     // 180 spots is handled by the dynamic-sizing pass in fitBoardDensity below).
-    const total = TEAMS.length;
-    const isSmall = total <= 18;  // WNBA-scale
-    const leftN   = isSmall ? Math.ceil((total - 3) / 2) : Math.ceil((total - (cfg.topCount + cfg.bottomCount)) / 2);
-    const rightN  = isSmall ? Math.floor((total - 3) / 2) : Math.floor((total - (cfg.topCount + cfg.bottomCount)) / 2);
-    const topN    = isSmall ? Math.max(0, total - leftN - rightN) : (cfg.topCount    || 0);
-    const bottomN = isSmall ? 0 : (cfg.bottomCount || 0);
+    // Mode-aware roster:
+    //   team / team-chase → WNBA teams on the side+top grids, custom entries fill the BOTTOM row (player spots)
+    //   custom            → custom entries ARE the board (up to 180 spots)
+    const customs = customTeamObjects();
+    const roster  = (layoutMode === "custom") ? customs : TEAMS;
+    const total   = roster.length;
 
-    const leftTeams   = TEAMS.slice(0, leftN);
-    const rightTeams  = TEAMS.slice(leftN, leftN + rightN);
-    const topTeams    = TEAMS.slice(leftN + rightN, leftN + rightN + topN);
-    const bottomTeams = TEAMS.slice(leftN + rightN + topN, leftN + rightN + topN + bottomN);
+    let leftTeams, rightTeams, topTeams, bottomTeams;
+    if (layoutMode === "custom"){
+      const topN    = Math.min(10, Math.floor(total * 0.12));
+      const bottomN = Math.min(10, Math.floor(total * 0.12));
+      const leftN   = Math.ceil((total - topN - bottomN) / 2);
+      const rightN  = total - topN - bottomN - leftN;
+      leftTeams   = roster.slice(0, leftN);
+      rightTeams  = roster.slice(leftN, leftN + rightN);
+      topTeams    = roster.slice(leftN + rightN, leftN + rightN + topN);
+      bottomTeams = roster.slice(leftN + rightN + topN);
+    } else {
+      const isSmall = total <= 18;  // WNBA-scale
+      const leftN   = isSmall ? Math.ceil((total - 3) / 2) : Math.ceil((total - (cfg.topCount + cfg.bottomCount)) / 2);
+      const rightN  = isSmall ? Math.floor((total - 3) / 2) : Math.floor((total - (cfg.topCount + cfg.bottomCount)) / 2);
+      const topN    = isSmall ? Math.max(0, total - leftN - rightN) : (cfg.topCount    || 0);
+      leftTeams   = roster.slice(0, leftN);
+      rightTeams  = roster.slice(leftN, leftN + rightN);
+      topTeams    = roster.slice(leftN + rightN, leftN + rightN + topN);
+      bottomTeams = customs; // player spots ride the bottom row in team modes
+    }
 
     leftTeams.forEach(t   => leftGrid.appendChild(buildTile(t)));
     rightTeams.forEach(t  => rightGrid.appendChild(buildTile(t)));
     topTeams.forEach(t    => topGrid.appendChild(buildTile(t)));
     bottomTeams.forEach(t => bottomGrid.appendChild(buildTile(t)));
+
+    fitBoardDensity(total + (layoutMode === "custom" ? 0 : bottomTeams.length));
 
     soldTeams.forEach(code => {
       const el = document.querySelector(`[data-team-code="${code}"]`);
@@ -1719,13 +1861,40 @@ function sseUpdateBuyer(code, buyer){
 function buildExportTSV(){
   const sportName = breakTypes[currentSport].name;
   const header = "Team\tBuyer\tSport\tBreak #\n";
-  const rows = soldTeamsList.map(x => `${x.code}\t${x.buyer || ""}\t${sportName}\t${breakNum}`).join("\n");
+  const rows = soldTeamsList.map(x => {
+    let label = x.code;
+    if (isChaserHidden(x.code)) label = chaserLabelFor(x.code);              // keep identity hidden until reveal
+    else if (String(x.code).startsWith('SPOT')){ const ce = customTeamObjects().find(c=>c.code===x.code); if (ce) label = ce.name; }
+    else if (chasersSet.has(x.code) && layoutMode==="team-chase") label = `${x.code} (${chaserLabelFor(x.code)})`;
+    return `${label}\t${x.buyer || ""}\t${sportName}\t${breakNum}`;
+  }).join("\n");
   return header + rows + (rows ? "\n" : "");
 }
 
 function breakIdMatches(value){
   const v = parseInt(value, 10);
   return Number.isInteger(v) && v === breakNum;
+}
+
+/* Dynamic tile sizing + scroll overflow (wizards pattern) — supports up to 180 spots */
+function fitBoardDensity(total){
+  const root = document.documentElement;
+  const tileH = total <= 18 ? 66 : total <= 40 ? 56 : total <= 80 ? 46 : total <= 120 ? 40 : 34;
+  root.style.setProperty('--tileH', tileH + 'px');
+  root.style.setProperty('--sideCols', total <= 60 ? 3 : 4);
+  const center = document.querySelector('.center');
+  const boards = [document.getElementById('leftBoard'), document.getElementById('rightBoard')].filter(Boolean);
+  boards.forEach(b => { b.classList.remove('scrollY'); b.style.maxHeight = ''; });
+  requestAnimationFrame(() => {
+    const capH = center ? center.offsetHeight : 0;
+    if (!capH) return;
+    boards.forEach(b => {
+      if (b.scrollHeight > capH + 8){
+        b.classList.add('scrollY');
+        b.style.maxHeight = capH + 'px';
+      }
+    });
+  });
 }
 
 function buildLayout(){
@@ -1776,7 +1945,19 @@ const _cycleOrder = ["nba","nfl","mlb"];
       const row = document.createElement('div');
       row.className = 'sold-item';
 
-      if (src){
+      if (isChaserHidden(entry.code)){
+        // chase-at-end: identity stays hidden — show the chaser label instead of the logo
+        const lab = document.createElement('span');
+        lab.textContent = chaserLabelFor(entry.code);
+        lab.style.cssText = 'font-weight:900; font-size:11px; letter-spacing:.5px; color:#7BD1F0; min-width:70px;';
+        row.appendChild(lab);
+      } else if (String(entry.code).startsWith('SPOT')){
+        const ce = customTeamObjects().find(c => c.code === entry.code);
+        const lab = document.createElement('span');
+        lab.textContent = ce ? ce.name : entry.code;
+        lab.style.cssText = 'font-weight:900; font-size:11px; color:#fff; min-width:70px;';
+        row.appendChild(lab);
+      } else if (src){
         const img = document.createElement('img');
         img.src = src;
         row.appendChild(img);
@@ -1853,13 +2034,15 @@ function resetAll(){
   soldTeamsList = [];
   lastCodeByListingKey.clear();
 
-  document.querySelectorAll('.tile').forEach(t => t.classList.remove('sold'));
-  updateStats();
-  renderSoldPanel();
+  chasersRevealed = false;           // fresh break = identities hidden again
+  saveRevealed();
+  syncModePills();
 
+  updateStats();
   setHighBid(0);
   buyerTotals = new Map();
   setTopBuyer('');
+  renderTeams();                     // full rebuild so chaser tiles re-hide cleanly
 }
 
   function nextBreak(){
@@ -2325,6 +2508,55 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
 
   document.getElementById('sportBtn').addEventListener('click', cycleSport);
 
+  // ===== Mode toggle · chasers picker · reveal · custom entries =====
+  function syncModePills(){
+    const mb = document.getElementById('modeBtn');
+    if (mb) mb.textContent = 'Mode: ' + (MODE_LABEL[layoutMode] || layoutMode);
+    const rb = document.getElementById('revealBtn');
+    if (rb){
+      rb.style.display = (layoutMode === 'team-chase') ? '' : 'none';
+      rb.textContent = chasersRevealed ? 'Chasers Revealed ✓' : 'Reveal Chasers';
+    }
+    const cb = document.getElementById('chasersBtn');
+    if (cb) cb.style.display = (layoutMode === 'team-chase') ? '' : 'none';
+  }
+  function cycleMode(){
+    layoutMode = MODES[(MODES.indexOf(layoutMode) + 1) % MODES.length];
+    saveMode();
+    syncModePills();
+    renderTeams();
+  }
+  function revealChasers(){
+    if (layoutMode !== 'team-chase' || chasersRevealed) return;
+    chasersRevealed = true;
+    saveRevealed();
+    syncModePills();
+    renderTeams();
+  }
+  document.getElementById('modeBtn').addEventListener('click', cycleMode);
+  document.getElementById('revealBtn').addEventListener('click', revealChasers);
+  document.getElementById('chasersBtn').addEventListener('click', openChasersPicker);
+  document.getElementById('closeChasers').addEventListener('click', () => {
+    document.getElementById('chasersPopup').classList.remove('active');
+    renderTeams(); // apply picker changes to the board
+  });
+  document.getElementById('customBtn').addEventListener('click', () => {
+    document.getElementById('customEntriesInput').value = customEntries.join('\n');
+    document.getElementById('customPopup').classList.add('active');
+  });
+  document.getElementById('applyCustom').addEventListener('click', () => {
+    const lines = String(document.getElementById('customEntriesInput').value || '')
+      .split('\n').map(x => x.trim()).filter(Boolean).slice(0, 180);
+    customEntries = lines;
+    saveCustomEntries();
+    document.getElementById('customPopup').classList.remove('active');
+    renderTeams();
+  });
+  document.getElementById('closeCustom').addEventListener('click', () => {
+    document.getElementById('customPopup').classList.remove('active');
+  });
+  syncModePills();
+
 
   // Set break popup
   const breakPopup = document.getElementById('breakPopup');
@@ -2523,7 +2755,7 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
     }
 
     // Warmup ping — tells bridge this overlay is live.
-    // MUST POST to /events (the publish endpoint). There is no /warmup route — it 404s.
+    // MUST POST to the /events publish endpoint (no other warmup route exists).
     fetch(`${BRIDGE_URL}/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-bridge-key': BRIDGE_KEY },

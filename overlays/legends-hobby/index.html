@@ -93,7 +93,7 @@
         #C9A027 90%,
         #D4AF37 100%);
       color: var(--white);
-      padding: 6px 10px;
+      padding: 1px 1px;
       margin: -6px -6px 6px -6px;
       border-radius: 6px 6px 0 0;
       display:flex;
@@ -231,7 +231,7 @@
     }
 
     .team{
-      background: #000;
+      background: #030454;
       border: 2px solid rgba(201,160,39,0.82);
       border-radius: 6px;
       display:flex;
@@ -340,7 +340,7 @@
   display:none;
 }
     .team.sold img{
-      opacity: 0.82;
+      opacity: 0;
       filter: grayscale(100%) brightness(0.28);
     }
 
@@ -354,22 +354,21 @@
     .team.sold::after{
       content:"X";
       position:absolute;
-      font-size: 20px;
-      color: #0a0a0a;
-      text-shadow: 0 0 2px rgba(0,0,0,0.35);
+      font-size: 24px;
+      color: #ffffff;
+     
       z-index: 10;
-      background: rgba(201,160,39,0.95);
-      border-radius: 50%;
-      width: 26px;
-      height: 26px;
+      
+      
+    
       display:flex;
       align-items:center;
       justify-content:center;
       left: 50%;
       top: 50%;
       transform: translate(-50%, -50%);
-      border: 2px solid rgba(240,208,80,0.95);
-      box-shadow: 0 0 12px rgba(201,160,39,0.45);
+      
+     
     }
 
     .team.sold:hover{
@@ -552,11 +551,11 @@
       background: linear-gradient(
         318deg,
         #0f0b00 0%,
-        #2a2000 28%,
-        #7a5c10 46%,
-        #D4AF37 50%,
-        #7a5c10 54%,
-        #2a2000 72%,
+        #2a2000 9%,
+        #7a5c10 21%,
+        #D4AF37 49%,
+        #7a5c10 64%,
+        #2a2000 88%,
         #0f0b00 100%);
       color:#fff;
       border-radius: 8px;
@@ -567,13 +566,13 @@
       display:flex;
       flex-direction:column;
       justify-content:center;
-      font-size: 22px;
+      font-size: 26px;
       border: 2px solid var(--accentBorder);
-      min-height: 58px;
+      max-height: 70px;
     }
 
     .stat-label{
-      font-size: 14px;
+      font-size: 17px;
       letter-spacing: 1px;
       margin-top: 2px;
       opacity: 0.95;
@@ -647,7 +646,7 @@
   position:relative;
   z-index:2;
   text-align:center;
-  width:75%;
+  width:99%;
   background:rgba(0,0,0,0.15)
 }
 
@@ -751,7 +750,7 @@
     .sold-list-grid{
       display:grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 2px 2px;
+      
     }
 
     .sold-row{
@@ -777,7 +776,7 @@
  
 
     .sold-buyer-input{
-      font-size: 20px;
+      font-size: 22px;
       border: 2px solid rgba(201,160,39,0.28);
       border-radius: 4px;
       font-weight: 800;
@@ -906,7 +905,9 @@
     0 0 0 2px rgba(201,160,39,0.30) inset,
     0 0 14px rgba(201,160,39,0.55),
     0 0 28px rgba(201,160,39,0.30);
-  animation: chasePulse 1.9s ease-in-out infinite;
+  animation:
+    chasePulse 1.9s ease-in-out infinite,
+    chaseRaiseGlitch 2.6s steps(1) infinite;   /* raised + shudder on the zap beat */
 }
 .team.chase::before{
   content:"";
@@ -928,6 +929,7 @@
   z-index: 2;
 }
 .chase-chip{
+  display:none;
   position:absolute;
   top:2px;
   right:2px;
@@ -1205,10 +1207,263 @@
     transform: scale(1.28);
   }
 }
+/* ===== ELECTRIC BOARD BORDER (white lightning) ===== */
+.board-shell{
+  position: relative;
+  isolation: isolate;
+}
+.board-lightning{
+  position: absolute;
+  inset: -34px;                 /* room for tall peaks — raise with BOLT_PAD in JS */
+  width: calc(100% + 68px);
+  height: calc(100% + 68px);
+  pointer-events: none;
+  overflow: visible;
+  z-index: 40;
+  filter:
+    drop-shadow(0 0 3px rgba(235,248,255,0.95))
+    drop-shadow(0 0 10px rgba(255,255,255,0.55))
+    drop-shadow(0 0 22px rgba(180,225,255,0.35));
+  animation: boltFlicker 2.6s steps(1) infinite;
+}
+.bolt-glow{
+  fill: none;
+  stroke: #dff3ff;
+  stroke-width: 6;
+  opacity: 0.45;
+  filter: blur(4px);
+}
+.bolt-core{
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.6;
+  opacity: 0.95;
+}
+@keyframes boltFlicker{
+  0%,  100% { opacity: 1;    }
+  38%       { opacity: 0.72; }
+  40%       { opacity: 1;    }
+  71%       { opacity: 0.82; }
+  73%       { opacity: 1;    }
+}
+
+/* ===== CHASE TILE — raised + its own electric border + glitch ===== */
+/* raised off the board, and let the bolt spikes escape the tile box */
+.team.chase{
+  overflow: visible;
+  z-index: 6;
+}
+
+/* the tile's own lightning border — same filter family as the board */
+.chase-bolt{
+  position: absolute;
+  inset: -10px;                 /* must match ZAP_PAD in JS */
+  width: calc(100% + 20px);
+  height: calc(100% + 20px);
+  pointer-events: none;
+  overflow: visible;
+  z-index: 4;
+  filter:
+    drop-shadow(0 0 2px rgba(235,248,255,0.95))
+    drop-shadow(0 0 7px rgba(255,255,255,0.55))
+    drop-shadow(0 0 16px rgba(180,225,255,0.35));
+}
+.chase-bolt .tile-bolt-glow{
+  fill: none;
+  stroke: #dff3ff;
+  stroke-width: 4;
+  opacity: 0.42;
+  filter: blur(3px);
+}
+.chase-bolt .tile-bolt-core{
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.3;
+  opacity: 0.95;
+}
+
+/* ===== GLITCH — the tile gets zapped and tears ===== */
+.chase-glitch{
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  overflow: hidden;             /* slices are clipped to the tile face */
+  pointer-events: none;
+  z-index: 5;
+}
+.chase-glitch .gl-slice{
+  position: absolute;
+  left: -6%;
+  width: 112%;
+  opacity: 0;
+}
+.chase-glitch .gl-s1{
+  top: 18%; height: 15%;
+  backdrop-filter: invert(1) hue-rotate(165deg) saturate(2.2);
+  animation: glSliceA 2.6s steps(1) infinite;
+}
+.chase-glitch .gl-s2{
+  top: 52%; height: 10%;
+  backdrop-filter: invert(1) contrast(2.4) brightness(1.3);
+  animation: glSliceB 2.6s steps(1) infinite;
+}
+.chase-glitch .gl-s3{
+  top: 73%; height: 7%;
+  backdrop-filter: hue-rotate(95deg) brightness(2.1) saturate(3);
+  animation: glSliceC 2.6s steps(1) infinite;
+}
+.chase-glitch .gl-flash{
+  position: absolute;
+  inset: 0;
+  background: #eaf7ff;
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: glFlash 2.6s steps(1) infinite;
+}
+
+/* each slice tears sideways for a couple of frames, at different moments */
+@keyframes glSliceA{
+  0%, 27%       { opacity: 0; transform: translateX(0); }
+  28%           { opacity: 1; transform: translateX(-7%); }
+  30%           { opacity: 1; transform: translateX(5%); }
+  32%, 100%     { opacity: 0; transform: translateX(0); }
+}
+@keyframes glSliceB{
+  0%, 29%       { opacity: 0; transform: translateX(0); }
+  30%           { opacity: 1; transform: translateX(6%); }
+  31.5%         { opacity: 1; transform: translateX(-4%); }
+  33%, 71%      { opacity: 0; transform: translateX(0); }
+  72%           { opacity: 1; transform: translateX(-5%); }
+  74%, 100%     { opacity: 0; transform: translateX(0); }
+}
+@keyframes glSliceC{
+  0%, 71%       { opacity: 0; transform: translateX(0); }
+  72%           { opacity: 1; transform: translateX(8%); }
+  73.5%         { opacity: 1; transform: translateX(-6%); }
+  75%, 100%     { opacity: 0; transform: translateX(0); }
+}
+/* the zap hit: a hard white flash right as the tile tears */
+@keyframes glFlash{
+  0%, 27.5%     { opacity: 0; }
+  28%           { opacity: 0.55; }
+  29%           { opacity: 0.10; }
+  30%           { opacity: 0.38; }
+  32%, 71.5%    { opacity: 0; }
+  72%           { opacity: 0.45; }
+  74%, 100%     { opacity: 0; }
+}
+
+/* ===== CHASE SHOCK — fires the instant a chaser sells, before the sold card flies ===== */
+.chase-shock-fx{
+  position: absolute;
+  inset: -22px;
+  width: calc(100% + 44px);
+  height: calc(100% + 44px);
+  pointer-events: none;
+  overflow: visible;
+  z-index: 30;
+  filter:
+    drop-shadow(0 0 3px rgba(235,248,255,1))
+    drop-shadow(0 0 10px rgba(255,255,255,0.75))
+    drop-shadow(0 0 26px rgba(150,215,255,0.55));
+}
+.chase-shock-fx .shock-bolt{
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  animation: shockBolt 520ms steps(1) 1;
+}
+.chase-shock-fx .shock-bolt.b2{ animation-delay:  40ms; }
+.chase-shock-fx .shock-bolt.b3{ animation-delay:  75ms; }
+.chase-shock-fx .shock-bolt.b4{ animation-delay: 120ms; }
+.chase-shock-fx .shock-bolt.b5{ animation-delay: 165ms; }
+.chase-shock-fx .shock-bolt.b6{ animation-delay: 215ms; }
+@keyframes shockBolt{
+  0%   { opacity: 0;    }
+  4%   { opacity: 1;    }
+  12%  { opacity: 0.25; }
+  18%  { opacity: 1;    }
+  30%  { opacity: 0.55; }
+  46%  { opacity: 0;    }
+  100% { opacity: 0;    }
+}
+
+.chase-shock-flash{
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 29;
+  background: radial-gradient(circle at 50% 50%, #ffffff 0%, #cfeeff 45%, rgba(160,220,255,0) 75%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: shockFlash 520ms steps(1) 1;
+}
+@keyframes shockFlash{
+  0%   { opacity: 0;    }
+  4%   { opacity: 0.95; }
+  12%  { opacity: 0.20; }
+  18%  { opacity: 0.80; }
+  30%  { opacity: 0.30; }
+  50%  { opacity: 0;    }
+  100% { opacity: 0;    }
+}
+
+/* the tile itself convulses, then settles back into its raised chase pose */
+.team.chase.chase-shock{
+  animation: chaseShockJolt 520ms steps(1) 1;
+}
+@keyframes chaseShockJolt{
+  0%   { transform: translateY(-4px) scale(1.045); filter: brightness(1);    }
+  5%   { transform: translate(-3px, -8px) scale(1.10); filter: brightness(2.2); }
+  10%  { transform: translate(4px, -2px)  scale(1.02); filter: brightness(0.7); }
+  16%  { transform: translate(-4px, -7px) scale(1.09); filter: brightness(1.9); }
+  24%  { transform: translate(3px, -4px)  scale(1.04); filter: brightness(0.9); }
+  34%  { transform: translate(-2px, -6px) scale(1.07); filter: brightness(1.4); }
+  48%  { transform: translate(1px, -4px)  scale(1.03); filter: brightness(1);    }
+  70%  { transform: translate(-1px, -5px) scale(1.05); filter: brightness(1.1); }
+  100% { transform: translateY(-4px) scale(1.045); filter: brightness(1);    }
+}
+
+/* raised + a shudder on the same beat as the tear */
+@keyframes chaseRaiseGlitch{
+  0%, 27.5%   { transform: translateY(-4px) scale(1.045); }
+  28%         { transform: translate(-2px, -5px) scale(1.045); }
+  29%         { transform: translate(2px, -3px)  scale(1.05);  }
+  30%         { transform: translate(-1px, -5px) scale(1.045); }
+  32%, 71.5%  { transform: translateY(-4px) scale(1.045); }
+  72%         { transform: translate(2px, -5px)  scale(1.05);  }
+  73.5%       { transform: translate(-2px, -4px) scale(1.045); }
+  75%, 100%   { transform: translateY(-4px) scale(1.045); }
+}
   </style>
 </head>
 
 <body>
+<!-- OBS-safe inline SVG filter defs (no CDN, no external assets) -->
+<svg width="0" height="0" style="position:absolute;left:-9999px;top:-9999px;" aria-hidden="true">
+  <defs>
+    <!-- Board border bolt. PEAK HEIGHT = feDisplacementMap scale (bigger = taller spikes).
+         baseFrequency Y drives how often a peak occurs; keep it low or the peaks turn to fuzz. -->
+    <filter id="tsuBoltFx" x="-60%" y="-60%" width="220%" height="220%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012 0.030" numOctaves="3" seed="1" result="boltNoise">
+        <animate attributeName="seed" values="1;9;17;26;38;51;64;77" dur="0.9s" repeatCount="indefinite" calcMode="discrete"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="boltNoise" scale="30" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+
+    <!-- Chase-tile border bolt: same recipe as the board, scaled down for a small tile. -->
+    <filter id="tsuTileBoltFx" x="-60%" y="-60%" width="220%" height="220%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035 0.075" numOctaves="3" seed="3" result="tileBoltNoise">
+        <animate attributeName="seed" values="3;14;25;36;47;58;71;88" dur="0.75s" repeatCount="indefinite" calcMode="discrete"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="tileBoltNoise" scale="9" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
 <div id="soldFxLayer" class="sold-fx-layer"></div>
   <div class="container">
     <div class="header" id="header">
@@ -1226,8 +1481,17 @@
     </div>
 
     <div class="main-content">
-      <div class="teams-wrapper" id="teamsWrapper">
-        <!-- rows injected here -->
+      <div class="board-shell" id="boardShell">
+        <svg class="board-lightning" id="boardLightning" aria-hidden="true">
+          <g filter="url(#tsuBoltFx)">
+            <rect class="bolt-glow" id="boltGlow" x="12" y="12" width="10" height="10" rx="9"></rect>
+            <rect class="bolt-core" id="boltCore" x="12" y="12" width="10" height="10" rx="9"></rect>
+          </g>
+        </svg>
+
+        <div class="teams-wrapper" id="teamsWrapper">
+          <!-- rows injected here -->
+        </div>
       </div>
 
       <!-- ✅ Remaining (left) | Promo placeholder (middle) | Sold (right) -->
@@ -1962,7 +2226,7 @@ function clearOverlayState(){
 
     nba: {
       name: "NBA",
-      cols: 8,
+      cols: 10,
       layout: "NBA_MLB_30",
       teams: [
         { code:'ATL', name:'hawks', image: imgPathNBA('hawks.png') },
@@ -2000,7 +2264,7 @@ function clearOverlayState(){
 
     mlb: {
       name: "MLB",
-      cols: 8,
+      cols: 10,
       layout: "NBA_MLB_30",
       teams: [
         { code:'ARI', name:'diamondbacks', image: imgPathMLB('diamondbacks.png') },
@@ -2038,7 +2302,7 @@ function clearOverlayState(){
 
    soccer: {
   name: "MLS",
-  cols: 8,
+  cols: 10,
   layout: "SOCCER_20",
   teams: [
     { code:'ATL', name:'atlanta united', image: imgPathSOC('atlutd.png') },
@@ -2078,7 +2342,7 @@ function clearOverlayState(){
 
 custom: {
   name: "CUSTOM",
-  cols: 8,
+  cols: 10,
   layout: "CUSTOM_30",
   teams: []
 }
@@ -2122,11 +2386,160 @@ custom: {
   if (!chaseTeams.has(team.code)) chip.style.display = "none";
   d.appendChild(chip);
 
+  // Chase FX (electric border + glitch). Only chase tiles get it.
+  if (chaseTeams.has(team.code)) syncChaseZap(d, true);
+
     // ✅ apply per-team style once tile exists
     setTimeout(() => applyTeamStyleToTile(currentBreakType, team.code), 0);
 
     return d;
   }
+
+  // ===== CHASE TILE FX — electric border + glitch tear =====
+  const TILE_BOLT_PAD = 10;   // must match .chase-bolt inset in CSS
+  const SVG_NS = "http://www.w3.org/2000/svg";
+
+  function makeChaseBolt(){
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("class", "chase-bolt");
+    svg.setAttribute("aria-hidden", "true");
+
+    const g = document.createElementNS(SVG_NS, "g");
+    g.setAttribute("filter", "url(#tsuTileBoltFx)");
+
+    ["tile-bolt-glow", "tile-bolt-core"].forEach(cls => {
+      const r = document.createElementNS(SVG_NS, "rect");
+      r.setAttribute("class", cls);
+      r.setAttribute("rx", 6);
+      g.appendChild(r);
+    });
+
+    svg.appendChild(g);
+    return svg;
+  }
+
+  function makeChaseGlitch(){
+    const wrap = document.createElement("div");
+    wrap.className = "chase-glitch";
+    ["gl-s1", "gl-s2", "gl-s3"].forEach(cls => {
+      const s = document.createElement("div");
+      s.className = "gl-slice " + cls;
+      wrap.appendChild(s);
+    });
+    const flash = document.createElement("div");
+    flash.className = "gl-flash";
+    wrap.appendChild(flash);
+    return wrap;
+  }
+
+  function sizeChaseBolt(tile){
+    const svg = tile.querySelector(".chase-bolt");
+    if (!svg) return;
+    const w = tile.offsetWidth, h = tile.offsetHeight;
+    if (!w || !h) return;
+    svg.setAttribute("viewBox", `0 0 ${w + TILE_BOLT_PAD*2} ${h + TILE_BOLT_PAD*2}`);
+    svg.querySelectorAll("rect").forEach(r => {
+      r.setAttribute("x", TILE_BOLT_PAD);
+      r.setAttribute("y", TILE_BOLT_PAD);
+      r.setAttribute("width",  w);
+      r.setAttribute("height", h);
+    });
+  }
+
+  function sizeAllChaseBolts(){
+    document.querySelectorAll(".team.chase").forEach(sizeChaseBolt);
+  }
+  window.addEventListener("resize", sizeAllChaseBolts);
+
+  // ===== CHASE SHOCK — 520ms electric hit, played BEFORE the sold animation =====
+  const CHASE_SHOCK_MS = 520;
+  const SHOCK_BOLTS = [
+    "50,50 34,40 40,28 22,14",   // up-left
+    "50,50 66,41 60,27 78,12",   // up-right
+    "50,50 33,58 41,70 21,88",   // down-left
+    "50,50 68,59 59,71 80,89",   // down-right
+    "50,50 30,49 36,42 8,50",    // left
+    "50,50 71,51 64,58 93,50"    // right
+  ];
+
+  function playChaseShock(tile){
+    if (!tile) return;
+
+    const fx = document.createElementNS(SVG_NS, "svg");
+    fx.setAttribute("class", "chase-shock-fx");
+    fx.setAttribute("viewBox", "0 0 100 100");
+    fx.setAttribute("preserveAspectRatio", "none");
+    fx.setAttribute("aria-hidden", "true");
+
+    const g = document.createElementNS(SVG_NS, "g");
+    g.setAttribute("filter", "url(#tsuTileBoltFx)");
+    SHOCK_BOLTS.forEach((pts, i) => {
+      const pl = document.createElementNS(SVG_NS, "polyline");
+      pl.setAttribute("class", "shock-bolt b" + (i + 1));
+      pl.setAttribute("points", pts);
+      g.appendChild(pl);
+    });
+    fx.appendChild(g);
+
+    const flash = document.createElement("div");
+    flash.className = "chase-shock-flash";
+
+    tile.appendChild(flash);
+    tile.appendChild(fx);
+    tile.classList.add("chase-shock");
+
+    setTimeout(() => {
+      tile.classList.remove("chase-shock");
+      fx.remove();
+      flash.remove();
+    }, CHASE_SHOCK_MS);
+  }
+
+  // Adds/removes the whole chase FX stack on a tile. Driven by the CHASE modal.
+  function syncChaseZap(tile, isChase){
+    const hasBolt   = tile.querySelector(".chase-bolt");
+    const hasGlitch = tile.querySelector(".chase-glitch");
+
+    if (isChase){
+      if (!hasGlitch) tile.appendChild(makeChaseGlitch());
+      if (!hasBolt){
+        tile.appendChild(makeChaseBolt());
+        requestAnimationFrame(() => sizeChaseBolt(tile));
+      } else {
+        sizeChaseBolt(tile);
+      }
+    } else {
+      if (hasBolt)   hasBolt.remove();
+      if (hasGlitch) hasGlitch.remove();
+    }
+  }
+
+  // ===== ELECTRIC BOARD BORDER — size the bolt rects to the live board =====
+  const BOLT_PAD = 34;   // must match .board-lightning inset in CSS
+  function sizeBoardLightning(){
+    const svg  = document.getElementById("boardLightning");
+    const wrap = document.getElementById("teamsWrapper");
+    if (!svg || !wrap) return;
+    const w = wrap.offsetWidth, h = wrap.offsetHeight;
+    if (!w || !h) return;
+    svg.setAttribute("viewBox", `0 0 ${w + BOLT_PAD*2} ${h + BOLT_PAD*2}`);
+    ["boltGlow","boltCore"].forEach(id => {
+      const r = document.getElementById(id);
+      if (!r) return;
+      r.setAttribute("x", BOLT_PAD);
+      r.setAttribute("y", BOLT_PAD);
+      r.setAttribute("width",  w);
+      r.setAttribute("height", h);
+      r.setAttribute("rx", 9);
+    });
+  }
+  window.addEventListener("resize", sizeBoardLightning);
+  try{
+    const _wrapEl = document.getElementById("teamsWrapper");
+    if (_wrapEl && window.ResizeObserver){
+      new ResizeObserver(() => sizeBoardLightning()).observe(_wrapEl);
+    }
+  }catch(_){}
 
   function makeLogoSlot(spanCols=null){
     const slot = document.createElement("div");
@@ -2212,9 +2625,11 @@ function applyChaseTeams(){
     if (chaseTeams.has(code)){
       t.classList.add("chase");
       if (chip) chip.style.display = "";
+      syncChaseZap(t, true);
     } else {
       t.classList.remove("chase");
       if (chip) chip.style.display = "none";
+      syncChaseZap(t, false);
     }
   });
   closeChaseModal();
@@ -2273,8 +2688,8 @@ function buildSpotSelector(){
     buildLayout();
     buildSpotSelector();
   }
-  function renderBottomRows(wrap, pool){
-    const COLS = 10;
+  function renderBottomRows(wrap, pool, cols = 10){
+    const COLS = cols;
     let i = 0;
     const mkRow = () => { const r = document.createElement("div"); r.className = "row-grid"; return r; };
     const addTilesRow = (n) => { const r = mkRow(); for (let c=0;c<n && i<pool.length;c++) r.appendChild(makeTeamDiv(pool[i++])); wrap.appendChild(r); };
@@ -2290,9 +2705,9 @@ function buildSpotSelector(){
     const T = pool.length;
     if (T <= 6){ addTickerRow(T); return; }
     let remaining = T;
-    while (remaining > 16){ addTilesRow(10); remaining -= 10; }
-    if (remaining <= 10){ addTilesRow(remaining); addTickerRow(0); }
-    else { addTilesRow(10); addTickerRow(remaining - 10); }
+    while (remaining > COLS + 6){ addTilesRow(COLS); remaining -= COLS; }
+    if (remaining <= COLS){ addTilesRow(remaining); addTickerRow(0); }
+    else { addTilesRow(COLS); addTickerRow(remaining - COLS); }
   }
   function fitBoardHeight(wrap){
     const rows = wrap.querySelectorAll(".row-grid").length;
@@ -2320,29 +2735,30 @@ function buildSpotSelector(){
 
     if (config.layout === "NBA_MLB_30"){
       let idx = 0;
+      const C = config.cols;   // rows always fill the full grid width
 
-const r1 = document.createElement("div");
-r1.className = "row-grid row-logo";
-      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
-      r1.appendChild(makeLogoSlot(2));
-      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      // Logo slot removed — the 2 columns it occupied are now team spots
+      const r1 = document.createElement("div");
+      r1.className = "row-grid";
+      for (let i=0;i<C && idx<teams.length;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r1);
 
-      for (let r=0;r<3;r++){
+      while (idx < teams.length){
         const row = document.createElement("div");
         row.className = "row-grid";
-        for (let i=0;i<8;i++) row.appendChild(makeTeamDiv(teams[idx++]));
+        for (let i=0;i<C && idx<teams.length;i++) row.appendChild(makeTeamDiv(teams[idx++]));
         wrap.appendChild(row);
       }
 
       const r5 = document.createElement("div");
       r5.className = "row-grid";
-      r5.appendChild(makeTickerSlot(8));
+      r5.appendChild(makeTickerSlot(C));
       wrap.appendChild(r5);
     }
 
 if (config.layout === "CUSTOM_30"){
   let idx = 0;
+  const C = config.cols;   // rows always fill the full grid width
 
   const shell = document.createElement("div");
   shell.className = "custom-board-shell";
@@ -2350,16 +2766,11 @@ if (config.layout === "CUSTOM_30"){
   const tilesScroll = document.createElement("div");
   tilesScroll.className = "custom-tiles-scroll";
 
+  // Logo slot removed — the 2 columns it occupied are now team spots
   const topRow = document.createElement("div");
-  topRow.className = "row-grid row-logo";
+  topRow.className = "row-grid";
 
-  for (let i = 0; i < 3; i++){
-    if (teams[idx]) topRow.appendChild(makeCustomTeamDiv(teams[idx++]));
-  }
-
-  topRow.appendChild(makeLogoSlot(2));
-
-  for (let i = 0; i < 3; i++){
+  for (let i = 0; i < C; i++){
     if (teams[idx]) topRow.appendChild(makeCustomTeamDiv(teams[idx++]));
   }
 
@@ -2369,7 +2780,7 @@ if (config.layout === "CUSTOM_30"){
     const row = document.createElement("div");
     row.className = "row-grid";
 
-    for (let i = 0; i < 8 && idx < teams.length; i++){
+    for (let i = 0; i < C && idx < teams.length; i++){
       row.appendChild(makeCustomTeamDiv(teams[idx++]));
     }
 
@@ -2378,7 +2789,7 @@ if (config.layout === "CUSTOM_30"){
 
   const tickerRow = document.createElement("div");
   tickerRow.className = "row-grid custom-fixed-ticker";
-  tickerRow.appendChild(makeTickerSlot(8));
+  tickerRow.appendChild(makeTickerSlot(C));
 
   shell.appendChild(tilesScroll);
   shell.appendChild(tickerRow);
@@ -2387,47 +2798,45 @@ if (config.layout === "CUSTOM_30"){
 
     if (config.layout === "NFL_32"){
       let idx = 0;
+      const C = config.cols;   // rows always fill the full grid width
+
+      // Logo slot removed — the 2 columns it occupied are now team spots
       const r1 = document.createElement("div");
-      r1.className = "row-grid row-logo";
-      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
-      r1.appendChild(makeLogoSlot(2));
-      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      r1.className = "row-grid";
+      for (let i=0;i<C && idx<teams.length;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r1);
 
       const r2 = document.createElement("div");
       r2.className = "row-grid";
-      for (let i=0;i<10;i++) r2.appendChild(makeTeamDiv(teams[idx++]));
+      for (let i=0;i<C && idx<teams.length;i++) r2.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r2);
 
       const r3 = document.createElement("div");
       r3.className = "row-grid";
-      for (let i=0;i<10;i++) r3.appendChild(makeTeamDiv(teams[idx++]));
+      for (let i=0;i<C && idx<teams.length;i++) r3.appendChild(makeTeamDiv(teams[idx++]));
       wrap.appendChild(r3);
 
       const spotPool = getSelectedSpotObjs().map(sp => ({ code: sp.code, name: sp.name, image: BASE + "images/logos/" + sp.logo }));
       const bottomPool = teams.slice(idx).concat(spotPool);
-      renderBottomRows(wrap, bottomPool);
+      renderBottomRows(wrap, bottomPool, C);
       fitBoardHeight(wrap);
     }
 
     if (config.layout === "SOCCER_20"){
       let idx = 0;
+      const C = config.cols;   // rows always fill the full grid width
 
-const r1 = document.createElement("div");
-r1.className = "row-grid row-logo";
-      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
-      r1.appendChild(makeLogoSlot(2));
-      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
-      wrap.appendChild(r1);
-
-      const r2 = document.createElement("div");
-      r2.className = "row-grid";
-      for (let i=0;i<10;i++) r2.appendChild(makeTeamDiv(teams[idx++]));
-      wrap.appendChild(r2);
+      // Logo slot removed — the 2 columns it occupied are now team spots
+      while (idx < teams.length){
+        const row = document.createElement("div");
+        row.className = "row-grid";
+        for (let i=0;i<C && idx<teams.length;i++) row.appendChild(makeTeamDiv(teams[idx++]));
+        wrap.appendChild(row);
+      }
 
       const r3 = document.createElement("div");
       r3.className = "row-grid";
-      r3.appendChild(makeTickerSlot(10));
+      r3.appendChild(makeTickerSlot(C));
       wrap.appendChild(r3);
     }
 
@@ -2438,6 +2847,9 @@ r1.className = "row-grid row-logo";
 
     // ✅ ensure all team styles re-apply after build
     applyAllTeamStylesForSport(currentBreakType);
+
+    // ✅ resize the electric borders (board + chase tiles) to the freshly-built board
+    requestAnimationFrame(() => { sizeBoardLightning(); sizeAllChaseBolts(); });
   }
 
   function refreshNextPickChip(){
@@ -2484,11 +2896,26 @@ r1.className = "row-grid row-logo";
         refreshNextPickChip();
       }
       if (listIndex === -1) soldTeamsList.push({ code, buyer: assignBuyer });
-      playSoldAnimation(code);
+
+      // State commits immediately (SSE-safe). Only the VISUALS wait for the shock.
       soldTeams.add(code);
-      tile.classList.add("sold");
-      tile.classList.add("flash");
-      setTimeout(()=>tile.classList.remove("flash"), 280);
+
+      const markSoldVisuals = () => {
+        const t = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+        if (!t) return;
+        playSoldAnimation(code);
+        t.classList.add("sold");
+        t.classList.add("flash");
+        setTimeout(()=>t.classList.remove("flash"), 280);
+      };
+
+      if (chaseTeams.has(code)){
+        playChaseShock(tile);                                   // ⚡ chaser gets zapped first
+        setTimeout(markSoldVisuals, CHASE_SHOCK_MS);            // then the sold card flies
+      } else {
+        markSoldVisuals();
+      }
+
       updateStats();
       updateSoldList();
       saveOverlayState();
