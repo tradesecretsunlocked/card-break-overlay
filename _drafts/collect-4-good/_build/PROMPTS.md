@@ -101,3 +101,13 @@ Edit the specific graphic's `prompt` in `manifest.json`, then run:
 ```
 python generate_graphics.py --only stash-or-pass --force
 ```
+
+## 8. bg-accents · 1536×1024 · transparent · EXPERIMENT (added 2026-07-11)
+Anchor: logo only
+> Transparent corner/edge accent layer — cyan light streaks, geometric ribbons, hex fragments + sparks hugging corners and side edges; center 70% fully transparent so boards + face-cam show through; no text/logos. Layered over the overlay for extra polish.
+
+Run just this one: `python generate_graphics.py --only bg-accents --force` (~$0.15)
+
+## 9. cam-bg · 1536×1024 · opaque (added 2026-07-11 from consult call)
+Anchor: logo only
+> Subtle green-screen camera backdrop: dim glowing CFG logo centered over black/midnight w/ soft cyan ambient wash; low contrast, no extra text. Run: `python generate_graphics.py --only cam-bg --force`

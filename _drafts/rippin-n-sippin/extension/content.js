@@ -28,9 +28,9 @@
   //    sport:     "nfl" | "nba" | "mlb" | "nil" (multi-sport / infer from title)
   //    overlayId: {client-slug}-overlay (must match overlay HTML's overlayId in the warmup POST)
   const DEFAULTS = {
-    bridgeKey:    "d8060302-7fe9-4478-974f-67b5344d132d",
+    bridgeKey:    "b4ab23b1-8ca4-4dcd-9238-43113a6e5c88",
     sport:        "nil",
-    overlayId:    "collect-4-good-overlay",
+    overlayId:    "rippin-n-sippin-overlay",
     channel:      "main",
     pollMs:       3000,
     summaryEvery: 5
@@ -243,7 +243,7 @@
     if (!raw) return true;
     const s = raw.toLowerCase();
     if (s === "sale" || s === "—") return true;
-    if (/^#?\d+$/.test(raw)) return true;   // REQUIRED slot-index guard (TSU-OVERLAY-STANDARD §2): rejects "#3" Whatnot slot subtitles
+    if (/^#?\d+$/.test(raw)) return true;   // REQUIRED slot-index guard (TSU-OVERLAY-STANDARD §2)
     const tail = stripPrefixTitle(raw);
     if (!tail || tail.toLowerCase() === "sale") return true;
     return false;
