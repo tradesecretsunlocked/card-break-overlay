@@ -418,11 +418,13 @@
 
     /* ===== Chaser spots — identity hidden until reveal (jim-and-tabby pattern, CFG cyan) ===== */
     .tile.chaser{
-      border-color: rgba(123,209,240,0.95);
+      border: 2px solid rgba(123,209,240,1);   /* brighter, thicker cyan hue border (Mike 07-15) */
       box-shadow:
-        inset 0 0 0 1px rgba(255,255,255,0.08),
-        0 0 16px rgba(79,182,224,0.45),
-        0 0 28px rgba(79,182,224,0.22);
+        inset 0 0 0 1px rgba(123,209,240,0.35),
+        0 0 22px rgba(79,182,224,0.65),
+        0 0 40px rgba(79,182,224,0.35);
+      /* animated glow pulse so chasers pop off the board */
+      animation: chaserPulse 1.8s ease-in-out infinite;
       /* per consult call: chaser spots carry branded art, not just the word —
          generated chase-tile-treatment.png renders behind the CHASER n label */
       background-image: url('chase-tile-treatment.png');
@@ -430,6 +432,10 @@
       background-position: center;
       background-repeat: no-repeat;
       background-color: rgba(10,10,10,0.85);
+    }
+    @keyframes chaserPulse{
+      0%,100%{ box-shadow: inset 0 0 0 1px rgba(123,209,240,0.35), 0 0 18px rgba(79,182,224,0.50), 0 0 32px rgba(79,182,224,0.25); border-color: rgba(123,209,240,0.85); }
+      50%    { box-shadow: inset 0 0 0 1px rgba(123,209,240,0.55), 0 0 30px rgba(79,182,224,0.95), 0 0 54px rgba(79,182,224,0.55); border-color: rgba(170,230,255,1); }
     }
     .tile.chaser img{ display:none !important; }
     .tile.chaser::after{
@@ -781,6 +787,9 @@
     .sold-wrap.active{ display:block; }
     /* Sold-stat toggle hides only the admin control pills — the sold list stays visible */
     .sold-wrap.controls-hidden .sold-top{ display:none; }
+    /* Promo Only mode (Mike 07-15): hide the team board + cam, leave just the promo box */
+    .overlay.mode-promo .main{ display:none; }
+    .overlay.mode-promo .bottomGrid.fullrow{ display:none; }
 
     .sold-top{
       display:flex;
@@ -1405,7 +1414,7 @@ const CHANNELS = (() => {
   /* =========================
      Sport / Layout Config
   ========================== */
-  // WNBA (13 current + 2 2026 expansion = 15 total). Logos in images/wnba/.
+  // WNBA (13 current + 1 2026 expansion = 14 total). Portland Fire removed 07-15 (no cards until later sets). Logos in images/wnba/.
   const WNBA = [
     {code:'ATL', name:'dream',      image:wnbaImg('dream.png')},      // Atlanta Dream
     {code:'CHI', name:'sky',        image:wnbaImg('sky.png')},        // Chicago Sky
@@ -1420,13 +1429,13 @@ const CHANNELS = (() => {
     {code:'PHX', name:'mercury',    image:wnbaImg('mercury.png')},    // Phoenix Mercury
     {code:'SEA', name:'storm',      image:wnbaImg('storm.png')},      // Seattle Storm
     {code:'WAS', name:'mystics',    image:wnbaImg('mystics.png')},    // Washington Mystics
-    {code:'TOR', name:'tempo',      image:wnbaImg('tempo.png')},      // Toronto Tempo (2026 expansion)
-    {code:'POR', name:'fire',       image:wnbaImg('fire.png')}        // Portland Fire (2026 expansion)
+    {code:'TOR', name:'tempo',      image:wnbaImg('tempo.png')}       // Toronto Tempo (2026 expansion)
+    // Portland Fire (POR) removed 07-15 (Mike) — no cards until later sets; re-add {code:'POR', name:'fire', image:wnbaImg('fire.png')} when available
   ];
 
   // WNBA-only sport registry. cycleSport() short-circuits to a no-op below.
   const breakTypes = {
-    wnba: { name: "WNBA", teams: WNBA, count: 15, bottomCols: 5, topCount: 5, bottomCount: 5 }
+    wnba: { name: "WNBA", teams: WNBA, count: 14, bottomCols: 5, topCount: 5, bottomCount: 5 }
   };
 
   /* =========================
@@ -1475,8 +1484,8 @@ function rememberSaleId(saleId){
   const MODE_KEY    = "collect-4-good.layoutMode";
   const CUSTOM_KEY  = "collect-4-good.customEntries";
   const REVEAL_KEY  = "collect-4-good.chasersRevealed";
-  const MODES = ["team","custom"];   // "team-chase" retired 07-14 (Mike) — chasers work in every mode already
-  const MODE_LABEL = { "team":"Team + Player", "team-chase":"Team + Chase", "custom":"Custom Board" };
+  const MODES = ["team","custom","promo"];   // "team-chase" retired 07-14; "promo" (board hidden, promo box only) added 07-15
+  const MODE_LABEL = { "team":"Team + Player", "team-chase":"Team + Chase", "custom":"Custom Board", "promo":"Promo Only" };
   let layoutMode = localStorage.getItem(MODE_KEY) || "team";
   if (!MODES.includes(layoutMode)) layoutMode = "team";
   // Default player spots: top-ranked WNBA players (2026 ESPN/CBS rankings) — fills the bottom grid (2 rows x 5).
@@ -1736,6 +1745,17 @@ function buildTile(team){
     topGrid.innerHTML    = '';
     bottomGrid.innerHTML = '';
 
+    // PROMO ONLY mode (Mike 07-15): hide the whole board + cam, show just the promo box.
+    // The streamer adds their own camera as a separate OBS source over the scene.
+    const overlayEl = document.querySelector('.overlay');
+    if (overlayEl) overlayEl.classList.toggle('mode-promo', layoutMode === 'promo');
+    if (layoutMode === 'promo'){
+      renderedTotal = 0;
+      updateStats();
+      renderSoldPanel();
+      return;
+    }
+
     // Layout target: 3 cols LEFT · center col (top row + 16:9 cam + bottom row) · 3 cols RIGHT.
     // For 15 WNBA teams: 6 left (3 cols × 2 rows) · 3 top · 6 right (3 cols × 2 rows) · 0 bottom
     // (bottom row reserved for player spots in team+player mode).
@@ -1744,9 +1764,15 @@ function buildTile(team){
     // Slot-fill distribution (per Mike's markup): the grid WRAPS the camera —
     // side columns run the full height of the top row + cam, players fill every
     // remaining slot, and overflow lands on the full-width bottom row.
-    const customs = customTeamObjects();
-    const teamsInPlay = (layoutMode === "custom") ? [] : TEAMS;
-    const total = teamsInPlay.length + customs.length;
+    // Pull chaser-flagged spots aside so they render as one contiguous group at the end of the
+    // bottom row (Mike 07-15), regardless of whether they're teams or custom player spots.
+    const isChaserSpot = (t) => chasersSet.has(t.code);
+    const customsAll  = customTeamObjects();
+    const teamsAll    = (layoutMode === "custom") ? [] : TEAMS;
+    const chaserTiles = [...teamsAll.filter(isChaserSpot), ...customsAll.filter(isChaserSpot)];
+    const teamsInPlay = teamsAll.filter(t => !isChaserSpot(t));
+    const customs     = customsAll.filter(t => !isChaserSpot(t));
+    const total = teamsInPlay.length + customs.length + chaserTiles.length;
     fitBoardDensity(total); // sets --tileH / --sideCols BEFORE slot math reads them
 
     const sideSlots = computeSideSlots();
@@ -1773,7 +1799,7 @@ function buildTile(team){
       else                                            rightList.push(pool.shift());
       side = !side;
     }
-    bottomList = pool;
+    bottomList = pool.concat(chaserTiles); // chasers clustered together at the end of the bottom row (Mike 07-15)
 
     leftList.forEach(t   => leftGrid.appendChild(buildTile(t)));
     rightList.forEach(t  => rightGrid.appendChild(buildTile(t)));
