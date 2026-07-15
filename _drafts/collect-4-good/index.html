@@ -1623,6 +1623,15 @@ function loadSport(){
     const t = norm(title);
     if (!t) return null;
 
+    // "Chaser N" listings (Whatnot break-spot titles, e.g. "Chaser 1") map to the Nth chaser
+    // on the board — identities stay hidden, so they're never listed by player name (Mike 07-15).
+    const chm = t.match(/^chaser\s*#?\s*(\d+)$/);
+    if (chm){
+      const codes = orderedChaserCodes();          // chaser codes in board order = CHASER 1..N
+      const idx = parseInt(chm[1], 10) - 1;
+      if (idx >= 0 && idx < codes.length) return codes[idx];
+    }
+
     if (lookup.has(t)) return lookup.get(t);
 
     const m = String(title || "").match(/\b([A-Z]{2,4})\b/);

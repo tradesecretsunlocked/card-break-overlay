@@ -37,7 +37,11 @@
     // OPT-IN (default false — team clients keep normal suppression). When true, a sale whose
     // title doesn't map to a team code is still sent with code:"" so a custom / player-name
     // overlay can match the spot by title (e.g. WNBA player boards like Collect 4 Good).
-    sendUnresolved: false
+    sendUnresolved: false,
+    // OPT-IN (default false). When true, skip team/slot code inference entirely and send raw
+    // titles (code:"") for the overlay to match. Use for player-name boards where the loose
+    // team-name substring match would false-hit player names (e.g. "Ashlee" -> OAK via "as").
+    titlePassthroughOnly: false
   };
 
   const MAX_PAGES = 12;
@@ -618,7 +622,7 @@
             ? configuredSport
             : inferredSport || "nil";
 
-          const code = inferCodeFromTitle(title, sport);
+          const code = DEFAULTS.titlePassthroughOnly ? "" : inferCodeFromTitle(title, sport);
 
           if (!code && !DEFAULTS.sendUnresolved) {
             console.warn("[TSU] unresolved title (will retry):", { id, title, sport, rawTitle });
