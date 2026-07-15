@@ -779,6 +779,8 @@
       display:none;
     }
     .sold-wrap.active{ display:block; }
+    /* Sold-stat toggle hides only the admin control pills — the sold list stays visible */
+    .sold-wrap.controls-hidden .sold-top{ display:none; }
 
     .sold-top{
       display:flex;
@@ -1473,7 +1475,7 @@ function rememberSaleId(saleId){
   const MODE_KEY    = "collect-4-good.layoutMode";
   const CUSTOM_KEY  = "collect-4-good.customEntries";
   const REVEAL_KEY  = "collect-4-good.chasersRevealed";
-  const MODES = ["team","team-chase","custom"];
+  const MODES = ["team","custom"];   // "team-chase" retired 07-14 (Mike) — chasers work in every mode already
   const MODE_LABEL = { "team":"Team + Player", "team-chase":"Team + Chase", "custom":"Custom Board" };
   let layoutMode = localStorage.getItem(MODE_KEY) || "team";
   if (!MODES.includes(layoutMode)) layoutMode = "team";
@@ -1599,9 +1601,16 @@ function loadSport(){
     return map;
   }
 
+  // Every spot currently on the board — teams (unless custom mode) PLUS custom player spots.
+  // Chasers are just team/custom codes flagged in chasersSet, so they're included here too.
+  // Automation must match against THIS set, not teams only, or player/chaser sales never resolve.
+  function activeSpots(){
+    const customs = customTeamObjects();
+    return (layoutMode === "custom") ? customs : breakTypes[currentSport].teams.concat(customs);
+  }
+
   function inferCodeFromTitle(title){
-    const teams = breakTypes[currentSport].teams;
-    const lookup = buildLookup(teams);
+    const lookup = buildLookup(activeSpots());   // teams + custom player spots + chasers
     const t = norm(title);
     if (!t) return null;
 
@@ -1641,7 +1650,9 @@ function normalizeCodeAliases(code, sportKey){
 function isValidCodeForSport(code, sportKey){
   const s = String(sportKey || "").toLowerCase();
   if (!code || !breakTypes[s]) return false;
-  const lookup = buildLookup(breakTypes[s].teams);
+  // Validate against every active spot (teams + custom player spots + chasers), not teams only —
+  // otherwise the guard bails on legitimate player/chaser sales and automation silently drops them.
+  const lookup = buildLookup(activeSpots());
   return lookup.has(norm(code));
 }
 
@@ -1999,8 +2010,11 @@ function buildLayout(){
   }
 
   function toggleSold(){
+    // Sold-stat toggle hides ONLY the admin control pills (.sold-top). The sold list stays
+    // visible always (TSU sold-panel standard). soldOpen = admin controls visible.
     soldOpen = !soldOpen;
-    soldWrap.classList.toggle('active', soldOpen);
+    soldWrap.classList.add('active');                       // panel + list always shown
+    soldWrap.classList.toggle('controls-hidden', !soldOpen);
   }
 // ===== Scores (NBA/NFL/MLB) =====
 // Collect 4 Good: score support disabled in this no-scoreboard layout
@@ -2019,8 +2033,7 @@ const _cycleOrder = ["nba","nfl","mlb"];
 
   function renderSoldPanel(){
     soldGrid.innerHTML = '';
-    soldWrap.classList.add('active');   // panel (and its admin pills) always visible — never auto-collapse
-    soldOpen = true;
+    soldWrap.classList.add('active');   // panel + sold list always visible — never auto-collapse (controls-hidden only toggles the pills)
     if (soldTeamsList.length === 0){
       soldGrid.innerHTML = '<div style="grid-column:1/-1; font-size:12px; opacity:.6; padding:4px 2px;">No spots sold yet.</div>';
       return;
@@ -2063,7 +2076,6 @@ const _cycleOrder = ["nba","nfl","mlb"];
       soldGrid.appendChild(row);
     });
 
-    soldOpen = true;
     soldWrap.classList.add('active');
   }
 

@@ -48,7 +48,7 @@
     *{ box-sizing:border-box; }
     body{
       margin:0;
-      background: url('overlay-bg.png') center top / cover no-repeat;
+      background: transparent;   /* art lives on the board (.overlay) only — Mike 07-12 */
       font-family: Arial, sans-serif;
       color: var(--white);
       user-select:none;
@@ -60,9 +60,11 @@
     .overlay{
       width: var(--W);
       background:
+        radial-gradient(circle at 35% 0%, rgba(0,183,255,0.20) 0%, transparent 55%),
+        url('overlay-bg.png') center / cover no-repeat,
         radial-gradient(circle at 35% 0%, rgba(0,183,255,0.28) 0%, #071238 42%, #02030a 100%);
       border-radius: var(--radius);
-      border: 2px solid rgba(255,255,255,0.08);
+      border: none;   /* replaced by the animated ::after ring below */
       box-shadow:
         0 0 0 1px rgba(0,0,0,0.85),
         0 16px 40px rgba(0,0,0,0.75),
@@ -73,6 +75,22 @@
     }
 
     /* ambient glow */
+    /* Animated border — neon green + pink pulled from the background art */
+    @property --bdA { syntax:'<angle>'; initial-value:0deg; inherits:false; }
+    .overlay::after{
+      content:""; position:absolute; inset:0; border-radius:var(--radius);
+      padding:3px;
+      background: conic-gradient(from var(--bdA),
+        #58ff3d, #ff3df2 30%, #58ff3d 50%, #ff3df2 80%, #58ff3d);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+              mask-composite: exclude;
+      animation: bdBorderSpin 5s linear infinite;
+      pointer-events:none; z-index:60;
+      filter: drop-shadow(0 0 8px rgba(88,255,61,0.45)) drop-shadow(0 0 12px rgba(255,61,242,0.35));
+    }
+    @keyframes bdBorderSpin{ to{ --bdA:360deg; } }
+
     .overlay::before{
       content:"";
       position:absolute; inset:-40px;
@@ -288,11 +306,13 @@ background-size: 140% auto; /* try 140–220% */
 
     /* background video fills the cam frame */
     .cam-video{
+      transform: scale(1.35);   /* logo 25% larger (art is baked into the video; frame crops the zoom) */
       position:absolute; inset:0;
       width:100%; height:100%;
       object-fit:cover;
       border-radius:inherit;
       z-index:0;
+      top:36px;
       opacity:0.92;
     }
 
@@ -1005,22 +1025,6 @@ background-size: 140% auto; /* try 140–220% */
 <div id="soldFxLayer" class="sold-fx-layer"></div>
   <div class="overlay">
 
-    <div class="header">
-      <div class="brand-left">
-        <div class="title" id="headerTitle">BIRD DOGZ • NBA</div>
-      </div>
-
- 
-
-      <div class="header-right">
-
-        <div class="break-pill">
-          <span class="label">Break #</span>
-          <span id="breakId" class="value">—</span>
-        </div>
-      </div>
-    </div>
-
     <div class="main">
 
       <!-- LEFT STACK -->
@@ -1050,37 +1054,13 @@ background-size: 140% auto; /* try 140–220% */
 
     </div>
 
-    <!-- Rotating promo banner -->
-    <div class="banner wick" id="banner"></div>
-
-    <!-- Controls -->
-    <div class="controls">
-      <div class="ctl btn" id="resetBtn">Reset</div>
-
-      <div class="ctl stat" id="soldToggle">
-        <div class="v" id="soldCount">0</div>
-        <div class="l">Sold</div>
-      </div>
-
-      <div class="ctl ctl-ticker-wrap">
-        <div class="ctl-ticker-track" id="ctlTickerTrack">
-          <span id="ctlTickerText"></span><span id="ctlTickerText2"></span>
-        </div>
-      </div>
-
-      <div class="ctl stat">
-        <div class="v" id="leftCount">30</div>
-        <div class="l">Left</div>
-      </div>
-
-      <div class="ctl btn" id="nextBtn">Next</div>
-    </div>
-
   </div>
 
   <!-- Sold Panel -->
   <div class="sold-wrap" id="soldWrap">
     <div class="sold-top">
+      <div class="pill" id="resetBtn">Reset</div>
+      <div class="pill" id="nextBtn">Next Break</div>
       <div class="pill" id="setBreakBtn">Set Break #</div>
       <div class="pill" id="setTitleBtn">Set Title</div>
       <div class="pill" id="promoBtn">Set Promo</div>
@@ -1443,7 +1423,7 @@ function rememberSaleId(saleId){
   function loadBreakNum(){
     const saved = parseInt(localStorage.getItem('birddogz.breakNum'), 10);
     breakNum = Number.isInteger(saved) && saved > 0 ? saved : 1;
-    elBreak.textContent = breakNum;
+    if (elBreak) elBreak.textContent = breakNum;
   }
 
   function saveHeaderTitle(){ localStorage.setItem("birddogz.headerTitle", headerTitleText); }
@@ -1930,7 +1910,7 @@ function resetAll(){
     resetAll();
     breakNum += 1;
     saveBreakNum();
-    elBreak.textContent = breakNum;
+    if (elBreak) elBreak.textContent = breakNum;
     setHighBid(0);
   }
 
@@ -2023,6 +2003,7 @@ function setScoreboard(games, sport){
 
   function renderBanner(){
     const host = document.getElementById('banner');
+    if (!host) return;   // banner removed from layout (Mike 07-12)
     host.innerHTML = '';
 
     const slide = document.createElement('div');
@@ -2320,7 +2301,7 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
       if ((type === "set_break" || type === "break_set") && Number.isInteger(payload.value) && payload.value > 0){
         breakNum = payload.value;
         saveBreakNum();
-        elBreak.textContent = breakNum;
+        if (elBreak) elBreak.textContent = breakNum;
       }
 
       if (type === "banner_set" && Number.isInteger(payload.index)){
@@ -2386,7 +2367,7 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
   ========================== */
   document.getElementById('resetBtn').addEventListener('click', resetAll);
   document.getElementById('nextBtn').addEventListener('click', nextBreak);
-  document.getElementById('soldToggle').addEventListener('click', toggleSold);
+  // soldToggle removed with the controls row — sold panel manages itself
 
   document.getElementById('sportBtn').addEventListener('click', cycleSport);
 
@@ -2404,7 +2385,7 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
     if (!Number.isInteger(v) || v < 1) return;
     breakNum = v;
     saveBreakNum();
-    elBreak.textContent = breakNum;
+    if (elBreak) elBreak.textContent = breakNum;
     breakPopup.classList.remove('active');
   });
 
