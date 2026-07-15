@@ -33,7 +33,11 @@
     overlayId:    "REPLACE_WITH_CLIENT_SLUG-overlay",
     channel:      "main",
     pollMs:       3000,
-    summaryEvery: 5
+    summaryEvery: 5,
+    // OPT-IN (default false — team clients keep normal suppression). When true, a sale whose
+    // title doesn't map to a team code is still sent with code:"" so a custom / player-name
+    // overlay can match the spot by title (e.g. WNBA player boards like Collect 4 Good).
+    sendUnresolved: false
   };
 
   const MAX_PAGES = 12;
@@ -616,14 +620,16 @@
 
           const code = inferCodeFromTitle(title, sport);
 
-          if (!code) {
+          if (!code && !DEFAULTS.sendUnresolved) {
             console.warn("[TSU] unresolved title (will retry):", { id, title, sport, rawTitle });
             continue;
           }
+          // passthrough (sendUnresolved): no team code resolved, but emit anyway with code:"" so a
+          // custom/player-name overlay can match the spot from the title.
 
           const prevCode    = lastCodeByItem.get(id);
           const prevIsReal  = prevCode && !prevCode.startsWith("CUSTOM_");
-          const newIsReal   = !code.startsWith("CUSTOM_");
+          const newIsReal   = !!code && !code.startsWith("CUSTOM_");
 
           if (prevIsReal && newIsReal && prevCode !== code) {
             await sendEvent(cfg, {
