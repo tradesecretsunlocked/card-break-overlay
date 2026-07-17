@@ -914,12 +914,37 @@ function loadTicker(){
 function saveTicker(v){
   try{ localStorage.setItem(TICKER_LS, String(v||"")); }catch(_){}
 }
+
+// Live-score ticker: interleave the seller's scroll message(s) with fresh live scores by sport.
+// Pattern: message • NFL score • message • NBA score • message • MLB score • …  (Mike 07-16)
+// Split the saved ticker on "||" or newlines to run multiple rotating messages between scores.
+let _czLastTicker = "";
+function czBuildTickerText(){
+  const msgs = String(loadTicker()).split(/\s*\|\|\s*|\r?\n/).map(s => s.trim()).filter(Boolean);
+  const baseMsgs = msgs.length ? msgs : [DEFAULT_TICKER];
+  const order = ["nfl","nba","mlb"];
+  const scores = order
+    .filter(s => isFreshSportScore(s) && SCORES_BY_SPORT[s])
+    .map(s => s.toUpperCase() + ":  " + SCORES_BY_SPORT[s]);
+  if (!scores.length) return baseMsgs.join("     •     ");   // no live games → just the messages
+  const parts = [];
+  scores.forEach((sc, i) => { parts.push(baseMsgs[i % baseMsgs.length]); parts.push(sc); });
+  return parts.join("     •     ");
+}
+function czRenderTicker(){
+  const el = document.getElementById("tickerText");
+  if (!el) return;
+  const txt = czBuildTickerText();
+  if (txt === _czLastTicker) return;   // only re-render (restarts the scroll) when content changes
+  _czLastTicker = txt;
+  el.textContent = txt;
+  applyTickerSpeed();
+}
 function setTicker(v){
   const safe = (String(v||"").trim() || DEFAULT_TICKER);
-  const el = document.getElementById("tickerText");
-  el.textContent = safe;
   saveTicker(safe);
-  applyTickerSpeed();
+  _czLastTicker = "";   // force recompose with the new base message
+  czRenderTicker();     // renders the base message interleaved with any fresh live scores
 }
 
 function applyTicker(){
@@ -1925,6 +1950,7 @@ function handleSSEEvent(data){
 
   if (type === "scores" || type === "scores_update"){
     normalizeScorePayloadToText(data);
+    czRenderTicker();   // refresh the ticker so new scores appear interleaved with messages
     return;
   }
 
@@ -2079,6 +2105,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   connectScoresSSE();
+  czRenderTicker();                        // initial compose (messages, + scores once they arrive)
+  setInterval(czRenderTicker, 15000);      // refresh: pick up new scores, drop stale (>20 min) ones
 
   bridgeWarmup({ breakId: computeBreakId(), breakType: currentSport });
 });
