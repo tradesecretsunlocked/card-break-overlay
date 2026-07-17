@@ -1693,7 +1693,18 @@ function normalizeScorePayloadToText(data){
   if (data.text) {
     text = String(data.text);
   } else if (Array.isArray(data.games)) {
-    text = data.games.map(g => `${g.away} ${g.awayScore}-${g.homeScore} ${g.home} (${g.status})`).join(" | ");
+    // Bridge sends each game as { status, teams:[{name,score,home}] }. Tolerate a flat
+    // {away,home,awayScore,homeScore} shape too. Skip games with no team names. (Mike 07-16)
+    text = data.games.map(g => {
+      if (Array.isArray(g.teams)) {
+        const away = g.teams.find(t => !t.home) || g.teams[0] || {};
+        const home = g.teams.find(t => t.home)  || g.teams[1] || {};
+        if (!away.name && !home.name) return "";
+        return `${away.name || "?"} ${away.score ?? "0"}-${home.score ?? "0"} ${home.name || "?"}${g.status ? ` (${g.status})` : ""}`;
+      }
+      if (g.away == null && g.home == null) return "";
+      return `${g.away} ${g.awayScore}-${g.homeScore} ${g.home}${g.status ? ` (${g.status})` : ""}`;
+    }).filter(Boolean).join("   •   ");
   } else if (Array.isArray(data.lines)) {
     text = data.lines.join(" | ");
   }
