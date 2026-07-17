@@ -1,774 +1,2850 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=1080, initial-scale=1.0" />
-<title>Terminal Takes — Multi-Sport Break Overlay (MOCKUP)</title>
-<style>
-  :root{
-    --black:#000000;
-    --navy0:#0C1428;
-    --navy1:#14213D;
-    --navy2:#1B2C4E;
-    --gold:#F3C34A;
-    --gold2:#E0AE33;
-    --chrome:#D8DEE6;
-    --white:#ffffff;
-    --muted:rgba(255,255,255,0.72);
-    --line:rgba(243,195,74,0.45);
-    --tileH:45px;
-    --W:1080px;
-  }
-  *{ box-sizing:border-box; }
-  body{
-    margin:0; background:transparent;
-    font-family:"Arial Black", Arial, sans-serif;
-    color:var(--white); user-select:none;
-    width:var(--W);
-  }
-  .overlay{
-    width:var(--W);
-    background:
-      radial-gradient(900px 460px at 50% -6%, rgba(243,195,74,0.14), transparent 60%),
-      linear-gradient(180deg, var(--navy0) 0%, #05080f 60%, #02040a 100%);
-    border:3px solid var(--gold);
-    border-radius:14px;
-    padding:10px;
-    position:relative;
-    overflow:hidden;
-    box-shadow:0 0 0 2px #000, 0 0 30px rgba(243,195,74,0.18);
-  }
-  /* Art-deco corner rays */
-  .overlay::before{
-    content:""; position:absolute; inset:0; pointer-events:none;
-    background:
-      repeating-linear-gradient(135deg, rgba(243,195,74,0.05) 0 2px, transparent 2px 22px);
-    opacity:.5;
-  }
-  .overlay > *{ position:relative; z-index:2; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=920, initial-scale=1.0"/>
+  <title>MidWestBreak – Multi-Sport Box Break Overlay</title>
 
-  /* ===== Header: status pill · centered logo · break pill ===== */
-  .topbar{
-    position:relative; z-index:5; /* keep header (and its overflowing logo) in front of the ticker below */
-    display:flex; align-items:center; justify-content:space-between;
-    height:64px; padding:4px 14px; border-radius:12px;
-    background:
-      radial-gradient(600px 200px at 50% -30%, rgba(243,195,74,0.18), transparent 60%),
-      linear-gradient(180deg, rgba(20,33,61,0.9), rgba(5,8,16,0.55));
-    border:1px solid var(--line); box-shadow:inset 0 0 0 1px rgba(216,222,230,0.08);
-  }
-  .statuspill{ display:flex; align-items:center; gap:8px; padding:7px 14px; border-radius:999px;
-    background:rgba(0,0,0,0.45); border:1px solid var(--line); font-size:14px; letter-spacing:1px; color:var(--white); }
-  .statuspill .dot{ width:9px; height:9px; z-index:999; border-radius:50%; background:var(--gold); box-shadow:0 0 8px var(--gold); }
-  .brandcenter{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); text-align:center; z-index:6; }
-  .brandcenter .logo{ height:165px; position: relative; top:30px; width:auto; filter:drop-shadow(0 4px 8px rgba(0,0,0,.8)); }
-  .brandfallback{ font-size:30px; letter-spacing:2px; color:var(--gold); text-shadow:0 2px 0 #000; }
-  .breakpill{ padding:8px 16px; border-radius:999px; background:rgba(0,0,0,0.45); border:1px solid var(--gold);
-    font-size:16px; font-weight:900; letter-spacing:1px; color:var(--gold); }
-  .breakpill b{ color:var(--chrome); }
-  .seg{ display:flex; gap:6px; }
-  .chip{
-    padding:8px 14px; border-radius:999px; cursor:pointer;
-    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.16);
-    color:var(--white); font-size:12px; font-weight:900; letter-spacing:.6px;
-    transition:all .12s ease;
-  }
-  .chip:hover{ border-color:var(--gold); }
-  .chip.active{ background:linear-gradient(180deg, var(--gold), var(--gold2)); color:#241a02; border-color:var(--gold); }
-  .chip.sport.active{ background:linear-gradient(180deg, var(--navy2), var(--navy1)); color:var(--gold); border-color:var(--gold); }
-  .spacer{ flex:1; }
-  .btn{
-    padding:8px 14px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:900; letter-spacing:.5px;
-    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.16); color:#fff;
-  }
-  .btn:hover{ border-color:var(--gold); }
-  .btn.gold{ background:linear-gradient(180deg, var(--gold), var(--gold2)); color:#241a02; border-color:var(--gold); }
-  .hint{ font-size:11px; color:var(--muted); }
+  <style>
+    :root{
+      /* Terminal Takes — navy #14213D / gold #F3C34A / chrome #D8DEE6, art-deco (Mike 07-16) */
+      --bg0:#0b1220;
+      --bg1:#060a13;
+      --panel:#14213D;
+      --tile:#0a1526;
 
-  /* ===== Board ===== */
-  .board{
-    margin-top:8px; padding:8px; border-radius:12px;
-    background:rgba(0,0,0,0.32); border:1px solid rgba(243,195,74,0.22);
-  }
-  .grid{ display:grid; grid-template-columns:repeat(8, 1fr); gap:2px; }
-  .tile{
-    height:var(--tileH); border-radius:10px; position:relative; cursor:pointer; overflow:hidden;
-    background:linear-gradient(160deg, var(--navy2), var(--navy0));
-    border:2px solid rgba(255,255,255,0.14);
-    display:flex; align-items:center; justify-content:center;
-    box-shadow:inset 0 2px 0 rgba(255,255,255,0.08), 0 4px 10px rgba(0,0,0,0.5);
-  }
-  .tile img{ width:100%; height:100%; object-fit:cover; filter:drop-shadow(0 3px 5px rgba(0,0,0,.6)); }
-  .tile .code{ position:absolute; bottom:2px; left:0; right:0; text-align:center; font-size:9px; color:var(--chrome); opacity:.85; letter-spacing:.5px; }
-  .tile.selected{ border-color:var(--gold); box-shadow:0 0 0 2px var(--gold), 0 0 14px rgba(243,195,74,0.6); }
-  .tile.grouped{ border-color:var(--chrome); }
-  .tile.grouped::after{
-    content:attr(data-gtag); position:absolute; top:2px; right:3px;
-    font-size:16px; font-weight:900; color:var(--navy0); background:var(--gold);
-    border:1px solid rgba(255,255,255,0.6);
-    padding:1px 4px; border-radius:6px; letter-spacing:.5px;
-  }
-  .tile.sold{ filter:grayscale(0.55) brightness(0.6); }
-  .tile.sold::before{
-    content:"SOLD"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-size:16px; font-weight:900; color:#fff; letter-spacing:2px;
-    background:rgba(120,10,10,0.42); text-shadow:0 2px 3px #000; z-index:3;
-  }
-  /* Standard sold tile animation (sell-pop) */
-  .tile.sell-pop{ animation:soldPop 650ms ease; }
-  @keyframes soldPop{
-    0%  { transform:scale(1);    filter:brightness(1);    }
-    18% { transform:scale(1.18); filter:brightness(1.55); }
-    55% { transform:scale(0.94); filter:brightness(0.90); }
-    100%{ transform:scale(1);    filter:brightness(1);    }
-  }
-  .tile.chase-sell-pop{ animation:chaseSoldPop 950ms ease; }
-  @keyframes chaseSoldPop{
-    0%  { transform:scale(1);    filter:brightness(1);    }
-    20% { transform:scale(1.08); filter:brightness(1.18); }
-    55% { transform:scale(1.03); filter:brightness(1.08); }
-    100%{ transform:scale(1);    filter:brightness(1);    }
-  }
+      --barnBlue:#14213D;
+      --barnBlue2:#0d1830;
 
-  /* ===== Chase tiles (gold pulse + sweep + CHASE tag — house pattern) ===== */
-  .tile.chase{
-    border:2px solid #fff3a6;
-    box-shadow:
-      0 0 0 2px rgba(243,195,74,0.30) inset,
-      0 0 14px rgba(243,195,74,0.55),
-      0 0 28px rgba(243,195,74,0.30);
-    animation:chasePulse 1.9s ease-in-out infinite;
-  }
-  .chase-sweep{
-    position:absolute; inset:0; pointer-events:none; border-radius:8px;
-    background:linear-gradient(120deg,
-      transparent 0%, rgba(255,255,255,0.00) 35%, rgba(255,255,255,0.35) 50%,
-      rgba(243,195,74,0.45) 58%, rgba(255,255,255,0.00) 72%, transparent 100%);
-    transform:translateX(-140%) skewX(-18deg);
-    animation:chaseSweep 2.8s linear infinite;
-    mix-blend-mode:screen; z-index:2;
-  }
-  .chase-chip{
-    position:absolute; top:2px; left:3px; z-index:12;
-    padding:1px 4px; border-radius:999px;
-    font-size:8px; font-weight:900; letter-spacing:.8px; color:#000;
-    background:linear-gradient(180deg, #fff2a8 0%, var(--gold) 100%);
-    border:1px solid rgba(255,255,255,0.75);
-    box-shadow:0 0 10px rgba(243,195,74,0.38);
-  }
-  @keyframes chasePulse{
-    0%,100%{ box-shadow:0 0 0 2px rgba(243,195,74,0.22) inset, 0 0 10px rgba(243,195,74,0.35), 0 0 18px rgba(243,195,74,0.18); }
-    50%   { box-shadow:0 0 0 2px rgba(243,195,74,0.40) inset, 0 0 18px rgba(243,195,74,0.65), 0 0 34px rgba(243,195,74,0.35); }
-  }
-  @keyframes chaseSweep{
-    0%  { transform:translateX(-150%) skewX(-18deg); }
-    100%{ transform:translateX(150%)  skewX(-18deg); }
-  }
+      --barnOrange:#F3C34A;
+      --hay:#D8DEE6;
 
-  /* ===== Bottom bar: REMAINING · promo · SOLD ===== */
-  .bottombar{ display:flex; gap:10px; margin-top:10px; align-items:stretch; }
-  .statbox{ min-width:118px; text-align:center; padding:8px 10px; border-radius:12px;
-    background:rgba(0,0,0,0.5); border:1px solid var(--gold); box-shadow:inset 0 0 0 1px rgba(243,195,74,0.15); }
-  .statbox b{ display:block; font-size:22px; font-weight:900; color:var(--gold); line-height:1; }
-  .statbox small{ font-size:10px; letter-spacing:2px; color:var(--muted); }
-  .promobox{ flex:1; display:flex; align-items:center; justify-content:center; text-align:center;
-    padding:6px 14px; border-radius:12px; font-size:22px; font-weight:900; letter-spacing:1px; color:var(--gold);
-    /* promo-bar.png (800x64 art-deco band) + light scrim for text legibility; gradient stays as fallback */
-    background:
-      linear-gradient(180deg, rgba(5,8,16,0.30), rgba(5,8,16,.7)),
-      url("promo-bar.png") center/cover no-repeat,
-      linear-gradient(180deg, rgba(20,33,61,0.8), #05080f);
-    border:1px solid var(--gold);
-    text-shadow:0 2px 3px #000; overflow:hidden; }
-  .nextchip{
-    display:inline-flex; align-items:center; gap:6px;
-    padding:7px 12px; border-radius:999px; background:rgba(243,195,74,0.14); border:1px solid var(--line);
-    font-size:12px; font-weight:900; color:var(--gold); cursor:pointer;
+      --white:#ffffff;
+      --muted: rgba(255,255,255,0.80);
+
+      --accentBorder: rgba(243,195,74,0.95);
+      --accentBorderSoft: rgba(243,195,74,0.45);
+      --iceBorder: rgba(255,255,255,0.14);
+
+      --tileHTeam: 58px;
+      --tileHDivision: 49px;
+      --tileH: var(--tileHTeam);
+
+      --gap: 5px;
+      --cols: 10;
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      margin:15px;
+      background:transparent;
+      font-family: "Arial Black", Arial, sans-serif;
+      width:1080px;
+      min-height:1000px;
+      user-select:none;
+    }
+
+    .container{
+      position: relative;
+      background:
+        radial-gradient(900px 520px at 50% 0%, rgba(255,215,0,0.14), transparent 58%),
+        radial-gradient(900px 520px at 18% 18%, rgba(255,255,255,0.12), transparent 62%),
+        linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 100%);
+      border: 4px solid var(--accentBorder);
+      border-radius: 12px;
+      padding: 6px;
+      box-shadow: 0 0 22px rgba(0,0,0,0.75);
+      display:flex;
+      flex-direction:column;
+      overflow:hidden;
+    }
+
+    .container::before{
+      content:"";
+      position:absolute;
+      inset:-40px;
+      pointer-events:none;
+      opacity:0.28;
+      background:
+        radial-gradient(circle at 18% 22%, rgba(255,255,255,0.22), transparent 55%),
+        radial-gradient(circle at 76% 20%, rgba(255,215,0,0.18), transparent 58%),
+        radial-gradient(circle at 50% 78%, rgba(255,255,255,0.14), transparent 60%),
+        linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.035) 45%, transparent 60%),
+        linear-gradient(18deg, transparent 0%, rgba(255,215,0,0.06) 35%, transparent 55%);
+      filter: blur(10px);
+      animation: ambientPulse 7.0s ease-in-out infinite;
+      z-index: 0;
+    }
+    @keyframes ambientPulse{
+      0%{ transform: translate(0,0) scale(1); opacity:0.24; }
+      50%{ transform: translate(5px,-3px) scale(1.03); opacity:0.34; }
+      100%{ transform: translate(0,0) scale(1); opacity:0.24; }
+    }
+
+    .header{
+      position: relative;
+      background:
+        linear-gradient(rgba(0, 0, 0, 0.15), rgb(255 215 0 / 13%)), url(chicago-skyline.png);
+      background-size: contain;
+      background-position: center;
+      color: var(--white);
+      padding: 8px 8px;
+      margin-right:20px;
+
+      background-position: center;
+      border-radius: 6px 6px 0 0;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap:10px;
+      border-bottom: 2px solid rgba(255,255,255,0.10);
+      z-index: 2;
+    }
+
+    .header-left{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 0;
+    }
+
+    .header-icon{
+      width:18px;height:18px;border-radius:50%;
+      border:2px solid rgba(255,255,255,0.92);
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(255,215,0,0.95));
+      box-shadow: 0 0 12px rgba(255,215,0,0.35);
+      flex: 0 0 auto;
+    }
+
+    .header-text{
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.85);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-transform: uppercase;
+    }
+
+    .header-right{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex: 0 0 auto;
+    }
+
+    .break-pill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 2px solid var(--accentBorder);
+      background: rgba(0,0,0,0.32);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .break-pill .label{ opacity: 0.95; font-size: 19px; }
+    .break-pill .value{ font-size: 19px; color: #fff; }
+
+    .main-content{
+      display:flex;
+      flex-direction:column;
+      gap: 6px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .teams-wrapper{
+      background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.55) 100%);
+      border-radius: 8px;
+      padding: 1px;
+      border: 3px solid rgba(255,215,0,0.55);
+      isolation: isolate;
+      position: relative;
+      overflow: visible;
+      z-index: 1;
+    }
+
+  .teams-wrapper > *{
+  position: relative;
+  z-index: 1; /* default rows */
+}
+
+/* the row that contains the logo needs to sit ABOVE the rows beneath it */
+.row-grid.row-logo{
+  z-index: 50;
+}
+
+    .teams-wrapper::after{
+      content:"";
+      position:absolute;
+      inset: 0px;
+      border-radius: inherit;
+      pointer-events:none;
+      z-index: 1; /* keep glow behind tiles + logo */
+      background:
+        linear-gradient(130deg,
+          transparent 0%,
+          rgba(255,215,0,0) 35%,
+          rgba(255,255,255,0.25) 48%,
+          rgba(255,215,0,0.95) 58%,
+          rgba(180,140,0,0.55) 64%,
+          rgba(255,215,0,0.0) 72%,
+          transparent 100%);
+      background-size: 300% 300%;
+      animation: teamsWickRun 5.2s linear infinite;
+
+      -webkit-mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask:
+        linear-gradient(#000 0 0) content-box,
+        linear-gradient(#000 0 0);
+      mask-composite: exclude;
+
+      padding: 2px;
+      filter: blur(5px);
+      opacity: 1;
+      mix-blend-mode: screen;
+    }
+
+    @keyframes teamsWickRun{
+      0%   { background-position:   0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+
+    .row-grid{
+      display:grid;
+      gap: var(--gap);
+      margin-bottom: 1px;
+      grid-template-columns: repeat(var(--cols), 1fr);
+      align-items: stretch;
+    }
+
+    .team{
+      background: #000;
+      border: 2px solid rgba(255,255,255,0.88);
+      border-radius: 6px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      position:relative;
+      height: var(--tileH);
+      overflow:hidden;
+      isolation:isolate;
+      transition: transform 0.1s, box-shadow 0.1s, border-color 0.2s;
+    }
+
+    .team::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      pointer-events:none;
+      opacity:0;
+      z-index:2;
+      background:
+        linear-gradient(
+          120deg,
+          transparent 35%,
+          rgba(255,255,255,0.18) 45%,
+          rgba(255,215,0,0.60) 50%,
+          rgba(255,255,255,0.12) 55%,
+          transparent 65%
+        );
+      transform: translateX(-140%) skewX(-18deg);
+      transition: opacity 160ms ease;
+      mix-blend-mode: screen;
+    }
+
+    .team:hover::before{
+      opacity: 0.95;
+      animation: barnShimmer 720ms ease-out both;
+    }
+
+    @keyframes barnShimmer{
+      0%{ transform: translateX(-160%) skewX(-18deg); }
+      100%{ transform: translateX(160%) skewX(-18deg); }
+    }
+
+    .team:hover{
+      transform: translateY(-2px) scale(1.02);
+      box-shadow:
+        0 0 18px rgba(255,215,0,0.22),
+        0 10px 18px rgba(0,0,0,0.45);
+      border-color: rgba(255,255,255,0.65);
+    }
+
+    .team img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      border-radius: 4px;
+      transform-origin: 50% 50%;
+      will-change: transform;
+    }
+
+    .team img.nfl-small{ object-fit: cover; }
+
+    .team .fallback-code{
+      color:#fff;
+      font-size: 14px;
+      letter-spacing: 1px;
+      opacity: 0.9;
+    }
+    .team.sold img{
+      opacity: 0.82;
+      filter: grayscale(100%) brightness(0.35);
+    }
+
+.sold-fx-layer{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99990;
+  overflow: visible;
+}
+
+.sold-fx-strike{
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--fx-strike-len, 300px);
+  height: 10px;
+  opacity: 0;
+  transform-origin: left center;
+  transform:
+    translate3d(var(--fx-strike-x, 0px), var(--fx-strike-y, 0px), 0)
+    rotate(var(--fx-strike-angle, 0deg))
+    scaleX(0.08);
+  filter:
+    drop-shadow(0 0 10px rgba(255,208,0,0.55))
+    drop-shadow(0 0 14px rgba(255,208,0,0.45));
+}
+
+.sold-fx-strike::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:999px;
+  background:
+    linear-gradient(90deg,
+      rgba(255,208,0,0.00) 0%,
+      rgba(255,208,0,0.92) 14%,
+      rgba(255,255,255,0.98) 48%,
+      rgba(255,208,0,0.92) 78%,
+      rgba(255,208,0,0.00) 100%);
+  box-shadow:
+    0 0 12px rgba(255,208,0,0.35),
+    0 0 12px rgba(255,255,255,0.22);
+}
+
+.sold-fx-strike::after{
+  content:"";
+  position:absolute;
+  right:-10px;
+  top:50%;
+  width: 24px;
+  height: 24px;
+  transform: translateY(-50%);
+  border-radius:50%;
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.95) 0 24%, rgba(255,208,0,0.85) 46%, rgba(255,208,0,0) 72%);
+  box-shadow:
+    0 0 18px rgba(255,208,0,0.55),
+    0 0 16px rgba(255,255,255,0.18);
+}
+
+.sold-fx-strike.play{
+  animation: soldFxStrike 560ms cubic-bezier(.2,.82,.2,1) forwards;
+}
+
+.sold-fx-card{
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 420px;
+  height: 250px;
+  opacity: 0;
+  transform: translate3d(0,0,0) scale(.28);
+  transform-origin: center center;
+  filter:
+    drop-shadow(0 18px 28px rgba(0,0,0,0.74))
+    drop-shadow(0 0 24px rgba(255,208,0,0.18))
+    drop-shadow(0 0 24px rgba(255,255,255,0.10));
+  will-change: transform, opacity;
+}
+
+.sold-fx-card.play{
+  animation: soldFxCardTravel 1850ms cubic-bezier(.18,.84,.18,1) forwards;
+}
+
+.sold-fx-spin{
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.sold-fx-card.play .sold-fx-spin{
+  animation: soldFxSpin 760ms cubic-bezier(.2,.8,.2,1) 120ms forwards;
+}
+
+.sold-fx-inner{
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(240px 110px at 20% 14%, rgba(255,208,0,0.16), transparent 60%),
+    radial-gradient(240px 110px at 80% 86%, rgba(255,255,255,0.10), transparent 60%),
+    linear-gradient(180deg, rgba(18,18,18,0.98), rgba(4,4,4,0.98));
+  border: 2px solid rgba(255,208,0,0.55);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.06),
+    0 0 30px rgba(0,0,0,0.35);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.sold-fx-inner::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.05) 0px,
+      rgba(255,255,255,0.05) 1px,
+      rgba(0,0,0,0) 3px,
+      rgba(0,0,0,0) 6px
+    );
+  opacity:.10;
+  pointer-events:none;
+}
+
+.sold-fx-team-img{
+  position:absolute;
+  inset: 14px 14px 54px 14px;
+  width: calc(100% - 28px);
+  height: calc(100% - 68px);
+  object-fit: cover;
+  border-radius: 14px;
+  border: 2px solid rgba(255,208,0,0.18);
+  background:#000;
+}
+
+.sold-fx-name{
+  position:absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  text-align:center;
+  font-size: 20px;
+  letter-spacing: 1px;
+  font-weight: 900;
+  color:#fff;
+  text-transform: uppercase;
+  text-shadow:
+    0 2px 12px rgba(0,0,0,0.95),
+    0 0 12px rgba(255,208,0,0.12);
+}
+
+.sold-fx-stamp{
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg) scale(1.8);
+  padding: 12px 28px;
+  border-radius: 14px;
+  border: 3px solid rgba(255,255,255,0.92);
+  background: linear-gradient(135deg, rgba(255,208,0,0.96), rgba(199,154,0,0.98));
+  color:#000;
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgba(255,255,255,0.18);
+  box-shadow:
+    0 0 24px rgba(255,208,0,0.36),
+    0 10px 24px rgba(0,0,0,0.42);
+  opacity: 0;
+}
+
+.sold-fx-card.play .sold-fx-stamp{
+  animation: soldFxStamp 620ms cubic-bezier(.12,.84,.22,1) 760ms forwards;
+}
+
+.sold-fx-burst{
+  position:absolute;
+  inset:-10%;
+  pointer-events:none;
+  opacity:0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.28) 0 5%, transparent 16%),
+    radial-gradient(circle at 50% 50%, rgba(255,208,0,0.22) 0 16%, transparent 38%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.14) 0 24%, transparent 52%);
+}
+
+.sold-fx-card.play .sold-fx-burst{
+  animation: soldFxBurst 850ms ease-out 140ms forwards;
+}
+
+@keyframes soldFxStrike{
+  0%{
+    opacity: 0;
+    transform:
+      translate3d(var(--fx-strike-x, 0px), var(--fx-strike-y, 0px), 0)
+      rotate(var(--fx-strike-angle, 0deg))
+      scaleX(0.08);
   }
-  .nextchip small{ color:var(--muted); font-weight:700; }
-
-  /* Seller panel — lives BELOW the overlay (standard placement; cropped out of the OBS scene) */
-  .sold-wrap{ width:var(--W); margin-top:12px; padding:10px; border-radius:12px; background:rgba(0,0,0,0.85); border:1px solid var(--line); }
-  .sold-head{ display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
-  .sold-head .h{ font-size:12px; letter-spacing:1.5px; color:var(--chrome); }
-  .sold-controls{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-left:auto; }
-  .ssechip{ font-size:10px; letter-spacing:1px; color:var(--muted); padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,0.16); }
-  .ssechip .dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:#777; vertical-align:middle; margin-right:4px; }
-  .ssechip.on .dot{ background:#3ddc84; box-shadow:0 0 6px #3ddc84; }
-  .modaltextarea{ width:100%; min-height:110px; resize:vertical; background:rgba(0,0,0,0.4); border:1px solid var(--line);
-    color:#fff; border-radius:8px; padding:8px; font-size:13px; font-family:Arial, sans-serif; }
-  .modalinput{ width:100%; background:rgba(0,0,0,0.4); border:1px solid var(--line); color:#fff; border-radius:8px; padding:8px; font-size:14px; }
-  .sold-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:5px; max-height:88px; overflow:auto; }
-  .sold-item{ display:flex; align-items:center; gap:8px; padding:4px 6px; border-radius:8px; background:rgba(255,255,255,0.05); }
-  .sold-item .logos{ display:flex; align-items:center; gap:2px; flex-wrap:wrap; flex:1; }
-  .sold-item img{ width:30px; height:30px; object-fit:contain; }
-  .sold-item input{ width:200px; background:rgb(4, 8, 32); border:1px solid var(--line); color:#fff; border-radius:6px; padding:2px 2px; font-size:20px; }
-
-  .ticker{
-    margin-top:8px; height:34px; border-radius:10px; overflow:hidden; position:relative;
-    background:linear-gradient(90deg, var(--navy1), #05080f); border:1px solid var(--line);
-    display:flex; align-items:center;
+  18%{ opacity: 1; }
+  70%{
+    opacity: 1;
+    transform:
+      translate3d(var(--fx-strike-x, 0px), var(--fx-strike-y, 0px), 0)
+      rotate(var(--fx-strike-angle, 0deg))
+      scaleX(1);
   }
-  /* Seamless marquee: content is duplicated to always fill the bar — no blank gap */
-  .ticker-track{ display:inline-flex; white-space:nowrap; will-change:transform; animation:tick var(--tickDur,26s) linear infinite; font-size:22px; letter-spacing:1px; color:var(--chrome); }
-  .ticker-track .g{ color:var(--gold); }
-  .ticker-track .tseg{ display:inline-block; padding-right:8px; }
-  @keyframes tick{ from{ transform:translateX(0);} to{ transform:translateX(-50%);} }
+  100%{
+    opacity: 0;
+    transform:
+      translate3d(var(--fx-strike-x, 0px), var(--fx-strike-y, 0px), 0)
+      rotate(var(--fx-strike-angle, 0deg))
+      scaleX(1.08);
+  }
+}
 
-  .badge{ position:absolute; top:12px; left:12px; z-index:9; font-size:10px; letter-spacing:1px; color:#241a02; background:var(--gold); padding:2px 8px; border-radius:6px; font-weight:900; }
+@keyframes soldFxCardTravel{
+  0%{
+    opacity: .25;
+    transform: translate3d(var(--fx-start-x), var(--fx-start-y), 0) scale(.20);
+  }
+  20%{
+    opacity: 1;
+    transform: translate3d(var(--fx-mid-x), var(--fx-mid-y), 0) scale(.72);
+  }
+  36%{
+    opacity: 1;
+    transform: translate3d(var(--fx-end-x), var(--fx-end-y), 0) scale(1.02);
+  }
+  72%{
+    opacity: 1;
+    transform: translate3d(var(--fx-end-x), var(--fx-end-y), 0) scale(1);
+  }
+  100%{
+    opacity: 0;
+    transform: translate3d(var(--fx-end-x), calc(var(--fx-end-y) - 18px), 0) scale(.92);
+  }
+}
 
-  /* ===== Bundle modal ===== */
-  .modalbg{ position:fixed; inset:0; background:rgba(0,0,0,0.75); display:none; align-items:center; justify-content:center; z-index:50; }
-  .modalbg.open{ display:flex; }
-  .modalcard{ width:520px; max-width:92vw; max-height:86vh; overflow:auto; border-radius:14px; padding:16px;
-    background:linear-gradient(180deg, var(--navy1), #060a14); border:2px solid var(--gold); box-shadow:0 0 40px rgba(0,0,0,0.7); }
-  .mhead{ display:flex; align-items:center; justify-content:space-between; font-size:16px; letter-spacing:1px; color:var(--gold); margin-bottom:4px; }
-  .mhead span{ cursor:pointer; color:var(--chrome); font-size:18px; }
-  .mhead2{ font-size:12px; letter-spacing:1px; color:var(--chrome); margin:14px 0 6px; border-top:1px solid var(--line); padding-top:10px; }
-  .mhint{ font-size:11px; color:var(--muted); margin-bottom:10px; }
-  .mlist{ display:grid; grid-template-columns:1fr 1fr; gap:4px; max-height:300px; overflow:auto; }
-  .brow{ display:flex; align-items:center; gap:6px; padding:5px 6px; border-radius:8px; background:rgba(255,255,255,0.05); font-size:12px; cursor:pointer; }
-  .brow img{ width:22px; height:22px; object-fit:contain; }
-  .brow input{ accent-color:var(--gold); }
-  .mbtns{ margin-top:12px; display:flex; gap:8px; }
-  .mbtns button{ padding:9px 16px; border-radius:8px; font-weight:900; font-size:12px; cursor:pointer; border:1px solid var(--gold);
-    background:linear-gradient(180deg, var(--gold), var(--gold2)); color:#241a02; }
-  .bchip{ display:flex; align-items:center; gap:6px; padding:6px 8px; margin-bottom:4px; border-radius:8px;
-    background:rgba(243,195,74,0.12); border:1px solid var(--line); font-size:12px; color:var(--white); }
-  .bchip b{ color:var(--gold); }
-  .bchip span{ margin-left:auto; cursor:pointer; color:#ff8f8f; font-weight:900; }
+@keyframes soldFxSpin{
+  0%{
+    transform: perspective(1200px) rotateY(-95deg) rotateX(6deg);
+  }
+  55%{
+    transform: perspective(1200px) rotateY(18deg) rotateX(-2deg);
+  }
+  75%{
+    transform: perspective(1200px) rotateY(-8deg) rotateX(0deg);
+  }
+  100%{
+    transform: perspective(1200px) rotateY(0deg) rotateX(0deg);
+  }
+}
+
+@keyframes soldFxStamp{
+  0%{
+    opacity:0;
+    transform: translate(-50%, -105%) rotate(-18deg) scale(1.85);
+  }
+  60%{
+    opacity:1;
+    transform: translate(-50%, -50%) rotate(-10deg) scale(.92);
+  }
+  100%{
+    opacity:1;
+    transform: translate(-50%, -50%) rotate(-12deg) scale(1);
+  }
+}
+
+@keyframes soldFxBurst{
+  0%{
+    opacity:0;
+    transform: scale(.55);
+  }
+  28%{
+    opacity:.78;
+  }
+  100%{
+    opacity:0;
+    transform: scale(1.28);
+  }
+}
+    .team.flash{ animation: soldFlash 260ms ease; }
+    @keyframes soldFlash{
+      0%{ box-shadow: 0 0 0 rgba(255,215,0,0.0); }
+      50%{ box-shadow: 0 0 18px rgba(255,215,0,0.55); }
+      100%{ box-shadow: 0 0 0 rgba(255,215,0,0.0); }
+    }
+
+    .team.sold::after{
+      content:"X";
+      position:absolute;
+      font-size: 20px;
+      color: #071325;
+      text-shadow: 0 0 2px rgba(255,255,255,0.35);
+      z-index: 10;
+      background: rgba(255,255,255,0.72);
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid rgba(255,215,0,0.95);
+      box-shadow: 0 0 12px rgba(255,215,0,0.22);
+    }
+
+    .team.sold:hover{
+      transform:none;
+      box-shadow:none;
+      border-color: rgba(255,215,0,0.35);
+    }
+    .team.sold:hover::before,
+    .team.sold:hover::after{
+      opacity:0;
+      animation:none;
+    }
+
+    .modal-backdrop{
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.60);
+      display:none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .modal-backdrop.open{ display:flex; }
+
+    .modal-panel{
+      width: 860px;
+      max-width: calc(100vw - 30px);
+      border-radius: 12px;
+      border: 3px solid rgba(255,215,0,0.70);
+      background: linear-gradient(180deg, rgba(13,11,0,0.98) 0%, rgba(8,6,0,0.98) 100%);
+      box-shadow: 0 0 28px rgba(0,0,0,0.75);
+      padding: 10px;
+    }
+
+    .modal-head{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .modal-title{
+      font-weight: 900;
+      letter-spacing: 1px;
+      color:#fff;
+      text-transform: uppercase;
+      font-size: 14px;
+    }
+
+    .modal-actions{
+      display:flex;
+      gap: 6px;
+      align-items:center;
+    }
+
+    .ticker-editor{
+      display:flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .ticker-editor textarea{
+      flex: 1 1 auto;
+      min-height: 92px;
+      resize: none;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.85);
+      background: rgba(0,0,0,0.35);
+      color:#fff;
+      font-weight: 900;
+      outline:none;
+      font-family: Arial, sans-serif;
+      font-size: 18px;
+      line-height: 18px;
+    }
+
+    .ticker-hint{
+      margin-top: 6px;
+      font-size: 11px;
+      opacity: 0.85;
+      color:#fff;
+      text-transform: none;
+      letter-spacing: 0.2px;
+    }
+
+    /* ===== LOGO SLOT (IN GRID) ===== */
+    .logo-slot{
+      border-radius: 10px;
+      height: calc(var(--tileH) * 1);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      overflow:visible;
+      position:relative;
+      z-index: 999; /* ✅ bring the slot to the front */
+    }
+    .logo-slot img{
+      height: 160px;
+      width: auto;
+      object-fit: cover;
+      position: absolute;
+      transform-origin: 50% 60%;
+      will-change: transform, filter;
+      animation: logoBreathe 3.8s ease-in-out infinite;
+      top: -82px;
+      z-index: 1000; /* ✅ ensure above tiles and glow */
+      filter:
+        drop-shadow(0 2px 10px rgba(0,0,0,0.70))
+        drop-shadow(0 0 14px rgba(255,215,0,0.25));
+    }
+
+    @keyframes logoBreathe{
+      0%, 100%{
+        transform: translateY(0) scale(1);
+        filter:
+          drop-shadow(0 2px 10px rgba(0,0,0,0.70))
+          drop-shadow(0 0 14px rgba(255,215,0,0.25));
+      }
+      50%{
+        transform: translateY(-2px) scale(1.03);
+        filter:
+          drop-shadow(0 3px 12px rgba(0,0,0,0.72))
+          drop-shadow(0 0 22px rgba(255,255,255,0.35));
+      }
+    }
+.logo-slot{ z-index: 60; }
+.logo-slot img{ z-index: 61; }
+   
+
+.ticker-slot{
+  position:relative;                 /* hosts the MISC badge */
+  border-radius: 10px;
+  height: var(--tileH);
+  display:flex;
+  align-items:center;
+  overflow:hidden;
+  background: linear-gradient(27deg, navy 0%, rgb(80, 42, 7) 50%, navy);
+  border: 2px solid var(--accentBorder);
+  padding: 0 10px;
+}
+
+/* MISC spot — one tile-sized badge floating OVER the ticker; text scrolls behind it.
+   No board row is added; sold = dim + X only (no animation, no sold-list entry). */
+.header-misc-mount{ display:flex; align-items:center; }
+.misc-spot{
+  width:130px; height:var(--tileH); flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  border-radius:6px;
+  background:linear-gradient(160deg, #1B2C4E, #0C1428);
+  border:2px solid var(--accentBorder);
+  color:#D8DEE6; font-weight:900; font-size:16px; letter-spacing:2px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.misc-spot.sold{ filter:grayscale(0.6) brightness(0.6); }
+.misc-spot.sold::after{ content:"✕"; margin-left:8px; color:#ff8f8f; font-size:14px; }
+
+.ticker-track{
+  display:flex;
+  align-items:center;
+  white-space:nowrap;
+  width:max-content;
+  will-change:transform;
+  animation:tickerMarquee linear infinite;
+  animation-duration:var(--tickerDur, 24s);
+}
+
+.ticker-copy{
+  flex:0 0 auto;
+  display:inline-block;
+  padding-right:48px;
+  font-size:22px;
+  font-weight:900;
+  letter-spacing:0.8px;
+  color:#fff;
+  text-shadow:0 2px 10px rgba(0,0,0,0.65);
+}
+
+@keyframes tickerMarquee{
+  0%{ transform:translateX(0); }
+  100%{ transform:translateX(calc(-1 * var(--tickerShift, 0px))); }
+}
+
+    /* ===== CONTROLS ROW (Remaining | Promo Placeholder | Sold) ===== */
+    .controls-row{
+      margin-top: 2px;
+      display:grid;
+      grid-template-columns: 1fr 800px 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .stat-box{
+      background: linear-gradient(
+        318deg, navy 0%, rgb(255 215 0 / 45%) 50%, navy);
+      color:#fff;
+      border-radius: 8px;
+      text-align:center;
+      font-weight:900;
+      padding: 4px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.35);
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      font-size: 22px;
+      border: 2px solid var(--accentBorder);
+      min-height: 45px;
+    }
+
+    .stat-label{
+      font-size: 14px;
+      letter-spacing: 1px;
+      margin-top: 2px;
+      opacity: 0.95;
+    }
+
+    /* Placeholder for flip promo box */
+/* ===== PROMO BOX ===== */
+
+.promo-box{
+  position:relative;
+  border-radius:10px;
+  border:3px solid var(--accentBorder);
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:45px;
+
+  background:
+    linear-gradient(180deg, rgba(5,8,16,0.12), rgba(5,8,16,0.28)),
+    url('promo-bar.png') center / cover no-repeat,
+    linear-gradient(140deg,#081a36,#02070f);
+
+  box-shadow:
+    0 0 18px rgba(255,215,0,0.45),
+    inset 0 0 12px rgba(0,0,0,0.75);
+}
+
+/* animated glow */
+.promo-box::before{
+  content:"";
+  position:absolute;
+  inset:-60%;
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent,
+      rgba(255,255,255,0.3),
+      rgba(255,215,0,.21),
+      transparent
+    );
+  animation:promoSpin 6s linear infinite;
+  opacity:.18;   /* toned down so the banner art reads */
+}
+
+@keyframes promoSpin{
+  from{ transform:rotate(0deg); }
+  to{ transform:rotate(360deg); }
+}
+
+.promo-inner{
+  position:relative;
+  z-index:2;
+  text-align:center;
+  width:100%;
+  background:transparent;   /* art shows through; text keeps its own shadow */
+}
+
+.promo-text{
+  font-size:22px;
+  font-weight:900;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:#fff;
+
+  text-shadow:
+    0 0 10px rgb(90, 53, 6,1),
+    0 2px 8px rgba(0,0,0,0.9);
+
+  animation:promoPulse 2.8s ease-in-out infinite;
+}
+
+@keyframes promoPulse{
+  0%{ transform:scale(1); }
+  50%{ transform:scale(1.05); }
+  100%{ transform:scale(1); }
+}
+
+    .btn{
+      background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,215,0,1) 100%);
+      color:#071325;
+      border: 2px solid rgba(255,255,255,0.18);
+      border-radius: 8px;
+      cursor:pointer;
+      font-weight: 900;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      text-shadow: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.35);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap: 6px;
+      padding: 10px 10px;
+    }
+
+    .btn.secondary,
+    .btn.ghost{
+      background: linear-gradient(90deg, rgba(13,11,0,1) 0%, rgba(180, 141, 0, 0.411) 50%, rgba(13,11,0,1) 100%);
+      color:#fff;
+      border: 2px solid rgba(255,255,255,0.85);
+    }
+
+    .btn:active{
+      transform: translateY(1px);
+      box-shadow:none;
+    }
+
+    .sold-list-container{
+      margin: 8px auto 0 auto;
+      width: 100%;
+      background: linear-gradient(180deg, rgba(13,11,0,1) 0%, rgba(8,6,0,1) 100%);
+      border: 2px solid rgba(255,255,255,0.85);
+      border-radius: 8px;
+      padding: 6px 7px 8px;
+      text-align:center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.55);
+      position: relative;
+      z-index: 2;
+    }
+
+    .sold-top-row{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .sold-list-title{
+      font-size: 12px;
+      font-weight: 900;
+      color:#ffffff;
+      letter-spacing: 1px;
+      text-align:left;
+      padding-left: 2px;
+      text-transform: uppercase;
+    }
+
+    .sold-controls{
+      display:flex;
+      gap: 6px;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap: wrap;
+    }
+
+    .sold-list-grid{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 3px 3px;
+    }
+
+    .sold-row{
+      display:flex;
+      align-items:center;
+      gap: 4px;
+      margin-bottom: 2px;
+      background: rgba(0,0,0,0.60);
+      border-radius: 7px;
+      padding: 1px 3px;
+      border: 2px solid rgba(255,215,0,0.28);
+    }
+
+    .sold-team-img{
+      width: 24px;
+      height: 24px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid rgba(255,255,255,0.85);
+      background:#000;
+    }
+
+    .sold-team-name{
+      font-weight: 900;
+      color:#f9fafb;
+      min-width: 60px;
+      text-transform: capitalize;
+      font-size: 13px;
+      opacity: 0.95;
+    }
+
+    .sold-buyer-input{
+      font-size: 20px;
+      border: 2px solid rgba(255,215,0,0.28);
+      border-radius: 4px;
+      font-weight: 800;
+      padding: 2px 4px;
+      width: 100%;
+      background: rgba(0,0,0,0.35);
+      color:#f9fafb;
+      outline:none;
+    }
+
+    .sse{
+      display:flex;
+      align-items:center;
+      gap: 2px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0.95;
+      padding: 6px 1px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.18);
+      color:#fff;
+    }
+    .sse .dot{
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #666;
+      box-shadow: 0 0 8px rgba(255,255,255,0.15);
+    }
+    .sse.ok.dot{ background: #3cff8a; box-shadow: 0 0 10px rgba(60,255,138,0.7); }
+    .sse.🔃.dot{ background: #ffd24d; box-shadow: 0 0 10px rgba(255,210,77,0.7); }
+    .sse.error .dot{ background: #ff2f2f; box-shadow: 0 0 10px rgba(255,47,47,0.7); }
+
+
+.sold-stat{
+  position:relative;
+}
+
+.sold-toggle-hotspot{
+  position:absolute;
+  inset:0;
+  z-index:5;
+  background:transparent;
+  border:none;
+  padding:0;
+  margin:0;
+  cursor:pointer;
+  opacity:0;
+}
+
+.sold-toggle-hotspot:focus{
+  outline:none;
+}
+  
 </style>
 </head>
+
 <body>
-<div class="overlay" id="overlay">
-  <div class="badge">MOCKUP</div>
-
-  <!-- Header: status pill · centered logo · break pill -->
-  <div class="topbar">
-    <div class="statuspill"><span class="dot"></span><span id="headerSub">NFL BOX BREAK</span></div>
-    <div class="brandcenter">
-      <img class="logo" src="../../images/logos/terminal-takes-logo.png" alt="Terminal Takes" onerror="this.style.display='none';document.getElementById('brandFallback').style.display='block'">
-      <div class="brandfallback" id="brandFallback" style="display:none">TERMINAL TAKES</div>
-    </div>
-    <div class="breakpill">BREAK # <b id="breakNum">1</b></div>
-  </div>
-
-  <div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
-
-  <div class="board" id="board"></div>
-
-  <!-- Bottom bar: REMAINING · rotating promo · SOLD -->
-  <div class="bottombar">
-    <div class="statbox"><b id="leftCount">0</b><small>REMAINING</small></div>
-    <div class="promobox" id="promoBox">FOLLOW FOR THE NEXT BREAK</div>
-    <div class="statbox"><b id="soldCount">0</b><small>SOLD</small></div>
-  </div>
-
-
-</div>
-
-<!-- ===== Seller panel — BELOW the overlay, standard placement (crop out of the OBS scene) ===== -->
-<div class="sold-wrap">
-  <div class="sold-head">
-    <div class="h">SOLD / BUYERS</div>
-    <div class="sold-controls">
-      <div class="seg">
-        <div class="chip active" id="modeTeamBtn" onclick="setMode('team')">TEAM</div>
-        <div class="chip" id="modeCityBtn" onclick="setMode('city')">CITY</div>
+<div id="soldFxLayer" class="sold-fx-layer"></div>
+  <div class="container">
+    <div class="header" id="header">
+      <div class="header-left">
+        <!-- title removed 07-17; MISC toggle spot mounts here (team-sized) -->
+        <div class="header-misc-mount" id="miscHeaderSlot"></div>
       </div>
-      <div class="seg" id="sportSeg"></div>
-      <div class="nextchip" id="nextChip" onclick="skipPending()" title="Click to skip this buyer">NEXT: <small>waiting…</small></div>
-      <div class="btn" onclick="newBreak()">🧾 NEW BREAK</div>
-      <div class="btn" onclick="openBreakEditor()">🔢 BREAK #</div>
-      <div class="btn" onclick="openBundleModal()">🔗 BUNDLE</div>
-      <div class="btn" onclick="openChaseModal()">⭐ CHASE</div>
-      <div class="btn" onclick="openTickerEditor()">📰 TICKER</div>
-      <div class="btn" onclick="openPromoEditor()">🎁 PROMO</div>
-      <div class="btn" id="copySoldBtn" onclick="copySoldListTSV()">📋 COPY SOLD</div>
-      <div class="btn" onclick="resetAll()">RESET</div>
-      <div class="ssechip" id="sseChip"><span class="dot"></span>SSE <span id="sseText">OFF</span></div>
+
+      <div class="header-right">
+        <div class="break-pill">
+          <span class="label">Break #</span>
+          <span class="value" id="breakNumberDisplay">1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="teams-wrapper" id="teamsWrapper">
+        <!-- rows injected here -->
+      </div>
+
+      <!-- ✅ Remaining (left) | Promo placeholder (middle) | Sold (right) -->
+      <div class="controls-row" id="controlsRow">
+        <div class="stat-box">
+          <div id="teamsLeft">0</div>
+          <div class="stat-label">REMAINING</div>
+        </div>
+
+       <div class="promo-box" id="promoFlipSlot">
+  <div class="promo-inner">
+    <div class="promo-text" id="promoText">
+      SEE 2 PICK 1
     </div>
   </div>
-  <div class="sold-grid" id="soldGrid"></div>
 </div>
 
-<!-- Bundle modal -->
-<div class="modalbg" id="bundleModal">
-  <div class="modalcard">
-    <div class="mhead"><span style="color:var(--gold)">🔗 BUNDLE SPOTS</span><span onclick="closeBundleModal()">✕</span></div>
-    <div class="mhint">Check the teams to sell together as ONE spot. Sell any one of them and the whole bundle is marked sold and the buyer is assigned to all. Bundled teams count as a single spot.</div>
-    <div class="mlist" id="bundleList"></div>
-    <div class="mbtns"><button onclick="createBundle()">CREATE BUNDLE</button><button onclick="closeBundleModal()" style="background:rgba(255,255,255,0.08);color:#fff;border-color:rgba(255,255,255,0.2)">DONE</button></div>
-    <div class="mhead2">CURRENT BUNDLES</div>
-    <div id="bundleCurrent"></div>
+        <div class="stat-box" style="cursor:pointer;" onclick="toggleSoldPanel()" title="Toggle sold list">
+          <div id="teamsSold">0</div>
+          <div class="stat-label">SOLD</div>
+        </div>
+      </div>
+    </div>
   </div>
-</div>
 
-<!-- Chase teams modal -->
-<div class="modalbg" id="chaseModal">
-  <div class="modalcard">
-    <div class="mhead"><span style="color:var(--gold)">⭐ CHASE TEAMS</span><span onclick="closeChaseModal()">✕</span></div>
-    <div class="mhint">Check the chase teams — they get the gold pulse, sweep shine, and CHASE tag on the board. Toggles apply instantly.</div>
-    <div class="mlist" id="chaseList"></div>
-    <div class="mbtns"><button onclick="clearChase()" style="background:rgba(255,255,255,0.08);color:#fff;border-color:rgba(255,255,255,0.2)">CLEAR ALL</button><button onclick="closeChaseModal()">DONE</button></div>
-  </div>
-</div>
+  <div class="sold-list-container">
+    <div class="sold-top-row">
+      <div class="sold-list-title">SOLD TEAMS</div>
 
-<!-- Ticker editor modal -->
-<div class="modalbg" id="tickerModal">
-  <div class="modalcard">
-    <div class="mhead"><span style="color:var(--gold)">📰 TICKER TEXT</span><span onclick="closeTickerEditor()">✕</span></div>
-    <div class="mhint">Separate items with <b>•</b>. Leave empty to use the default ticker.</div>
-    <textarea class="modaltextarea" id="tickerModalTextarea" placeholder="TERMINAL TAKES • GREAT PULLS • GOOD LUCK"></textarea>
-    <div class="mbtns"><button onclick="applyTickerFromModal()">APPLY</button><button onclick="closeTickerEditor()" style="background:rgba(255,255,255,0.08);color:#fff;border-color:rgba(255,255,255,0.2)">CLOSE</button></div>
-  </div>
-</div>
+      <div class="sold-controls">
+        <!-- ✅ rearranged: New Break, Break#, Sport ... Copy Sold List LAST -->
+        <button class="btn secondary" style="padding:6px 4px; font-size:12px;" onclick="newBreak()">🧾 NEW BREAK</button>
+        <button class="btn ghost" style="padding:6px 4px; font-size:12px;" onclick="openBreakEditor()">🔢 BREAK #</button>
+        <button class="btn ghost" id="miscToggleBtn" style="padding:6px 4px; font-size:12px;" onclick="toggleMisc()">➕ MISC</button>
+        <button class="btn ghost" id="openTickerEditorBtn" style="padding:6px 4px; font-size:12px;" onclick="openTickerEditor()">📰 TICKER</button>
 
-<!-- Promo editor modal -->
-<div class="modalbg" id="promoModal">
-  <div class="modalcard">
-    <div class="mhead"><span style="color:var(--gold)">🎁 PROMO MESSAGES</span><span onclick="closePromoEditor()">✕</span></div>
-    <div class="mhint">One promo per line — each line rotates in the bottom-center banner. Leave empty to use the defaults.</div>
-    <textarea class="modaltextarea" id="promoModalTextarea" placeholder="SEE 2 PICK 1&#10;STASH OR PASS&#10;FOLLOW FOR THE NEXT BREAK"></textarea>
-    <div class="mhint" style="margin-top:10px; display:flex; align-items:center; gap:8px;">Rotate every
-      <input class="modalinput" id="promoIntervalInput" type="number" min="3" max="120" value="6" style="width:70px; text-align:center;"> sec</div>
-    <div class="mbtns"><button onclick="applyPromoFromModal()">APPLY</button><button onclick="closePromoEditor()" style="background:rgba(255,255,255,0.08);color:#fff;border-color:rgba(255,255,255,0.2)">CLOSE</button></div>
-  </div>
-</div>
+        
+<button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="openPromoEditor()">🎁 PROMO</button>
+        <button class="btn ghost" style="padding:4px 7px; font-size:12px;" onclick="copySoldListTSV()">📋 COPY SOLD</button>
+      </div>
+      <div class="sse" id="sseStatus">
+          SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
+        </div>
+    </div>
 
-<!-- Break # editor modal -->
-<div class="modalbg" id="breakModal">
-  <div class="modalcard" style="width:320px;">
-    <div class="mhead"><span style="color:var(--gold)">🔢 BREAK #</span><span onclick="closeBreakEditor()">✕</span></div>
-    <input class="modalinput" id="breakModalInput" type="number" min="1" step="1">
-    <div class="mbtns"><button onclick="applyBreakFromModal()">APPLY</button><button onclick="closeBreakEditor()" style="background:rgba(255,255,255,0.08);color:#fff;border-color:rgba(255,255,255,0.2)">CLOSE</button></div>
+    <div id="soldList" class="sold-list-grid"></div>
   </div>
-</div>
 
 <script>
-(function(){
-  "use strict";
-
-  /* ===== Config (provisioning HELD — key baked but NOT yet in Supabase) ===== */
-  const CLIENT_ID  = "terminal-takes";
-  const OVERLAY_ID = "terminal-takes-overlay";
-  const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com";
-  const BRIDGE_KEY = "PENDING-PROVISION-terminal-takes"; // replaced with a real UUID at go-live
-
-  const LS = {
-    get(k,d){ try{ const v=localStorage.getItem(CLIENT_ID+"."+k); return v==null?d:v; }catch(_){ return d; } },
-    set(k,v){ try{ localStorage.setItem(CLIENT_ID+"."+k, String(v)); }catch(_){ } }
-  };
-
-  /* ===== Team data (name, img nickname, city) ===== */
-  const P = "../../images/";
-  function T(sport, name, img, city){ return { sport, name, city, code:(img).toUpperCase(), img:P+sport+"/"+img+".png" }; }
-
-  const TEAMS = {
-    nfl: [
-      T("nfl","Bills","bills","Buffalo"),T("nfl","Dolphins","dolphins","Miami"),T("nfl","Patriots","patriots","Boston"),T("nfl","Jets","jets","New York"),
-      T("nfl","Ravens","ravens","Baltimore"),T("nfl","Bengals","bengals","Cincinnati"),T("nfl","Browns","browns","Cleveland"),T("nfl","Steelers","steelers","Pittsburgh"),
-      T("nfl","Texans","texans","Houston"),T("nfl","Colts","colts","Indianapolis"),T("nfl","Jaguars","jaguars","Jacksonville"),T("nfl","Titans","titans","Nashville"),
-      T("nfl","Broncos","broncos","Denver"),T("nfl","Chiefs","chiefs","Kansas City"),T("nfl","Raiders","raiders","Las Vegas"),T("nfl","Chargers","chargers","Los Angeles"),
-      T("nfl","Cowboys","cowboys","Dallas"),T("nfl","Giants","giants","New York"),T("nfl","Eagles","eagles","Philadelphia"),T("nfl","Commanders","commanders","Washington"),
-      T("nfl","Bears","bears","Chicago"),T("nfl","Lions","lions","Detroit"),T("nfl","Packers","packers","Green Bay"),T("nfl","Vikings","vikings","Minneapolis"),
-      T("nfl","Falcons","falcons","Atlanta"),T("nfl","Panthers","panthers","Charlotte"),T("nfl","Saints","saints","New Orleans"),T("nfl","Buccaneers","buccaneers","Tampa Bay"),
-      T("nfl","Cardinals","cardinals","Phoenix"),T("nfl","Rams","rams","Los Angeles"),T("nfl","49ers","49ers","San Francisco"),T("nfl","Seahawks","seahawks","Seattle")
-    ],
-    nba: [
-      T("nba","Celtics","celtics","Boston"),T("nba","Nets","nets","New York"),T("nba","Knicks","knicks","New York"),T("nba","76ers","76ers","Philadelphia"),
-      T("nba","Raptors","raptors","Toronto"),T("nba","Bulls","bulls","Chicago"),T("nba","Cavaliers","cavaliers","Cleveland"),T("nba","Pistons","pistons","Detroit"),
-      T("nba","Pacers","pacers","Indianapolis"),T("nba","Bucks","bucks","Milwaukee"),T("nba","Hawks","hawks","Atlanta"),T("nba","Hornets","hornets","Charlotte"),
-      T("nba","Heat","heat","Miami"),T("nba","Magic","magic","Orlando"),T("nba","Wizards","wizards","Washington"),T("nba","Nuggets","nuggets","Denver"),
-      T("nba","Timberwolves","timberwolves","Minneapolis"),T("nba","Thunder","thunder","Oklahoma City"),T("nba","Blazers","blazers","Portland"),T("nba","Jazz","jazz","Salt Lake City"),
-      T("nba","Warriors","warriors","San Francisco"),T("nba","Clippers","clippers","Los Angeles"),T("nba","Lakers","lakers","Los Angeles"),T("nba","Suns","suns","Phoenix"),
-      T("nba","Kings","kings","Sacramento"),T("nba","Mavericks","mavericks","Dallas"),T("nba","Rockets","rockets","Houston"),T("nba","Grizzlies","grizzlies","Memphis"),
-      T("nba","Pelicans","pelicans","New Orleans"),T("nba","Spurs","spurs","San Antonio")
-    ],
-    mlb: [
-      T("mlb","Orioles","orioles","Baltimore"),T("mlb","Red Sox","redsox","Boston"),T("mlb","Yankees","yankees","New York"),T("mlb","Rays","rays","Tampa Bay"),
-      T("mlb","Blue Jays","bluejays","Toronto"),T("mlb","White Sox","whitesox","Chicago"),T("mlb","Guardians","guardians","Cleveland"),T("mlb","Tigers","tigers","Detroit"),
-      T("mlb","Royals","royals","Kansas City"),T("mlb","Twins","twins","Minneapolis"),T("mlb","Astros","astros","Houston"),T("mlb","Angels","angels","Los Angeles"),
-      T("mlb","Athletics","athletics","Las Vegas"),T("mlb","Mariners","mariners","Seattle"),T("mlb","Rangers","rangers","Dallas"),T("mlb","Braves","braves","Atlanta"),
-      T("mlb","Marlins","marlins","Miami"),T("mlb","Mets","mets","New York"),T("mlb","Phillies","phillies","Philadelphia"),T("mlb","Nationals","nationals","Washington"),
-      T("mlb","Cubs","cubs","Chicago"),T("mlb","Reds","reds","Cincinnati"),T("mlb","Brewers","brewers","Milwaukee"),T("mlb","Pirates","pirates","Pittsburgh"),
-      T("mlb","Cardinals","cardinals","St. Louis"),T("mlb","Diamondbacks","diamondbacks","Phoenix"),T("mlb","Rockies","rockies","Denver"),T("mlb","Dodgers","dodgers","Los Angeles"),
-      T("mlb","Padres","padres","San Diego"),T("mlb","Giants","giants","San Francisco")
-    ]
-  };
-  const SPORT_LABEL = { nfl:"NFL", nba:"NBA", mlb:"MLB" };
-
-  /* ===== State ===== */
-  let mode = LS.get("mode","team");                       // "team" | "city"
-  let sports = (LS.get("sports","nfl,nba")||"nfl,nba").split(",").filter(Boolean).slice(0,2);
-  if (sports.length !== 2) sports = ["nfl","nba"];
-  let soldSet = new Set();                                 // uid of sold teams
-  let buyers  = {};                                        // uid -> buyer
-  let groups  = [];                                        // [{id, members:[uid], buyer}]
-  let pending = [];                                        // FIFO buyer queue
-  let bundleSel = new Set();                               // uids checked in the bundle modal
-  let breakNum = parseInt(LS.get("break","1"),10) || 1;
-  let chaseSet = new Set();                                // uids flagged as chase teams
-  try{ chaseSet = new Set(JSON.parse(LS.get("chase","[]"))); }catch(_){ chaseSet=new Set(); }
-
-  const uid = t => t.sport+":"+t.code;
-  function activeTeams(){ let a=[]; sports.forEach(s => a = a.concat(TEAMS[s]||[])); return a; }
-  function teamByUid(u){ const [s,c]=u.split(":"); return (TEAMS[s]||[]).find(t=>t.code===c); }
-  function groupOf(u){ return groups.find(g => g.members.includes(u)); }
-
-  /* ===== City helper (bundle modal quick-select ONLY — nothing pre-bundled) ===== */
-  function cityBuckets(){
-    const map = {};
-    activeTeams().forEach(t => { const k=String(t.city||"").toLowerCase().replace(/[^a-z]/g,""); (map[k]=map[k]||{name:t.city, teams:[]}).teams.push(t); });
-    return Object.values(map).sort((a,b)=> b.teams.length - a.teams.length || a.name.localeCompare(b.name));
-  }
-
-  /* ===== Persistence ===== */
-  function save(){
-    LS.set("mode",mode); LS.set("sports",sports.join(",")); LS.set("break",breakNum);
-    LS.set("sold", JSON.stringify([...soldSet]));
-    LS.set("buyers", JSON.stringify(buyers));
-    LS.set("groups", JSON.stringify(groups));
-    LS.set("chase", JSON.stringify([...chaseSet]));
-  }
-  function restore(){
-    try{ soldSet = new Set(JSON.parse(LS.get("sold","[]"))); }catch(_){ soldSet=new Set(); }
-    try{ buyers  = JSON.parse(LS.get("buyers","{}"))||{}; }catch(_){ buyers={}; }
-    try{ groups  = JSON.parse(LS.get("groups","[]"))||[]; }catch(_){ groups=[]; }
-  }
-
-  /* ===== Buyer queue (last buyer -> next clicked tile) ===== */
-  function enqueueBuyer(name){
-    name = String(name||"").trim(); if(!name) return;
-    if (pending[pending.length-1] === name) return;
-    pending.push(name); refreshNextChip();
-  }
-  function skipPending(){ if(pending.length){ pending.shift(); refreshNextChip(); } }
-  function refreshNextChip(){
-    const c = document.getElementById("nextChip");
-    if (pending.length){ const n=pending.length; c.innerHTML = "NEXT: "+pending[0]+(n>1?" <small>(+"+(n-1)+")</small>":""); }
-    else c.innerHTML = "NEXT: <small>waiting…</small>";
-  }
-
-  /* ===== Sell / group logic (a group/city = ONE spot) ===== */
-  function assignBuyerToUnit(units, buyer){
-    units.forEach(u => { if (buyer) buyers[u] = buyer; });
-  }
-  function unitFor(u){
-    // returns the list of uids that sell together with u (its group, else itself)
-    const g = groupOf(u);
-    return g ? g.members.slice() : [u];
-  }
-  let flashSet = new Set(); // uids to flash on next render (soldFlash)
-  function sellUnit(units, buyer){
-    const already = units.every(u => soldSet.has(u));
-    if (already){ // toggle off
-      units.forEach(u => soldSet.delete(u));
-    } else {
-      units.forEach(u => { soldSet.add(u); flashSet.add(u); });
-      if (!buyer && pending.length){ buyer = pending.shift(); refreshNextChip(); }
-      if (buyer){ assignBuyerToUnit(units, buyer); const g=groupOf(units[0]); if(g) g.buyer=buyer; }
+  // ===== Base path (GitHub Pages + local folders) =====
+  const BASE = (() => {
+    const isGhPages = location.hostname.endsWith('github.io');
+    if (isGhPages) {
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repo = parts.length ? parts[0] : '';
+      return `/${repo}/`;
     }
-    render(); save();
-  }
+    return '../..\/';
+  })();
 
-  function clickTeam(u){ sellUnit(unitFor(u)); }
+  const LOGO_PRIMARY = `${BASE}images/logos/terminal-takes-logo.png`;
 
-  function openBundleModal(){ bundleSel=new Set(); renderBundleModal(); document.getElementById("bundleModal").classList.add("open"); }
-  function closeBundleModal(){ document.getElementById("bundleModal").classList.remove("open"); }
-  function bundleRow(t){
-    const u=uid(t);
-    const row=document.createElement("label"); row.className="brow";
-    row.innerHTML='<input type="checkbox" '+(bundleSel.has(u)?"checked":"")+'>'+
-      '<img src="'+t.img+'" onerror="this.style.display=\'none\'"><span>'+t.name+' · '+SPORT_LABEL[t.sport]+'</span>';
-    row.querySelector("input").onchange=e=>{ if(e.target.checked) bundleSel.add(u); else bundleSel.delete(u); };
-    return row;
-  }
-  function renderBundleModal(){
-    const list=document.getElementById("bundleList"); list.innerHTML="";
-    if (mode==="city"){
-      // City view: same manual bundling, just organized by city with a one-click city select.
-      cityBuckets().forEach(c=>{
-        const free=c.teams.filter(t=>!groupOf(uid(t)));
-        if(!free.length) return;
-        const hd=document.createElement("label"); hd.className="brow"; hd.style.gridColumn="1/-1";
-        hd.innerHTML='<input type="checkbox"><b style="color:var(--gold)">'+c.name+'</b><span class="hint">select all ('+free.length+')</span>';
-        hd.querySelector("input").onchange=e=>{ free.forEach(t=>{ if(e.target.checked) bundleSel.add(uid(t)); else bundleSel.delete(uid(t)); }); renderBundleModal(); };
-        list.appendChild(hd);
-        free.forEach(t=> list.appendChild(bundleRow(t)));
-      });
-    } else {
-      activeTeams().forEach(t=>{ if (groupOf(uid(t))) return; list.appendChild(bundleRow(t)); });
-    }
-    const cur=document.getElementById("bundleCurrent"); cur.innerHTML="";
-    if(!groups.length){ cur.innerHTML='<div class="mhint">No bundles yet.</div>'; }
-    groups.forEach(g=>{
-      const d=document.createElement("div"); d.className="bchip";
-      d.innerHTML='<b>'+g.id+'</b> '+g.members.map(m=>{const t=teamByUid(m);return t?t.name:m;}).join(", ")+
-        '<span onclick="removeBundle(\''+g.id+'\')">&#10005;</span>';
-      cur.appendChild(d);
-    });
-  }
-  function createBundle(){
-    if (bundleSel.size < 2) return;
-    groups.push({ id:"B"+(groups.length+1), members:[...bundleSel], buyer:"" });
-    bundleSel=new Set(); save(); renderBundleModal(); render();
-  }
-  function removeBundle(id){ groups=groups.filter(g=>g.id!==id); save(); renderBundleModal(); render(); }
-  window.openBundleModal=openBundleModal; window.closeBundleModal=closeBundleModal;
-  window.createBundle=createBundle; window.removeBundle=removeBundle;
+  const imgPathNFL = (f) => `${BASE}images/nfl/${f}`;
+  const imgPathNBA = (f) => `${BASE}images/nba/${f}`;
+  const imgPathMLB = (f) => `${BASE}images/mlb/${f}`;
 
-  /* ===== Chase teams (gold pulse + sweep + tag; toggles apply instantly) ===== */
-  function renderChaseModal(){
-    const list=document.getElementById("chaseList"); list.innerHTML="";
-    activeTeams().forEach(t=>{
-      const u=uid(t);
-      const row=document.createElement("label"); row.className="brow";
-      row.innerHTML='<input type="checkbox" '+(chaseSet.has(u)?"checked":"")+'>'+
-        '<img src="'+t.img+'" onerror="this.style.display=\'none\'"><span>'+t.name+' · '+SPORT_LABEL[t.sport]+'</span>';
-      row.querySelector("input").onchange=e=>{ if(e.target.checked) chaseSet.add(u); else chaseSet.delete(u); save(); render(); };
-      list.appendChild(row);
-    });
-  }
-  function openChaseModal(){ renderChaseModal(); document.getElementById("chaseModal").classList.add("open"); }
-  function closeChaseModal(){ document.getElementById("chaseModal").classList.remove("open"); }
-  function clearChase(){ chaseSet=new Set(); save(); render(); renderChaseModal(); }
-  window.openChaseModal=openChaseModal; window.closeChaseModal=closeChaseModal; window.clearChase=clearChase;
+ const LS = {
+  TICKER: "terminal-takes.tickerLines",
+  TICKER_SPEED: "terminal-takes.tickerSpeed",
+  BREAK: "terminal-takes.breakNumber",
+  TITLE: "terminal-takes.title",
+  BRIDGE: "tsu.bridge",
+  KEY: "tsu.key",
+  PROMOS: "terminal-takes.promos",
+  OVERLAY: "tsu.overlayId",
+  CHANNEL: "tsu.channel",
+  CUSTOM_ENTRIES: "terminal-takes.customEntries",
+  CUSTOM_TITLE: "terminal-takes.customTitle",
+  URL_LEGACY: "tsu.bridgeUrl",
+  KEY_LEGACY: "tsu.bridgeKey",
+  STATE: "terminal-takes.overlayState.v1",
+  
+  TEAM_STYLE: "terminal-takes.teamStyle.v1",
+  PROMO_SPEED: "terminal-takes.promoSpeed"
+};
 
-  /* ===== Rendering ===== */
-  function render(){
-    // sports segment
-    const seg = document.getElementById("sportSeg"); seg.innerHTML="";
-    ["nfl","nba","mlb"].forEach(s => {
-      const on = sports.includes(s);
-      const d=document.createElement("div");
-      d.className="chip sport"+(on?" active":""); d.textContent=SPORT_LABEL[s];
-      d.onclick=()=>toggleSport(s);
-      seg.appendChild(d);
-    });
-    document.getElementById("modeTeamBtn").classList.toggle("active", mode==="team");
-    document.getElementById("modeCityBtn").classList.toggle("active", mode==="city");
-    document.getElementById("headerSub").textContent =
-      (mode==="city" ? "CITY DIVISION" : sports.map(s=>SPORT_LABEL[s]).join(" + ")) + " BOX BREAK";
-    document.getElementById("breakNum").textContent = breakNum;
+  const DEFAULT_TICKER_LINES = [
+    "MIDWESTBREAK",
+    "FARM FRESH PULLS • Bookmark upcoming shows"
+  ];
+  const DEFAULT_TICKER_SPEED = 90;
 
-    const board = document.getElementById("board");
-    board.innerHTML="";
-    renderTeamBoard(board); // one board, identical footprint in both modes
-
-    renderSold();
-    updateStats();
-    refreshNextChip();
-    buildTicker();
-  }
-
-  function renderTeamBoard(board){
-    // One continuous grid — no sport separators; fixed footprint in both modes.
-    let gi = {};
-    groups.forEach(grp=> grp.members.forEach(m=> gi[m]=grp.id));
-    const g=document.createElement("div"); g.className="grid";
-    activeTeams().forEach(t => {
-      const u=uid(t);
-      const d=document.createElement("div");
-      const isChase = chaseSet.has(u);
-      d.className="tile"+(soldSet.has(u)?" sold":"")+(groupOf(u)?" grouped":"")+(isChase?" chase":"")
-        +(flashSet.has(u)?(isChase?" chase-sell-pop":" sell-pop"):"");
-      if (flashSet.has(u)) flashSet.delete(u);
-      if (gi[u]) d.setAttribute("data-gtag", gi[u]);
-      d.innerHTML='<img src="'+t.img+'" onerror="this.style.display=\'none\'"><span class="code">'+t.name+'</span>'
-        +(isChase?'<span class="chase-sweep"></span><span class="chase-chip">CHASE</span>':"");
-      d.onclick=()=>clickTeam(u);
-      g.appendChild(d);
-    });
-    board.appendChild(g);
-  }
-
-  function renderSold(){
-    const grid=document.getElementById("soldGrid"); grid.innerHTML="";
-    // one row per sold UNIT (group counts once)
-    const seen=new Set(); const rows=[];
-    [...soldSet].forEach(u=>{
-      const g=groupOf(u);
-      const key = g ? g.id : u;
-      if (seen.has(key)) return; seen.add(key);
-      rows.push({ key, u, g });
-    });
-    rows.forEach(r=>{
-      const t=teamByUid(r.u);
-      const buyer = r.g ? (r.g.buyer||"") : (buyers[r.u]||"");
-      const row=document.createElement("div"); row.className="sold-item";
-      // Logos only — no team names. Groups show every member's logo.
-      const logos = r.g
-        ? r.g.members.map(m=>{ const mt=teamByUid(m); return mt?'<img src="'+mt.img+'" onerror="this.style.display=\'none\'" title="'+mt.name+'">':""; }).join("")
-        : (t?'<img src="'+t.img+'" onerror="this.style.display=\'none\'" title="'+t.name+'">':"");
-      row.innerHTML = '<span class="logos">'+logos+'</span>';
-      const inp=document.createElement("input"); inp.placeholder="Buyer"; inp.value=buyer;
-      inp.oninput=e=>{ const v=e.target.value; if(r.g){ r.g.buyer=v; r.g.members.forEach(m=>buyers[m]=v);} else buyers[r.u]=v; save(); };
-      row.appendChild(inp); grid.appendChild(row);
-    });
-    if(!rows.length){ grid.innerHTML='<div class="hint" style="grid-column:1/-1">No spots sold yet.</div>'; }
-  }
-
-  function soldUnitCount(){
-    const seen=new Set(); let n=0;
-    [...soldSet].forEach(u=>{ const g=groupOf(u); const k=g?g.id:u; if(!seen.has(k)){ seen.add(k); n++; } });
-    return n;
-  }
-  function totalUnits(){
-    // total sellable units = ungrouped teams + number of bundles with members in view (a bundle = ONE spot)
-    const inView = new Set(activeTeams().map(uid));
-    let grouped=new Set(); let gcount=0;
-    groups.forEach(g=>{ if(g.members.some(m=>inView.has(m))){ gcount++; g.members.forEach(m=>grouped.add(m)); } });
-    let singles=0; inView.forEach(u=>{ if(!grouped.has(u)) singles++; });
-    return singles+gcount;
-  }
-  function updateStats(){
-    const total=totalUnits(), sold=soldUnitCount();
-    document.getElementById("soldCount").textContent=sold;
-    document.getElementById("leftCount").textContent=Math.max(0,total-sold);
-  }
-
-  /* ===== Controls ===== */
-  function setMode(m){ mode=m; save(); render(); }
-  window.setMode=setMode;
-  function toggleSport(s){
-    if (sports.includes(s)){ if(sports.length>1) sports=sports.filter(x=>x!==s); }
-    else { sports.push(s); if(sports.length>2) sports.shift(); }   // keep last 2
-    save(); render();
-  }
-  function newBreak(){ breakNum++; soldSet=new Set(); buyers={}; groups=[]; pending=[]; bundleSel=new Set(); chaseSet=new Set(); save(); render(); }
-  function resetAll(){ soldSet=new Set(); buyers={}; groups=[]; pending=[]; bundleSel=new Set(); save(); render(); }
-  window.newBreak=newBreak; window.resetAll=resetAll; window.skipPending=skipPending;
-
-  /* ===== Ticker (custom text editable via 📰 TICKER modal, LS-persisted) ===== */
-  let tickerCustom = LS.get("ticker","");
-  function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-  function tickerSegmentHTML(){
-    if (tickerCustom.trim()){
-      return tickerCustom.split("•").map(s=>esc(s.trim())).filter(Boolean)
-        .map((s,i)=> i%2 ? s : '<span class="g">'+s+'</span>').join(" &nbsp;•&nbsp; ")+" &nbsp;•&nbsp; ";
-    }
-    return '<span class="g">TERMINAL TAKES</span> &nbsp;•&nbsp; '+sports.map(s=>SPORT_LABEL[s]).join(" + ")+
-      ' MULTI-SPORT BREAK &nbsp;•&nbsp; '+(mode==="city"?"CITY DIVISION MODE":"TEAM BOARD")+
-      ' &nbsp;•&nbsp; GOOD LUCK &nbsp;•&nbsp; <span class="g">FOLLOW + LIKE + SHARE</span> &nbsp;•&nbsp; ';
-  }
-  function buildTicker(){
-    // Seamless loop: duplicate the segment until it spans >= 2x the bar, animate -50% (identical halves = no gap)
-    const t=document.getElementById("tickerTrack");
-    const seg='<span class="tseg">'+tickerSegmentHTML()+'</span>';
-    t.innerHTML=seg;
-    const box=t.parentElement;
-    const segW=(t.firstElementChild&&t.firstElementChild.offsetWidth)||1;
-    let copies=Math.max(2, Math.ceil((box.offsetWidth*2)/segW));
-    if (copies%2) copies++;
-    t.innerHTML=new Array(copies).fill(seg).join("");
-    const half=(segW*copies)/2;
-    t.style.setProperty("--tickDur", Math.max(8, Math.round(half/90))+"s"); // ~90 px/s constant speed
-  }
-  function openTickerEditor(){
-    document.getElementById("tickerModalTextarea").value = tickerCustom;
-    document.getElementById("tickerModal").classList.add("open");
-  }
-  function closeTickerEditor(){ document.getElementById("tickerModal").classList.remove("open"); }
-  function applyTickerFromModal(){
-    tickerCustom = String(document.getElementById("tickerModalTextarea").value||"").trim();
-    LS.set("ticker", tickerCustom); buildTicker(); closeTickerEditor();
-  }
-
-  /* ===== Rotating promo (editable via 🎁 PROMO modal, LS-persisted) ===== */
-  const DEFAULT_PROMOS = ["FOLLOW FOR THE NEXT BREAK","GOOD LUCK TO ALL","TERMINAL TAKES • MULTI-SPORT BREAKS","LIKE • SHARE • SUBSCRIBE"];
-  let promos = DEFAULT_PROMOS.slice();
-  try{ const p=JSON.parse(LS.get("promos","[]")); if(Array.isArray(p)&&p.length) promos=p; }catch(_){ }
-  let promoSec = Math.min(120, Math.max(3, parseInt(LS.get("promoSec","6"),10)||6));
-  let _promoIdx = 0, _promoTimer = null;
-  function rotatePromo(){ const el=document.getElementById("promoBox"); if(el && promos.length){ el.textContent=promos[_promoIdx % promos.length]; _promoIdx++; } }
-  function startPromoTimer(){ if(_promoTimer) clearInterval(_promoTimer); rotatePromo(); _promoTimer=setInterval(rotatePromo, promoSec*1000); }
-  function openPromoEditor(){
-    document.getElementById("promoModalTextarea").value = promos.join("\n");
-    document.getElementById("promoIntervalInput").value = String(promoSec);
-    document.getElementById("promoModal").classList.add("open");
-  }
-  function closePromoEditor(){ document.getElementById("promoModal").classList.remove("open"); }
-  function applyPromoFromModal(){
-    const lines = String(document.getElementById("promoModalTextarea").value||"").split("\n").map(s=>s.trim()).filter(Boolean);
-    promos = lines.length ? lines : DEFAULT_PROMOS.slice();
-    const v = parseInt(document.getElementById("promoIntervalInput").value,10);
-    if (Number.isFinite(v) && v>=3 && v<=120) promoSec = v;
-    LS.set("promos", JSON.stringify(promos)); LS.set("promoSec", promoSec);
-    _promoIdx = 0; startPromoTimer(); closePromoEditor();
-  }
-
-  /* ===== Break # editor ===== */
-  function openBreakEditor(){
-    document.getElementById("breakModalInput").value = String(breakNum);
-    document.getElementById("breakModal").classList.add("open");
-  }
-  function closeBreakEditor(){ document.getElementById("breakModal").classList.remove("open"); }
-  function applyBreakFromModal(){
-    const v = parseInt(document.getElementById("breakModalInput").value,10);
-    if (Number.isFinite(v) && v>=1) breakNum=v;
-    save(); render(); closeBreakEditor();
-  }
-
-  /* ===== Copy sold list (TSV export) ===== */
-  function exportSoldListTSV(){
-    const seen=new Set(); const lines=["Spot\tBuyer"];
-    [...soldSet].forEach(u=>{
-      const g=groupOf(u); const key=g?g.id:u;
-      if(seen.has(key)) return; seen.add(key);
-      if(g){ lines.push("GROUP "+g.id+" ("+g.members.map(m=>{const t=teamByUid(m);return t?t.name:m;}).join(", ")+")\t"+(g.buyer||"")); }
-      else { const t=teamByUid(u); lines.push((t?(t.name+" · "+SPORT_LABEL[t.sport]):u)+"\t"+(buyers[u]||"")); }
-    });
-    return lines.join("\n");
-  }
-  function flashCopyButton(ok){
-    const b=document.getElementById("copySoldBtn"); if(!b) return;
-    const old=b.textContent; b.textContent = ok ? "✓ COPIED" : "✗ COPY FAILED";
-    setTimeout(()=>{ b.textContent=old; }, 1400);
-  }
-  function copySoldListTSV(){
-    const text = exportSoldListTSV();
-    if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text).then(()=>flashCopyButton(true)).catch(()=>fallbackCopy(text));
-    } else fallbackCopy(text);
-  }
-  function fallbackCopy(text){
+  function loadTickerLines(){
     try{
-      const ta=document.createElement("textarea"); ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
-      document.body.appendChild(ta); ta.select(); const ok=document.execCommand("copy"); document.body.removeChild(ta);
-      flashCopyButton(ok);
-    }catch(_){ flashCopyButton(false); }
+      const raw = localStorage.getItem(LS.TICKER);
+      if (!raw) return DEFAULT_TICKER_LINES.slice();
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length) return arr.map(s => String(s));
+    }catch(_){}
+    return DEFAULT_TICKER_LINES.slice();
   }
 
-  window.openTickerEditor=openTickerEditor; window.closeTickerEditor=closeTickerEditor; window.applyTickerFromModal=applyTickerFromModal;
-  window.openPromoEditor=openPromoEditor; window.closePromoEditor=closePromoEditor; window.applyPromoFromModal=applyPromoFromModal;
-  window.openBreakEditor=openBreakEditor; window.closeBreakEditor=closeBreakEditor; window.applyBreakFromModal=applyBreakFromModal;
-  window.copySoldListTSV=copySoldListTSV;
-
-  /* ===== SSE bridge (auto buyer feed -> pending queue). Inert until provisioned. ===== */
-  function getBuyer(d){ return String(d&&(d.buyer||d.buyerName||d.username)||"").trim(); }
-  function setSSEStatus(on){
-    const chip=document.getElementById("sseChip"), txt=document.getElementById("sseText");
-    if(chip) chip.classList.toggle("on", !!on);
-    if(txt) txt.textContent = on ? "ON" : "OFF";
+  function saveTickerLines(lines){
+    localStorage.setItem(LS.TICKER, JSON.stringify(lines));
   }
-  function connectSSE(){
-    if (BRIDGE_KEY.indexOf("PENDING")===0){ setSSEStatus(false); return; } // not provisioned yet
-    try{
-      const url=BRIDGE_URL+"/stream?channel=main&key="+encodeURIComponent(BRIDGE_KEY);
-      const es=new EventSource(url);
-      es.onopen=()=>setSSEStatus(true);
-      es.onmessage=ev=>{ try{ const d=JSON.parse(ev.data); const b=getBuyer(d); if(b) enqueueBuyer(b); }catch(_){ } };
-      es.onerror=()=>{ setSSEStatus(false); es.close(); setTimeout(connectSSE, 4000); };
-    }catch(_){ setSSEStatus(false); }
+  function loadTickerSpeed(){
+  const raw = parseInt(localStorage.getItem(LS.TICKER_SPEED) || String(DEFAULT_TICKER_SPEED), 10);
+  return Number.isFinite(raw) && raw >= 40 && raw <= 200 ? raw : DEFAULT_TICKER_SPEED;
+}
+
+function saveTickerSpeed(v){
+  const safe = Number.isFinite(v) ? Math.max(40, Math.min(200, v)) : DEFAULT_TICKER_SPEED;
+  localStorage.setItem(LS.TICKER_SPEED, String(safe));
+}
+
+function syncTickerSpeedUI(){
+  const slider = document.getElementById("tickerSpeedSlider");
+  const label = document.getElementById("tickerSpeedValue");
+  const speed = loadTickerSpeed();
+
+  if (slider) slider.value = String(speed);
+  if (label) label.textContent = `${speed} px/s`;
+}
+
+let TICKER_LINES = loadTickerLines();
+let SCORE_LINES = [];
+
+function normalizeTickerArray(arr){
+  return (Array.isArray(arr) ? arr : [])
+    .map(x => String(x || "").trim())
+    .filter(Boolean);
+}
+
+function getCustomTickerText(){
+  const lines = normalizeTickerArray(TICKER_LINES);
+  return lines.length
+    ? lines.join("   •   ")
+    : DEFAULT_TICKER_LINES.join("   •   ");
+}
+
+function getScoresTickerText(){
+  const lines = normalizeTickerArray(SCORE_LINES);
+  return lines.length ? lines.join("   •   ") : "";
+}
+
+function buildTickerLine(){
+  const customText = getCustomTickerText();
+  const scoresText = getScoresTickerText();
+
+  return scoresText
+    ? `${customText}   •   LIVE SCORES   •   ${scoresText}`
+    : customText;
+}
+
+function updateTickerMarquee(){
+  const line = ` ${buildTickerLine()} `;
+
+  document.querySelectorAll(".ticker-track").forEach(track => {
+    const copies = track.querySelectorAll(".ticker-copy");
+    if (copies.length < 2) return;
+
+    copies[0].textContent = line;
+    copies[1].textContent = line;
+
+    requestAnimationFrame(() => {
+      const firstWidth = copies[0].getBoundingClientRect().width;
+      if (!firstWidth) return;
+
+      const pxPerSec = loadTickerSpeed();
+      const duration = Math.max(12, Math.round(firstWidth / pxPerSec));
+
+      track.style.animation = "none";
+      track.style.setProperty("--tickerShift", `${firstWidth}px`);
+      track.style.setProperty("--tickerDur", `${duration}s`);
+      void track.offsetWidth;
+      track.style.animation = `tickerMarquee ${duration}s linear infinite`;
+    });
+  });
+}
+function refreshTickerText(){
+  updateTickerMarquee();
+}
+
+function setScoreLines(lines){
+  SCORE_LINES = normalizeTickerArray(lines);
+  updateTickerMarquee();
+}
+
+
+
+
+  function syncTickerInput(){
+    const ta = document.getElementById("tickerModalTextarea");
+    if (!ta) return;
+    ta.value = TICKER_LINES.join(" • ");
   }
 
-  /* ===== Boot ===== */
-  restore();
-  render();
+function setTickerLines(lines){
+  TICKER_LINES = Array.isArray(lines) && lines.length ? lines : DEFAULT_TICKER_LINES.slice();
+  saveTickerLines(TICKER_LINES);
+  updateTickerMarquee();
+  syncTickerInput();
+}
+
+function openTickerEditor(){
+  const modal = document.getElementById("tickerModal");
+  if (!modal) return;
+  syncTickerInput();
+  syncTickerSpeedUI();
+  modal.classList.add("open");
+}
+
+  function closeTickerEditor(){
+    const modal = document.getElementById("tickerModal");
+    if (!modal) return;
+    modal.classList.remove("open");
+  }
+
+function applyTickerFromModal(){
+  const raw = (document.getElementById("tickerModalTextarea")?.value || "").trim();
+  const slider = document.getElementById("tickerSpeedSlider");
+  const speed = parseInt(slider?.value || String(DEFAULT_TICKER_SPEED), 10);
+
+  const parts = raw.includes("•")
+    ? raw.split("•").map(s => s.trim()).filter(Boolean)
+    : [raw].filter(Boolean);
+
+  setTickerLines(parts.length ? parts : DEFAULT_TICKER_LINES.slice());
+  saveTickerSpeed(speed);
+  updateTickerMarquee();
+  syncTickerSpeedUI();
+  closeTickerEditor();
+}
+  function loadTitleOverride(){
+    return String(localStorage.getItem(LS.TITLE) || "").trim();
+  }
+  function saveTitleOverride(t){
+    localStorage.setItem(LS.TITLE, String(t || "").trim());
+  }
+
+/* ===== PROMO ROTATOR ===== */
+
+const DEFAULT_PROMOS = [
+  "visit us online 👉 MIDWESTBREAK.COM",
+  "Use Promo code: 'MONKEY'",
+  "Subscribe on YouTube @MIDWESTBREAK"
+];
+
+function loadPromos(){
+  try{
+    const raw = localStorage.getItem(LS.PROMOS);
+    if(!raw) return DEFAULT_PROMOS.slice();
+    const arr = JSON.parse(raw);
+    if(Array.isArray(arr) && arr.length) return arr;
+  }catch(_){}
+  return DEFAULT_PROMOS.slice();
+}
+
+function savePromos(arr){
+  localStorage.setItem(LS.PROMOS, JSON.stringify(arr));
+}
+
+let PROMO_LINES = loadPromos();
+let promoIndex = 0;
+
+const DEFAULT_PROMO_SPEED = 5;
+function loadPromoSpeed(){
+  const v = parseInt(localStorage.getItem(LS.PROMO_SPEED) || "", 10);
+  return (Number.isFinite(v) && v >= 3 && v <= 120) ? v : DEFAULT_PROMO_SPEED;
+}
+function savePromoSpeed(v){ localStorage.setItem(LS.PROMO_SPEED, String(v)); }
+
+let promoSpeedSec = loadPromoSpeed();
+let promoTimer = null;
+function startPromoTimer(){
+  if (promoTimer) clearInterval(promoTimer);
+  promoTimer = setInterval(rotatePromo, promoSpeedSec * 1000);
+}
+
+function rotatePromo(){
+  const el = document.getElementById("promoText");
+  if(!el) return;
+
+  promoIndex++;
+  if(promoIndex >= PROMO_LINES.length) promoIndex = 0;
+
+  el.style.opacity = 0;
+
+  setTimeout(()=>{
+    el.textContent = PROMO_LINES[promoIndex];
+    el.style.opacity = 1;
+  },300);
+}
+
+startPromoTimer();
+
+  let TITLE_OVERRIDE = loadTitleOverride();
+
+function setHeader(){
+  const b = breakTypes[currentBreakType];
+  let base = `${b.name} BOX BREAK`;
+
+
+  const title = TITLE_OVERRIDE ? TITLE_OVERRIDE : base;
+  const el = document.getElementById("headerText");
+  if (el) el.textContent = title;   // header title removed 07-17; guard kept for safety
+}
+
+  function openTitleEditor(){
+    const modal = document.getElementById("titleModal");
+    const input = document.getElementById("titleModalInput");
+    if (!modal || !input) return;
+
+    input.value = TITLE_OVERRIDE || document.getElementById("headerText")?.textContent || "";
+    modal.classList.add("open");
+    setTimeout(() => input.focus(), 0);
+  }
+
+  function closeTitleEditor(){
+    const modal = document.getElementById("titleModal");
+    if (!modal) return;
+    modal.classList.remove("open");
+  }
+
+  function applyTitleFromModal(){
+    const raw = String(document.getElementById("titleModalInput")?.value || "").trim();
+    TITLE_OVERRIDE = raw;
+    saveTitleOverride(TITLE_OVERRIDE);
+    setHeader();
+    closeTitleEditor();
+  }
+
+function openPromoEditor(){
+  const modal = document.getElementById("promoModal");
+  const ta = document.getElementById("promoModalTextarea");
+  if(!modal || !ta) return;
+
+  ta.value = PROMO_LINES.join("\n");
+  const speedInput = document.getElementById("promoIntervalInput");
+  if (speedInput) speedInput.value = String(promoSpeedSec);
+  modal.classList.add("open");
+}
+
+function closePromoEditor(){
+  document.getElementById("promoModal").classList.remove("open");
+}
+
+function applyPromoFromModal(){
+  const raw = document.getElementById("promoModalTextarea").value;
+
+  const lines = raw
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  PROMO_LINES = lines.length ? lines : DEFAULT_PROMOS.slice();
+  savePromos(PROMO_LINES);
+
+  const speedInput = document.getElementById("promoIntervalInput");
+  if (speedInput){
+    const v = parseInt(speedInput.value, 10);
+    if (Number.isFinite(v) && v >= 3 && v <= 120){
+      promoSpeedSec = v;
+      savePromoSpeed(v);
+    }
+  }
+
+  promoIndex = -1;
+  rotatePromo();
   startPromoTimer();
-  connectSSE();
+
+  closePromoEditor();
+}
+
+
+  function loadBreakNumber(){
+    const raw = localStorage.getItem(LS.BREAK);
+    const n = parseInt(raw || "1", 10);
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  }
+
+
+  function saveBreakNumber(n){ localStorage.setItem(LS.BREAK, String(n)); }
+
+function setBreakNumber(n){
+  const safe = Number.isFinite(n) && n > 0 ? n : 1;
+  document.getElementById("breakNumberDisplay").textContent = String(safe);
+  saveBreakNumber(safe);
+
+  const bi = document.getElementById("breakModalInput");
+  if (bi) bi.value = String(safe);
+
+ 
+  if (document.getElementById("teamsWrapper")){
+    buildLayout();
+  }
+}
+  function openBreakEditor(){
+    const modal = document.getElementById("breakModal");
+    const input = document.getElementById("breakModalInput");
+    if (!modal || !input) return;
+
+    input.value = String(loadBreakNumber());
+    modal.classList.add("open");
+    setTimeout(() => input.focus(), 0);
+  }
+
+  function closeBreakEditor(){
+    const modal = document.getElementById("breakModal");
+    if (!modal) return;
+    modal.classList.remove("open");
+  }
+
+  function applyBreakFromModal(){
+    const raw = String(document.getElementById("breakModalInput")?.value || "").trim();
+    const n = parseInt(raw, 10);
+    setBreakNumber(Number.isFinite(n) && n > 0 ? n : 1);
+    closeBreakEditor();
+  }
+
+  function incrementBreak(){
+    setBreakNumber(loadBreakNumber() + 1);
+  }
+
+  // ✅ +1 button inside popup also updates the input box immediately
+  function incrementBreakFromModal(){
+    incrementBreak();
+    const bi = document.getElementById("breakModalInput");
+    if (bi) bi.value = String(loadBreakNumber());
+  }
+
+  function computeBreakId(){
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    const sport = String(currentBreakType || 'nfl').toLowerCase();
+    const n = loadBreakNumber();
+    return `${yyyy}-${mm}-${dd}-${sport}-${n}`;
+  }
+
+  // ===== Per-team sizing (per sport) =====
+  // Stored as: { nfl:{DAL:{s:1.05,x:0,y:-2}}, nba:{...} }
+  function loadTeamStyleMap(){
+    try{
+      const raw = localStorage.getItem(LS.TEAM_STYLE);
+      const obj = raw ? JSON.parse(raw) : {};
+      return (obj && typeof obj === "object") ? obj : {};
+    }catch(_){
+      return {};
+    }
+  }
+  function saveTeamStyleMap(map){
+    localStorage.setItem(LS.TEAM_STYLE, JSON.stringify(map || {}));
+  }
+  let TEAM_STYLE_MAP = loadTeamStyleMap();
+
+function getStateKey(){
+  return [
+    "terminal-takes",
+    getChannel(),
+    currentBreakType,
+    loadBreakNumber()
+  ].join("|");
+}
+
+function loadAllOverlayState(){
+  try{
+    const raw = localStorage.getItem(LS.STATE);
+    const obj = raw ? JSON.parse(raw) : {};
+    return (obj && typeof obj === "object") ? obj : {};
+  }catch(_){
+    return {};
+  }
+}
+
+function saveAllOverlayState(obj){
+  localStorage.setItem(LS.STATE, JSON.stringify(obj || {}));
+}
+
+function saveOverlayState(){
+  const all = loadAllOverlayState();
+  all[getStateKey()] = {
+    soldTeams: Array.from(soldTeams),
+    soldTeamsList: soldTeamsList.map(x => ({
+      code: String(x.code || "").toUpperCase(),
+      buyer: String(x.buyer || "")
+    })),
+    ts: Date.now()
+  };
+  saveAllOverlayState(all);
+}
+
+function restoreOverlayState(){
+  const all = loadAllOverlayState();
+  const state = all[getStateKey()] || null;
+
+  soldTeams = new Set();
+  soldTeamsList = [];
+
+  if (!state) return;
+
+  const codes = Array.isArray(state.soldTeams) ? state.soldTeams : [];
+  const rows = Array.isArray(state.soldTeamsList) ? state.soldTeamsList : [];
+
+  codes.forEach(code => {
+    if (code) soldTeams.add(String(code).toUpperCase());
+  });
+
+  soldTeamsList = rows
+    .map(x => ({
+      code: String(x.code || "").toUpperCase(),
+      buyer: String(x.buyer || "")
+    }))
+    .filter(x => x.code);
+}
+
+function clearOverlayState(){
+  const all = loadAllOverlayState();
+  delete all[getStateKey()];
+  saveAllOverlayState(all);
+}
+
+
+
+  // Call this from console if needed:
+  // setTeamStyle('nfl','DAL',{s:1.08,x:0,y:-2});
+  window.setTeamStyle = function(sport, code, style){
+    sport = String(sport||'').toLowerCase();
+    code = String(code||'').toUpperCase();
+    if (!sport || !code) return;
+    if (!TEAM_STYLE_MAP[sport]) TEAM_STYLE_MAP[sport] = {};
+    TEAM_STYLE_MAP[sport][code] = {
+      s: Number(style?.s ?? 1),
+      x: Number(style?.x ?? 0),
+      y: Number(style?.y ?? 0)
+    };
+    saveTeamStyleMap(TEAM_STYLE_MAP);
+    applyTeamStyleToTile(sport, code);
+  };
+
+  window.clearTeamStyle = function(sport, code){
+    sport = String(sport||'').toLowerCase();
+    code = String(code||'').toUpperCase();
+    if (!TEAM_STYLE_MAP[sport]) return;
+    delete TEAM_STYLE_MAP[sport][code];
+    saveTeamStyleMap(TEAM_STYLE_MAP);
+    applyTeamStyleToTile(sport, code);
+  };
+
+  function getTeamStyle(sport, code){
+    sport = String(sport||'').toLowerCase();
+    code = String(code||'').toUpperCase();
+    const st = TEAM_STYLE_MAP?.[sport]?.[code];
+    if (!st) return { s:1, x:0, y:0 };
+    return {
+      s: Number(st.s ?? 1),
+      x: Number(st.x ?? 0),
+      y: Number(st.y ?? 0)
+    };
+  }
+
+  function applyTeamStyleToTile(sport, code){
+    if (sport !== currentBreakType) return;
+    const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+    if (!tile) return;
+    const img = tile.querySelector("img");
+    if (!img) return;
+
+    const st = getTeamStyle(sport, code);
+    img.style.transform = `translate(${st.x}px, ${st.y}px) scale(${st.s})`;
+  }
+
+  function applyAllTeamStylesForSport(sport){
+    const teams = breakTypes[sport]?.teams || [];
+    teams.forEach(t => applyTeamStyleToTile(sport, t.code));
+  }
+
+  // ===== Sport configs =====
+  const breakTypes = {
+    nfl: {
+      name: "NFL",
+      cols: 10,
+      layout: "NFL_32",
+      teams: [
+        { code:'ARI', name:'cardinals', image: imgPathNFL('cardinals.png') },
+        { code:'ATL', name:'falcons', image: imgPathNFL('falcons.png') },
+        { code:'BAL', name:'ravens', image: imgPathNFL('ravens.png') },
+        { code:'BUF', name:'bills', image: imgPathNFL('bills.png') },
+        { code:'CAR', name:'panthers', image: imgPathNFL('panthers.png') },
+        { code:'CHI', name:'bears', image: imgPathNFL('bears.png') },
+        { code:'CIN', name:'bengals', image: imgPathNFL('bengals.png') },
+        { code:'CLE', name:'browns', image: imgPathNFL('browns.png') },
+        { code:'DAL', name:'cowboys', image: imgPathNFL('cowboys.png') },
+        { code:'DEN', name:'broncos', image: imgPathNFL('broncos.png') },
+        { code:'DET', name:'lions', image: imgPathNFL('lions.png') },
+        { code:'GB',  name:'packers', image: imgPathNFL('packers.png') },
+        { code:'HOU', name:'texans', image: imgPathNFL('texans.png') },
+        { code:'IND', name:'colts', image: imgPathNFL('colts.png') },
+        { code:'JAX', name:'jaguars', image: imgPathNFL('jaguars.png') },
+        { code:'KC',  name:'chiefs', image: imgPathNFL('chiefs.png') },
+        { code:'LV',  name:'raiders', image: imgPathNFL('raiders.png') },
+        { code:'LAC', name:'chargers', image: imgPathNFL('chargers.png') },
+        { code:'LAR', name:'rams', image: imgPathNFL('rams.png') },
+        { code:'MIA', name:'dolphins', image: imgPathNFL('dolphins.png') },
+        { code:'MIN', name:'vikings', image: imgPathNFL('vikings.png') },
+        { code:'NE',  name:'patriots', image: imgPathNFL('patriots.png') },
+        { code:'NO',  name:'saints', image: imgPathNFL('saints.png') },
+        { code:'NYG', name:'giants', image: imgPathNFL('giants.png') },
+        { code:'NYJ', name:'jets', image: imgPathNFL('jets.png') },
+        { code:'PHI', name:'eagles', image: imgPathNFL('eagles.png') },
+        { code:'PIT', name:'steelers', image: imgPathNFL('steelers.png') },
+        { code:'SF',  name:'49ers', image: imgPathNFL('49ers.png') },
+        { code:'SEA', name:'seahawks', image: imgPathNFL('seahawks.png') },
+        { code:'TB',  name:'buccaneers', image: imgPathNFL('buccaneers.png') },
+        { code:'TEN', name:'titans', image: imgPathNFL('titans.png') },
+        { code:'WAS', name:'commanders', image: imgPathNFL('commanders.png') }
+      ]
+    },
+  };
+
+  let currentBreakType = "nfl";
+  let soldTeams = new Set();
+  let soldTeamsList = [];
+
+  function applyTileSizing(){
+    document.documentElement.style.setProperty("--tileH", "var(--tileHTeam)");
+  }
+
+  function makeTeamDiv(team){
+    const d = document.createElement("div");
+    d.className = "team";
+    d.dataset.teamCode = String(team.code || "");
+    d.onclick = () => toggleTeam(team.code);
+
+    if (team.image){
+      const img = document.createElement("img");
+      img.src = team.image;
+      img.alt = team.name || team.code || "";
+
+      if (currentBreakType === "nfl") img.classList.add("nfl-small");
+
+      img.onerror = () => { d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`; };
+      d.appendChild(img);
+    } else {
+      d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
+    }
+
+    if (soldTeams.has(team.code)) d.classList.add("sold");
+
+    // ✅ apply per-team style once tile exists
+    setTimeout(() => applyTeamStyleToTile(currentBreakType, team.code), 0);
+
+    return d;
+  }
+
+  function makeLogoSlot(spanCols=null){
+    const slot = document.createElement("div");
+    slot.className = "logo-slot";
+    if (spanCols != null) slot.style.gridColumn = `span ${spanCols}`;
+
+    const img = document.createElement("img");
+    img.src = LOGO_PRIMARY;
+    img.alt = "MidWestBreak Logo";
+    slot.appendChild(img);
+    return slot;
+  }
+
+function makeTickerSlot(spanCols){
+  const slot = document.createElement("div");
+  slot.className = "ticker-slot";
+  slot.style.gridColumn = `span ${spanCols}`;
+
+  const track = document.createElement("div");
+  track.className = "ticker-track";
+
+  for (let i = 0; i < 2; i++) {
+    const copy = document.createElement("span");
+    copy.className = "ticker-copy";
+    track.appendChild(copy);
+  }
+
+  slot.appendChild(track);
+  return slot;
+}
+  // MISC spot toggle — adds/removes one catch-all MISC tile below the board (Boman-style
+  // all-sports-for-a-city spot). Clickable like a team, so the recent buyer gets assigned on
+  // manual click (no randomizer). Toggle button in the controls row. (Mike 07-16)
+  const MISC_TEAM = { code: "MISC", name: "MISC SPOT", image: "" };
+  let miscEnabled = false;
+  try { miscEnabled = localStorage.getItem("terminal-takes.miscEnabled") === "1"; } catch(_){}
+
+  function syncMiscBtn(){
+    const b = document.getElementById("miscToggleBtn");
+    if (b) b.textContent = miscEnabled ? "➖ MISC" : "➕ MISC";
+  }
+  function toggleMisc(){
+    miscEnabled = !miscEnabled;
+    if (!miscEnabled){
+      soldTeams.delete("MISC");
+      const i = soldTeamsList.findIndex(e => e.code === "MISC");
+      if (i !== -1) soldTeamsList.splice(i, 1);
+      updateSoldList();
+    }
+    try { localStorage.setItem("terminal-takes.miscEnabled", miscEnabled ? "1" : "0"); } catch(_){}
+    syncMiscBtn();
+    buildLayout();
+    updateStats();
+    updateSoldList();
+  }
+
+  function buildLayout(){
+    const wrap = document.getElementById("teamsWrapper");
+    wrap.innerHTML = "";
+
+
+    const config = breakTypes[currentBreakType];
+    document.documentElement.style.setProperty("--cols", String(config.cols));
+    applyTileSizing();
+
+ 
+
+    const teams = config.teams;
+    restoreOverlayState();
+
+
+    if (config.layout === "NBA_MLB_30"){
+      let idx = 0;
+
+const r1 = document.createElement("div");
+r1.className = "row-grid row-logo";
+      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      r1.appendChild(makeLogoSlot(2));
+      for (let i=0;i<3;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r1);
+
+      for (let r=0;r<3;r++){
+        const row = document.createElement("div");
+        row.className = "row-grid";
+        for (let i=0;i<8;i++) row.appendChild(makeTeamDiv(teams[idx++]));
+        wrap.appendChild(row);
+      }
+
+      const r5 = document.createElement("div");
+      r5.className = "row-grid";
+      r5.appendChild(makeTickerSlot(8));
+      wrap.appendChild(r5);
+    }
+
+
+    if (config.layout === "NFL_32"){
+      let idx = 0;
+
+     const r1 = document.createElement("div");
+r1.className = "row-grid row-logo";
+      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      r1.appendChild(makeLogoSlot(2));
+      for (let i=0;i<4;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r1);
+
+      const r2 = document.createElement("div");
+      r2.className = "row-grid";
+      for (let i=0;i<10;i++) r2.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r2);
+
+      const r3 = document.createElement("div");
+      r3.className = "row-grid";
+      for (let i=0;i<10;i++) r3.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r3);
+
+      const r4 = document.createElement("div");
+      r4.className = "row-grid";
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      r4.appendChild(makeTickerSlot(6));
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      r4.appendChild(makeTeamDiv(teams[idx++]));
+      wrap.appendChild(r4);
+    }
+
+    // MISC spot (toggle) — team-sized tile in the header-left (where the title was).
+    // Full sold flow (buyer row + animation + counts as one spot).
+    const mount = document.getElementById("miscHeaderSlot");
+    if (mount){
+      mount.innerHTML = "";
+      if (miscEnabled){
+        const m = document.createElement("div");
+        m.className = "misc-spot team" + (soldTeams.has("MISC") ? " sold" : "");
+        m.id = "miscSpot";
+        m.dataset.teamCode = "MISC";
+        m.textContent = "MISC.";
+        m.title = "Click to mark MISC sold/unsold";
+        m.addEventListener("click", () => toggleTeam("MISC"));
+        mount.appendChild(m);
+      }
+    }
+    syncMiscBtn();
+
+    setHeader();
+    refreshTickerText();
+    updateStats();
+    updateSoldList();
+
+    // ✅ ensure all team styles re-apply after build
+    applyAllTeamStylesForSport(currentBreakType);
+  }
+
+  function toggleTeam(code, buyerFromSSE=""){
+    const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+    if (!tile) return;
+
+    const listIndex = soldTeamsList.findIndex(e => e.code === code);
+
+    if (soldTeams.has(code)){
+      soldTeams.delete(code);
+      tile.classList.remove("sold");
+      if (listIndex !== -1) soldTeamsList.splice(listIndex, 1);
+    } else {
+      soldTeams.add(code);
+      tile.classList.add("sold");
+      tile.classList.add("flash");
+      setTimeout(()=>tile.classList.remove("flash"), 280);
+
+      if (listIndex === -1) soldTeamsList.push({ code, buyer: buyerFromSSE || "" });
+
+      playSoldAnimation(code);
+    }
+
+    updateStats();
+    updateSoldList();
+    saveOverlayState();
+  }
+
+function updateStats(){
+  const currentTeams = breakTypes[currentBreakType].teams;
+
+  const total = currentTeams.length + (miscEnabled ? 1 : 0);
+  const sold = soldTeams.size;   // includes MISC when sold
+  const left = total - sold;
+
+  const a = document.getElementById("teamsLeft");
+  const b = document.getElementById("teamsSold");
+  if (a) a.textContent = String(left);
+  if (b) b.textContent = String(sold);
+}
+
+  function updateSoldList(){
+    const soldListDiv = document.getElementById("soldList");
+    soldListDiv.innerHTML = "";
+    const currentTeams = breakTypes[currentBreakType].teams;
+
+soldTeamsList.forEach(entry => {
+  const team = currentTeams.find(t => t.code === entry.code)
+            || (entry.code === "MISC" ? MISC_TEAM : null);
+  if (!team) return;
+
+      const row = document.createElement("div");
+      row.className = "sold-row";
+
+if (team.image){
+  const img = document.createElement("img");
+  img.src = team.image;
+  img.className = "sold-team-img";
+  row.appendChild(img);
+} else {
+  const spacer = document.createElement("div");
+  spacer.className = "sold-team-img";
+  spacer.style.display = "flex";
+  spacer.style.alignItems = "center";
+  spacer.style.justifyContent = "center";
+  spacer.style.color = "#fff";
+  spacer.style.fontSize = "10px";
+  spacer.textContent = "#";
+  row.appendChild(spacer);
+}
+
+     
+
+      const input = document.createElement("input");
+      input.className = "sold-buyer-input";
+      input.type = "text";
+      input.placeholder = "Buyer";
+      input.value = entry.buyer || "";
+     input.oninput = (e) => {
+  entry.buyer = e.target.value;
+  saveOverlayState();
+};
+      row.appendChild(input);
+
+      soldListDiv.appendChild(row);
+    });
+  }
+
+function resetAll(){
+  soldTeams.clear();
+  soldTeamsList = [];
+  lastCodeBySaleId.clear();
+  clearOverlayState();
+  SCORE_LINES = [];
+  const _m = document.getElementById("miscSpot"); if (_m) _m.classList.remove("sold");
+  document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
+  updateStats();
+  updateSoldList();
+  refreshTickerText();
+}
+  function newBreak(){
+    resetAll();
+    incrementBreak();
+  }
+
+ const SPORT_ORDER = ["nfl"]; // football only (Mike 07-17)
+
+  function cycleSport(){
+    const idx = SPORT_ORDER.indexOf(currentBreakType);
+    currentBreakType = SPORT_ORDER[(idx + 1) % SPORT_ORDER.length];
+    buildLayout();
+  }
+
+ function setSport(type){
+  if (!breakTypes[type]) return;
+  currentBreakType = type;
+  buildLayout();
+}
+
+  function cssEscape(s){
+    return String(s || '').replace(/"/g,'\\"');
+  }
+
+  function norm(s){
+    return String(s || '')
+      .toLowerCase()
+      .replace(/&/g,'and')
+      .replace(/[^a-z0-9]+/g,' ')
+      .trim();
+  }
+function inferCodeFromTitle(title, sportHint){
+  const rawTitle = String(title || "").trim();
+  const t = norm(rawTitle);
+  if (!t) return null;
+
+  // MISC spot: a Whatnot listing titled "misc"/"miscellaneous"/"misc spot" maps to the MISC tile,
+  // but only when the seller has the MISC spot toggled on.
+  if (miscEnabled && /(^| )misc( |$)|miscellaneous/.test(t)) return "MISC";
+
+
+
+  if (sportHint && breakTypes[sportHint]){
+    const list = breakTypes[sportHint].teams || [];
+    for (const tm of list){
+      const code = String(tm.code || '').toUpperCase().trim();
+      if (!code) continue;
+      if (t.includes(norm(code))) return code;
+      if (tm.name && t.includes(norm(tm.name))) return code;
+    }
+  }
+
+  for (const k of Object.keys(breakTypes)){
+    const list = breakTypes[k].teams || [];
+    for (const tm of list){
+      const code = String(tm.code || '').toUpperCase().trim();
+      if (!code) continue;
+      if (t.includes(norm(code))) return code;
+      if (tm.name && t.includes(norm(tm.name))) return code;
+    }
+  }
+
+  const tokens = t.toUpperCase().split(/\s+/).filter(Boolean);
+  for (const tok of tokens){
+    if (tok.length < 2 || tok.length > 4) continue;
+    for (const k of Object.keys(breakTypes)){
+      const list = breakTypes[k].teams || [];
+      for (const tm of list){
+        const code = String(tm.code || '').toUpperCase().trim();
+        if (tok === code) return code;
+      }
+    }
+  }
+
+  return null;
+}const BRIDGE_URL = (() => {
+  const q = new URLSearchParams(location.search).get("bridge");
+  if (q) {
+    const cleaned = q.replace(/\/$/, "");
+    localStorage.setItem(LS.BRIDGE, cleaned);
+    return cleaned;
+  }
+  const saved = localStorage.getItem(LS.BRIDGE) || localStorage.getItem(LS.URL_LEGACY);
+  return saved ? saved.replace(/\/$/, "") : "";
 })();
+
+const BRIDGE_KEY = (() => {
+  const q = new URLSearchParams(location.search).get("key");
+  if (q) {
+    localStorage.setItem(LS.KEY, q);
+    return q;
+  }
+  return localStorage.getItem(LS.KEY) || localStorage.getItem(LS.KEY_LEGACY) || "eab06372-4b01-4570-8b15-a5daac7486b7";
+})();
+function automationEnabled(){
+  return !!BRIDGE_URL;
+}
+
+function normalizeBridge(u){
+  return String(u || "")
+    .trim()
+    .replace(/\/$/, "")
+    .replace(/\/(events|stream)(\/.*)?$/, "");
+}
+
+function setSSEStatus(state, msg){
+  const wrap = document.getElementById("sseStatus");
+  const text = document.getElementById("sseText");
+  if (!wrap || !text) return;
+
+
+  wrap.classList.remove("ok", "error", "🔃");
+  if (state === "ok") wrap.classList.add("ok");
+  if (state === "error") wrap.classList.add("error");
+  if (state === "🔃") wrap.classList.add("🔃");
+
+  text.textContent = msg || state || "off";
+}
+
+function getCodeFromPayload(data){
+  return String(data?.code || data?.teamCode || data?.team || "").trim().toUpperCase();
+}
+
+function getBuyerFromPayload(data){
+  return String(data?.buyer || data?.buyerName || data?.username || data?.topBuyer || "").trim();
+}
+
+function getSportFromPayload(data){
+  return String(data?.sport || data?.breakType || "").trim().toLowerCase();
+}
+
+function extractScoreLines(data){
+  if (!data || typeof data !== "object") return [];
+
+  const payload =
+    (data.data && typeof data.data === "object")
+      ? data.data
+      : data;
+
+  if (typeof payload.text === "string" && payload.text.trim()) {
+    return [payload.text.trim()];
+  }
+
+  if (Array.isArray(payload.lines) && payload.lines.length) {
+    return payload.lines
+      .map(x => String(x || "").trim())
+      .filter(Boolean);
+  }
+
+  const games = Array.isArray(payload.games) ? payload.games : [];
+  if (!games.length) return [];
+
+  const league = String(payload.sport || payload.league || "").toUpperCase().trim();
+
+  return games.slice(0, 4).map(g => {
+    // Bridge sends each game as { status, teams:[{name,score,home}] }; tolerate flat shapes too. (Mike 07-16)
+    const at = Array.isArray(g.teams) ? (g.teams.find(t => !t.home) || g.teams[0] || {}) : null;
+    const ht = Array.isArray(g.teams) ? (g.teams.find(t =>  t.home) || g.teams[1] || {}) : null;
+    const away = String((at && at.name) || g.away || g.a || "AWAY").trim();
+    const home = String((ht && ht.name) || g.home || g.h || "HOME").trim();
+    const awayScore = (at && at.score != null) ? at.score : (g.awayScore ?? g.as ?? "");
+    const homeScore = (ht && ht.score != null) ? ht.score : (g.homeScore ?? g.hs ?? "");
+    const status = String(g.status || "").trim();
+
+    const core =
+      (String(awayScore) !== "" || String(homeScore) !== "")
+        ? `${away} ${awayScore}-${homeScore} ${home}`
+        : `${away} vs ${home}`;
+
+    return league
+      ? `${league}: ${core}${status ? ` (${status})` : ""}`
+      : `${core}${status ? ` (${status})` : ""}`;
+  }).filter(Boolean);
+}
+
+function handleSportsEvent(data){
+  if (!data || typeof data !== "object") return;
+
+  const payload =
+    (data.data && typeof data.data === "object")
+      ? data.data
+      : data;
+
+  const type = String(
+  payload.type ||
+  data.type ||
+  payload.event ||
+  data.event ||
+  data.__eventType ||
+  ""
+).toLowerCase();
+  if (type !== "scores" && type !== "scores_update") return;
+
+  const lines = extractScoreLines(payload);
+  setScoreLines(lines);
+}
+
+let sse = null;
+let sseScores = null;
+
+// saleId / id / listingId -> last assigned team code
+// used for safe reassignment / respins
+const lastCodeBySaleId = new Map();
+
+function getChannel(){
+  return new URLSearchParams(location.search).get("channel") || "main";
+}
+
+
+
+function connectSSE(base){
+  if (sse) { try { sse.close(); } catch(_){} }
+  setSSEStatus('🔃','🔃');
+
+  try{
+    const channel = getChannel();
+    const url = `${base}/stream?channel=${encodeURIComponent(channel)}${BRIDGE_KEY ? `&key=${encodeURIComponent(BRIDGE_KEY)}` : ""}`;
+
+    sse = new EventSource(url);
+
+    const ingest = (e) => {
+      try{
+        const data = JSON.parse(e.data);
+        const merged = { ...data, __eventType: e.type || "" };
+        if (String(merged?.type || merged?.__eventType || "").toLowerCase() === "hello") return;
+        handleSSEEvent(merged);
+      }catch(err){
+        console.warn("[SSE parse error]", err, e?.data);
+      }
+    };
+
+    sse.onopen = () => {
+      setSSEStatus('ok','ok');
+      warmupPing();
+    };
+
+    sse.onmessage = ingest;
+
+    [
+      "team_sold",
+      "team_unsold",
+      "buyer",
+      "buyer_update",
+      "reset",
+      "set_break",
+      "set_sport",
+      "set_ticker",
+      "set_title",
+      "stream_stats",
+      "sale",
+      "sold",
+      "purchase",
+      "whatnot_purchase"
+    ].forEach(t => {
+      try { sse.addEventListener(t, ingest); } catch(_) {}
+    });
+
+    sse.onerror = () => {
+      setSSEStatus('error','reconnecting');
+      try { sse.close(); } catch(_) {}
+      sse = null;
+      setTimeout(() => connectSSE(base), 2500);
+    };
+  }catch(_){
+    setSSEStatus('error','failed');
+  }
+}
+
+function connectScoresSSE(base){
+  if (sseScores) { try { sseScores.close(); } catch(_){} }
+
+  try{
+    const url = `${base}/stream?channel=sports${BRIDGE_KEY ? `&key=${encodeURIComponent(BRIDGE_KEY)}` : ""}`;
+    sseScores = new EventSource(url);
+
+    const ingest = (e) => {
+      try{
+        const data = JSON.parse(e.data);
+        const merged = { ...data, __eventType: e.type || "" };
+        if (String(merged?.type || merged?.__eventType || "").toLowerCase() === "hello") return;
+        handleSportsEvent(merged);
+      }catch(_){}
+    };
+
+    sseScores.onmessage = ingest;
+    try { sseScores.addEventListener("scores", ingest); } catch(_) {}
+
+    sseScores.onerror = () => {
+      try { sseScores.close(); } catch(_) {}
+      sseScores = null;
+      setTimeout(() => connectScoresSSE(base), 2500);
+    };
+  }catch(_){}
+}
+
+function startSSE(){
+  if (!automationEnabled()){
+    setSSEStatus('error','missing bridge');
+    return;
+  }
+
+  const base = normalizeBridge(BRIDGE_URL);
+
+  connectSSE(base);
+  connectScoresSSE(base);
+}
+
+  async function warmupPing(){
+    if (!automationEnabled()) return;
+    const base = normalizeBridge(BRIDGE_URL);
+
+    try{
+      await fetch(`${base}/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(BRIDGE_KEY ? { 'x-bridge-key': BRIDGE_KEY } : {})
+        },
+       body: JSON.stringify({
+  type: 'overlay_warmup',
+  overlayId: 'terminal-takes-overlay',
+  channel: getChannel(),
+  breakId: computeBreakId(),
+  sport: currentBreakType,
+  ts: Date.now()
+})
+      });
+    }catch(_){}
+  }
+
+function breakIdMatches(v){
+  if (v == null || v === "") return true;   // untagged events always pass
+  const sv = String(v).trim();
+  return sv === computeBreakId() || sv === String(loadBreakNumber());
+}
+
+function handleSSEEvent(data){
+  if (!data || typeof data !== "object") return;
+
+  const payload =
+    (data.data && typeof data.data === "object")
+      ? data.data
+      : data;
+
+  const type = String(
+    payload.type ||
+    data.type ||
+    payload.event ||
+    data.event ||
+    data.__eventType ||
+    ""
+  ).toLowerCase();
+
+  // TSU standard: drop events tagged for a different break
+  if (!breakIdMatches(payload && (payload.breakId ?? payload.break_id))) return;
+
+  if (!type || type === "hello") return;
+
+  if (type === "reset"){
+    resetAll();
+    return;
+  }
+
+  if (type === "set_break"){
+    const n = parseInt(String(payload.breakNumber ?? payload.value ?? ""), 10);
+    if (Number.isFinite(n) && n > 0) setBreakNumber(n);
+    return;
+  }
+
+  if (type === "set_sport"){
+    const sport = String(payload.sport || payload.breakType || payload.value || "").toLowerCase().trim();
+    if (sport && breakTypes[sport]) setSport(sport);
+    return;
+  }
+
+  if (type === "set_title"){
+    const raw = String(payload.title || payload.titleText || payload.value || "").trim();
+    TITLE_OVERRIDE = raw;
+    saveTitleOverride(TITLE_OVERRIDE);
+    setHeader();
+    return;
+  }
+
+  if (type === "set_ticker"){
+    if (Array.isArray(payload.lines)) {
+      setTickerLines(payload.lines.map(x => String(x)));
+    } else if (typeof payload.text === "string") {
+      const parts = payload.text.split("•").map(s => s.trim()).filter(Boolean);
+      if (parts.length) setTickerLines(parts);
+    }
+    return;
+  }
+
+  if (type === "buyer" || type === "buyer_update"){
+    const code = getCodeFromPayload(payload);
+    const buyer = getBuyerFromPayload(payload);
+    if (code) sseUpdateBuyer(code, buyer);
+    return;
+  }
+
+  // ---------- TEAM UNSOLD ----------
+  if (type === "team_unsold"){
+    const saleKey = String(
+      payload.saleId ||
+      payload.id ||
+      payload.listingId ||
+      payload.transactionId ||
+      payload.orderId ||
+      payload.purchaseId ||
+      ""
+    ).trim();
+
+    let code = getCodeFromPayload(payload);
+
+
+    if (!code && saleKey){
+      code = lastCodeBySaleId.get(saleKey) || "";
+    }
+
+    if (!code){
+      const unsoldSport = getSportFromPayload(payload) || currentBreakType;
+      code = inferCodeFromTitle(
+        payload.title || payload.itemTitle || payload.listingTitle || "",
+        unsoldSport
+      ) || "";
+    }
+
+    if (code) sseMarkUnsold(code);
+
+    if (saleKey){
+      const cur = lastCodeBySaleId.get(saleKey);
+      if (!cur || cur === code){
+        lastCodeBySaleId.delete(saleKey);
+      }
+    }
+    return;
+  }
+
+  // ---------- TEAM SOLD / SALE / PURCHASE ----------
+  if (
+    type === "team_sold" ||
+    type === "sale" ||
+    type === "sold" ||
+    type === "purchase" ||
+    type === "whatnot_purchase"
+  ){
+    let sport = getSportFromPayload(payload) || currentBreakType;
+    const buyer = getBuyerFromPayload(payload);
+
+    let code = getCodeFromPayload(payload);
+    if (!code){
+      code = inferCodeFromTitle(
+        payload.title || payload.itemTitle || payload.listingTitle || "",
+        sport || currentBreakType
+      );
+    }
+    if (!code) return;
+
+    // if payload explicitly says another supported sport, switch board
+    if (sport && breakTypes[sport] && sport !== currentBreakType){
+      currentBreakType = sport;
+      buildLayout();
+    }
+
+    // IMPORTANT:
+    // saleId first, then id, then listingId
+    // do NOT use productId
+    const saleKey = String(
+      payload.saleId ||
+      payload.id ||
+      payload.listingId ||
+      payload.transactionId ||
+      payload.orderId ||
+      payload.purchaseId ||
+      ""
+    ).trim();
+
+    if (saleKey){
+      const prevCode = lastCodeBySaleId.get(saleKey);
+
+      // same purchase key reassigned to a new team -> unsell old, sell new
+      if (prevCode && prevCode !== code){
+        sseMarkUnsold(prevCode);
+      }
+
+      lastCodeBySaleId.set(saleKey, code);
+    }
+
+    sseMarkSold(code, buyer);
+    return;
+  }
+
+  if (type === "stream_stats"){
+    return;
+  }
+}
+
+let soldControlsVisible = true;
+function toggleSoldPanel(){
+  const controls = document.querySelector(".sold-controls");
+  if (!controls) return;
+  soldControlsVisible = !soldControlsVisible;
+  controls.style.display = soldControlsVisible ? "" : "none";
+}
+
+function sseMarkSold(code, buyer=""){
+  if (!code) return;
+
+  const currentTeams = breakTypes[currentBreakType].teams;
+
+  const exists = currentTeams.some(t => t.code === code) || (code === "MISC" && miscEnabled);
+  if (!exists) return;
+
+  if (!soldTeams.has(code)){
+    soldTeams.add(code);
+    soldTeamsList.push({ code, buyer });
+
+    playSoldAnimation(code);
+
+    const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+    if (tile){
+      tile.classList.add("sold");
+    }
+
+    updateStats();
+    updateSoldList();
+    saveOverlayState();
+  } else {
+    const entry = soldTeamsList.find(t => t.code === code);
+    if (entry && buyer) entry.buyer = buyer;
+    if (!entry) soldTeamsList.push({ code, buyer });
+
+    updateSoldList();
+    saveOverlayState();
+  }
+}
+
+function playSoldAnimation(code){
+  const team = breakTypes[currentBreakType].teams.find(t => t.code === code)
+            || (code === "MISC" ? MISC_TEAM : null);
+  if (!team) return;
+
+  const fxLayer = document.getElementById("soldFxLayer");
+  const tile = document.querySelector(`[data-team-code="${code}"]`);
+  if (!fxLayer || !tile) return;
+
+  const tileRect = tile.getBoundingClientRect();
+  const layerRect = fxLayer.getBoundingClientRect();
+
+  const cardW = 420;
+  const cardH = 250;
+
+  const startCenterX = (tileRect.left - layerRect.left) + (tileRect.width / 2);
+  const startCenterY = (tileRect.top  - layerRect.top)  + (tileRect.height / 2);
+
+  const startX = startCenterX - (cardW / 2);
+  const startY = startCenterY - (cardH / 2);
+
+  const endX = (layerRect.width / 2) - (cardW / 2);
+  const endY = Math.max(40, (layerRect.height * 0.19));
+
+  const endCenterX = endX + (cardW / 2);
+  const endCenterY = endY + (cardH / 2);
+
+  const midX = startX + ((endX - startX) * 0.48);
+  const midY = startY + ((endY - startY) * 0.48) - 28;
+
+  const dx = endCenterX - startCenterX;
+  const dy = endCenterY - startCenterY;
+  const strikeLen  = Math.max(120, Math.sqrt((dx * dx) + (dy * dy)));
+  const strikeAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+  setTimeout(() => {
+    const strike = document.createElement("div");
+    strike.className = "sold-fx-strike";
+    strike.style.setProperty("--fx-strike-x",     `${startCenterX}px`);
+    strike.style.setProperty("--fx-strike-y",     `${startCenterY - 5}px`);
+    strike.style.setProperty("--fx-strike-len",   `${strikeLen}px`);
+    strike.style.setProperty("--fx-strike-angle", `${strikeAngle}deg`);
+    fxLayer.appendChild(strike);
+
+    const card = document.createElement("div");
+    card.className = "sold-fx-card";
+    card.style.setProperty("--fx-start-x", `${startX}px`);
+    card.style.setProperty("--fx-start-y", `${startY}px`);
+    card.style.setProperty("--fx-mid-x",   `${midX}px`);
+    card.style.setProperty("--fx-mid-y",   `${midY}px`);
+    card.style.setProperty("--fx-end-x",   `${endX}px`);
+    card.style.setProperty("--fx-end-y",   `${endY}px`);
+
+    card.innerHTML = `
+      <div class="sold-fx-spin">
+        <div class="sold-fx-inner">
+          <div class="sold-fx-burst"></div>
+          ${team.image ? `<img class="sold-fx-team-img" src="${team.image}" alt="${team.name || team.code}">` : ""}
+          <div class="sold-fx-stamp">SOLD</div>
+          <div class="sold-fx-name">${team.code}</div>
+        </div>
+      </div>
+    `;
+
+    fxLayer.appendChild(card);
+
+    const img = card.querySelector(".sold-fx-team-img");
+    if (img){ img.onerror = () => img.remove(); }
+
+    requestAnimationFrame(() => {
+      strike.classList.add("play");
+      requestAnimationFrame(() => { card.classList.add("play"); });
+    });
+
+    setTimeout(() => { strike.remove(); card.remove(); }, 2100);
+  }, 80);
+}
+
+function sseMarkUnsold(code){
+  if (!code) return;
+  soldTeams.delete(code);
+  soldTeamsList = soldTeamsList.filter(t => t.code !== code);
+
+  const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
+  if (tile) tile.classList.remove("sold");
+
+  updateStats();
+  updateSoldList();
+  saveOverlayState();
+}
+
+function sseUpdateBuyer(code, buyer){
+  const entry = soldTeamsList.find(t => t.code === code);
+  if (entry) {
+    entry.buyer = buyer || "";
+    updateSoldList();
+    saveOverlayState();
+  }
+}
+
+  function formatExportDate(d = new Date()){
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+function exportSoldListTSV(){
+  const breakNum = String(loadBreakNumber());
+  const dateStr = formatExportDate(new Date());
+  const lines = [];
+  lines.push(["Spot", "Buyer", "Break #", "Date"].join("\t"));
+
+  const currentTeams = breakTypes[currentBreakType].teams;
+
+  soldTeamsList.forEach(e => {
+    if (!e || !e.code) return;
+    const team = currentTeams.find(t => t.code === e.code);
+    const spot = team?.name ? team.name : e.code;
+    const buyer = String(e.buyer || "").trim();
+    lines.push([spot, buyer, breakNum, dateStr].join("\t"));
+  });
+
+  return lines.join("\n");
+}
+
+  async function copySoldListTSV(){
+    const text = exportSoldListTSV();
+
+    try{
+      if (navigator.clipboard && navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(text);
+        flashCopyButton();
+        return;
+      }
+    }catch(_){}
+
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try{
+      document.execCommand("copy");
+      flashCopyButton();
+    }catch(_){
+      console.warn("[Overlay] Copy failed — clipboard permission denied (use a regular browser tab to copy).");
+    }finally{
+      document.body.removeChild(ta);
+    }
+  }
+
+  function flashCopyButton(){
+    const btns = Array.from(document.querySelectorAll("button"))
+     .filter(b => (b.textContent || "").includes("COPY SOLD"));
+    const btn = btns[0];
+    if (!btn) return;
+
+    const old = btn.textContent;
+    btn.textContent = "✅ COPIED!";
+    setTimeout(() => btn.textContent = old, 900);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+ const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
+
+if (qSport && breakTypes[qSport]) {
+  currentBreakType = qSport;
+} else {
+  currentBreakType = "nfl";
+}
+
+
+ 
+setTickerLines(loadTickerLines());
+syncTickerSpeedUI();
+setBreakNumber(loadBreakNumber());
+
+    if (automationEnabled()) startSSE();
+    else setSSEStatus('error','missing bridge');
+
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  closeTickerEditor();
+  closeTitleEditor();
+  closeBreakEditor();
+  closePromoEditor();
+  closeCustomEntriesEditor();
+});
+const tickerSpeedSlider = document.getElementById("tickerSpeedSlider");
+if (tickerSpeedSlider){
+  tickerSpeedSlider.addEventListener("input", (e) => {
+    const speed = parseInt(e.target.value, 10);
+    saveTickerSpeed(speed);
+    syncTickerSpeedUI();
+    updateTickerMarquee();
+  });
+}
+    ["tickerModal","titleModal","breakModal","promoModal"].forEach(id => {
+      const m = document.getElementById(id);
+      if (!m) return;
+      m.addEventListener("click", (e) => {
+if (e.target === m){
+  if (id === "tickerModal") closeTickerEditor();
+  if (id === "titleModal") closeTitleEditor();
+  if (id === "breakModal") closeBreakEditor();
+  if (id === "promoModal") closePromoEditor();
+}
+      });
+    });
+  });
 </script>
-</body>
-</html>
+
+<!-- ===== Title Editor Modal ===== -->
+<div class="modal-backdrop" id="titleModal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Title Editor">
+    <div class="modal-head">
+      <div class="modal-title">Title Editor</div>
+      <div class="modal-actions">
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyTitleFromModal()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeTitleEditor()">CLOSE</button>
+      </div>
+    </div>
+
+    <div class="ticker-editor">
+      <textarea id="titleModalInput" style="min-height:64px;"
+        placeholder="Enter a custom title (leave blank to use sport default)"></textarea>
+    </div>
+
+    <div class="ticker-hint">
+      Tip: Leave blank to revert to the default like <b>NFL BOX BREAK</b>.
+    </div>
+  </div>
+</div>
+
+<!-- ===== Ticker Editor Modal ===== -->
+<div class="modal-backdrop" id="tickerModal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Ticker Editor">
+    <div class="modal-head">
+      <div class="modal-title">Ticker Editor</div>
+      <div class="modal-actions">
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyTickerFromModal()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeTickerEditor()">CLOSE</button>
+      </div>
+    </div>
+
+    <div class="ticker-editor" style="flex-direction:column;">
+      <textarea id="tickerModalTextarea" placeholder="Enter ticker text. Use • to separate items.&#10;Example: MIDWESTBREAK • GREAT PULLS • GOOD LUCK"></textarea>
+
+      <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
+        <div class="btn ghost" style="padding:8px 10px; font-size:12px; cursor:default;">SPEED</div>
+        <input id="tickerSpeedSlider" type="range" min="40" max="200" step="5" style="flex:1;">
+        <div id="tickerSpeedValue" class="btn ghost" style="padding:8px 10px; font-size:12px; cursor:default;">90 px/s</div>
+      </div>
+    </div>
+
+    <div class="ticker-hint">
+      Tip: Separate items with <b>•</b>. Use the slider to control ticker scroll speed.
+    </div>
+  </div>
+</div>
+<!-- ===== PROMO EDITOR ===== -->
+<div class="modal-backdrop" id="promoModal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Promo Editor">
+    <div class="modal-head">
+      <div class="modal-title">Promo Messages</div>
+      <div class="modal-actions">
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyPromoFromModal()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closePromoEditor()">CLOSE</button>
+      </div>
+    </div>
+
+    <div class="ticker-editor">
+      <textarea id="promoModalTextarea" placeholder="Enter one promo per line&#10;Example:&#10;SEE 2 PICK 1&#10;STASH OR PASS&#10;BONUS HITS"></textarea>
+    </div>
+
+    <div class="ticker-hint" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <span>Each line becomes a rotating promo message.</span>
+      <label style="display:flex; align-items:center; gap:6px; margin-left:auto; white-space:nowrap;">
+        <span style="font-size:12px; opacity:0.75;">Rotate every</span>
+        <input id="promoIntervalInput" type="number" min="3" max="120" value="5"
+          style="width:64px; padding:4px 6px; font-size:13px; font-weight:700;
+                 background:rgba(255,255,255,0.08); color:#fff;
+                 border:1px solid rgba(255,255,255,0.22); border-radius:6px; text-align:center;" />
+        <span style="font-size:12px; opacity:0.75;">sec</span>
+      </label>
+    </div>
+  </div>
+</div>
+<!-- ===== CUSTOM ENTRIES EDITOR ===== -->
+
+
+<!-- ===== Break # Editor Modal ===== -->
+<div class="modal-backdrop" id="breakModal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Break Number Editor" style="width:520px;">
+    <div class="modal-head">
+      <div class="modal-title">Break #</div>
+      <div class="modal-actions">
+        <!-- ✅ +1 inside popup -->
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="incrementBreakFromModal()">+1</button>
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyBreakFromModal()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeBreakEditor()">CLOSE</button>
+      </div>
+    </div>
+
+    <div class="ticker-editor" style="gap:0;">
+      <textarea id="breakModalInput" style="min-height:64px;"
+        placeholder="Enter break number (ex: 12)"></textarea>
+    </div>
+
+    <div class="ticker-hint">
+      Tip: Use <b>+1</b> here or type a number and hit <b>APPLY</b>.
