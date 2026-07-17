@@ -922,7 +922,7 @@ let _czLastTicker = "";
 function czBuildTickerText(){
   const msgs = String(loadTicker()).split(/\s*\|\|\s*|\r?\n/).map(s => s.trim()).filter(Boolean);
   const baseMsgs = msgs.length ? msgs : [DEFAULT_TICKER];
-  const order = ["nfl","nba","mlb"];
+  const order = ["mlb"];   // CrunchZone: baseball only (Mike 07-16)
   const scores = order
     .filter(s => isFreshSportScore(s) && SCORES_BY_SPORT[s])
     .map(s => s.toUpperCase() + ":  " + SCORES_BY_SPORT[s]);
@@ -1686,9 +1686,18 @@ function isFreshSportScore(sport){
 
 function getScoresChannel(){ return "sports"; }
 
+// Current-date guard: ESPN status shows "M/D - time" for scheduled games; skip any whose date
+// isn't today. Live/final games carry no date in the status → treated as today's slate. (Mike 07-16)
+function czIsCurrentDate(status){
+  const m = String(status || "").match(/\b(\d{1,2})\/(\d{1,2})\b/);
+  if (!m) return true;
+  const now = new Date();
+  return parseInt(m[1], 10) === (now.getMonth() + 1) && parseInt(m[2], 10) === now.getDate();
+}
 function normalizeScorePayloadToText(data){
   const sport = String(data?.sport || "").toLowerCase();
   if (!sport || !SCORES_BY_SPORT.hasOwnProperty(sport)) return;
+  if (sport !== "mlb") return;   // CrunchZone: baseball scores only (Mike 07-16)
   let text = "";
   if (data.text) {
     text = String(data.text);
@@ -1696,6 +1705,7 @@ function normalizeScorePayloadToText(data){
     // Bridge sends each game as { status, teams:[{name,score,home}] }. Tolerate a flat
     // {away,home,awayScore,homeScore} shape too. Skip games with no team names. (Mike 07-16)
     text = data.games.map(g => {
+      if (!czIsCurrentDate(g.status)) return "";   // only today's games
       if (Array.isArray(g.teams)) {
         const away = g.teams.find(t => !t.home) || g.teams[0] || {};
         const home = g.teams.find(t => t.home)  || g.teams[1] || {};
