@@ -15,6 +15,16 @@ Whatnot stream (host's browser)
 
 **One bridge serves all clients.** They're isolated by `bridge_key` (UUID, validated against Supabase `bridge_keys` table) and `channel` (always `"main"` for now). No per-client Render services anymore.
 
+## Build queue — system of record is HQ, not Notion
+
+**The build queue and its status live in the TSU Command Center ("HQ") — the Supabase `public.builds` table.** Read pending work from there and write status back there. **Do NOT read the queue from, or write build status to, Notion.** Notion remains available for legacy reference only (historical builds + documentation unrelated to overlay builds) and will be retired from onboarding entirely.
+
+- **Read the queue** from `builds` — active work is any row whose `status` is not `delivered`/`live`/`failed`/`cancelled` (i.e. `questionnaire`, `in_queue`, `in_build`, `review`, `revision`, `approved`, `call_scheduled`). The client questionnaire, brand colors, logo, layout preference, and feature requests are all columns on the row (`brand_primary`, `brand_secondary`, `logo_url`, `layout_preference`, `questionnaire` JSON, `agent_notes`, etc.).
+- **Write status back** to the same `builds` row: `status`, `stage_detail`, `action_needed`, `agent_notes` (source used + edits applied + bridge key + overlayId + namespace + extension draft path), `source_template`, `output_file`, and `bridge_key`.
+- **A draft staged for Mike's review** = keep `status = 'in_build'` with `stage_detail = 'Overlay draft staged for review'` and `action_needed = 'Review overlay draft'`. The `review` status is reserved for the **client** review feature (portal review rounds), so don't use it for internal draft staging.
+- The agent's only other build-time Supabase write is the `bridge_keys` active row (see the three-things list below). Entitlement rows stay with `tsu-overlay-promote`.
+- Legacy note: the installed `tsu-overlay-agent` / `tsu-overlay-promote` / `tsu-graphic-generator` skills still describe a Notion queue (DB `32d7e2ad-…`, "Queue Status = Pending" → "Ready for Review" → "Done"). Treat those Notion steps as **superseded by this section** — map them onto the `builds` columns above until the skills are re-synced.
+
 ## Directory map
 
 | Path | What |

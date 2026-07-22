@@ -30,11 +30,11 @@
       --tileR:14px;
 
       --camH: 300px;
-      --bannerH: 85px;
+      --bannerH: 65px;
 
       /* layout tuning */
-      --sideW: 255px;
-      --gap: 10px;
+      --sideW: 260px;
+      --gap: 6px;
 
       /* bottom grid per sport (JS updates) */
       --bottomCols: 5;
@@ -56,14 +56,16 @@
     .overlay{
       width: var(--W);
       background:
-        radial-gradient(circle at 35% 0%, #151515 0%, #0b0b0b 45%, #050505 100%);
+       linear-gradient(rgba(5,7,15,0.22), rgba(5,7,15,0.62)),
+        var(--overlayBg, none) center / cover no-repeat,
+        radial-gradient(circle at 35% 0%, #151515 0%, #0b0b0b 29%, #050505 87%);
       border-radius: var(--radius);
       border: 2px solid rgba(255,255,255,0.08);
       box-shadow:
         0 0 0 1px rgba(0,0,0,0.85),
         0 16px 40px rgba(0,0,0,0.75),
         0 0 30px rgba(30,102,255,0.18);
-      padding: 20px;
+      padding: 4px;
       position: relative;
       overflow: hidden;
     }
@@ -86,13 +88,13 @@
     ========================== */
 .header{
   position: relative;
-  height: 78px;
+  height: 69px;
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(0,0,0,0.70), rgba(0,0,0,0.25));
   border: 1px solid rgba(255,255,255,0.14);
   display:flex;
   align-items:center;
-  padding: 10px 14px;
+  padding: 4px 5px;
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.10),
     inset 0 -1px 0 rgba(0,0,0,0.45);
@@ -164,9 +166,9 @@ background-size: 140% auto; /* try 140–220% */
       z-index: 5;
     }
     .brand-center img{
-      height: 255px;
+      height: 216px;
       width:auto;
-      top: -6px;
+      top: 7px;
       position:relative;
       filter:
         drop-shadow(0 10px 18px rgba(0,0,0,0.65))
@@ -184,7 +186,7 @@ background-size: 140% auto; /* try 140–220% */
       display:flex;
       align-items:center;
       gap: 12px;
-      padding: 10px 14px;
+      padding: 3px 14px;
       border-radius: 12px;
       background: rgba(0,0,0,0.55);
       border: 1px solid rgba(255,255,255,0.10);
@@ -210,7 +212,7 @@ background-size: 140% auto; /* try 140–220% */
        MAIN GRID (fixed columns)
     ========================== */
     .main{
-      margin-top: 10px;
+      margin-top: 4px;
       display:grid;
       grid-template-columns: var(--sideW) 1fr var(--sideW);
       gap: var(--gap);
@@ -225,7 +227,7 @@ background-size: 140% auto; /* try 140–220% */
     }
     .wick::after{
       content:"";
-      position:absolute; inset:4px;
+      position:absolute; inset:1px;
       border-radius: inherit;
       pointer-events:none;
       z-index: 0;
@@ -274,14 +276,14 @@ background-size: 140% auto; /* try 140–220% */
     .colgrid{
       display:grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 5px;
+      gap: 3px;
     }
 
     /* Center stack */
     .center{
       display:flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 3px;
       align-items: stretch;
       justify-content: space-evenly;
     }
@@ -326,7 +328,7 @@ background-size: 140% auto; /* try 140–220% */
     .bottomGrid{
       display:grid;
       grid-template-columns: repeat(var(--bottomCols), 1fr);
-      gap: 6px;
+      gap: 4px;
     }
 
     /* Tiles */
@@ -480,16 +482,16 @@ background-size: 140% auto; /* try 140–220% */
     .sideStack{
       display:flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 2px;
     }
 
     .infoPanel{
-      background: rgba(0,0,0,0.35);
-      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.9);
       border-radius: 14px;
-      padding: 10px 12px;
+      padding: 1px 5px;
       box-shadow: inset 0 0 0 1px rgba(30,102,255,0.12);
-      min-height: 108px;
+      min-height: 125px;
     }
 
     .infoPanel > *{ position: relative; z-index: 2; }
@@ -501,13 +503,13 @@ background-size: 140% auto; /* try 140–220% */
       text-transform: uppercase;
       color: var(--orange2);
       opacity: 0.95;
-      margin-bottom: 8px;
+      margin-bottom: 3px;
     }
 
     .infoBody{
       display:flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 2px;
       font-weight: 800;
     }
 
@@ -524,7 +526,7 @@ background-size: 140% auto; /* try 140–220% */
        PROMO BANNER (rotating)
     ========================== */
     .banner{
-      margin-top: 10px;
+      margin-top: 2px;
       height: var(--bannerH);
       border-radius: 14px;
       background: rgba(0,0,0,0.55);
@@ -533,22 +535,146 @@ background-size: 140% auto; /* try 140–220% */
       overflow:hidden;
       position: relative;
       z-index: 2;
+      perspective: 620px;               /* tighter perspective = stronger, obvious 3D flip */
+    }
+
+    /* ONE branded promo.png background, shared behind every rotating side */
+    .banner.has-bg::before{
+      content:"";
+      position:absolute; inset:0;
+      background-image: var(--promoBg);
+      background-size: cover;
+      background-position: center;
+      opacity: 0.92;
+      filter: saturate(1.05) contrast(1.02);
+      border-radius: inherit;
+      pointer-events:none;
+      z-index: 0;
     }
 
     .banner-inner{
       position:absolute;
       inset:0;
-      opacity: 0;
-      transform: translateY(50px);
-      transition: opacity .85s ease, transform .85s ease;
       border-radius: 14px;
       overflow:hidden;
+      z-index: 1;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+      /* inactive panels sit edge-on (invisible); only the active panel faces us,
+         so the swap reads as a real, crisp flip instead of a soft crossfade */
+      transition: transform var(--promoAnim, 820ms) cubic-bezier(.34,1.15,.4,1);
     }
 
-    .banner-inner.active{
-      opacity: 1;
-      transform: translateY(0);
+    /* FLIP transition — current line folds up and away, next folds down into view */
+    .banner.flip .banner-inner{ transform: rotateX(90deg); transform-origin: 50% 50%; }
+    .banner.flip .banner-inner.active{ transform: rotateX(0deg); }
+
+    /* SPIN transition — half-turn on the Y axis */
+    .banner.spin .banner-inner{ transform: rotateY(90deg); transform-origin: 50% 50%; }
+    .banner.spin .banner-inner.active{ transform: rotateY(0deg); }
+
+    /* =========================
+       RANDOMIZER WHEEL (branded — cloned from golden-triangle, re-themed blue/black)
+    ========================== */
+    #wheel-float{
+      position:fixed;
+      left:50%; top:52%;
+      transform: translate(-50%,-50%);
+      z-index: 9000;
+      width: var(--wheel-size, 420px);
+      height: var(--wheel-size, 420px);
+      cursor: grab;
+      pointer-events:auto;
+      transform-origin: center center;
+      box-sizing: border-box;
     }
+    #wheel-float.resizing{ cursor: nwse-resize; }
+    #wheel-float.dragging{ cursor: grabbing; }
+    #wheel-resize-handle{
+      position:absolute; right:-8px; bottom:-8px;
+      width:24px; height:24px; border-radius:50%;
+      background: linear-gradient(180deg, rgba(120,160,255,0.95), rgba(30,102,255,0.95));
+      border:2px solid rgba(0,0,0,0.55);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.45);
+      z-index:5; cursor: nwse-resize;
+    }
+    #wheelCanvasFloat{
+      display:block; width:100%; height:100%; opacity:0.98;
+      filter: drop-shadow(0 10px 28px rgba(0,0,0,0.75)) drop-shadow(0 0 18px rgba(30,102,255,0.30));
+    }
+    .wheel-pointer-float{
+      position:absolute; top:50%; right:-10px; transform: translateY(-50%);
+      width:0; height:0;
+      border-top:16px solid transparent; border-bottom:16px solid transparent;
+      border-right:28px solid rgba(120,160,255,0.96);
+      filter: drop-shadow(0 0 10px rgba(30,102,255,0.45)) drop-shadow(0 4px 8px rgba(0,0,0,0.55));
+      z-index:4; pointer-events:none;
+    }
+    #wheel-winner-banner{
+      position:fixed; left:50%; top: calc(52% + var(--wheel-size, 420px) * 0.44);
+      transform: translateX(-50%); z-index:9001;
+      min-width: calc(var(--wheel-size, 420px) * 0.70);
+      max-width: calc(var(--wheel-size, 420px) * 1.05);
+      padding: calc(var(--wheel-size, 420px) * 0.024) calc(var(--wheel-size, 420px) * 0.038);
+      border-radius:999px; border:2px solid rgba(91,140,255,0.40);
+      background: linear-gradient(180deg, rgba(0,0,0,0.90), rgba(12,20,45,0.94));
+      box-shadow: 0 10px 24px rgba(0,0,0,0.45);
+      text-align:center; font-weight:900;
+      font-size: calc(var(--wheel-size, 420px) * 0.052);
+      letter-spacing:1px; color: rgba(120,160,255,0.95); text-transform:uppercase;
+      pointer-events:none; opacity:0; transition: opacity .18s ease;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    #wheel-winner-banner.show{ opacity:1; }
+    #wheel-winner-label{ opacity:0.78; font-size: calc(var(--wheel-size, 420px) * 0.028); margin-right:8px; }
+    #wheel-winner-text{ color:#fff; }
+
+    .wheel-controls{
+      position:fixed; left:50%; bottom:96px; transform: translateX(-50%);
+      z-index:9002; display:flex; gap:8px; flex-wrap:wrap; justify-content:center;
+      background: rgba(0,0,0,0.62); border:1px solid rgba(91,140,255,0.30);
+      border-radius:14px; padding:8px 10px; box-shadow: 0 10px 24px rgba(0,0,0,0.5);
+    }
+    .wheel-btn{
+      padding:9px 14px; border:none; border-radius:10px; font-weight:900; font-size:13px;
+      cursor:pointer; color:#fff; letter-spacing:.4px;
+      background: linear-gradient(180deg, rgba(30,102,255,0.95), rgba(15,40,120,0.98));
+      border:1px solid rgba(255,255,255,0.14);
+    }
+    .wheel-btn.alt{ background: linear-gradient(180deg, rgba(60,60,70,0.95), rgba(20,20,28,0.98)); }
+    .wheel-btn:hover{ filter: brightness(1.12); }
+    .wheel-drag{
+      cursor:move; user-select:none; align-self:center;
+      font-size:15px; line-height:1; letter-spacing:-2px;
+      color:rgba(120,160,255,0.95); padding:0 6px 0 2px;
+    }
+    .wheel-drag:hover{ color:#fff; }
+
+    /* =========================
+       CHASER INDICATOR (per-sport) — gold ring + animated CHASE badge
+    ========================== */
+    .tile.chaser{
+      border-color: rgba(255,209,64,0.95) !important;
+      box-shadow:
+        inset 0 2px 0 rgba(255,255,255,0.10),
+        inset 0 0 0 1px rgba(0,0,0,0.55),
+        0 0 0 2px rgba(255,199,0,0.85),
+        0 0 16px rgba(255,199,0,0.55);
+    }
+    .chaser-badge{
+      position:absolute; top:3px; left:3px; z-index:6;
+      font-size:9px; font-weight:900; letter-spacing:.6px;
+      color:#231500; padding:1px 5px; border-radius:6px;
+      background: linear-gradient(180deg,#ffe27a,#f5b301);
+      box-shadow:0 2px 5px rgba(0,0,0,.55);
+      animation: chaserPulse 1.5s ease-in-out infinite;
+      pointer-events:none;
+    }
+    @keyframes chaserPulse{
+      0%,100%{ transform: scale(1);    box-shadow:0 2px 5px rgba(0,0,0,.55), 0 0 0 rgba(255,209,64,0); }
+      50%    { transform: scale(1.14); box-shadow:0 2px 5px rgba(0,0,0,.55), 0 0 9px rgba(255,209,64,0.95); }
+    }
+    .tile.chaser.sold .chaser-badge{ opacity:.35; animation:none; }
 
     .banner-inner .bg{
       position:absolute;
@@ -564,10 +690,12 @@ background-size: 140% auto; /* try 140–220% */
       position: relative;
       z-index: 2;
       height:100%;
+      width:100%;
       display:flex;
       align-items:center;
-      gap: 6px;
-      padding: 0 8px;
+      justify-content:center;        /* center horizontally */
+      text-align:center;
+      padding: 0 18px;
       border:solid 1px rgba(91,140,255,0.55);
       border-radius: inherit;
     }
@@ -588,9 +716,10 @@ background-size: 140% auto; /* try 140–220% */
     }
 
     .banner-text{
+      width:100%;
       display:flex;
-      flex-direction:column;
-      gap: 2px;
+      justify-content:center;
+      align-items:center;
       line-height: 1.05;
       text-shadow: 0 2px 0 rgba(0,0,0,0.85);
     }
@@ -602,9 +731,16 @@ background-size: 140% auto; /* try 140–220% */
       opacity: 0.85;
     }
     .banner-text .main{
-      font-size: 20px;
+      display:block;               /* override the global .main grid layout */
+      grid-template-columns:none;
+      width:100%;
+      text-align:center;
+      white-space:nowrap;          /* one line — never wraps */
+      overflow:hidden;
+      text-overflow:ellipsis;
+      font-size: 25px;
       font-weight: 900;
-      letter-spacing: 0.4px;
+      letter-spacing: 0.6px;
     }
 
     /* =========================
@@ -612,10 +748,10 @@ background-size: 140% auto; /* try 140–220% */
        UPDATED: add center High Bid stat
     ========================== */
     .controls{
-      margin-top: 10px;
+      margin-top: 3px;
       display:grid;
-      grid-template-columns: 260px 1fr 1fr 1fr 260px;
-      gap: 10px;
+      grid-template-columns: 250px 1fr 1fr 1fr 250px;
+      gap: 15px;
       z-index: 2;
       position: relative;
     }
@@ -901,6 +1037,9 @@ background-size: 140% auto; /* try 140–220% */
       <div class="pill" id="exportBtn">Export CSV</div>
       <div class="pill" id="chasersBtn">Pick Chasers</div>
       <div class="pill" id="sportBtn">Change Sport</div>
+      <div class="pill" id="promoBtn">Edit Promo</div>
+      <div class="pill" id="camBgBtn">Cam Background</div>
+      <div class="pill" id="wheelBtn">Wheel</div>
     </div>
     <div class="sold-grid" id="soldGrid"></div>
   </div>
@@ -958,6 +1097,62 @@ background-size: 140% auto; /* try 140–220% */
     </div>
   </div>
 
+  <!-- Edit Promo Popup -->
+  <div class="popup" id="promoPopup">
+    <div class="popup-card">
+      <h2>Edit Promo Bar</h2>
+      <div style="font-size:12px;opacity:.75;text-align:center;margin:-4px 0 2px">
+        One line per rotating side. Blank lines are skipped.
+      </div>
+      <textarea id="promoBox" placeholder="FOLLOW @BLUELIGHTRIPS&#10;JOIN THE DISCORD — LINK IN CHAT&#10;NEXT BREAK STARTS SOON"></textarea>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center">
+        <label style="font-size:12px;opacity:.85;font-weight:800">Seconds per side</label>
+        <input id="promoSecs" type="number" min="1" max="120" step="1" style="width:110px"/>
+        <label style="font-size:12px;opacity:.85;font-weight:800">Transition</label>
+        <select id="promoAnimSel" style="padding:12px;border-radius:12px;background:#000;color:#fff;border:1px solid rgba(255,255,255,.12);font-weight:900;font-size:15px">
+          <option value="flip">Flip</option>
+          <option value="spin">Spin</option>
+        </select>
+      </div>
+      <div class="popup-btns">
+        <button id="applyPromo">Apply</button>
+        <button id="closePromo">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Facecam Background Popup -->
+  <div class="popup" id="camPopup">
+    <div class="popup-card">
+      <h2>Facecam Background</h2>
+      <div style="font-size:12px;opacity:.75;text-align:center;margin:-4px 0 2px">
+        Pick an image to sit behind your facecam. Saved on this PC; large images are auto-resized.
+      </div>
+      <div id="camPreview" style="height:150px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:#000 center/cover no-repeat"></div>
+      <input id="camFile" type="file" accept="image/*" style="display:none"/>
+      <div class="popup-btns">
+        <button id="camBrowse">Browse…</button>
+        <button id="camClear">Clear</button>
+        <button id="closeCam">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customize Wheel Popup -->
+  <div class="popup" id="wheelPopup">
+    <div class="popup-card">
+      <h2>Customize Wheel Spots</h2>
+      <div style="font-size:12px;opacity:.75;text-align:center;margin:-4px 0 2px">
+        The wheel already includes every UNSOLD team on the board. Add extra custom spots here — one per line.
+      </div>
+      <textarea id="wheelBox" placeholder="MYSTERY SPOT&#10;DEALER'S CHOICE&#10;BONUS RIP"></textarea>
+      <div class="popup-btns">
+        <button id="applyWheel">Apply</button>
+        <button id="closeWheel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
 <script>
   /* =========================
      Paths (standard BASE)
@@ -999,6 +1194,7 @@ document.documentElement.style.setProperty(
   const nbaImg = (f) => `${BASE}images/nba/${f}`;
   const nflImg = (f) => `${BASE}images/nfl/${f}`;
   const mlbImg = (f) => `${BASE}images/mlb/${f}`;
+  const nhlImg = (f) => `${BASE}images/nhl/${f}`;
   const bannerImg = (f) => new URL(f, location.href).href;
 
   // === Bridge URL (NO KEY in URL) ===
@@ -1132,12 +1328,418 @@ const CHANNELS = (() => {
   ];
 
   /* =========================
-     Banners (3 rotating)
+     Promo bar — single branded promo.png background + editable rotating text
   ========================== */
-  const BANNERS = [
-    { badge: "IG",   image: bannerImg('ig.png') },
-    { badge: "DIS",  image: bannerImg('discord.png') },
-    { badge: "PRO",  image: bannerImg('promo.png') }
+  const PROMO_BG = bannerImg('promo.png');          // one branded background for every side
+  const PROMO_DEFAULT_LINES = [
+    "FOLLOW @BLUELIGHTRIPS",
+    "JOIN THE DISCORD — LINK IN CHAT",
+    "NEXT BREAK STARTS SOON"
+  ];
+  const PROMO_DEFAULT_SECS = 9;
+
+  function loadPromoLines(){
+    try{
+      const raw = LS.get('promoLines', '');
+      if (raw){
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)){
+          const clean = arr.map(s => String(s).trim()).filter(Boolean);
+          if (clean.length) return clean;
+        }
+      }
+    }catch(_){}
+    return PROMO_DEFAULT_LINES.slice();
+  }
+  let promoLines = loadPromoLines();
+  let promoSecs  = Math.min(120, Math.max(1, parseInt(LS.get('promoSecs', PROMO_DEFAULT_SECS), 10) || PROMO_DEFAULT_SECS));
+  let promoAnim  = (LS.get('promoAnim', 'flip') === 'spin') ? 'spin' : 'flip';
+
+  /* =========================
+     Overlay background (branded — drop images/logos/blue-light-rips-bg.png)
+  ========================== */
+  function applyOverlayBg(){
+    document.documentElement.style.setProperty(
+      '--overlayBg', `url('${BASE}images/logos/blue-light-rips-bg.png')`
+    );
+  }
+
+  /* =========================
+     Facecam background (seller-chosen, persisted, auto-downscaled)
+  ========================== */
+  function applyCamBg(dataUrl){
+    const cam = document.getElementById('camFrame');
+    if (!cam) return;
+    const v = (dataUrl != null) ? dataUrl : LS.get('camBg', '');
+    if (v){
+      cam.style.backgroundImage = `url('${v}')`;
+      cam.style.backgroundSize = 'cover';
+      cam.style.backgroundPosition = 'center';
+    } else {
+      cam.style.backgroundImage = '';
+    }
+  }
+  // Downscale a picked image to <=maxDim px and return a JPEG data URL (keeps localStorage small).
+  function fileToScaledDataUrl(file, maxDim, cb){
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        const scale = Math.min(1, maxDim / Math.max(w, h));
+        w = Math.round(w * scale); h = Math.round(h * scale);
+        const c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        try { cb(c.toDataURL('image/jpeg', 0.85)); }
+        catch(_) { cb(reader.result); }
+      };
+      img.onerror = () => cb(reader.result);
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  /* =========================
+     Randomizer Wheel (cloned from golden-triangle, re-themed + adapted to BLR sold model)
+     Reads board state only; never touches SSE/sold internals beyond the public markSold flow.
+  ========================== */
+  let wheelEntries = [];
+  let wheelRotation = 0;
+  let wheelSpinning = false;
+  let wheelWinner = null;
+  let wheelIdleRAF = null;
+  let wheelLastIdleTs = 0;
+  let wheelVisible = false;
+  const WHEEL_IDLE_SPEED = 0.08;
+
+  // Brand logo drawn in the wheel hub (redraws once it loads)
+  const wheelLogoImg = new Image();
+  wheelLogoImg.src = LOGO_PATH;
+  wheelLogoImg.onload = () => { if (wheelVisible) drawWheel(); };
+
+  function loadWheelCustom(){
+    try{ const raw = LS.get('wheelCustom',''); if (raw){ const a = JSON.parse(raw); if (Array.isArray(a)) return a.map(s=>String(s).trim()).filter(Boolean); } }catch(_){}
+    return [];
+  }
+  let wheelCustom = loadWheelCustom();
+  const wheelExcluded = new Set();   // board codes the seller removed from the wheel this session
+
+  function collectWheelEntries(){
+    const out = [];
+    const cfg = breakTypes[currentSport];
+    if (cfg && Array.isArray(cfg.teams)){
+      cfg.teams.forEach(t => {
+        const code = String(t.code || '').trim();
+        if (!code) return;
+        if (soldSet.has(code)) return;        // unsold teams only
+        if (wheelExcluded.has(code)) return;  // removed spots
+        out.push({ code, label: String(t.name || code), custom:false });
+      });
+    }
+    wheelCustom.forEach((label, i) => {
+      const l = String(label || '').trim();
+      if (l) out.push({ code:`__custom_${i}`, label:l, custom:true });
+    });
+    return out;
+  }
+
+  function drawWheel(){
+    const canvas = document.getElementById('wheelCanvasFloat');
+    const wheel = document.getElementById('wheel-float');
+    if (!canvas || !wheel) return;
+    const rect = wheel.getBoundingClientRect();
+    const cssSize = Math.max(240, Math.round(rect.width || 420));
+    const pr = Math.max(1, window.devicePixelRatio || 1);
+    const internal = Math.round(cssSize * pr);
+    if (canvas.width !== internal || canvas.height !== internal){ canvas.width = internal; canvas.height = internal; }
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.scale(pr,pr);
+    const cssW = cssSize, cx = cssW/2, cy = cssW/2;
+    const radius = cssSize * 0.444;
+    const hubRadius = cssSize * 0.08;
+    const labelFont = Math.max(10, Math.round(cssSize * 0.043));
+    const labelPad = Math.max(18, Math.round(cssSize * 0.04));
+    const maxChars = cssSize >= 560 ? 20 : cssSize >= 460 ? 17 : cssSize >= 360 ? 14 : 11;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(wheelRotation);
+
+    if (!wheelEntries.length){
+      ctx.beginPath(); ctx.arc(0,0,radius,0,Math.PI*2);
+      ctx.fillStyle = '#0b1226'; ctx.fill();
+      ctx.lineWidth = Math.max(4, cssSize*0.008);
+      ctx.strokeStyle = 'rgba(91,140,255,0.45)'; ctx.stroke();
+      ctx.fillStyle = '#9fc0ff';
+      ctx.font = `900 ${Math.max(18, Math.round(cssSize*0.06))}px ui-sans-serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('NO ENTRIES', 0, 0);
+      ctx.restore(); return;
+    }
+
+    const slice = (Math.PI*2) / wheelEntries.length;
+    wheelEntries.forEach((entry, i) => {
+      const start = i*slice, end = start+slice;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,radius,start,end); ctx.closePath();
+      const even = i % 2 === 0;
+      ctx.fillStyle = even ? 'rgba(30,102,255,0.92)' : 'rgba(15,17,25,0.96)';
+      ctx.fill();
+      ctx.lineWidth = Math.max(2, cssSize*0.0045);
+      ctx.strokeStyle = 'rgba(120,160,255,0.85)'; ctx.stroke();
+      ctx.save();
+      ctx.rotate(start + slice/2);
+      ctx.textAlign='right'; ctx.textBaseline='middle';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `900 ${labelFont}px ui-sans-serif`;
+      const txt = String(entry.label || entry.code || '').toUpperCase();
+      const disp = txt.length > maxChars ? `${txt.slice(0,maxChars)}…` : txt;
+      ctx.fillText(disp, radius - labelPad, 0);
+      ctx.restore();
+    });
+    ctx.restore();
+
+    // center hub — brand logo (falls back to BLR text until the image loads)
+    const logoR = cssSize * 0.155;
+    ctx.beginPath(); ctx.arc(cx, cy, logoR, 0, Math.PI*2); ctx.closePath();
+    ctx.fillStyle = 'rgba(0,0,0,0.97)'; ctx.fill();
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, logoR, 0, Math.PI*2); ctx.clip();
+    if (wheelLogoImg && wheelLogoImg.complete && wheelLogoImg.naturalWidth){
+      const s = logoR * 2 * 1.2;
+      ctx.drawImage(wheelLogoImg, cx - s/2, cy - s/2, s, s);
+    } else {
+      ctx.fillStyle = '#9fc0ff';
+      ctx.font = `900 ${Math.max(12, Math.round(cssSize*0.05))}px ui-sans-serif`;
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText('BLR', cx, cy);
+    }
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(cx, cy, logoR, 0, Math.PI*2);
+    ctx.lineWidth = Math.max(3, cssSize*0.008);
+    ctx.strokeStyle = 'rgba(120,160,255,0.9)'; ctx.stroke();
+  }
+
+  function pickWheelWinner(){
+    if (!wheelEntries.length) return null;
+    const slice = (Math.PI*2) / wheelEntries.length;
+    const normalized = ((Math.PI*2) - (wheelRotation % (Math.PI*2))) % (Math.PI*2);
+    const index = Math.floor(normalized / slice) % wheelEntries.length;
+    return wheelEntries[index] || null;
+  }
+
+  function refreshWheelEntries(){
+    wheelEntries = collectWheelEntries();
+    wheelWinner = null;
+    drawWheel();
+    clearWheelWinnerBanner();
+    if (!wheelSpinning) startWheelIdleSpin();
+  }
+
+  function shuffleWheelEntries(){
+    if (!wheelEntries.length) wheelEntries = collectWheelEntries();
+    for (let i = wheelEntries.length-1; i>0; i--){ const j = Math.floor(Math.random()*(i+1)); [wheelEntries[i],wheelEntries[j]]=[wheelEntries[j],wheelEntries[i]]; }
+    wheelRotation = 0; wheelWinner = null;
+    drawWheel(); clearWheelWinnerBanner();
+    if (!wheelSpinning) startWheelIdleSpin();
+  }
+
+  function updateWheelWinnerBanner(){
+    const banner = document.getElementById('wheel-winner-banner');
+    const text = document.getElementById('wheel-winner-text');
+    if (!banner || !text) return;
+    if (wheelWinner && (wheelWinner.label || wheelWinner.code)){
+      text.textContent = String(wheelWinner.label || wheelWinner.code).toUpperCase();
+      banner.classList.add('show');
+    } else { text.textContent = '—'; banner.classList.remove('show'); }
+  }
+  function clearWheelWinnerBanner(){
+    const banner = document.getElementById('wheel-winner-banner');
+    const text = document.getElementById('wheel-winner-text');
+    if (!banner || !text) return;
+    text.textContent = '—'; banner.classList.remove('show');
+  }
+
+  function startWheelIdleSpin(){
+    stopWheelIdleSpin(); wheelLastIdleTs = 0;
+    function frame(ts){
+      if (wheelSpinning){ wheelIdleRAF = null; return; }
+      if (!wheelLastIdleTs) wheelLastIdleTs = ts;
+      const dt = (ts - wheelLastIdleTs)/1000; wheelLastIdleTs = ts;
+      wheelRotation += WHEEL_IDLE_SPEED * dt;
+      drawWheel();
+      wheelIdleRAF = requestAnimationFrame(frame);
+    }
+    wheelIdleRAF = requestAnimationFrame(frame);
+  }
+  function stopWheelIdleSpin(){ if (wheelIdleRAF){ cancelAnimationFrame(wheelIdleRAF); wheelIdleRAF = null; } wheelLastIdleTs = 0; }
+
+  function applyWheelVisibility(){
+    const wheel = document.getElementById('wheel-float');
+    const controls = document.getElementById('wheel-controls');
+    const btn = document.getElementById('wheelBtn');
+    if (wheel) wheel.style.display = wheelVisible ? 'block' : 'none';
+    if (controls) controls.style.display = wheelVisible ? 'flex' : 'none';
+    if (btn) btn.classList.toggle('active', wheelVisible);
+    if (wheelVisible){ refreshWheelEntries(); }
+    else { stopWheelIdleSpin(); clearWheelWinnerBanner(); }
+    LS.set('wheelVisible', wheelVisible ? '1' : '0');
+  }
+  function toggleWheelVisibility(){ wheelVisible = !wheelVisible; applyWheelVisibility(); }
+
+  function spinWheel(){
+    if (wheelSpinning) return;
+    refreshWheelEntries();
+    if (!wheelEntries.length) return;
+    wheelSpinning = true; wheelWinner = null; stopWheelIdleSpin();
+    const extraTurns = (Math.PI*2) * (5 + Math.random()*2);
+    const randomOffset = Math.random()*Math.PI*2;
+    const startRotation = wheelRotation;
+    const targetRotation = startRotation + extraTurns + randomOffset;
+    const duration = 5200; const start = performance.now();
+    const easeOutCubic = t => 1 - Math.pow(1-t,3);
+    function frame(now){
+      const t = Math.min(1, (now-start)/duration);
+      wheelRotation = startRotation + (targetRotation-startRotation)*easeOutCubic(t);
+      drawWheel();
+      if (t < 1){ requestAnimationFrame(frame); return; }
+      wheelSpinning = false; wheelWinner = pickWheelWinner(); updateWheelWinnerBanner(); startWheelIdleSpin();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // Mark Sold — real board teams only; a custom spot instead gets removed from the wheel
+  function commitWheelWinner(){
+    if (!wheelWinner || !wheelWinner.code) return;
+    if (wheelWinner.custom){ removeWinnerSpot(); return; }
+    if (soldSet.has(wheelWinner.code)) return;
+    markSold(wheelWinner.code);
+    if (typeof playSoldAnimation === 'function') playSoldAnimation(wheelWinner.code);
+    updateStats();
+    renderSoldPanel();
+    refreshWheelEntries();
+    clearWheelWinnerBanner();
+  }
+
+  // Remove Spot — drop the current winner from the live wheel (board team -> excluded; custom -> deleted)
+  function removeWinnerSpot(){
+    const target = wheelWinner || pickWheelWinner();
+    if (!target) return;
+    if (target.custom){
+      const idx = wheelCustom.findIndex(l => String(l).trim().toUpperCase() === String(target.label).trim().toUpperCase());
+      if (idx !== -1){ wheelCustom.splice(idx,1); LS.set('wheelCustom', JSON.stringify(wheelCustom)); }
+    } else {
+      wheelExcluded.add(target.code);
+    }
+    wheelWinner = null;
+    refreshWheelEntries();
+  }
+
+  function initFloatingWheelDrag(){
+    const wheel = document.getElementById('wheel-float');
+    const handle = document.getElementById('wheel-resize-handle');
+    if (!wheel) return;
+    let dragging=false, resizing=false, sX=0, sY=0, oL=0, oT=0, sSize=420;
+    wheel.addEventListener('mousedown', (e) => {
+      if (e.target === handle) return;
+      dragging = true; wheel.classList.add('dragging');
+      const r = wheel.getBoundingClientRect(); oL=r.left; oT=r.top; sX=e.clientX; sY=e.clientY;
+      wheel.style.left = `${oL}px`; wheel.style.top = `${oT}px`; wheel.style.transform = 'none';
+      e.preventDefault();
+    });
+    if (handle){
+      handle.addEventListener('mousedown', (e) => {
+        resizing = true; wheel.classList.add('resizing');
+        const r = wheel.getBoundingClientRect(); sSize = r.width; sX=e.clientX; sY=e.clientY;
+        wheel.style.left = `${r.left}px`; wheel.style.top = `${r.top}px`; wheel.style.transform = 'none';
+        e.preventDefault(); e.stopPropagation();
+      });
+    }
+    document.addEventListener('mousemove', (e) => {
+      if (dragging){ wheel.style.left = `${oL + (e.clientX-sX)}px`; wheel.style.top = `${oT + (e.clientY-sY)}px`; }
+      if (resizing){ const next = Math.max(240, Math.min(760, sSize + Math.max(e.clientX-sX, e.clientY-sY))); wheel.style.setProperty('--wheel-size', `${next}px`); drawWheel(); }
+    });
+    document.addEventListener('mouseup', () => { dragging=false; resizing=false; wheel.classList.remove('dragging'); wheel.classList.remove('resizing'); });
+  }
+
+  // Draggable, position-remembered control bar (grip only, so buttons still click)
+  function initWheelControlsDrag(){
+    const bar = document.getElementById('wheel-controls');
+    const grip = document.getElementById('wheel-controls-grip');
+    if (!bar || !grip) return;
+
+    // restore saved position
+    try{
+      const raw = LS.get('wheelCtrlPos','');
+      if (raw){
+        const p = JSON.parse(raw);
+        if (p && typeof p.left === 'number'){
+          bar.style.left = p.left + 'px';
+          bar.style.top = p.top + 'px';
+          bar.style.bottom = 'auto';
+          bar.style.transform = 'none';
+        }
+      }
+    }catch(_){}
+
+    let dragging=false, sX=0, sY=0, oL=0, oT=0;
+    grip.addEventListener('mousedown', (e) => {
+      dragging = true;
+      const r = bar.getBoundingClientRect();
+      oL=r.left; oT=r.top; sX=e.clientX; sY=e.clientY;
+      bar.style.left = oL+'px'; bar.style.top = oT+'px';
+      bar.style.bottom = 'auto'; bar.style.transform = 'none';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      bar.style.left = (oL + (e.clientX - sX)) + 'px';
+      bar.style.top  = (oT + (e.clientY - sY)) + 'px';
+    });
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      const r = bar.getBoundingClientRect();
+      try{ LS.set('wheelCtrlPos', JSON.stringify({ left: Math.round(r.left), top: Math.round(r.top) })); }catch(_){}
+    });
+  }
+
+  // NHL (32)
+  const NHL = [
+    {code:'ANA', name:'ducks',          image:nhlImg('ducks.png')},
+    {code:'BOS', name:'bruins',         image:nhlImg('bruins.png')},
+    {code:'BUF', name:'sabres',         image:nhlImg('sabres.png')},
+    {code:'CGY', name:'flames',         image:nhlImg('flames.png')},
+    {code:'CAR', name:'hurricanes',     image:nhlImg('hurricanes.png')},
+    {code:'CHI', name:'blackhawks',     image:nhlImg('blackhawks.png')},
+    {code:'COL', name:'avalanche',      image:nhlImg('avalanche.png')},
+    {code:'CBJ', name:'blue jackets',   image:nhlImg('bluejackets.png')},
+    {code:'DAL', name:'stars',          image:nhlImg('stars.png')},
+    {code:'DET', name:'red wings',      image:nhlImg('redwings.png')},
+    {code:'EDM', name:'oilers',         image:nhlImg('oilers.png')},
+    {code:'FLA', name:'panthers',       image:nhlImg('panthers.png')},
+    {code:'LAK', name:'kings',          image:nhlImg('kings.png')},
+    {code:'MIN', name:'wild',           image:nhlImg('wild.png')},
+    {code:'MTL', name:'canadiens',      image:nhlImg('canadiens.png')},
+    {code:'NSH', name:'predators',      image:nhlImg('predators.png')},
+    {code:'NJD', name:'devils',         image:nhlImg('devils.png')},
+    {code:'NYI', name:'islanders',      image:nhlImg('islanders.png')},
+    {code:'NYR', name:'rangers',        image:nhlImg('rangers.png')},
+    {code:'OTT', name:'senators',       image:nhlImg('senators.png')},
+    {code:'PHI', name:'flyers',         image:nhlImg('flyers.png')},
+    {code:'PIT', name:'penguins',       image:nhlImg('penguins.png')},
+    {code:'SJS', name:'sharks',         image:nhlImg('sharks.png')},
+    {code:'SEA', name:'kraken',         image:nhlImg('kraken.png')},
+    {code:'STL', name:'blues',          image:nhlImg('blues.png')},
+    {code:'TBL', name:'lightning',      image:nhlImg('lightning.png')},
+    {code:'TOR', name:'maple leafs',    image:nhlImg('maple_leafs.png')},
+    {code:'UTA', name:'mammoth',        image:nhlImg('mammoth.png')},
+    {code:'VAN', name:'canucks',        image:nhlImg('canucks.png')},
+    {code:'VGK', name:'golden knights', image:nhlImg('golden_knights.png')},
+    {code:'WSH', name:'capitals',       image:nhlImg('capitals.png')},
+    {code:'WPG', name:'jets',           image:nhlImg('jets.png')}
   ];
 
   /* =========================
@@ -1146,7 +1748,8 @@ const CHANNELS = (() => {
   const breakTypes = {
     nba: { name: "NBA", teams: NBA, count: 30, bottomCols: 5, bottomCount: 10 },
     mlb: { name: "MLB", teams: MLB, count: 30, bottomCols: 5, bottomCount: 10 },
-    nfl: { name: "NFL", teams: NFL, count: 32, bottomCols: 6, bottomCount: 12 }
+    nfl: { name: "NFL", teams: NFL, count: 32, bottomCols: 6, bottomCount: 12 },
+    nhl: { name: "NHL", teams: NHL, count: 32, bottomCols: 6, bottomCount: 12 }
   };
 
   /* =========================
@@ -1186,10 +1789,22 @@ function rememberSaleId(saleId){
   }
 }
 
-  // chasers
-  const CHASERS_KEY = "blue-light-rips.chasers";
-  const DEFAULT_CHASERS = new Set(["LAL","OKC","GSW","DAL","HOU","BOS","KC","BUF","SF","LAD"]);
-  let chasersSet = new Set(DEFAULT_CHASERS);
+  // chasers — tracked SEPARATELY per sport
+  const CHASERS_KEY = "blue-light-rips.chasersBySport";
+  const DEFAULT_CHASERS_BY_SPORT = {
+    nba: ["LAL","OKC","GSW","DAL","HOU","BOS"],
+    nfl: ["KC","BUF","SF","DAL","PHI","BAL"],
+    mlb: ["LAD","NYY","ATL","HOU","BAL","PHI"],
+    nhl: ["EDM","TOR","COL","VGK","NYR","BOS"]
+  };
+  let chasersBySport = {};
+  // Returns (and lazily seeds) the chaser Set for the active sport
+  function currentChasers(){
+    if (!chasersBySport[currentSport]){
+      chasersBySport[currentSport] = new Set(DEFAULT_CHASERS_BY_SPORT[currentSport] || []);
+    }
+    return chasersBySport[currentSport];
+  }
 
   // title
   let headerTitleText = "BLUE LIGHT RIPS • MLB";
@@ -1238,17 +1853,25 @@ function loadSport(){
 
 
   function saveChasers(){
-    localStorage.setItem(CHASERS_KEY, JSON.stringify([...chasersSet]));
+    const obj = {};
+    Object.keys(chasersBySport).forEach(k => { obj[k] = [...chasersBySport[k]]; });
+    localStorage.setItem(CHASERS_KEY, JSON.stringify(obj));
   }
   function loadChasers(){
+    chasersBySport = {};
     try{
       const raw = localStorage.getItem(CHASERS_KEY);
-      if (!raw) return;
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr) && arr.length){
-        chasersSet = new Set(arr.map(s => String(s).toUpperCase()));
+      if (raw){
+        const obj = JSON.parse(raw);
+        Object.keys(obj || {}).forEach(k => {
+          if (Array.isArray(obj[k])) chasersBySport[k] = new Set(obj[k].map(s => String(s).toUpperCase()));
+        });
       }
     }catch(_){}
+    // seed any missing sport with its defaults
+    ['nba','nfl','mlb','nhl'].forEach(k => {
+      if (!chasersBySport[k]) chasersBySport[k] = new Set(DEFAULT_CHASERS_BY_SPORT[k] || []);
+    });
   }
 
   /* =========================
@@ -1372,6 +1995,16 @@ function buildTile(team){
   img.onerror = () => { d.textContent = team.code; };
 
   d.appendChild(img);
+
+  // Chaser indicator (per-sport) — animated badge + glow
+  if (currentChasers().has(team.code)){
+    d.classList.add('chaser');
+    const badge = document.createElement('div');
+    badge.className = 'chaser-badge';
+    badge.textContent = 'CHASE';
+    d.appendChild(badge);
+  }
+
   d.addEventListener('click', () => toggleTeam(team.code));
   return d;
 }
@@ -1500,7 +2133,7 @@ const CYCLE_MS = (() => {
 
 
 // store last scores per sport
-const scoresBySport = { nba: [], nfl: [], mlb: [] };
+const scoresBySport = { nba: [], nfl: [], mlb: [], nhl: [] };
 let _scoreCycleTimer = null;
 let _cycleIdx = 0;
 const _cycleOrder = ["nba","nfl","mlb"];
@@ -1549,7 +2182,7 @@ const _cycleOrder = ["nba","nfl","mlb"];
   ========================== */
   function countChasersLeft(){
     let left = 0;
-    chasersSet.forEach(code => { if (!soldSet.has(code)) left++; });
+    currentChasers().forEach(code => { if (!soldSet.has(code)) left++; });
     return left;
   }
 
@@ -1691,57 +2324,63 @@ function setScoreboard(games, sport){
 }
 
   /* =========================
-     Rotating Banner
+     Rotating Promo Bar
   ========================== */
+  function applyPromoStyle(){
+    const banner = document.getElementById('banner');
+    if (!banner) return;
+    banner.classList.add('has-bg');
+    banner.classList.toggle('flip', promoAnim !== 'spin');
+    banner.classList.toggle('spin', promoAnim === 'spin');
+    banner.style.setProperty('--promoBg', `url('${PROMO_BG}')`);
+    banner.style.setProperty('--promoAnim', '820ms');
+  }
+
   function renderBanner(){
     const host = document.getElementById('banner');
+    if (!host) return;
     host.innerHTML = '';
+    applyPromoStyle();
 
-    BANNERS.forEach((b, i) => {
+    const lines = promoLines.length ? promoLines : PROMO_DEFAULT_LINES;
+    if (bannerIdx >= lines.length) bannerIdx = 0;
+
+    lines.forEach((line, i) => {
       const slide = document.createElement('div');
       slide.className = 'banner-inner' + (i === bannerIdx ? ' active' : '');
-
-      if (b.image){
-        const bg = document.createElement('img');
-        bg.className = 'bg';
-        bg.src = b.image;
-        bg.alt = '';
-        slide.appendChild(bg);
-      }
 
       const content = document.createElement('div');
       content.className = 'banner-content';
 
-      const badge = document.createElement('div');
-      badge.className = 'banner-badge';
-      badge.textContent = b.badge || '';
-
       const text = document.createElement('div');
       text.className = 'banner-text';
 
-      const top = document.createElement('div');
-      top.className = 'top';
-      top.textContent = b.top || '';
-
       const main = document.createElement('div');
       main.className = 'main';
-      main.textContent = b.main || '';
+      main.textContent = line;
 
-      text.appendChild(top);
       text.appendChild(main);
-
-      content.appendChild(badge);
       content.appendChild(text);
-
       slide.appendChild(content);
       host.appendChild(slide);
     });
   }
 
+  function applyActiveSlide(){
+    document.querySelectorAll('.banner-inner')
+      .forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
+  }
+
   function rotateBanner(){
-    bannerIdx = (bannerIdx + 1) % BANNERS.length;
-    const slides = document.querySelectorAll('.banner-inner');
-    slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
+    const n = Math.max(1, promoLines.length);
+    bannerIdx = (bannerIdx + 1) % n;
+    applyActiveSlide();
+  }
+
+  let _promoTimer = null;
+  function startPromoRotation(){
+    if (_promoTimer) clearInterval(_promoTimer);
+    _promoTimer = setInterval(rotateBanner, Math.max(1, promoSecs) * 1000);
   }
 
   /* =========================
@@ -1770,7 +2409,7 @@ function setScoreboard(games, sport){
   }
 
   function cycleSport(){
-    const order = ['nba','nfl','mlb'];
+    const order = ['nba','nfl','mlb','nhl'];
     const idx = order.indexOf(currentSport);
     const next = order[(idx + 1 + order.length) % order.length];
     setSport(next);
@@ -1786,10 +2425,11 @@ function setScoreboard(games, sport){
     chasersGrid.innerHTML = "";
 
     const teams = breakTypes[currentSport].teams;
+    const cs = currentChasers();
 
     teams.forEach(team => {
       const btn = document.createElement("button");
-      const active = chasersSet.has(team.code);
+      const active = cs.has(team.code);
 
       btn.type = "button";
       btn.textContent = team.code;
@@ -1806,10 +2446,10 @@ function setScoreboard(games, sport){
 
       btn.addEventListener("click", () => {
         const code = btn.dataset.code;
-        if (chasersSet.has(code)) chasersSet.delete(code);
-        else chasersSet.add(code);
+        if (cs.has(code)) cs.delete(code);
+        else cs.add(code);
 
-        const nowActive = chasersSet.has(code);
+        const nowActive = cs.has(code);
         btn.style.border = nowActive ? "2px solid rgba(91,140,255,0.95)" : "1px solid rgba(255,255,255,0.14)";
         btn.style.background = nowActive ? "rgba(30,102,255,0.30)" : "rgba(255,255,255,0.08)";
 
@@ -1995,9 +2635,9 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
       }
 
       if (type === "banner_set" && Number.isInteger(payload.index)){
-        bannerIdx = ((payload.index % BANNERS.length) + BANNERS.length) % BANNERS.length;
-        const slides = document.querySelectorAll('.banner-inner');
-        slides.forEach((s, i) => s.classList.toggle('active', i === bannerIdx));
+        const n = Math.max(1, promoLines.length);
+        bannerIdx = ((payload.index % n) + n) % n;
+        applyActiveSlide();
       }
 
       if (type === "stream_stats"){
@@ -2065,6 +2705,7 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
   document.getElementById("closeChasers").addEventListener("click", () => chasersPopup.classList.remove("active"));
   document.getElementById("applyChasers").addEventListener("click", () => {
     saveChasers();
+    renderTeams();            // refresh chaser badges on the board
     updateStreamStatsBox();
     chasersPopup.classList.remove("active");
   });
@@ -2185,9 +2826,128 @@ if (BRIDGE_URL) {
 
   
 
-    setInterval(rotateBanner, 9000);
+    // --- Branded overlay background + saved facecam background ---
+    applyOverlayBg();
+    applyCamBg();
+
+    // --- Edit Promo popup ---
+    const promoPopup = document.getElementById('promoPopup');
+    const promoBox   = document.getElementById('promoBox');
+    const promoSecsInput = document.getElementById('promoSecs');
+    const promoAnimSel = document.getElementById('promoAnimSel');
+    document.getElementById('promoBtn').addEventListener('click', () => {
+      promoBox.value = promoLines.join('\n');
+      promoSecsInput.value = promoSecs;
+      promoAnimSel.value = promoAnim;
+      promoPopup.classList.add('active');
+      setTimeout(() => promoBox.focus(), 0);
+    });
+    document.getElementById('closePromo').addEventListener('click', () => promoPopup.classList.remove('active'));
+    document.getElementById('applyPromo').addEventListener('click', () => {
+      const lines = promoBox.value.split('\n').map(s => s.trim()).filter(Boolean);
+      promoLines = lines.length ? lines : PROMO_DEFAULT_LINES.slice();
+      const secs = parseInt(promoSecsInput.value, 10);
+      promoSecs = Math.min(120, Math.max(1, Number.isInteger(secs) ? secs : PROMO_DEFAULT_SECS));
+      promoAnim = (promoAnimSel.value === 'spin') ? 'spin' : 'flip';
+      LS.set('promoLines', JSON.stringify(promoLines));
+      LS.set('promoSecs', promoSecs);
+      LS.set('promoAnim', promoAnim);
+      bannerIdx = 0;
+      renderBanner();
+      startPromoRotation();
+      promoPopup.classList.remove('active');
+    });
+    promoBox.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)){
+        e.preventDefault();
+        document.getElementById('applyPromo').click();
+      }
+    });
+
+    // --- Facecam Background popup ---
+    const camPopup   = document.getElementById('camPopup');
+    const camFile    = document.getElementById('camFile');
+    const camPreview = document.getElementById('camPreview');
+    function refreshCamPreview(){
+      const v = LS.get('camBg', '');
+      camPreview.style.backgroundImage = v ? `url('${v}')` : '';
+    }
+    document.getElementById('camBgBtn').addEventListener('click', () => {
+      refreshCamPreview();
+      camPopup.classList.add('active');
+    });
+    document.getElementById('camBrowse').addEventListener('click', () => camFile.click());
+    camFile.addEventListener('change', () => {
+      const f = camFile.files && camFile.files[0];
+      if (!f) return;
+      fileToScaledDataUrl(f, 1280, (dataUrl) => {
+        try { LS.set('camBg', dataUrl); } catch(_){ /* too big to persist; still applies this session */ }
+        applyCamBg(dataUrl);
+        refreshCamPreview();
+      });
+      camFile.value = '';
+    });
+    document.getElementById('camClear').addEventListener('click', () => {
+      try { localStorage.removeItem(`${CLIENT_ID}.camBg`); } catch(_){}
+      applyCamBg('');
+      refreshCamPreview();
+    });
+    document.getElementById('closeCam').addEventListener('click', () => camPopup.classList.remove('active'));
+
+    // --- Start promo rotation on the seller-set timer ---
+    startPromoRotation();
+
+    // --- Randomizer wheel wiring ---
+    initFloatingWheelDrag();
+    initWheelControlsDrag();
+    document.getElementById('wheelBtn').addEventListener('click', toggleWheelVisibility);
+    document.getElementById('wheelSpinBtn').addEventListener('click', spinWheel);
+    document.getElementById('wheelShuffleBtn').addEventListener('click', shuffleWheelEntries);
+    document.getElementById('wheelRefreshBtn').addEventListener('click', refreshWheelEntries);
+    document.getElementById('wheelMarkBtn').addEventListener('click', commitWheelWinner);
+    document.getElementById('wheelRemoveBtn').addEventListener('click', removeWinnerSpot);
+
+    const wheelPopup = document.getElementById('wheelPopup');
+    const wheelBox = document.getElementById('wheelBox');
+    document.getElementById('wheelCustomBtn').addEventListener('click', () => {
+      wheelBox.value = wheelCustom.join('\n');
+      wheelPopup.classList.add('active');
+      setTimeout(() => wheelBox.focus(), 0);
+    });
+    document.getElementById('closeWheel').addEventListener('click', () => wheelPopup.classList.remove('active'));
+    document.getElementById('applyWheel').addEventListener('click', () => {
+      wheelCustom = wheelBox.value.split('\n').map(s => s.trim()).filter(Boolean);
+      LS.set('wheelCustom', JSON.stringify(wheelCustom));
+      wheelPopup.classList.remove('active');
+      if (wheelVisible) refreshWheelEntries();
+    });
+
+    // restore saved visibility (default hidden)
+    wheelVisible = (LS.get('wheelVisible','0') === '1');
+    applyWheelVisibility();
   });
 </script>
+
+<!-- Randomizer Wheel (top-level so it floats above the overlay + sold panel, unclipped) -->
+<div id="wheel-float" style="display:none">
+  <canvas id="wheelCanvasFloat"></canvas>
+  <div class="wheel-pointer-float"></div>
+  <div id="wheel-resize-handle"></div>
+</div>
+<div id="wheel-winner-banner">
+  <span id="wheel-winner-label">WINNER</span>
+  <span id="wheel-winner-text">—</span>
+</div>
+<div class="wheel-controls" id="wheel-controls" style="display:none">
+  <span class="wheel-drag" id="wheel-controls-grip" title="Drag to move">⣿</span>
+  <button class="wheel-btn" id="wheelSpinBtn">Spin</button>
+  <button class="wheel-btn" id="wheelShuffleBtn">Randomize</button>
+  <button class="wheel-btn alt" id="wheelRefreshBtn">Refresh</button>
+  <button class="wheel-btn" id="wheelMarkBtn">Mark Sold</button>
+  <button class="wheel-btn alt" id="wheelRemoveBtn">Remove Spot</button>
+  <button class="wheel-btn alt" id="wheelCustomBtn">Customize</button>
+</div>
+
 <div id="soldFxLayer" class="sold-fx-layer" aria-hidden="true"></div>
 </body>
 </html>
