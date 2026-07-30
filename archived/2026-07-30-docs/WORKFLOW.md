@@ -1,3 +1,5 @@
+> ⛔ **SUPERSEDED 2026-07-30.** Replaced by `card-break-overlay/docs/SOP-CLIENT-PROVISIONING.md`. Archived during the documentation consolidation audit. Kept for history only. Do not use this file for current work.
+
 # TSU Platform — Full Client Workflow
 
 This document maps every step from purchase to go-live, including who owns each step,

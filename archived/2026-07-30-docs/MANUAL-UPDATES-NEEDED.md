@@ -1,3 +1,5 @@
+> ⛔ **SUPERSEDED 2026-07-30.** Replaced by `card-break-overlay/CLAUDE.md`. Archived during the documentation consolidation audit. Kept for history only. Do not use this file for current work.
+
 # Manual Documentation Updates Required
 
 Two files need to be updated manually because they live outside the connected

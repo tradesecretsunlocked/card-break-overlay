@@ -8,7 +8,7 @@
    * DEPLOYMENT CHECKLIST (search ZZZ_ to find all placeholders):
    *   1. Replace ZZZ_BRIDGE_URL  with the assigned Render bridge URL
    *   2. Replace ZZZ_BRIDGE_KEY  with the assigned bridge key
-   *   3. Confirm overlayId matches Notion Build Queue record
+   *   3. Confirm overlayId matches the builds record in HQ
    *
    * Sport is set to "nil" — Legends Hobby runs multi-sport so
    * sport is auto-inferred from each listing title.

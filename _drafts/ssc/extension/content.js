@@ -22,7 +22,7 @@
    *  [STABILITY]   injected.js has a duplicate-injection guard (see that file).
    *
    * PER-CLIENT SETUP (the only 3 things that differ between clients):
-   *   bridgeKey  — 32-char hex, get from TSU Notion build queue
+   *   bridgeKey: the client UUID, from the Supabase bridge_keys table
    *   sport      — "nfl" | "nba" | "mlb" | "nil" (nil = combo/infer)
    *   overlayId  — descriptive ID string, e.g. "ssc"
    */

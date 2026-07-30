@@ -15,9 +15,6 @@ Usage (CLI args):
         --style "vault-crest badge, hyper-realistic 3D CGI, neon glow" \
         [--extra "Mystery Pack" "Group Break"]
 
-Usage (Notion queue — reads branding from a Notion page):
-    python generate-promos.py --notion-id <page_id>
-
 Output:
     _drafts/{slug}/graphics/
         stash-or-pass.png
@@ -28,11 +25,10 @@ Output:
         _prompts/  (prompt text saved alongside each image for reference)
 
 Requirements:
-    pip install openai requests python-dotenv
+    pip install openai python-dotenv
 
 Environment variables (or .env in repo root):
     OPENAI_API_KEY=sk-...
-    NOTION_TOKEN=secret_...  (only needed for --notion-id mode)
 """
 
 import argparse
@@ -155,62 +151,6 @@ Aspect ratio: 1:1 square."""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Notion helpers (optional — only used with --notion-id)
-# ─────────────────────────────────────────────────────────────────────────────
-def fetch_notion_branding(page_id):
-    """Pull client name + branding fields from a Notion page."""
-    try:
-        import requests
-    except ImportError:
-        sys.exit("ERROR: requests package not installed. Run: pip install requests")
-
-    token = os.environ.get("NOTION_TOKEN")
-    if not token:
-        sys.exit("ERROR: NOTION_TOKEN env var not set")
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Notion-Version": "2022-06-28",
-        "Content-Type": "application/json",
-    }
-
-    r = requests.get(f"https://api.notion.com/v1/pages/{page_id}", headers=headers)
-    r.raise_for_status()
-    props = r.json().get("properties", {})
-
-    def get_text(prop):
-        val = props.get(prop, {})
-        t = val.get("type", "")
-        if t == "title":
-            return "".join(x["plain_text"] for x in val.get("title", []))
-        if t == "rich_text":
-            return "".join(x["plain_text"] for x in val.get("rich_text", []))
-        return ""
-
-    def get_select(prop):
-        val = props.get(prop, {})
-        return (val.get("select") or {}).get("name", "")
-
-    client_name = get_text("Client Name") or get_text("Name") or get_text("name")
-    primary     = get_text("Primary Color") or get_text("Brand Color 1") or "#FFFFFF"
-    secondary   = get_text("Secondary Color") or get_text("Brand Color 2") or "#000000"
-    style_notes = get_text("Style Notes") or get_text("Brand Notes") or ""
-    extra_raw   = get_text("Extra Promo Types") or get_text("Custom Promos") or ""
-    slug        = get_text("Slug") or slugify(client_name)
-
-    extra_types = [x.strip() for x in extra_raw.split(",") if x.strip()] if extra_raw else []
-
-    return {
-        "client_name": client_name,
-        "slug": slug,
-        "primary": primary.strip(),
-        "secondary": secondary.strip(),
-        "style_notes": style_notes,
-        "extra_types": extra_types,
-    }
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Image generation
 # ─────────────────────────────────────────────────────────────────────────────
 def generate_image(client, prompt_text, output_path, prompt_save_path, dry_run=False):
@@ -261,31 +201,20 @@ def main():
     parser.add_argument("--secondary", default="#000000", help="Secondary color hex (default: #000000)")
     parser.add_argument("--style",     default="", help="Optional extra style notes for all prompts")
     parser.add_argument("--extra",     nargs="*", default=[], help="Extra promo type names beyond the 4 standards")
-    parser.add_argument("--notion-id", help="Notion page ID to pull branding from automatically")
     parser.add_argument("--output-dir", help="Override output directory (default: _drafts/{slug}/graphics)")
     parser.add_argument("--dry-run",   action="store_true", help="Build prompts only — don't call the API")
     parser.add_argument("--only",      nargs="*", help="Generate only specific promo slugs, e.g. --only pyt stash-or-pass")
     args = parser.parse_args()
 
     # ── Gather branding ──────────────────────────────────────────────────────
-    if args.notion_id:
-        print(f"Fetching branding from Notion page {args.notion_id}...")
-        branding = fetch_notion_branding(args.notion_id)
-        client_name  = branding["client_name"]
-        slug         = branding["slug"]
-        primary      = branding["primary"]
-        secondary    = branding["secondary"]
-        style_notes  = branding["style_notes"]
-        extra_types  = branding["extra_types"]
-    else:
-        if not args.client or not args.primary:
-            parser.error("Provide --client and --primary, or use --notion-id")
-        client_name = args.client
-        slug        = args.slug or slugify(client_name)
-        primary     = args.primary
-        secondary   = args.secondary
-        style_notes = args.style
-        extra_types = args.extra or []
+    if not args.client or not args.primary:
+        parser.error("Provide --client and --primary")
+    client_name = args.client
+    slug        = args.slug or slugify(client_name)
+    primary     = args.primary
+    secondary   = args.secondary
+    style_notes = args.style
+    extra_types = args.extra or []
 
     # ── Output folder ────────────────────────────────────────────────────────
     repo_root  = Path(__file__).parent.parent

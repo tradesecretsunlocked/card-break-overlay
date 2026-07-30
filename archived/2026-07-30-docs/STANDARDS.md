@@ -1,3 +1,5 @@
+> ⛔ **SUPERSEDED 2026-07-30.** Replaced by `card-break-overlay/TSU-OVERLAY-STANDARD.md`. Archived during the documentation consolidation audit. Kept for history only. Do not use this file for current work.
+
 # Card Break Overlay — Development Standards
 
 This document defines the standard patterns, naming conventions, and required functions for all overlays in this repo. New overlays should follow these standards; existing overlays should be migrated toward them over time.

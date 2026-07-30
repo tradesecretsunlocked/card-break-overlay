@@ -104,9 +104,14 @@ GET /status?key={bridgeKey}
 
 ## Migrating Existing Clients
 
+> Historical. Migration is complete and there are no per-client Render services left to move.
+> Kept as a record of how it was done. Note that the current delivery method is the **baked**
+> bridge key in the overlay file and the extension, not a `?bridge=` or `?key=` URL parameter,
+> and the queue is the Supabase `builds` table.
+
 For each client currently on their own Render service:
 
-1. Get their `bridgeKey` from the old service's `BRIDGE_KEY` env var (or from your Notion build queue)
+1. Get their `bridgeKey` from the old service's `BRIDGE_KEY` env var (or from the Supabase `bridge_keys` table, which is where it lives now)
 2. The **overlay** only needs one URL change — update the `?bridge=` query parameter:
    ```
    Old: ?bridge=https://tsu-bridge-clientname.onrender.com
