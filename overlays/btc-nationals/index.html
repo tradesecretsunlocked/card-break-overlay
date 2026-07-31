@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bigger Than Cardboard: Nationals (Live Auction)</title>
+<style>
+  :root{
+    /* BTC brand: black / silver / white */
+    --primary:   #000000;
+    --secondary: #c9c9c9;
+    --white:     #ffffff;
+    --silver:    #c9c9c9;
+    --btcBlue:   #001830;   /* Bigger Than Cardboard navy */
+    --blueAccent:#1f5fbf;   /* readable blue for glows/accents */
+
+    --W: 1080px;
+    --H: 1920px;
+
+    --pad: 22px;
+    --gap: 16px;
+    --radius: 18px;
+
+    --camBorder: rgba(201,201,201,0.85);
+    --panel: rgba(6,7,12,0.78);
+    --panelBorder: rgba(255,255,255,0.14);
+
+    --tickerDur: 26s;   /* JS updates for speed */
+    --infoDur: 400ms;
+  }
+
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    width: var(--W);
+    height: var(--H);
+    background: transparent;   /* OBS-safe */
+    font-family: "Arial Black", Arial, Helvetica, sans-serif;
+    color: var(--white);
+    user-select: none;
+    overflow: hidden;
+  }
+
+  .overlay{
+    position: relative;
+    width: var(--W);
+    height: var(--H);
+    padding: var(--pad);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap);
+    background:
+      url('nationals-bg.png') center center / cover no-repeat, #02030a;
+  }
+
+  /* ===================== HEADER ===================== */
+  .header{
+    display:flex; align-items:center; justify-content:space-between;
+    height: 92px;
+    padding: 10px 20px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(0,24,48,0.55), rgba(0,0,0,0.30));
+    border: 1px solid var(--panelBorder);
+    border-bottom: 2px solid rgba(31,95,191,0.55);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  .brand{ display:flex; align-items:center; gap:14px; }
+  .brand img{ height: 130px; width:auto; display:block; }
+  .brand .title{
+    font-size: 33px; font-weight: 900; letter-spacing: 2px;
+    text-transform: uppercase; color: var(--white);
+    text-shadow: 0 2px 0 rgba(0,0,0,0.85);
+  }
+  .brand .title .sub{ display:block; font-size: 18px; letter-spacing: 3px; color: var(--silver); }
+  .header .tag{
+    font-size: 14px; letter-spacing: 3px; color: var(--silver);
+    text-align:right; text-transform: uppercase;
+  }
+  .header .tag b{ color: var(--white); display:block; font-size:16px; }
+
+  /* ===================== CAM FRAMES ===================== */
+  .camFrame{
+    position: relative;
+    border-radius: var(--radius);
+    background: #000;
+    border: 3px solid var(--camBorder);
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.6),
+      0 12px 30px rgba(0,0,0,0.55),
+      0 0 26px rgba(31,95,191,0.30),
+      inset 0 0 40px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .camFrame .label{
+    position:absolute; top:8px; left:10px; z-index:3;
+    font-size: 12px; letter-spacing: 2px; color: var(--silver);
+    background: rgba(0,0,0,0.45); padding: 2px 8px; border-radius: 6px;
+    pointer-events:none;
+  }
+  .camFrame .hint{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size: 13px; letter-spacing:1px; color: rgba(255,255,255,0.28);
+    pointer-events:none; text-align:center; padding:0 20px;
+  }
+  .camFrame video, .camFrame img.feed{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:2; }
+
+  .mainCam{ width: 100%; aspect-ratio: 1655 / 1080; background: transparent; border: none; box-shadow: none; }
+  .camframe-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:fill; z-index:4; pointer-events:none; }
+
+  .pips{ display:grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+  .pips .camFrame{ aspect-ratio: 16 / 9; background: transparent; border-width: 2px; }
+
+  /* ===================== TICKER ===================== */
+  .ticker{
+    position: relative;
+    height: 78px;
+    border-radius: 12px;
+    background: url('btc-promo.png') center center / cover no-repeat, #05070f;
+    border: 1px solid var(--panelBorder);
+    overflow: hidden;
+    display:flex; align-items:center;
+    top:-48px;
+  }
+  .ticker::before{ content: none; }
+  .ticker-viewport{
+    position:absolute; top:0; bottom:0; left: 122px; right:0;
+    overflow:hidden; display:flex; align-items:center;
+  }
+  .ticker-track{
+    display:inline-block; white-space:nowrap; padding-left: 100%;
+    font-size: 38px; font-weight: 900; letter-spacing: 1px; color: var(--white);
+    text-shadow: 0 2px 2px rgba(0,0,0,0.8);
+    animation: tickerScroll var(--tickerDur) linear infinite;
+    will-change: transform;
+  }
+  @keyframes tickerScroll{ 0%{ transform: translateX(0); } 100%{ transform: translateX(-100%); } }
+
+  /* ===================== ROTATING INFO BAR ===================== */
+  .infoBar{
+    position: relative;
+    height: 132px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(31,95,191,0.16), rgba(6,7,12,0.85));
+    border: 1px solid rgba(58,155,255,0.35);
+    box-shadow: 0 0 22px rgba(31,95,191,0.25);
+    overflow: hidden;
+    top: -24px;
+  }
+  .infoPanel{
+    position:absolute; inset:0; padding: 8px 12px;
+    display:flex; flex-direction:column; justify-content:center; gap:6px;
+    opacity:0; transform: translateY(14px);
+    transition: opacity var(--infoDur) ease, transform var(--infoDur) ease;
+  }
+  .infoPanel.active{ opacity:1; transform: translateY(0); }
+  .infoPanel .row{ display:flex; align-items:center; justify-content:space-between; }
+  .infoPanel .k{ font-size: 34px; letter-spacing: 3px; color: var(--silver); text-transform:uppercase; }
+  .infoPanel .v{ font-size: 30px; font-weight:900; color: var(--white); }
+  .goalTrack{ height: 26px; border-radius: 10px; background: rgba(255,255,255,0.10); overflow:hidden; }
+  .goalFill{ height:100%; width:0%; background: linear-gradient(90deg,#1f5fbf,#8fb4ff,#c9c9c9,#ffffff); transition: width .6s ease; }
+  /* Goal panel emphasis (it is the only info-bar slide) */
+  .infoPanel[data-panel="goal"]{ gap:12px; }
+  .infoPanel[data-panel="goal"] .k{ font-size:34px; color:#eaf2ff; }
+  .infoPanel[data-panel="goal"] .v{ font-size:30px; color:#ffffff; text-shadow:0 2px 6px rgba(58,155,255,0.5); }
+  .infoPanel[data-panel="goal"] .goalTrack{ height:30px; border-radius:15px; border:1px solid rgba(58,155,255,0.45); box-shadow: inset 0 0 12px rgba(0,0,0,0.5); }
+  .infoPanel[data-panel="goal"] .goalFill{ box-shadow: 0 0 18px rgba(58,155,255,0.8); }
+  .bigStat{ font-size: 40px; font-weight:900; color: var(--white); letter-spacing:1px; }
+  .infoDots{ position:absolute; bottom:8px; left:0; right:0; display:flex; gap:6px; justify-content:center; }
+  .infoDots span{ width:18px; height:4px; border-radius:2px; background: rgba(255,255,255,0.25); }
+  .infoDots span.on{ background: var(--blueAccent); box-shadow:0 0 8px rgba(31,95,191,0.8); }
+
+  /* ===================== WICK (bright-blue border sweep, ping-pong) ===================== */
+  .wick{ position: relative; }
+  .wick::after{
+    content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:6;
+    padding:2px;
+    background: linear-gradient(115deg,
+        transparent 0%, transparent 34%,
+        rgba(47,143,255,0.25) 44%,
+        #3a9bff 50%,
+        rgba(47,143,255,0.25) 56%,
+        transparent 66%, transparent 100%);
+    background-size: 260% 100%; background-repeat:no-repeat;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    animation: wickRun 3.4s ease-in-out infinite alternate;
+  }
+  @keyframes wickRun{ from{ background-position: 120% 50%; } to{ background-position: -20% 50%; } }
+  
+
+
+
+
+  /* ===================== STATS ===================== */
+  .stats{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--gap); position:relative; top:-40px; }
+  .stat{
+    background: var(--panel); border:1px solid var(--panelBorder); border-radius: 14px;
+    padding: 10px 10px; text-align:center;
+  }
+  .stat .l{ font-size: 28px; letter-spacing: 2px; color: var(--silver); text-transform: uppercase; }
+  .stat .v{ font-size: 46px; font-weight: 900; color: var(--white); margin-top: 4px; }
+  .stat .v.small{ font-size: 22px; }
+
+  /* ===================== STAGE (sold shoutout) ===================== */
+  .stage{
+    position: relative; flex: 1 1 auto; min-height: 120px;
+    border-radius: 14px;
+    background: linear-gradient(rgba(2,3,10,0.55), rgba(2,3,10,0.78)), url('btc-accent.png') center center / cover no-repeat;
+    border: 1px solid rgba(255,255,255,0.10);
+    overflow: hidden;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stagePanel{ position:absolute; inset:0; padding:16px 22px; z-index:1;
+    display:flex; flex-direction:column; gap:10px;
+    opacity:0; transform: translateY(12px); transition: opacity .4s ease, transform .4s ease; }
+  .stagePanel.active{ opacity:1; transform: translateY(0); }
+  /* Bottom-stage promo banner: full-width graphics, any aspect, never distorted */
+  .stagePanel[data-spanel="promo"]{ padding:0; align-items:center; justify-content:center; }
+  .stagePanel[data-spanel="promo"] img{
+    max-width:100%; max-height:100%; width:auto; height:auto;
+    object-fit:contain; display:block; border-radius:12px;
+    filter: drop-shadow(0 8px 22px rgba(0,0,0,0.55));
+  }
+  .stageTitle{ font-size:16px; letter-spacing:3px; color:var(--silver); text-transform:uppercase; text-align:center; }
+  .lbList{ display:flex; flex-direction:column; gap:8px; justify-content:center; flex:1; }
+  .lbRow{ display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);
+    border-radius:10px; padding:8px 14px; }
+  .lbRank{ font-size:20px; font-weight:900; color:var(--blueAccent); min-width:34px; }
+  .lbName{ font-size:20px; font-weight:900; color:var(--white); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lbAmt{ font-size:20px; font-weight:900; color:var(--silver); }
+  .lbEmpty{ text-align:center; color:rgba(255,255,255,0.28); letter-spacing:2px; text-transform:uppercase; font-size:15px; }
+  .hostsRow{ display:flex; gap:12px; justify-content:center; }
+  .host{ font-size:20px; font-weight:900; color:var(--white); background:rgba(31,95,191,0.18); border:1px solid rgba(58,155,255,0.4);
+    border-radius:10px; padding:8px 16px; }
+  .qrRow{ display:flex; align-items:center; gap:14px; justify-content:center; flex:1; }
+  .qrBox{ width:96px; height:96px; border:2px solid var(--silver); border-radius:10px; display:flex; align-items:center; justify-content:center;
+    text-align:center; font-size:11px; letter-spacing:1px; color:var(--silver); background:rgba(0,0,0,0.4); flex:none; }
+  .qrBox img{ width:100%; height:100%; object-fit:contain; }
+  .qrCap{ font-size:15px; color:rgba(255,255,255,0.85); line-height:1.25; max-width:60%; }
+  .soldCard{
+    position:absolute; left:50%; top:50%; transform: translate(-50%,-50%) scale(.6); opacity:0;
+    min-width: 60%; max-width: 88%;
+    background: linear-gradient(180deg, rgba(20,20,26,0.96), rgba(6,7,12,0.96));
+    border: 2px solid var(--silver); border-radius: 16px; padding: 18px 26px; text-align:center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 30px rgba(31,95,191,0.35);
+    z-index: 8;
+  }
+  .soldCard.show{ animation: soldPop 3.4s cubic-bezier(.2,.8,.2,1) forwards; }
+  @keyframes soldPop{
+    0%{ opacity:0; transform: translate(-50%,-50%) scale(.6); }
+    10%{ opacity:1; transform: translate(-50%,-50%) scale(1.04); }
+    16%{ transform: translate(-50%,-50%) scale(1); }
+    86%{ opacity:1; transform: translate(-50%,-50%) scale(1); }
+    100%{ opacity:0; transform: translate(-50%,-52%) scale(.98); }
+  }
+  .soldCard .lead{ font-size: 16px; letter-spacing: 4px; color: var(--silver); }
+  .soldCard .buyer{ font-size: 34px; font-weight:900; color: var(--white); margin: 6px 0; }
+  .soldCard .item{ font-size: 16px; color: rgba(255,255,255,0.8); }
+  .soldCard .amt{ font-size: 30px; font-weight:900; color: var(--white); margin-top: 8px; }
+  .soldStamp{ position:absolute; top:-26px; right:-18px; width:104px; height:104px; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.6)); pointer-events:none; }
+
+  /* ===================== CONTROLS ===================== */
+  .controls{
+    display:flex; align-items:center; justify-content:center; gap: 10px; flex-wrap:wrap;
+    padding: 8px 0 2px;
+  }
+  .controls.hidden{ display:none; }
+  .ctl{
+    font-size: 14px; letter-spacing:1px; color: var(--white);
+    background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.22);
+    border-radius: 999px; padding: 9px 18px; cursor:pointer; text-transform: uppercase;
+  }
+  .ctl:hover{ background: rgba(255,255,255,0.14); }
+  .ctl.primary{ background: linear-gradient(180deg,#e9e9ee,#c9c9c9); color:#0a0c14; border-color:#fff; font-weight:900; }
+
+  /* hidden admin toggle hotspot */
+  #adminToggle{
+    position: fixed; top:0; left:0; width: 84px; height: 52px;
+    z-index: 2147483647; cursor:pointer; opacity:0; background:transparent; pointer-events:auto;
+  }
+
+  /* ===================== HYPE BURST (milestone) ===================== */
+  #hypeLayer{
+    position: fixed; inset:0; z-index: 999999; pointer-events:none;
+    display:flex; align-items:center; justify-content:center; opacity:0;
+  }
+  #hypeLayer.show{ animation: hypeShow 4.2s ease forwards; }
+  @keyframes hypeShow{ 0%{opacity:0;} 8%{opacity:1;} 82%{opacity:1;} 100%{opacity:0;} }
+  .hypeCard{
+    text-align:center; transform: scale(.7);
+    background: radial-gradient(circle at 50% 40%, rgba(31,95,191,0.34), rgba(201,201,201,0.14) 40%, rgba(0,0,0,0.88) 72%);
+    padding: 60px 80px; border-radius: 28px; border: 3px solid var(--silver);
+    box-shadow: 0 0 90px rgba(31,95,191,0.55), 0 0 40px rgba(201,201,201,0.35);
+  }
+  #hypeLayer.show .hypeCard{ animation: hypePop 4.2s cubic-bezier(.2,.9,.2,1) forwards; }
+  @keyframes hypePop{ 0%{transform:scale(.7);} 12%{transform:scale(1.06);} 20%{transform:scale(1);} 100%{transform:scale(1);} }
+  .hypeCard .k{ font-size: 26px; letter-spacing: 6px; color: var(--silver); text-transform: uppercase; }
+  .hypeCard .big{ font-size: 92px; font-weight:900; color: var(--white); line-height:1; margin: 10px 0; text-shadow:0 4px 0 rgba(0,0,0,0.6); }
+  .hypeCard .sub{ font-size: 22px; letter-spacing:2px; color: var(--silver); text-transform:uppercase; }
+  .confetti{ position:absolute; top:-20px; width:12px; height:18px; opacity:0; }
+  #hypeLayer.show .confetti{ animation: confFall 4.2s linear forwards; }
+  @keyframes confFall{ 0%{opacity:0; transform: translateY(-40px) rotate(0);} 8%{opacity:1;} 100%{opacity:0; transform: translateY(1980px) rotate(720deg);} }
+
+  /* ===================== POPUPS ===================== */
+  .popup{ position: fixed; inset:0; z-index:1000000; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,0.6); }
+  .popup.active{ display:flex; }
+  .popup-card{
+    width: 620px; max-width: 86%; background: #0b0d15; border:1px solid var(--panelBorder);
+    border-radius: 16px; padding: 22px; color: var(--white); font-family: Arial, sans-serif;
+  }
+  .popup-card h2{ margin: 0 0 14px; font-size: 22px; letter-spacing:1px; }
+  .popup-card label{ display:block; font-size: 13px; color: var(--silver); margin: 12px 0 5px; }
+  .popup-card input, .popup-card textarea{
+    width:100%; background: rgba(255,255,255,0.06); border:1px solid var(--panelBorder);
+    border-radius: 10px; color:#fff; padding: 10px 12px; font-size: 15px; font-family: Arial, sans-serif;
+  }
+  .popup-card textarea{ min-height: 96px; resize: vertical; }
+  .popup-btns{ display:flex; gap:10px; justify-content:flex-end; margin-top: 18px; }
+  .popup-btns button{
+    background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25); color:#fff;
+    border-radius: 10px; padding: 10px 18px; font-size: 14px; cursor:pointer;
+  }
+  .popup-btns button.primary{ background: linear-gradient(180deg,#e9e9ee,#c9c9c9); color:#0a0c14; font-weight:900; border-color:#fff; }
+</style>
+</head>
+<body>
+
+  <div class="overlay">
+
+    <div class="header">
+      <div class="brand">
+        <img id="brandLogo" src="btc-logo.png" alt="" />
+        <div class="title"><span id="eventTitle">Charity Stream</span><span class="sub" id="eventSub">ENDING HOMELESSNESS &middot; THE NATIONAL</span></div>
+      </div>
+    </div>
+
+    <div class="camFrame mainCam" id="mainCam">
+      <img class="camframe-img" src="btc-cam.png" alt="" />
+    </div>
+
+    <!-- Ticker sits directly under the main camera -->
+    <div class="ticker">
+      <div class="ticker-viewport">
+        <div class="ticker-track" id="tickerTrack">Bigger Than Cardboard &times; The National - Friday Night Charity Stream</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat wick"><div class="l">Total Raised</div><div class="v" id="statRaised">$0</div></div>
+      <div class="stat wick"><div class="l">Items Sold</div><div class="v" id="statItems">0</div></div>
+      <div class="stat wick"><div class="l">Top Donor</div><div class="v small" id="statTopDonor">—</div></div>
+    </div>
+
+
+
+
+    
+
+    <div class="infoBar wick" id="infoBar">
+      <!-- Panel 0: fundraising goal -->
+      <div class="infoPanel active" data-panel="goal">
+        <div class="row"><span class="k">Fundraising Goal</span><span class="v" id="goalText">$0 / $10,000</span></div>
+        <div class="goalTrack"><div class="goalFill" id="goalFill"></div></div>
+      </div>
+      <!-- Panel 1: total raised big -->
+      <div class="infoPanel" data-panel="raised">
+        <div class="row"><span class="k">Raised Tonight</span></div>
+        <div class="bigStat" id="raisedBig">$0</div>
+      </div>
+      <!-- Panel 2: top donor -->
+      <div class="infoPanel" data-panel="topDonor">
+        <div class="row"><span class="k">Top Donor</span></div>
+        <div class="bigStat" id="topDonorBig">—</div>
+      </div>
+      <!-- Promo panel: charity giveaway -->
+      <div class="infoPanel" data-panel="promo">
+        <div class="row"><span class="k">Giveaway</span></div>
+        <div class="v" style="font-size:22px; line-height:1.15;">Win 1 of 4 Command Center Elite Packages<span style="display:block; margin-top:4px; font-size:15px; color:var(--silver);">$5,000+ value &middot; scan the QR to enter</span></div>
+      </div>
+      <!-- Panel (off by default): Up Next / donor shoutout — enable when Corey's QR backend feeds it -->
+      <div class="infoPanel" data-panel="upNext">
+        <img src="up-next-badge.png" alt="" style="position:absolute; right:18px; top:50%; transform:translateY(-50%); height:80px; opacity:0.92; pointer-events:none;" />
+        <div class="row"><span class="k">Up Next</span></div>
+        <div class="v" id="upNextText" style="font-size:24px;">—</div>
+      </div>
+      <div class="infoDots" id="infoDots"></div>
+    </div>
+
+<div class="pips">
+      <div class="camFrame wick" id="cam2"><span class="label">CAM 2</span></div>
+      <div class="camFrame wick" id="cam3"><span class="label">CAM 3</span></div>
+    </div>
+
+    <div class="stage wick" id="stage">
+      <div class="stagePanel active" data-spanel="leaderboard" id="lbPanel">
+        <div class="stageTitle">Top Donors</div>
+        <div class="lbList" id="lbList"><div class="lbEmpty">Be the first to give</div></div>
+      </div>
+      <div class="stagePanel" data-spanel="hosts" id="hostsPanel">
+        <div class="stageTitle">Your Hosts</div>
+        <div class="hostsRow"><div class="host">@BiggerThanCardboard</div><div class="host">@Collect4Good</div></div>
+        <div class="qrRow"><div class="qrBox" id="qrBox"><img id="qrImg" src="qr.png" alt="" onerror="this.style.display='none';this.parentNode.textContent='SCAN TO ENTER';" /></div><div class="qrCap">Enter the Command Center Elite giveaway. Every entry helps end homelessness.</div></div>
+      </div>
+      <div class="stagePanel" data-spanel="promo" id="promoPanel">
+        <img id="promoImg" src="promo-1.png" alt="" />
+      </div>
+    </div>
+
+    <div class="controls" id="controls">
+      <div class="ctl" id="titleBtn">Title</div>
+      <div class="ctl" id="tickerBtn">Ticker</div>
+      <div class="ctl" id="infoBtn">Info Bar</div>
+      <div class="ctl" id="milestonesBtn">Milestones</div>
+      <div class="ctl primary" id="hypeBtn">Trigger Hype</div>
+      <div class="ctl" id="resetBtn">Reset</div>
+    </div>
+
+  </div>
+
+  <!-- hidden admin toggle + full-screen hype layer -->
+  <div id="adminToggle" title="Toggle controls (or press ` )"></div>
+  <div id="hypeLayer">
+    <div class="hypeCard">
+      <div class="k" id="hypeK">Milestone</div>
+      <div class="big" id="hypeBig">$5,000</div>
+      <div class="sub" id="hypeSub">Raised for charity</div>
+    </div>
+  </div>
+
+  <!-- Ticker popup -->
+  <div class="popup" id="tickerPopup"><div class="popup-card">
+    <h2>Scroll Ticker</h2>
+    <label>Ticker text (use " • " to separate messages)</label>
+    <textarea id="tickerInput"></textarea>
+    <label>Scroll duration in seconds (lower = faster)</label>
+    <input id="tickerSpeed" type="number" min="6" step="1" />
+    <div class="popup-btns"><button class="primary" id="tickerApply">Apply</button><button id="tickerClose">Cancel</button></div>
+  </div></div>
+
+  <!-- Title popup -->
+  <div class="popup" id="titlePopup"><div class="popup-card">
+    <h2>Header Title</h2>
+    <label>Title</label>
+    <input id="titleInput" type="text" />
+    <label>Subtitle</label>
+    <input id="subInput" type="text" />
+    <div class="popup-btns"><button class="primary" id="titleApply">Apply</button><button id="titleClose">Cancel</button></div>
+  </div></div>
+
+  <!-- Info bar popup -->
+  <div class="popup" id="infoPopup"><div class="popup-card">
+    <h2>Rotating Info Bar</h2>
+    <label>Panels to rotate (comma-separated: goal, raised, topDonor, upNext)</label>
+    <input id="infoPanelsInput" type="text" placeholder="goal, raised, topDonor" />
+    <label>Seconds per panel</label>
+    <input id="infoInterval" type="number" min="3" step="1" />
+    <label>Fundraising goal ($)</label>
+    <input id="goalInput" type="number" min="0" step="100" />
+    <div class="popup-btns"><button class="primary" id="infoApply">Apply</button><button id="infoClose">Cancel</button></div>
+  </div></div>
+
+  <!-- Milestones popup -->
+  <div class="popup" id="milestonesPopup"><div class="popup-card">
+    <h2>Milestones</h2>
+    <label>Items-sold milestones (comma-separated counts)</label>
+    <input id="msItems" type="text" placeholder="10, 25, 50, 100" />
+    <label>Dollar-raised milestones (comma-separated amounts)</label>
+    <input id="msDollars" type="text" placeholder="1000, 2500, 5000, 10000" />
+    <div class="popup-btns"><button class="primary" id="msApply">Apply</button><button id="msClose">Cancel</button></div>
+  </div></div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ===== Config / persistence ===== */
+  const CLIENT_ID = "btc-nationals";
+  const LS = {
+    get(k, d=""){ const v = localStorage.getItem(`${CLIENT_ID}.${k}`); return (v==null ? d : v); },
+    set(k, v){ try{ localStorage.setItem(`${CLIENT_ID}.${k}`, String(v)); }catch(_){} }
+  };
+
+  const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com";
+  const BRIDGE_KEY_DEFAULT = "3bc79a79-5ed9-4bea-9c11-ef970abf743a"; // BTC bridge key
+  const BRIDGE_KEY = (() => {
+    const q = new URLSearchParams(location.search).get('key');
+    if (q && q.trim()){ LS.set('bridgeKey', q.trim()); return q.trim(); }
+    return (localStorage.getItem(`${CLIENT_ID}.bridgeKey`) || BRIDGE_KEY_DEFAULT).trim();
+  })();
+  const CHANNELS = (() => {
+    const qs = new URLSearchParams(location.search).getAll('channel');
+    return (qs && qs.length) ? qs : ["main"];
+  })();
+
+  const $ = (id) => document.getElementById(id);
+  const money = (n) => "$" + (Math.round(Number(n)||0)).toLocaleString();
+
+  /* ===== State ===== */
+  let totalRaised = parseFloat(LS.get('totalRaised','0')) || 0;
+  let itemsSold   = parseInt(LS.get('itemsSold','0'),10) || 0;
+  let goal        = parseInt(LS.get('goal','10000'),10) || 10000;
+  const donorTotals = (() => { try { return JSON.parse(LS.get('donorTotals','{}')) || {}; } catch(_){ return {}; } })();
+
+  let tickerMessages = LS.get('tickerText','Bigger Than Cardboard \u00d7 The National \u2014 Friday Night Charity Stream \u2022 Every dollar helps end homelessness \u2022 Win 1 of 4 Command Center Elite packages ($5,000+ value) \u2022 Watch. Win. Make an impact.');
+  let tickerSpeed    = parseInt(LS.get('tickerSpeed','26'),10) || 26;
+
+  let infoPanels   = (LS.get('infoPanels','goal')).split(',').map(s=>s.trim()).filter(Boolean);
+  let infoInterval = parseInt(LS.get('infoInterval','8'),10) || 8;
+  let headerTitle = LS.get('title', ($('eventTitle')?$('eventTitle').textContent:'Charity Stream'));
+  let headerSub   = LS.get('sub',   ($('eventSub')?$('eventSub').textContent:''));
+  function applyHeader(){ if($('eventTitle')) $('eventTitle').textContent=headerTitle; if($('eventSub')) $('eventSub').textContent=headerSub; }
+
+  let msItems   = parseList(LS.get('msItems','10,25,50,100'));
+  let msDollars = parseList(LS.get('msDollars','1000,2500,5000,10000'));
+  let firedItems   = new Set(safeArr(LS.get('firedItems','[]')));
+  let firedDollars = new Set(safeArr(LS.get('firedDollars','[]')));
+
+  function parseList(raw){ return String(raw||'').split(/[,\n]/).map(s=>parseInt(s.trim(),10)).filter(n=>Number.isFinite(n) && n>0).sort((a,b)=>a-b); }
+  function safeArr(raw){ try{ const a=JSON.parse(raw); return Array.isArray(a)?a:[]; }catch(_){ return []; } }
+
+  /* ===== Renderers ===== */
+  function topDonor(){
+    let best="—", bestV=-1;
+    for (const k in donorTotals){ if (donorTotals[k] > bestV){ bestV = donorTotals[k]; best = k; } }
+    return bestV > 0 ? best : "—";
+  }
+  function renderStats(){
+    $('statRaised').textContent = money(totalRaised);
+    $('statItems').textContent  = String(itemsSold);
+    $('statTopDonor').textContent = topDonor();
+    // info bar values
+    const pct = goal > 0 ? Math.min(100, (totalRaised/goal)*100) : 0;
+    $('goalText').textContent = money(totalRaised) + " / " + money(goal) + "  (" + Math.round(pct) + "%)";
+    $('goalFill').style.width = pct.toFixed(1) + "%";
+    $('raisedBig').textContent = money(totalRaised);
+    $('topDonorBig').textContent = topDonor();
+    renderLeaderboard();
+  }
+  function renderLeaderboard(){
+    const list = $('lbList'); if (!list) return;
+    const arr = Object.keys(donorTotals).map(k=>[k,donorTotals[k]]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    if (!arr.length){ list.innerHTML = '<div class="lbEmpty">Be the first to give</div>'; return; }
+    list.innerHTML = arr.map((x,i)=>`<div class="lbRow"><span class="lbRank">#${i+1}</span><span class="lbName">@${esc(x[0])}</span><span class="lbAmt">${money(x[1])}</span></div>`).join('');
+  }
+  let _stageIdx=0, _stageTimer=null;
+  const STAGE_PANELS=['leaderboard','hosts','promo'];
+  // Bottom-stage promo banners. One image advances each time the promo panel comes up.
+  // A missing file is skipped automatically, so this list can be edited without risk.
+  const PROMO_IMAGES=['promo-1.png','promo-2.png','promo-3.png','tsu-promo.png'];
+  let _promoIdx=-1;
+  function nextPromoImage(tries){
+    const img=$('promoImg'); if(!img || !PROMO_IMAGES.length) return;
+    tries = tries || 0;
+    if (tries >= PROMO_IMAGES.length){ img.onerror=null; img.style.display='none'; return; }
+    _promoIdx=(_promoIdx+1)%PROMO_IMAGES.length;
+    img.onerror=function(){ this.onerror=null; nextPromoImage(tries+1); };
+    img.onload=function(){ this.style.display='block'; };
+    img.src=PROMO_IMAGES[_promoIdx];
+  }
+  function showStagePanel(i){
+    _stageIdx=((i%STAGE_PANELS.length)+STAGE_PANELS.length)%STAGE_PANELS.length;
+    const key=STAGE_PANELS[_stageIdx];
+    if (key==='promo') nextPromoImage(0);
+    document.querySelectorAll('.stagePanel').forEach(p=>p.classList.toggle('active', p.dataset.spanel===key));
+  }
+  function startStageRotation(){
+    if (_stageTimer){ clearInterval(_stageTimer); _stageTimer=null; }
+    showStagePanel(0);
+    _stageTimer=setInterval(()=>showStagePanel(_stageIdx+1), 12000);
+  }
+  function persist(){
+    LS.set('totalRaised', totalRaised);
+    LS.set('itemsSold', itemsSold);
+    LS.set('donorTotals', JSON.stringify(donorTotals));
+    LS.set('firedItems', JSON.stringify([...firedItems]));
+    LS.set('firedDollars', JSON.stringify([...firedDollars]));
+  }
+
+  /* ===== Ticker ===== */
+  function renderTicker(){
+    $('tickerTrack').textContent = tickerMessages;
+    document.documentElement.style.setProperty('--tickerDur', tickerSpeed + 's');
+  }
+
+  /* ===== Rotating info bar ===== */
+  let infoIdx = 0, _infoTimer = null;
+  function renderInfoDots(){
+    const dots = $('infoDots'); dots.innerHTML = '';
+    if (infoPanels.length <= 1) return;
+    infoPanels.forEach((_,i)=>{ const s=document.createElement('span'); if(i===infoIdx) s.className='on'; dots.appendChild(s); });
+  }
+  function showInfoPanel(i){
+    const panels = infoPanels.length ? infoPanels : ['goal'];
+    infoIdx = ((i % panels.length) + panels.length) % panels.length;
+    const key = panels[infoIdx];
+    document.querySelectorAll('.infoPanel').forEach(p => p.classList.toggle('active', p.dataset.panel === key));
+    renderInfoDots();
+  }
+  function startInfoRotation(){
+    if (_infoTimer){ clearInterval(_infoTimer); _infoTimer = null; }
+    showInfoPanel(0);
+    if (infoPanels.length > 1){
+      _infoTimer = setInterval(()=> showInfoPanel(infoIdx+1), Math.max(3, infoInterval)*1000);
+    }
+  }
+
+  /* ===== Sold shoutout ===== */
+  function showSold(buyer, amount, item){
+    const stage = $('stage');
+    const card = document.createElement('div');
+    card.className = 'soldCard';
+    card.innerHTML =
+      '<div class="lead">SOLD</div>' +
+      '<div class="buyer">' + (buyer ? '@'+esc(buyer) : 'Winner') + '</div>' +
+      (item ? '<div class="item">' + esc(item) + '</div>' : '') +
+      (amount>0 ? '<div class="amt">' + money(amount) + '</div>' : '') +
+      '<img class="soldStamp" src="sold-stamp.png" alt="">';
+    stage.appendChild(card);
+    // force reflow then animate
+    void card.offsetWidth;
+    card.classList.add('show');
+    setTimeout(()=>{ card.remove(); }, 3600);
+  }
+  function esc(s){ return String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+
+  /* ===== Milestone hype ===== */
+  function fireHype(kind, value){
+    const layer = $('hypeLayer');
+    if (kind === 'dollars'){ $('hypeK').textContent='Milestone'; $('hypeBig').textContent = money(value); $('hypeSub').textContent='Raised to end homelessness'; }
+    else if (kind === 'items'){ $('hypeK').textContent='Milestone'; $('hypeBig').textContent = value + ' Items'; $('hypeSub').textContent='Sold tonight'; }
+    else { $('hypeK').textContent='Hype'; $('hypeBig').textContent="LET'S GO!"; $('hypeSub').textContent='Bigger Than Cardboard'; }
+    spawnConfetti(layer);
+    layer.classList.remove('show'); void layer.offsetWidth; layer.classList.add('show');
+    setTimeout(()=> layer.classList.remove('show'), 4300);
+  }
+  function spawnConfetti(layer){
+    layer.querySelectorAll('.confetti').forEach(c=>c.remove());
+    const cols = ['#ffffff','#c9c9c9','#1f5fbf','#2f6fd0'];
+    for (let i=0;i<40;i++){
+      const c = document.createElement('div'); c.className='confetti';
+      c.style.left = Math.random()*100 + '%';
+      c.style.background = cols[i%cols.length];
+      c.style.animationDelay = (Math.random()*0.6) + 's';
+      layer.appendChild(c);
+    }
+  }
+  function checkMilestones(){
+    msDollars.forEach(m => { if (totalRaised >= m && !firedDollars.has(m)){ firedDollars.add(m); persist(); fireHype('dollars', m); } });
+    msItems.forEach(m => { if (itemsSold >= m && !firedItems.has(m)){ firedItems.add(m); persist(); fireHype('items', m); } });
+  }
+
+  /* ===== Sale handling ===== */
+  function onSold(buyer, amount, item){
+    itemsSold += 1;
+    const amt = Number.isFinite(amount) ? amount : 0;
+    if (amt > 0){
+      totalRaised += amt;
+      if (buyer){ donorTotals[buyer] = (donorTotals[buyer]||0) + amt; }
+    }
+    persist(); renderStats(); showSold(buyer, amt, item); checkMilestones();
+  }
+  function parseAmount(p){
+    const raw = p.amount ?? p.price ?? p.salePrice ?? p.sale_price ?? p.soldPrice ?? p.value;
+    if (raw == null) return 0;
+    const n = parseFloat(String(raw).replace(/[^0-9.]/g,''));
+    return Number.isFinite(n) ? n : 0;
+  }
+  function parseBuyer(p){
+    const b = p.buyer ?? p.buyerName ?? p.username ?? p.winner ?? '';
+    return String(b||'').trim().replace(/^@/,'');
+  }
+
+  /* ===== Bridge SSE ===== */
+  const _esMap = new Map();
+  function connectSSE(url){
+    const prev = _esMap.get(url); if (prev){ try{ prev.close(); }catch(_){} }
+    const es = new EventSource(url);
+    _esMap.set(url, es);
+    es.onerror = () => { try{ es.close(); }catch(_){}; _esMap.delete(url); setTimeout(()=>connectSSE(url), 2500); };
+    const onAny = (e) => {
+      try{
+        const obj = JSON.parse(e.data);
+        if (obj && typeof obj==='object' && !obj.type && !obj.event && e.type && e.type!=='message') obj.type = e.type;
+        handleEvent(obj);
+      }catch(_){}
+    };
+    es.onmessage = onAny;
+    ["team_sold","sold","sale","stream_stats","reset","set_title","donor_register","up_next"].forEach(ev => es.addEventListener(ev, onAny));
+  }
+  function handleEvent(data){
+    if (!data || typeof data!=='object') return;
+    const payload = (data.data && typeof data.data==='object') ? data.data : data;
+    const type = String(payload.type || payload.event || data.type || '').toLowerCase();
+    if (!type || type==='hello') return;
+
+    if (type==='team_sold' || type==='sold' || type==='sale'){
+      onSold(parseBuyer(payload), parseAmount(payload), payload.title || payload.item || '');
+    } else if (type==='stream_stats'){
+      if (typeof payload.topBuyer==='string' && payload.topBuyer.trim()){
+        const b = payload.topBuyer.trim().replace(/^@/,'');
+        if (!(b in donorTotals)) donorTotals[b] = donorTotals[b]||0;
+      }
+      const rev = payload.revenue ?? payload.totalRevenue ?? payload.raised;
+      if (Number.isFinite(rev) && rev > totalRaised){ totalRaised = rev; persist(); checkMilestones(); }
+      renderStats();
+    } else if (type==='reset'){
+      resetAll();
+    } else if (type==='set_title'){
+      if (payload.value) $('eventSub').textContent = String(payload.value);
+    } else if (type==='up_next' || type==='donor_register'){
+      // Future: Corey's QR backend. Populates the (currently disabled) Up Next panel.
+      const item = payload.item || payload.title || '';
+      const donor = parseBuyer(payload) || payload.donor || '';
+      $('upNextText').textContent = (item ? item : 'Lot') + (donor ? '  ·  donated by @'+donor : '');
+    }
+  }
+
+  function resetAll(){
+    totalRaised = 0; itemsSold = 0;
+    for (const k in donorTotals) delete donorTotals[k];
+    firedItems = new Set(); firedDollars = new Set();
+    persist(); renderStats();
+    document.querySelectorAll('.soldCard').forEach(c=>c.remove());
+    renderLeaderboard();
+  }
+
+  /* ===== Controls / popups ===== */
+  function applyHeaderInit(){ applyHeader(); }
+  function openPopup(id){ $(id).classList.add('active'); }
+  function closePopup(id){ $(id).classList.remove('active'); }
+
+  function wire(){
+    // Title
+    $('titleBtn').addEventListener('click', ()=>{ $('titleInput').value=headerTitle; $('subInput').value=headerSub; openPopup('titlePopup'); });
+    $('titleClose').addEventListener('click', ()=>closePopup('titlePopup'));
+    $('titleApply').addEventListener('click', ()=>{
+      headerTitle = $('titleInput').value.trim() || headerTitle;
+      headerSub   = $('subInput').value.trim();
+      LS.set('title', headerTitle); LS.set('sub', headerSub);
+      applyHeader(); closePopup('titlePopup');
+    });
+
+    // Ticker
+    $('tickerBtn').addEventListener('click', ()=>{ $('tickerInput').value=tickerMessages; $('tickerSpeed').value=tickerSpeed; openPopup('tickerPopup'); });
+    $('tickerClose').addEventListener('click', ()=>closePopup('tickerPopup'));
+    $('tickerApply').addEventListener('click', ()=>{
+      tickerMessages = $('tickerInput').value.trim() || tickerMessages;
+      let s = parseInt($('tickerSpeed').value,10); if (Number.isFinite(s) && s>=6) tickerSpeed = s;
+      LS.set('tickerText', tickerMessages); LS.set('tickerSpeed', tickerSpeed);
+      renderTicker(); closePopup('tickerPopup');
+    });
+
+    // Info bar
+    $('infoBtn').addEventListener('click', ()=>{ $('infoPanelsInput').value=infoPanels.join(', '); $('infoInterval').value=infoInterval; $('goalInput').value=goal; openPopup('infoPopup'); });
+    $('infoClose').addEventListener('click', ()=>closePopup('infoPopup'));
+    $('infoApply').addEventListener('click', ()=>{
+      const valid = ['goal','promo','raised','topDonor','upNext'];
+      const arr = $('infoPanelsInput').value.split(',').map(s=>s.trim()).filter(s=>valid.includes(s));
+      if (arr.length) infoPanels = arr;
+      let iv = parseInt($('infoInterval').value,10); if (Number.isFinite(iv) && iv>=3) infoInterval = iv;
+      let g = parseInt($('goalInput').value,10); if (Number.isFinite(g) && g>=0) goal = g;
+      LS.set('infoPanels', infoPanels.join(',')); LS.set('infoInterval', infoInterval); LS.set('goal', goal);
+      renderStats(); startInfoRotation(); closePopup('infoPopup');
+    });
+
+    // Milestones
+    $('milestonesBtn').addEventListener('click', ()=>{ $('msItems').value=msItems.join(', '); $('msDollars').value=msDollars.join(', '); openPopup('milestonesPopup'); });
+    $('msClose').addEventListener('click', ()=>closePopup('milestonesPopup'));
+    $('msApply').addEventListener('click', ()=>{
+      msItems = parseList($('msItems').value); msDollars = parseList($('msDollars').value);
+      LS.set('msItems', msItems.join(',')); LS.set('msDollars', msDollars.join(','));
+      closePopup('milestonesPopup');
+    });
+
+    // Hype (manual) + Reset
+    $('hypeBtn').addEventListener('click', ()=> fireHype('manual', 0));
+    $('resetBtn').addEventListener('click', ()=>{ if (confirmReset()) resetAll(); });
+
+    // Hidden admin toggle + backtick to show/hide controls
+    $('adminToggle').addEventListener('click', toggleControls);
+    document.addEventListener('keydown', (e)=>{
+      if (e.key === '`'){ const t=e.target; if (t && (t.tagName==='INPUT'||t.tagName==='TEXTAREA')) return; e.preventDefault(); toggleControls(); }
+    });
+  }
+  function confirmReset(){ return true; } // OBS-safe: no native confirm()
+  let controlsVisible = true;
+  function toggleControls(){ controlsVisible = !controlsVisible; $('controls').classList.toggle('hidden', !controlsVisible); }
+
+  /* ===== Init ===== */
+  function init(){
+    applyHeader(); renderTicker(); renderStats(); startInfoRotation(); startStageRotation(); wire();
+    CHANNELS.forEach(ch => connectSSE(`${BRIDGE_URL}/stream?channel=${encodeURIComponent(ch)}&key=${encodeURIComponent(BRIDGE_KEY)}`));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+})();
+</script>
+</body>
+</html>
