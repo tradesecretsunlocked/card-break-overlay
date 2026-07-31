@@ -515,6 +515,9 @@
   let msDollars = parseList(LS.get('msDollars','1000,2500,5000,10000'));
   let firedItems   = new Set(safeArr(LS.get('firedItems','[]')));
   let firedDollars = new Set(safeArr(LS.get('firedDollars','[]')));
+  /* Every sale is counted ONCE. The bridge can replay on reconnect and OBS can refresh
+     the source mid-auction, so the public Total Raised must not inflate. Survives reload. */
+  let seenSales    = new Set(safeArr(LS.get('seenSales','[]')));
 
   function parseList(raw){ return String(raw||'').split(/[,\n]/).map(s=>parseInt(s.trim(),10)).filter(n=>Number.isFinite(n) && n>0).sort((a,b)=>a-b); }
   function safeArr(raw){ try{ const a=JSON.parse(raw); return Array.isArray(a)?a:[]; }catch(_){ return []; } }
@@ -575,6 +578,7 @@
     LS.set('donorTotals', JSON.stringify(donorTotals));
     LS.set('firedItems', JSON.stringify([...firedItems]));
     LS.set('firedDollars', JSON.stringify([...firedDollars]));
+    LS.set('seenSales', JSON.stringify([...seenSales].slice(-2000)));
   }
 
   /* ===== Ticker ===== */
@@ -695,6 +699,11 @@
     if (!type || type==='hello') return;
 
     if (type==='team_sold' || type==='sold' || type==='sale'){
+      // Count each sale once. Fall back to a composite key if no saleId is present.
+      const sid = String(payload.saleId ?? payload.id ?? payload.sale_id ??
+        (parseBuyer(payload)+'|'+parseAmount(payload)+'|'+(payload.title||payload.item||''))).trim();
+      if (sid && seenSales.has(sid)) return;
+      if (sid) seenSales.add(sid);
       onSold(parseBuyer(payload), parseAmount(payload), payload.title || payload.item || '');
     } else if (type==='stream_stats'){
       if (typeof payload.topBuyer==='string' && payload.topBuyer.trim()){
@@ -719,7 +728,7 @@
   function resetAll(){
     totalRaised = 0; itemsSold = 0;
     for (const k in donorTotals) delete donorTotals[k];
-    firedItems = new Set(); firedDollars = new Set();
+    firedItems = new Set(); firedDollars = new Set(); seenSales = new Set();
     persist(); renderStats();
     document.querySelectorAll('.soldCard').forEach(c=>c.remove());
     renderLeaderboard();
