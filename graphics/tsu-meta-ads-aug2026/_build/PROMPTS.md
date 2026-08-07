@@ -1,10 +1,11 @@
 # TSU Meta/Facebook ad graphics — August 2026 emergency push
 
 5 opaque, full-bleed ad graphics matched to the $50/day, 3-day Meta campaign in
-`ad-campaign-kit.md` (deadline offer $650→$997, Tier 1 Starter $138). TSU house palette:
+`ad-campaign-kit.md` (deadline offer $650→$997, Tier 1 Starter $188). TSU house palette:
 gold #F5B301 / #F0CF72, navy #0E1116 → #080F30. Logo (`tsu-logo.png`) passed as the
 brand-fidelity reference on every graphic. Model: gpt-image-2 (opaque scenes, no
-transparency needed here).
+transparency needed here). utilize the provided examples of completed projects where appropriate to integrate
+with the ad graphic. example and reference graphics are all fouind in this same directory.
 
 ## deadline-hero-banner — 1024x1024
 Pairs with ad copy variant A (deadline-first). The primary creative for the Custom Build
@@ -43,7 +44,7 @@ doesn't know what "OBS overlay" means.
 ## social-proof-badge — 1024x1024
 Pairs with ad copy variant C (proof-first). Also works as a standalone credibility ad.
 > A bold 3D die-cut emblem badge style promotional graphic for a livestream automation
-> brand, full-bleed opaque dark background. It reads "70+ SELLERS" in large bold beveled
+> brand, full-bleed opaque dark background. It reads "100+ SELLERS" in large bold beveled
 > metallic gold letters as the hero line, with "ALREADY RUN ON TSU" in smaller bold white
 > condensed letters beneath it, wrapped in a ribbon banner shape with a five-star row and a
 > checkmark seal icon. Deep navy-to-black background flowing from #0E1116 to #080F30, rich

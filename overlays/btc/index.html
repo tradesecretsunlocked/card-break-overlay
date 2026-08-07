@@ -8,18 +8,24 @@
   <style>
     :root{
       /* =========================
-         Bigger Than Cardboard — black / magenta / neon green / electric blue
+         Bigger Than Cardboard — black / silver / white
       ========================== */
-      --bg0:#02030a;
+      /* Client brand: the two values a build actually changes (TSU Standard 2.4, sec 5).
+         Declared as aliases onto this file's existing variables. Values are unchanged,
+         so this is a no-op visually; it just gives the build canonical brand names. */
+      --primary:   #c9c9c9;   /* BTC silver */
+      --secondary: #02030a;   /* BTC near-black */
+
+      --bg0: var(--secondary);
       --bg1:#050814;
 
-      --orange:#c9c9c9;
+      --orange:      var(--primary);
       --orange2:#ffffff;
       --white:#ffffff;
       --electricBlue:#e0e0e0;
       --deepBlue:#000000;
       --magenta:#ffffff;
-      --neonGreen:#c9c9c9;
+      --neonGreen:   var(--primary);
 
       --panel: rgba(5,7,18,0.92);
       --stroke: rgba(201,201,201,0.55);
@@ -43,6 +49,7 @@
       /* bottom grid per sport (JS updates) */
       --bottomCols: 4;
       --tileH: 55px;
+      --mainMinH: 430px;   /* 08-06: locks the board area to a constant height so the overlay footprint is identical across all sports (30 vs 32 tiles) */
     }
 
     *{ box-sizing:border-box; }
@@ -203,6 +210,8 @@ background-size: 140% auto; /* try 140–220% */
       gap: var(--gap);
       z-index: 2;
       position: relative;
+      min-height: var(--mainMinH);   /* 08-06: constant footprint regardless of tile count */
+      align-content: start;          /* reserve extra height BELOW the row; never stretch the cam/tiles */
     }
     /* BTC background design, framed inside the overlay behind the team board */
     .main::before{
@@ -312,9 +321,10 @@ background-size: 140% auto; /* try 140–220% */
     /* Custom BTC camera border frame (on top of the cam slot) */
     .cam-frame{
       position:absolute; inset:0;
-      width:100%; height:100%;
+      width:104%; height:102%;
       object-fit:fill;
       z-index:3;
+      left:-30px;
       pointer-events:none;
       animation: camGlow 4.5s ease-in-out infinite;
     }
@@ -372,7 +382,7 @@ background-size: 140% auto; /* try 140–220% */
     .bottomGrid{
       display:grid;
       grid-template-columns: repeat(var(--bottomCols), 1fr);
-      gap: 23px;
+      gap: 12px;
     }
 
     /* Tiles */
@@ -1252,11 +1262,17 @@ document.documentElement.style.setProperty(
 const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com";
 const BRIDGE_KEY_DEFAULT = "3bc79a79-5ed9-4bea-9c11-ef970abf743a";
 
-const BRIDGE_KEY = (() => {
+// TSU Standard 2.4 sec 8: the baked key is PRIMARY. ?key= is an opt-in test override only.
+// localStorage is never consulted — a stale tsu.bridgeKey from a test session used to win
+// silently and put the overlay on the wrong client's scope (the cross-client bleed bug).
+function getBridgeKey(){
   const q = new URLSearchParams(location.search).get('key');
-  if (q && q.trim()) { localStorage.setItem('tsu.bridgeKey', q.trim()); return q.trim(); }
-  return (localStorage.getItem('tsu.bridgeKey') || BRIDGE_KEY_DEFAULT).trim();
-})();
+  return (q && q.trim()) ? q.trim() : BRIDGE_KEY_DEFAULT;
+}
+const BRIDGE_KEY = getBridgeKey();
+
+// One-time cleanup: purge the legacy override so old OBS caches can't resurrect it.
+try { localStorage.removeItem('tsu.bridgeKey'); } catch(_) {}
 
 
 const CHANNELS = (() => {
@@ -1454,8 +1470,8 @@ const CHANNELS = (() => {
   ];
 
   const breakTypes = {
-    nba: { name: "NBA", teams: NBA, count: 30, bottomCols: 5, topCount: 0,  bottomCount: 4  },
-    mlb: { name: "MLB", teams: MLB, count: 30, bottomCols: 5, topCount: 0,  bottomCount: 4  },
+    nba: { name: "NBA", teams: NBA, count: 30, bottomCols: 6, topCount: 0,  bottomCount: 6  },  // 08-06: 1 tile from each side -> bottom row (12/12 + 6)
+    mlb: { name: "MLB", teams: MLB, count: 30, bottomCols: 6, topCount: 0,  bottomCount: 6  },  // 08-06: 1 tile from each side -> bottom row (12/12 + 6)
     nfl: { name: "NFL", teams: NFL, count: 32, bottomCols: 4, topCount: 0,  bottomCount: 4  },
     nhl: { name: "NHL", teams: NHL, count: 32, bottomCols: 4, topCount: 0,  bottomCount: 4  }
   };
@@ -1598,19 +1614,49 @@ function loadSport(){
     const t = norm(title);
     if (!t) return null;
 
+    // 0. Exact whole-title match.
     if (lookup.has(t)) return lookup.get(t);
 
-    const m = String(title || "").match(/\b([A-Z]{2,4})\b/);
-    if (m && m[1]) {
-      const token = norm(m[1]);
-      if (lookup.has(token)) return lookup.get(token);
+    // TSU Standard 2.4 sec 9.2 — ORDER IS LOAD BEARING:
+    // match against team NAMES first, longest name first, on WORD BOUNDARIES, and only
+    // then fall back to a 2-4 char uppercase code token.
+    //
+    // The previous implementation ran a loose `t.includes(key)` scan across a key set that
+    // also contained the 3-letter team codes. That silently mis-grabbed codes buried inside
+    // ordinary words: "Kansas City Chiefs" contains "chi", so it marked the NHL BLACKHAWKS.
+    // Same class of bug for "sabres"/"sab", "packers"/"pac". Names-first with word
+    // boundaries is the documented fix.
+    const words = t.split(" ").filter(Boolean);
+    const hasPhrase = (phrase) => {
+      const pw = String(phrase || "").split(" ").filter(Boolean);
+      if (!pw.length) return false;
+      for (let i = 0; i + pw.length <= words.length; i++){
+        let hit = true;
+        for (let j = 0; j < pw.length; j++){
+          if (words[i + j] !== pw[j]) { hit = false; break; }
+        }
+        if (hit) return true;
+      }
+      return false;
+    };
+
+    // 1. Names only, longest (most specific) first — "florida panthers" beats "panthers".
+    const nameKeys = teams
+      .map(x => norm(x.name))
+      .filter(Boolean)
+      .sort((a, b) => b.split(" ").length - a.split(" ").length || b.length - a.length);
+
+    for (const k of nameKeys){
+      if (hasPhrase(k)) return lookup.get(k);
     }
 
-    const keys = Array.from(lookup.keys()).sort((a,b) => b.length - a.length);
-    for (const k of keys){
-      if (k.length < 3) continue;
-      if (t.includes(k)) return lookup.get(k);
+    // 2. Only now, an explicit uppercase code token, and it must stand alone as a word.
+    const m = String(title || "").match(/\b([A-Z]{2,4})\b/g) || [];
+    for (const raw of m){
+      const token = norm(raw);
+      if (lookup.has(token) && hasPhrase(token)) return lookup.get(token);
     }
+
     return null;
   }
 
@@ -1815,6 +1861,7 @@ function buildTile(team){
 
   soldTeams.add(code);
   if (!soldTeamsList.some(x => x.code === code)) soldTeamsList.push({code, buyer:''});
+  saveSoldState();
 
   const el = document.querySelector(`[data-team-code="${code}"]`);
   if (animated && el){
@@ -1835,6 +1882,7 @@ function markUnsold(code){
   soldTeams.delete(code);
   const idx = soldTeamsList.findIndex(x => x.code === code);
   if (idx !== -1) soldTeamsList.splice(idx, 1);
+  saveSoldState();
 
   // Then try to update the DOM (if it exists right now)
   const el = document.querySelector(`[data-team-code="${code}"]`);
@@ -1843,7 +1891,12 @@ function markUnsold(code){
 
 
 function sseMarkSold(code, buyer=""){
-  markSold(code, false); // no animation on SSE sells — apply state directly
+  // TSU Standard 2.4 sec 14: soldFlash is required on EVERY sale. On Whatnot every sale
+  // arrives over SSE, so passing false here meant the celebration never played on stream.
+  // Guarded: only animate a tile that isn't already sold, so a duplicate/respin event
+  // can't stack animations.
+  const alreadySold = soldTeams.has(code);
+  markSold(code, !alreadySold);
   if (buyer){
     const row = soldTeamsList.find(x => x.code === code);
     if (row) row.buyer = buyer;
@@ -1866,12 +1919,108 @@ function buildExportTSV(){
   return header + rows + (rows ? "\n" : "");
 }
 
-function breakIdMatches(value){
-  const v = parseInt(value, 10);
-  return Number.isInteger(v) && v === breakNum;
+// TSU Standard 2.4 sec 9.3. breakId is `${yyyymmdd}-${breakType}-${breakNumber}`.
+// Rule: no incoming breakId means PASS (most senders omit it). If one is present it must
+// match this overlay's current break. The old parseInt() version would have rejected every
+// standard-format id, so it was never safe to call — this replaces it.
+function currentBreakId(){
+  const d = new Date();
+  const yyyymmdd = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  return `${yyyymmdd}-${currentSport}-${breakNum}`;
+}
+
+function breakIdMatches(data){
+  if (!data || typeof data !== "object") return true;
+  const raw = data.breakId || data.break_id || (data.data && (data.data.breakId || data.data.break_id));
+  if (raw === undefined || raw === null || String(raw).trim() === "") return true;  // absent = pass
+
+  const incoming = String(raw).trim().toLowerCase();
+
+  // Exact match on the canonical form.
+  if (incoming === currentBreakId().toLowerCase()) return true;
+
+  // Tolerate senders that pass a bare break number, or a "<ns>:<sport>:<n>" form
+  // (this overlay's own warmup ping uses the latter).
+  const tail = incoming.split(/[-:]/).pop();
+  if (tail && String(parseInt(tail, 10)) === String(breakNum)) return true;
+
+  console.warn("[Overlay] dropped event for a different break:", incoming, "current:", currentBreakId());
+  return false;
+}
+
+/* =========================
+   Sold-state persistence — TSU Standard 2.4 sec 10/14 (required Tier 2+)
+   Without this, an OBS browser-source refresh mid-break wipes the whole board and the
+   seller has to re-click every sold tile by hand on stream. Persists to
+   `bigger-than-cardboard.soldState` via the per-client LS namespace (sec 4).
+========================== */
+const SOLD_STATE_KEY = "soldState";
+
+function saveSoldState(){
+  try {
+    LS.set(SOLD_STATE_KEY, JSON.stringify({
+      v: 1,
+      sport: currentSport,
+      breakNum: breakNum,
+      sold: soldTeamsList.map(x => ({ code: x.code, buyer: x.buyer || "" })),
+      respin: Array.from(lastCodeByListingKey.entries()),
+      highBid: highBid,
+      buyers: Array.from(buyerTotals.entries()),
+      savedAt: Date.now()
+    }));
+  } catch(_) {}
+}
+
+function loadSoldState(){
+  let raw = "";
+  try { raw = LS.get(SOLD_STATE_KEY, ""); } catch(_) { return; }
+  if (!raw) return;
+
+  let st = null;
+  try { st = JSON.parse(raw); } catch(_) { return; }
+  if (!st || typeof st !== "object") return;
+
+  // Only restore into the same sport + same break. A different break means the saved
+  // board is stale and restoring it would show last break's sales on a fresh board.
+  if (st.sport !== currentSport) return;
+  if (Number.isInteger(st.breakNum) && st.breakNum !== breakNum) return;
+
+  // Drop anything older than 12h so a machine left off overnight starts clean.
+  if (Number.isFinite(st.savedAt) && (Date.now() - st.savedAt) > 12 * 60 * 60 * 1000) return;
+
+  (Array.isArray(st.sold) ? st.sold : []).forEach(e => {
+    const code = String(e && e.code || "").toUpperCase();
+    if (!code) return;
+    if (!isValidCodeForSport(code, currentSport)) return;   // guard against cross-sport bleed
+    if (soldTeams.has(code)) return;
+    soldTeams.add(code);
+    soldTeamsList.push({ code, buyer: (e.buyer || "") });
+    const el = document.querySelector(`[data-team-code="${code}"]`);
+    if (el) el.classList.add('sold');
+  });
+
+  if (Array.isArray(st.respin)){
+    st.respin.forEach(pair => {
+      if (Array.isArray(pair) && pair.length === 2) lastCodeByListingKey.set(String(pair[0]), String(pair[1]));
+    });
+  }
+
+  if (Number.isFinite(st.highBid)) setHighBid(st.highBid);
+
+  if (Array.isArray(st.buyers)){
+    buyerTotals = new Map(st.buyers.filter(p => Array.isArray(p) && p.length === 2));
+    let topName = '', topTotal = -1;
+    for (const [name, total] of buyerTotals.entries()){
+      if (total > topTotal){ topTotal = total; topName = name; }
+    }
+    if (topName) setTopBuyer(topName);
+  }
+
+  console.log("[Overlay] restored sold state:", soldTeamsList.length, "tiles for", currentSport, "break", breakNum);
 }
 
 function buildLayout(){
+  applySportCSS();   // 08-06: apply per-sport --bottomCols on load
   renderTeams();
 }
 
@@ -1904,38 +2053,74 @@ let _scoreCycleTimer = null;
 let _cycleIdx = 0;
 const _cycleOrder = ["nba","nfl","mlb","nhl"];
 
+  // TSU Standard 2.4 sec 13 — INCREMENTAL PATCH, never an innerHTML wipe.
+  // This runs on every single bridge event. The old version rebuilt the whole panel each
+  // time, which destroyed any buyer name the seller was mid-way through typing and caused
+  // the visible flash-and-reset clients report as "the overlay glitched".
+  // Rows are keyed by data-code; a focused input is never overwritten.
   function renderSoldPanel(){
-    soldGrid.innerHTML = '';
+    if (!soldGrid) return;
+
     if (soldTeamsList.length === 0){
+      soldGrid.replaceChildren();
       soldOpen = false;
       soldWrap.classList.remove('active');
       return;
     }
 
-    soldTeamsList.forEach(entry => {
-      const tile = document.querySelector(`[data-team-code="${entry.code}"]`);
-      const src = tile?.querySelector('img')?.src || '';
-
-      const row = document.createElement('div');
-      row.className = 'sold-item';
-
-      if (src){
-        const img = document.createElement('img');
-        img.src = src;
-        row.appendChild(img);
-      }
-
-      const input = document.createElement('input');
-      input.value = entry.buyer || '';
-      input.placeholder = 'Buyer';
-      input.addEventListener('input', e => entry.buyer = e.target.value);
-      input.addEventListener('keydown', e => {
-        if (e.key === 'Enter'){ e.preventDefault(); e.target.blur(); }
-      });
-
-      row.appendChild(input);
-      soldGrid.appendChild(row);
+    // 1. Drop rows for teams that are no longer sold.
+    soldGrid.querySelectorAll('.sold-item[data-code]').forEach(row => {
+      if (!soldTeamsList.some(e => e.code === row.dataset.code)) row.remove();
     });
+
+    // 2. Add or update rows without rebuilding.
+    soldTeamsList.forEach(entry => {
+      let row = soldGrid.querySelector(`.sold-item[data-code="${entry.code}"]`);
+
+      if (!row){
+        const tile = document.querySelector(`[data-team-code="${entry.code}"]`);
+        const src = tile?.querySelector('img')?.src || '';
+
+        row = document.createElement('div');
+        row.className = 'sold-item';
+        row.dataset.code = entry.code;
+
+        if (src){
+          const img = document.createElement('img');
+          img.src = src;
+          img.onerror = () => img.remove();
+          row.appendChild(img);
+        }
+
+        const input = document.createElement('input');
+        input.value = entry.buyer || '';
+        input.placeholder = 'Buyer';
+        input.addEventListener('input', e => { entry.buyer = e.target.value; saveSoldState(); });
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter'){ e.preventDefault(); e.target.blur(); }
+        });
+
+        row.appendChild(input);
+        soldGrid.appendChild(row);
+      } else {
+        // Update the buyer value ONLY if the seller isn't currently typing in it.
+        const input = row.querySelector('input');
+        if (input && document.activeElement !== input){
+          const next = entry.buyer || '';
+          if (input.value !== next) input.value = next;
+        }
+      }
+    });
+
+    // 3. Keep DOM order in sync with soldTeamsList — but NEVER while the seller is typing.
+    //    Moving a node that contains the focused input blurs it in Chromium, which would
+    //    reintroduce the very bug this function exists to prevent.
+    if (!soldGrid.contains(document.activeElement)){
+      soldTeamsList.forEach(entry => {
+        const row = soldGrid.querySelector(`.sold-item[data-code="${entry.code}"]`);
+        if (row) soldGrid.appendChild(row);
+      });
+    }
 
     soldOpen = true;
     soldWrap.classList.add('active');
@@ -2003,6 +2188,8 @@ function resetAll(){
   setHighBid(0);
   buyerTotals = new Map();
   setTopBuyer('');
+
+  saveSoldState();   // persist the cleared board so a refresh doesn't resurrect it
 }
 
   function nextBreak(){
@@ -2268,14 +2455,19 @@ const onAny = (e) => {
   es.addEventListener("message", onAny);
 
   // IMPORTANT: your server uses `event: <type>` so we must subscribe to those names
+  // TSU Standard 2.4 sec 8/9.1: named SSE events bypass onmessage, so every alias the
+  // contract lists must be registered explicitly or those events are silently dropped.
   const SSE_EVENTS = [
-    "team_sold", "sold", "sale",
+    "team_sold", "sold", "sale", "purchase", "whatnot_purchase",
     "team_unsold", "unsold",
+    "buyer", "buyer_update",
     "reset",
-    "set_break", "break_set",
+    "set_break", "break_set", "next_break",
     "banner_set",
     "set_title",
+    "set_ticker",
     "set_sport", "sport_set",
+    "scores", "scores_update",
     "stream_stats",
     "overlay_warmup"
   ];
@@ -2303,13 +2495,38 @@ function handleSSEEvent(data){
     const type = String(payload.type || payload.event || rootType || "").toLowerCase();
     if (!type || type === "hello") return;
 
+    // TSU Standard 2.4 sec 9.3: breakId guard FIRST, before any state is touched.
+    if (!breakIdMatches(data)) return;
+
     console.log("[Overlay] SSE IN:", { type, payload });
 
-if (type === "team_sold" || type === "sold" || type === "sale"){
+if (type === "team_sold" || type === "sold" || type === "sale" || type === "purchase" || type === "whatnot_purchase"){
   const sid = payload.saleId || payload.saleID || payload.sale_id;
 
-  // Determine which team this sale is for
-let code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
+  // Determine which team this sale is for.
+  //
+  // MULTI-SPORT SAFETY (BTC breaks NFL/NBA/MLB/NHL). The extension runs sport:"nil" and
+  // resolves a title against its rule list in league order, so a shared nickname resolves
+  // to the first league that owns it — "Panthers" always comes back NFL CAR. CAR is also
+  // a valid NHL code (Hurricanes), so during an NHL break the raw payload code would mark
+  // the WRONG TILE with no error anywhere. The overlay knows which sport is actually on
+  // screen, so it is the authority: if the sender resolved against a different league,
+  // discard its code and re-infer from the title scoped to the current sport.
+  const payloadSport = String(payload.sport || "").toLowerCase().trim();
+  const sportMismatch = payloadSport && payloadSport !== "nil" && payloadSport !== currentSport;
+
+  let code;
+  if (sportMismatch){
+    code = inferCodeFromTitle(payload.title) || "";
+    if (!code){
+      console.warn("[Overlay] sale resolved to", payloadSport, "but board is", currentSport,
+                   "and the title does not match a", currentSport, "team — dropped:", payload.title);
+      return;
+    }
+    console.log("[Overlay] re-resolved cross-league sale:", payload.title, "->", code, "for", currentSport);
+  } else {
+    code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
+  }
 
   // EXTRA GUARD: verify code belongs to currentSport (bail if not)
   const checked = requireValidCodeOrBail(code, currentSport, payload.title || "");
@@ -2330,6 +2547,18 @@ let code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.titl
       // Update mapping + memory cap
       lastCodeByListingKey.set(String(sid).trim(), code);
       rememberSaleId(sid);
+    }
+
+    // TSU Standard 2.4 sec 9.3 — buyer uniqueness. Before assigning a buyer to a new
+    // team, unsell any team that buyer already owns, so one buyer can't hold two tiles.
+    const incomingBuyer = String(payload.buyer || payload.buyerName || payload.name || '').trim();
+    if (incomingBuyer){
+      soldTeamsList
+        .filter(x => x.code !== code && String(x.buyer || '').trim().toLowerCase() === incomingBuyer.toLowerCase())
+        .forEach(x => {
+          console.log("[Overlay] buyer uniqueness: releasing", x.code, "from", incomingBuyer);
+          sseMarkUnsold(x.code);
+        });
     }
 
     // Mark the current team sold
@@ -2356,6 +2585,7 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
   }
 
   updateBuyerStats(buyer, amt);
+  saveSoldState();
 }
 
 
@@ -2385,6 +2615,23 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
 }
 
       if (type === "reset") resetAll();
+
+      if (type === "next_break") nextBreak();
+
+      if (type === "set_ticker"){
+        const v = payload.value ?? payload.text ?? payload.ticker;
+        if (typeof v === "string" && v.trim()){
+          tickerText = v.trim();
+          localStorage.setItem(TICKER_TEXT_KEY, tickerText);
+          updateCtlTicker();
+        }
+        const spd = parseInt(payload.speed ?? payload.seconds, 10);
+        if (Number.isFinite(spd) && spd >= 5 && spd <= 120){
+          tickerSpeed = spd;
+          localStorage.setItem(TICKER_SPEED_KEY, String(tickerSpeed));
+          applyTickerSpeed(tickerSpeed);
+        }
+      }
 
       if (type === "overlay_warmup"){
         console.log("[Overlay] warmup received — bridge connection confirmed");
@@ -2450,8 +2697,11 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
     }
   }
 
-  // Optional: postMessage bridge (external control)
+  // Optional: postMessage bridge (external control).
+  // Same-origin only — an OBS browser source shares no window with anything else, and
+  // this keeps a third-party frame from injecting sold events straight past the guards.
   window.addEventListener('message', (e) => {
+    if (e.source !== window && e.origin !== location.origin) return;
     if (!e.data) return;
     let payload = e.data;
     if (typeof payload === 'string'){
@@ -2642,6 +2892,11 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
 
     // Layout
     buildLayout();
+
+    // Restore the board BEFORE first paint of the stats/panel, so an OBS refresh
+    // mid-break comes back with the same sold tiles instead of a blank board.
+    loadSoldState();
+
     updateStats();
     renderSoldPanel();
 
@@ -2656,7 +2911,9 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
     // Bridge SSE — connect to each channel
     const channels = (CHANNELS && CHANNELS.length) ? CHANNELS : ["main"];
     channels.forEach(ch => {
-      const url = `${BRIDGE_URL}/events?key=${BRIDGE_KEY}&channel=${ch}`;
+      // TSU Standard 2.4 sec 8: EventSource cannot send headers, so the key MUST ride in
+      // the query string, encoded.
+      const url = `${BRIDGE_URL}/events?key=${encodeURIComponent(BRIDGE_KEY)}&channel=${encodeURIComponent(ch)}`;
       connectSSE(url);
     });
 
