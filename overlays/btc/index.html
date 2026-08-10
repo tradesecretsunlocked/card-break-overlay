@@ -48,8 +48,54 @@
 
       /* bottom grid per sport (JS updates) */
       --bottomCols: 4;
-      --tileH: 55px;
+      --tileH: 55px;       /* fallback only; the per-sport block below wins */
       --mainMinH: 430px;   /* 08-06: locks the board area to a constant height so the overlay footprint is identical across all sports (30 vs 32 tiles) */
+
+      /* =====================================================
+         PER-SPORT TILE HEIGHT  (added 2026-08-07)
+         THESE FOUR VALUES ARE THE ONLY ONES TO EDIT.
+         Each sport gets its own tile height. The board and the
+         bottom row both follow it.
+
+         Heights are automatically clamped so the board can never
+         outgrow --mainMinH, which is what keeps the overlay the
+         exact same size in OBS across all four sports. Set a value
+         taller than a sport allows and it is capped, not honoured.
+
+         Current ceilings, from the geometry below:
+           NFL / NHL  (7 rows per side column)  max 56px
+           NBA / MLB  (6 rows per side column)  max 66px
+      ===================================================== */
+      --tileH-nfl: 55px;
+      --tileH-nba: 65px;
+      --tileH-mlb: 65px;
+      --tileH-nhl: 55px;
+
+      /* Geometry the clamp depends on. Keep in step with .colgrid and .board:
+         --tileGap must equal .colgrid's gap, --boardChrome is .board's
+         padding (3px x 2) plus its border (1px x 2). */
+      --tileGap: 5px;
+      --boardChrome: 8px;
+    }
+
+    /* Rows per side column = (team count - bottom row count) / 2 columns.
+       NFL and NHL run 32 teams with 4 on the bottom, so 14 a side over 2
+       columns = 7 rows. NBA and MLB run 30 with 6 on the bottom = 6 rows. */
+    html[data-sport="nfl"]{ --sideRows: 7; --tileH-target: var(--tileH-nfl); }
+    html[data-sport="nhl"]{ --sideRows: 7; --tileH-target: var(--tileH-nhl); }
+    html[data-sport="nba"]{ --sideRows: 6; --tileH-target: var(--tileH-nba); }
+    html[data-sport="mlb"]{ --sideRows: 6; --tileH-target: var(--tileH-mlb); }
+
+    /* The clamp. Whichever is smaller: the height asked for, or the tallest
+       tile that still fits the locked board area. */
+    html[data-sport]{
+      --tileH: min(
+        var(--tileH-target),
+        calc(
+          (var(--mainMinH) - var(--boardChrome) - (var(--sideRows) - 1) * var(--tileGap))
+          / var(--sideRows)
+        )
+      );
     }
 
     *{ box-sizing:border-box; }
@@ -292,7 +338,7 @@ background-size: 140% auto; /* try 140–220% */
 
     .cam{
       aspect-ratio: 16 / 9;   /* sized for a 1920x1080 facecam */
-      width: 100%;
+      width: 106%;
       border-radius: 16px;
       background: #000;
       border: none;
@@ -321,12 +367,12 @@ background-size: 140% auto; /* try 140–220% */
     /* Custom BTC camera border frame (on top of the cam slot) */
     .cam-frame{
       position:absolute; inset:0;
-      width:108%; height:105%;
+      width:104%; height:102%;
       object-fit:fill;
       z-index:3;
-      left:-30px;
+      left:-31px;
       pointer-events:none;
-      animation: camGlow 4.5s ease-in-out infinite;
+      animation: camGlow 3.5s ease-in-out infinite;
     }
     /* Sheen sweep masked to the frame art so it only travels along the border */
     .cam-sheen{
@@ -345,8 +391,8 @@ background-size: 140% auto; /* try 140–220% */
       100% { background-position: -60% 0; }
     }
     @keyframes camGlow{
-      0%,100% { filter: drop-shadow(0 0 3px rgba(201,201,201,0.22)); }
-      50%     { filter: drop-shadow(0 0 9px rgba(255,255,255,0.45)); }
+      0%,100% { filter: drop-shadow(0 0 3px rgba(201,201,201,0.52)); }
+      50%     { filter: drop-shadow(0 0 9px rgba(255,255,255,0.75)); }
     }
 
     
@@ -1049,6 +1095,91 @@ background-size: 140% auto; /* try 140–220% */
       0%  { opacity:0; transform: translate(-50%,-50%) rotateX(-88deg); }
       100%{ opacity:1; transform: translate(-50%,-50%) rotateX(0deg); }
     }
+
+    /* =========================================================
+       LAYOUT MODES  (added 2026-08-07)
+       The overlay ships two scenes in one file:
+         data-layout="break"    the team board (default, unchanged)
+         data-layout="singles"  header + facecam + ticker only
+       This is deliberately CSS-driven. Every board element stays in
+       the DOM in singles mode, so renderTeams(), markSold() and the
+       whole SSE path keep working exactly as verified. Nothing about
+       the automation changes with the layout, only what is painted.
+    ========================================================= */
+
+    /* Facecam background the seller can swap from inside the overlay. */
+    .cam-bg{
+      position:absolute; inset:0; z-index:0;
+      background-position:center; background-size:cover; background-repeat:no-repeat;
+    }
+    .cam-logo{ z-index:1; }
+
+    /* Admin row, only reachable in singles mode (break mode keeps the sold panel). */
+    .admin-row{
+      display:none; margin-top:4px; gap:8px;
+      align-items:center; justify-content:center; flex-wrap:wrap;
+    }
+    .hidefile{ position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+    .field-label{
+      font-size:11px; font-weight:900; letter-spacing:1px; text-transform:uppercase;
+      opacity:0.8; margin-bottom:-4px;
+    }
+    .modal-note{
+      font-size:12px; font-weight:800; line-height:1.35; opacity:0.85;
+      background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);
+      border-radius:10px; padding:9px 11px;
+    }
+    .modal-note.err{ color:#ffd7d7; background:rgba(255,60,60,0.12); border-color:rgba(255,120,120,0.35); }
+    .modal-note.ok{  color:#d9ffe4; background:rgba(60,255,120,0.10); border-color:rgba(120,255,160,0.30); }
+    .btn-row{ display:flex; gap:10px; flex-wrap:wrap; }
+    .btn-row .pill{ flex:1 1 0; text-align:center; }
+
+    /* ---------- SINGLES MODE ---------- */
+    html[data-layout="singles"] .sideStack,
+    html[data-layout="singles"] #topGrid,
+    html[data-layout="singles"] #bottomGrid,
+    html[data-layout="singles"] .banner,
+    html[data-layout="singles"] .header-right,
+    html[data-layout="singles"] .sold-wrap{
+      display:none !important;
+    }
+
+    /* One full-width column, and release the fixed board height. */
+    html[data-layout="singles"] .main{
+      grid-template-columns: 1fr;
+      min-height: 0;
+    }
+
+    /* The controls grid is 5 columns for the break button row.
+       Singles keeps the ticker only, so collapse to one column. */
+    html[data-layout="singles"] .controls{ grid-template-columns: 1fr; }
+    html[data-layout="singles"] #resetBtn,
+    html[data-layout="singles"] #nextBtn,
+    html[data-layout="singles"] #soldToggle,
+    html[data-layout="singles"] .controls .ctl.stat{ display:none !important; }
+
+    html[data-layout="singles"] .admin-row.active{ display:flex; }
+
+    /* Invisible controls toggle, sitting exactly over the round logo badge at the
+       bottom of the camera frame. Geometry is derived from btc-cam.png: the badge
+       centres at 49.58% x 86.62% of the 1920x1080 asset with a 269px diameter.
+       .cam-frame paints at width:104% height:102% left:-30px, so those image
+       percentages are mapped through that transform to land on the cam box.
+       Sits above .cam-frame (z3) and .cam-sheen (z4), both pointer-events:none. */
+    .cam-toggle{
+      position:absolute;
+      left: calc(51.57% - 30px);
+      top: 88.35%;
+      width: 14.57%;
+      height: 25.03%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      z-index: 5;
+      opacity: 0;
+      pointer-events: none;      /* inert unless singles mode is active */
+    }
+    html[data-layout="singles"] .cam-toggle{ pointer-events: auto; cursor: pointer; }
+
   </style>
 </head>
 
@@ -1085,9 +1216,11 @@ background-size: 140% auto; /* try 140–220% */
       <div class="center">
         <div class="bottomGrid" id="topGrid"></div>
         <div class="cam" id="camFrame">
+          <div class="cam-bg" id="camBg"></div>
           <img class="cam-logo" id="camLogo" src="btc-logo.png" alt="" />
           <img class="cam-frame" id="camFrameImg" src="btc-cam.png" alt="" />
           <div class="cam-sheen"></div>
+          <div class="cam-toggle" id="camToggle" title="Overlay controls"></div>
         </div>
         <div class="bottomGrid" id="bottomGrid"></div>
       </div>
@@ -1125,6 +1258,15 @@ background-size: 140% auto; /* try 140–220% */
       </div>
 
       <div class="ctl btn" id="nextBtn">Next</div>
+
+      <!-- Singles mode only. Revealed by clicking the header title, so nothing
+           extra sits on camera. Break mode uses the sold panel instead. -->
+      <div class="admin-row" id="adminRow">
+        <div class="pill" id="sTickerBtn">Ticker</div>
+        <div class="pill" id="sTitleBtn">Title</div>
+        <div class="pill" id="sFacecamBtn">Facecam BG</div>
+        <div class="pill" id="sLayoutBtn">Layout: Break board</div>
+      </div>
     </div>
 
   </div>
@@ -1138,8 +1280,28 @@ background-size: 140% auto; /* try 140–220% */
       <div class="pill" id="tickerBtn">Set Ticker</div>
       <div class="pill" id="exportBtn">Export CSV</div>
       <div class="pill" id="sportBtn">Change Sport</div>
+      <div class="pill" id="facecamBtn">Facecam BG</div>
+      <div class="pill" id="layoutBtn">Layout: Singles</div>
     </div>
     <div class="sold-grid" id="soldGrid"></div>
+  </div>
+
+  <!-- Facecam Background Popup -->
+  <div class="popup" id="facecamPopup">
+    <div class="popup-card">
+      <h2>Facecam Background</h2>
+      <div class="modal-note" id="facecamNote">
+        Pick any image. It is resized and saved in this browser source only, so it survives an OBS restart.
+      </div>
+      <div class="btn-row">
+        <div class="pill" id="browseBtn">Browse for image</div>
+        <div class="pill" id="clearBgBtn">Clear background</div>
+      </div>
+      <input class="hidefile" type="file" id="bgFile" accept="image/*">
+      <div class="popup-btns">
+        <button id="closeFacecam">Done</button>
+      </div>
+    </div>
   </div>
 
   <!-- Export Popup -->
@@ -1236,8 +1398,10 @@ background-size: 140% auto; /* try 140–220% */
 const CLIENT_ID = "bigger-than-cardboard";
 
 const LS = {
-  get(k, d=""){ const v = localStorage.getItem(`${CLIENT_ID}.${k}`); return (v==null ? d : v); },
-  set(k, v){ localStorage.setItem(`${CLIENT_ID}.${k}`, String(v)); }
+  get(k, d=""){ try { const v = localStorage.getItem(`${CLIENT_ID}.${k}`); return (v==null ? d : v); } catch(_) { return d; } },
+  // returns false when the write fails (quota), so callers can report it
+  set(k, v){ try { localStorage.setItem(`${CLIENT_ID}.${k}`, String(v)); return true; } catch(_) { return false; } },
+  del(k){ try { localStorage.removeItem(`${CLIENT_ID}.${k}`); } catch(_) {} }
 };
 
 
@@ -1401,8 +1565,8 @@ const CHANNELS = (() => {
     try {
       const raw = localStorage.getItem(BANNER_MSGS_KEY);
       const arr = raw ? JSON.parse(raw) : null;
-      return (Array.isArray(arr) && arr.length) ? arr : ["Follow us @BiggerThanCardboardBreaks • Join our Discord!"];
-    } catch(_) { return ["Follow us @BiggerThanCardboardBreaks • Join our Discord!"]; }
+      return (Array.isArray(arr) && arr.length) ? arr : ["Follow us @BiggerThanCardboardBreaks"];
+    } catch(_) { return ["Follow us @BiggerThanCardboardBreaks"]; }
   })();
 
   let bannerInterval = (() => {
@@ -1545,14 +1709,13 @@ function rememberSaleId(saleId){
     const saved = localStorage.getItem("bigger-than-cardboard.headerTitle");
     const el = document.getElementById("headerTitle");
     headerTitleText = (saved && saved.trim().length) ? saved : (el?.textContent || headerTitleText);
-    if (el) el.textContent = headerTitleText;
+    renderHeaderTitle();
   }
   function setHeaderTitle(txt){
     const t = String(txt ?? "").trim();
     if (!t) return;
     headerTitleText = t;
-    const el = document.getElementById("headerTitle");
-    if (el) el.textContent = headerTitleText;
+    renderHeaderTitle();
     saveHeaderTitle();
   }
 
@@ -1697,7 +1860,26 @@ function requireValidCodeOrBail(code, sportKey, titleRaw){
 function applySportCSS(){
   const cfg = breakTypes[currentSport];
   document.documentElement.style.setProperty('--bottomCols', String(cfg.bottomCols));
+
+  // Publish the sport so the per-sport --tileH block in :root can select on it.
+  // Height itself is decided in CSS, not here, so there is one place to edit.
+  document.documentElement.dataset.sport = currentSport;
 }
+  // A singles auction is not a sport break, so the "• NFL" suffix is noise there.
+  // The stored title keeps the suffix so switching back to the board restores it;
+  // only what gets painted changes.
+  function stripSportSuffix(t){
+    return String(t || "").replace(/\s*[•·|-]\s*(NFL|NBA|MLB|NHL)\s*$/i, "").trim();
+  }
+
+  function renderHeaderTitle(){
+    const el = document.getElementById("headerTitle");
+    if (!el) return;
+    el.textContent = (currentLayout === "singles")
+      ? (stripSportSuffix(headerTitleText) || headerTitleText)
+      : headerTitleText;
+  }
+
   function updateHeaderSport(){
     const cfg = breakTypes[currentSport];
     const el = document.getElementById("headerTitle");
@@ -1707,7 +1889,7 @@ function applySportCSS(){
     if (isDefaultish){
       setHeaderTitle(`BIGGER THAN CARDBOARD • ${cfg.name}`);
     } else {
-      el.textContent = headerTitleText;
+      renderHeaderTitle();
     }
   }
 
@@ -1774,6 +1956,11 @@ function buildTile(team){
      Sold FX — card flies to cam center, 3D flip, stamp
   ========================== */
   function playSoldAnimation(code, onComplete){
+    // Singles mode has no board on camera. The tile the card flies from is hidden,
+    // so its rect is all zeros and the FX would launch from the top-left corner of
+    // the screen. Skip it and just apply the state.
+    if (currentLayout === "singles"){ onComplete?.(); return; }
+
     const teams = breakTypes[currentSport].teams;
     const team  = teams.find(t => t.code === code);
     if (!team){ onComplete?.(); return; }
@@ -2017,6 +2204,132 @@ function loadSoldState(){
   }
 
   console.log("[Overlay] restored sold state:", soldTeamsList.length, "tiles for", currentSport, "break", breakNum);
+}
+
+
+/* =========================================================
+   LAYOUT MODES  (added 2026-08-07)
+   "break"   = the team board, the original scene, default
+   "singles" = header + facecam + ticker, for singles auctions
+
+   Purely a view concern. Every board element stays in the DOM, so
+   renderTeams(), markSold(), the sold panel and the whole SSE path
+   behave identically in both modes. If a sale lands while the seller
+   is in singles mode the state still records it, and switching back
+   to the board shows it correctly.
+
+   Resolution order matches the existing ?sport= convention:
+   URL param wins for the session, otherwise the saved choice.
+========================================================= */
+const LAYOUTS = ["break", "singles"];
+const K_LAYOUT = "layout";
+
+let currentLayout = (() => {
+  const q = String(new URLSearchParams(location.search).get("layout") || "").toLowerCase().trim();
+  if (LAYOUTS.includes(q)) return q;
+  const saved = String(LS.get(K_LAYOUT, "")).toLowerCase().trim();
+  return LAYOUTS.includes(saved) ? saved : "break";
+})();
+
+function applyLayout(){
+  document.documentElement.dataset.layout = currentLayout;
+
+  const singles = (currentLayout === "singles");
+  const a = document.getElementById("layoutBtn");
+  if (a) a.textContent = singles ? "Layout: Break board" : "Layout: Singles";
+  const b = document.getElementById("sLayoutBtn");
+  if (b) b.textContent = singles ? "Layout: Break board" : "Layout: Singles";
+
+  // Leaving singles mode should never strand the admin row on screen.
+  if (!singles){
+    const row = document.getElementById("adminRow");
+    if (row) row.classList.remove("active");
+  }
+
+  // Repaint the header so the sport suffix drops in singles and returns on the board.
+  if (typeof renderHeaderTitle === "function") renderHeaderTitle();
+}
+
+function setLayout(next){
+  const v = String(next || "").toLowerCase().trim();
+  if (!LAYOUTS.includes(v) || v === currentLayout) return;
+  currentLayout = v;
+  LS.set(K_LAYOUT, currentLayout);
+  applyLayout();
+}
+
+function toggleLayout(){
+  setLayout(currentLayout === "singles" ? "break" : "singles");
+}
+
+/* =========================================================
+   Facecam background. Works in both layouts, since the cam is shared.
+   Raw photos are far too big for localStorage, so the image is
+   downscaled and re-encoded before saving, and a quota failure
+   reports in the modal instead of vanishing on the next restart.
+========================================================= */
+const K_FACECAM_BG  = "facecamBg";
+const BG_MAX_EDGE   = 1600;
+const BG_MAX_BYTES  = 2000000;
+
+function applyFacecamBg(dataUrl){
+  const bg   = document.getElementById("camBg");
+  const logo = document.getElementById("camLogo");
+  if (!bg) return;
+  if (dataUrl){
+    bg.style.backgroundImage = `url("${dataUrl}")`;
+    if (logo) logo.style.display = "none";   // watermark is the empty state
+  } else {
+    bg.style.backgroundImage = "";
+    if (logo) logo.style.display = "";
+  }
+}
+
+function facecamNote(msg, kind){
+  const el = document.getElementById("facecamNote");
+  if (!el) return;
+  el.textContent = msg;
+  el.className = "modal-note" + (kind ? " " + kind : "");
+}
+
+function resizeToDataUrl(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read that file."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("That file is not an image the browser can open."));
+      img.onload = () => {
+        try{
+          const w = img.naturalWidth, h = img.naturalHeight;
+          if (!w || !h) return reject(new Error("That image has no dimensions."));
+          const scale = Math.min(1, BG_MAX_EDGE / Math.max(w, h));
+          const cw = Math.max(1, Math.round(w * scale));
+          const ch = Math.max(1, Math.round(h * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = cw; canvas.height = ch;
+          canvas.getContext("2d").drawImage(img, 0, 0, cw, ch);
+          let out = "";
+          for (const q of [0.9, 0.8, 0.7, 0.6, 0.5]){
+            out = canvas.toDataURL("image/jpeg", q);
+            if (out.length <= BG_MAX_BYTES) break;
+          }
+          if (out.length > BG_MAX_BYTES){
+            return reject(new Error("That image is too large even after resizing. Try a smaller one."));
+          }
+          resolve(out);
+        }catch(_){
+          reject(new Error("Could not process that image."));
+        }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadFacecamBg(){
+  applyFacecamBg(LS.get(K_FACECAM_BG, "") || "");
 }
 
 function buildLayout(){
@@ -2719,6 +3032,59 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
 
   document.getElementById('sportBtn').addEventListener('click', cycleSport);
 
+  /* ---------- Layout switching ---------- */
+  const layoutBtn = document.getElementById('layoutBtn');
+  if (layoutBtn) layoutBtn.addEventListener('click', toggleLayout);
+  const sLayoutBtn = document.getElementById('sLayoutBtn');
+  if (sLayoutBtn) sLayoutBtn.addEventListener('click', toggleLayout);
+
+  // In singles mode the button row is hidden, so the invisible hotspot over the
+  // logo badge at the bottom of the camera frame is the way back to the controls.
+  // It is pointer-events:none outside singles mode, so it can never intercept a
+  // click on the board.
+  document.getElementById('camToggle').addEventListener('click', () => {
+    document.getElementById('adminRow').classList.toggle('active');
+  });
+
+  // Singles-mode duplicates of the existing modals.
+  document.getElementById('sTickerBtn').addEventListener('click', () => document.getElementById('tickerBtn').click());
+  document.getElementById('sTitleBtn').addEventListener('click',  () => document.getElementById('setTitleBtn').click());
+  document.getElementById('sFacecamBtn').addEventListener('click',() => document.getElementById('facecamBtn').click());
+
+  /* ---------- Facecam background ---------- */
+  document.getElementById('facecamBtn').addEventListener('click', () => {
+    facecamNote("Pick any image. It is resized and saved in this browser source only, so it survives an OBS restart.", "");
+    document.getElementById('facecamPopup').classList.add('active');
+  });
+  document.getElementById('closeFacecam').addEventListener('click', () => {
+    document.getElementById('facecamPopup').classList.remove('active');
+  });
+  document.getElementById('browseBtn').addEventListener('click', () => document.getElementById('bgFile').click());
+
+  document.getElementById('bgFile').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";                       // allow re-picking the same file
+    if (!file) return;
+    facecamNote("Working on it...", "");
+    try{
+      const dataUrl = await resizeToDataUrl(file);
+      const stored  = LS.set(K_FACECAM_BG, dataUrl);
+      applyFacecamBg(dataUrl);
+      facecamNote(stored
+        ? "Background set and saved."
+        : "Background applied, but this browser source is out of storage so it will not survive a restart. Try a smaller image.",
+        stored ? "ok" : "err");
+    }catch(err){
+      facecamNote((err && err.message) ? err.message : "Could not set that background.", "err");
+    }
+  });
+
+  document.getElementById('clearBgBtn').addEventListener('click', () => {
+    LS.del(K_FACECAM_BG);
+    applyFacecamBg("");
+    facecamNote("Background cleared.", "ok");
+  });
+
 
   // Set break popup
   const breakPopup = document.getElementById('breakPopup');
@@ -2889,6 +3255,11 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
     // Sport from URL param
     const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
     if (qSport && breakTypes[qSport]) currentSport = qSport;
+
+    // Layout mode first, so the first paint is already the right scene
+    // and the client never sees the board flash before singles takes over.
+    applyLayout();
+    loadFacecamBg();
 
     // Layout
     buildLayout();
