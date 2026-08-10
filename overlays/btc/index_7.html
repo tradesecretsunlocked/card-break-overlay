@@ -8,18 +8,24 @@
   <style>
     :root{
       /* =========================
-         Bigger Than Cardboard — black / magenta / neon green / electric blue
+         Bigger Than Cardboard — black / silver / white
       ========================== */
-      --bg0:#02030a;
+      /* Client brand: the two values a build actually changes (TSU Standard 2.4, sec 5).
+         Declared as aliases onto this file's existing variables. Values are unchanged,
+         so this is a no-op visually; it just gives the build canonical brand names. */
+      --primary:   #c9c9c9;   /* BTC silver */
+      --secondary: #02030a;   /* BTC near-black */
+
+      --bg0: var(--secondary);
       --bg1:#050814;
 
-      --orange:#c9c9c9;
+      --orange:      var(--primary);
       --orange2:#ffffff;
       --white:#ffffff;
       --electricBlue:#e0e0e0;
       --deepBlue:#000000;
       --magenta:#ffffff;
-      --neonGreen:#c9c9c9;
+      --neonGreen:   var(--primary);
 
       --panel: rgba(5,7,18,0.92);
       --stroke: rgba(201,201,201,0.55);
@@ -42,8 +48,54 @@
 
       /* bottom grid per sport (JS updates) */
       --bottomCols: 4;
-      --tileH: 55px;
+      --tileH: 55px;       /* fallback only; the per-sport block below wins */
       --mainMinH: 430px;   /* 08-06: locks the board area to a constant height so the overlay footprint is identical across all sports (30 vs 32 tiles) */
+
+      /* =====================================================
+         PER-SPORT TILE HEIGHT  (added 2026-08-07)
+         THESE FOUR VALUES ARE THE ONLY ONES TO EDIT.
+         Each sport gets its own tile height. The board and the
+         bottom row both follow it.
+
+         Heights are automatically clamped so the board can never
+         outgrow --mainMinH, which is what keeps the overlay the
+         exact same size in OBS across all four sports. Set a value
+         taller than a sport allows and it is capped, not honoured.
+
+         Current ceilings, from the geometry below:
+           NFL / NHL  (7 rows per side column)  max 56px
+           NBA / MLB  (6 rows per side column)  max 66px
+      ===================================================== */
+      --tileH-nfl: 55px;
+      --tileH-nba: 65px;
+      --tileH-mlb: 65px;
+      --tileH-nhl: 55px;
+
+      /* Geometry the clamp depends on. Keep in step with .colgrid and .board:
+         --tileGap must equal .colgrid's gap, --boardChrome is .board's
+         padding (3px x 2) plus its border (1px x 2). */
+      --tileGap: 5px;
+      --boardChrome: 8px;
+    }
+
+    /* Rows per side column = (team count - bottom row count) / 2 columns.
+       NFL and NHL run 32 teams with 4 on the bottom, so 14 a side over 2
+       columns = 7 rows. NBA and MLB run 30 with 6 on the bottom = 6 rows. */
+    html[data-sport="nfl"]{ --sideRows: 7; --tileH-target: var(--tileH-nfl); }
+    html[data-sport="nhl"]{ --sideRows: 7; --tileH-target: var(--tileH-nhl); }
+    html[data-sport="nba"]{ --sideRows: 6; --tileH-target: var(--tileH-nba); }
+    html[data-sport="mlb"]{ --sideRows: 6; --tileH-target: var(--tileH-mlb); }
+
+    /* The clamp. Whichever is smaller: the height asked for, or the tallest
+       tile that still fits the locked board area. */
+    html[data-sport]{
+      --tileH: min(
+        var(--tileH-target),
+        calc(
+          (var(--mainMinH) - var(--boardChrome) - (var(--sideRows) - 1) * var(--tileGap))
+          / var(--sideRows)
+        )
+      );
     }
 
     *{ box-sizing:border-box; }
@@ -286,7 +338,7 @@ background-size: 140% auto; /* try 140–220% */
 
     .cam{
       aspect-ratio: 16 / 9;   /* sized for a 1920x1080 facecam */
-      width: 100%;
+      width: 104%;
       border-radius: 16px;
       background: #000;
       border: none;
@@ -318,7 +370,7 @@ background-size: 140% auto; /* try 140–220% */
       width:104%; height:102%;
       object-fit:fill;
       z-index:3;
-      left:-30px;
+      left:-24px;
       pointer-events:none;
       animation: camGlow 4.5s ease-in-out infinite;
     }
@@ -378,6 +430,9 @@ background-size: 140% auto; /* try 140–220% */
       grid-template-columns: repeat(var(--bottomCols), 1fr);
       gap: 12px;
     }
+    /* 08-10: on a big custom board the under-camera rows get their own fitted height.
+       The camera cannot shrink, so charging those rows to --tileH alone is not enough. */
+    .bottomGrid .tile{ height: var(--bottomTileH, var(--tileH)); }
 
     /* Tiles */
     .tile{
@@ -1043,6 +1098,122 @@ background-size: 140% auto; /* try 140–220% */
       0%  { opacity:0; transform: translate(-50%,-50%) rotateX(-88deg); }
       100%{ opacity:1; transform: translate(-50%,-50%) rotateX(0deg); }
     }
+
+    /* =========================================================
+       LAYOUT MODES  (added 2026-08-07)
+       The overlay ships two scenes in one file:
+         data-layout="break"    the team board (default, unchanged)
+         data-layout="singles"  header + facecam + ticker only
+       This is deliberately CSS-driven. Every board element stays in
+       the DOM in singles mode, so renderTeams(), markSold() and the
+       whole SSE path keep working exactly as verified. Nothing about
+       the automation changes with the layout, only what is painted.
+    ========================================================= */
+
+    /* Facecam background the seller can swap from inside the overlay. */
+    .cam-bg{
+      position:absolute; inset:0; z-index:0;
+      background-position:center; background-size:cover; background-repeat:no-repeat;
+    }
+    .cam-logo{ z-index:1; }
+
+    /* Admin row, only reachable in singles mode (break mode keeps the sold panel). */
+    .admin-row{
+      display:none; margin-top:4px; gap:8px;
+      align-items:center; justify-content:center; flex-wrap:wrap;
+    }
+    .hidefile{ position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+    .field-label{
+      font-size:11px; font-weight:900; letter-spacing:1px; text-transform:uppercase;
+      opacity:0.8; margin-bottom:-4px;
+    }
+    .modal-note{
+      font-size:12px; font-weight:800; line-height:1.35; opacity:0.85;
+      background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10);
+      border-radius:10px; padding:9px 11px;
+    }
+    .modal-note.err{ color:#ffd7d7; background:rgba(255,60,60,0.12); border-color:rgba(255,120,120,0.35); }
+    .modal-note.ok{  color:#d9ffe4; background:rgba(60,255,120,0.10); border-color:rgba(120,255,160,0.30); }
+    .btn-row{ display:flex; gap:10px; flex-wrap:wrap; }
+    .btn-row .pill{ flex:1 1 0; text-align:center; }
+
+    /* ---------- SINGLES MODE ---------- */
+    html[data-layout="singles"] .sideStack,
+    html[data-layout="singles"] #topGrid,
+    html[data-layout="singles"] #bottomGrid,
+    html[data-layout="singles"] .banner,
+    html[data-layout="singles"] .header-right,
+    html[data-layout="singles"] .sold-wrap{
+      display:none !important;
+    }
+
+    /* One full-width column, and release the fixed board height. */
+    html[data-layout="singles"] .main{
+      grid-template-columns: 1fr;
+      min-height: 0;
+    }
+
+    /* The controls grid is 5 columns for the break button row.
+       Singles keeps the ticker only, so collapse to one column. */
+    html[data-layout="singles"] .controls{ grid-template-columns: 1fr; }
+    html[data-layout="singles"] #resetBtn,
+    html[data-layout="singles"] #nextBtn,
+    html[data-layout="singles"] #soldToggle,
+    html[data-layout="singles"] .controls .ctl.stat{ display:none !important; }
+
+    /* The admin row is the singles control surface; board layouts use the sold panel.
+       It stays scoped to singles on purpose. What was broken was that it also got its
+       .active class stripped on every layout change, so one click on the layout pill
+       inside it made it vanish. That strip is gone and the open/closed choice is
+       persisted, so only the toggle closes it. */
+    html[data-layout="singles"] .admin-row.active{ display:flex; }
+
+    /* Custom-entry tile: no logo, so the name is the tile. Shrinks to fit long names
+       instead of overflowing the grid. */
+    .tile-label{
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      padding:4px 6px; text-align:center;
+      font-weight:800; letter-spacing:0.5px; line-height:1.1;
+      /* 08-10: sized off the TILE, not the viewport. Viewport-based text kept its size
+         while tiles shrank on a big board, so names clipped to "ry Lot". */
+      font-size: min(clamp(9px, 1.35vw, 17px), calc(var(--tileH) * 0.34));
+      color:#fff; text-shadow:0 2px 6px rgba(0,0,0,0.85);
+      overflow:hidden; word-break:break-word; hyphens:auto;
+    }
+    /* A sold custom tile shows the X, so the name steps back instead of tangling with it. */
+    .tile.sold .tile-label{ opacity:0.32; }
+    /* Under-camera tiles are shorter and narrower, so their labels scale off their own
+       height and are allowed to run to three lines before clipping. */
+    .bottomGrid .tile-label{
+      font-size: min(13px, calc(var(--bottomTileH, var(--tileH)) * 0.31));
+      letter-spacing:0; padding:2px 3px;
+    }
+    html[data-layout="custom"] .tile{ background-image:none; }
+
+    /* 08-10: singles is a clean auction shot. No header. */
+    html[data-layout="singles"] .header{ display:none; }
+
+    /* Invisible controls toggle, sitting exactly over the round logo badge at the
+       bottom of the camera frame. Geometry is derived from btc-cam.png: the badge
+       centres at 49.58% x 86.62% of the 1920x1080 asset with a 269px diameter.
+       .cam-frame paints at width:104% height:102% left:-30px, so those image
+       percentages are mapped through that transform to land on the cam box.
+       Sits above .cam-frame (z3) and .cam-sheen (z4), both pointer-events:none. */
+    .cam-toggle{
+      position:absolute;
+      left: calc(51.57% - 30px);
+      top: 88.35%;
+      width: 14.57%;
+      height: 25.03%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      z-index: 5;
+      opacity: 0;
+      pointer-events: none;      /* inert unless singles mode is active */
+    }
+    html[data-layout="singles"] .cam-toggle{ pointer-events: auto; cursor: pointer; }
+
   </style>
 </head>
 
@@ -1079,9 +1250,11 @@ background-size: 140% auto; /* try 140–220% */
       <div class="center">
         <div class="bottomGrid" id="topGrid"></div>
         <div class="cam" id="camFrame">
+          <div class="cam-bg" id="camBg"></div>
           <img class="cam-logo" id="camLogo" src="btc-logo.png" alt="" />
           <img class="cam-frame" id="camFrameImg" src="btc-cam.png" alt="" />
           <div class="cam-sheen"></div>
+          <div class="cam-toggle" id="camToggle" title="Overlay controls"></div>
         </div>
         <div class="bottomGrid" id="bottomGrid"></div>
       </div>
@@ -1119,6 +1292,16 @@ background-size: 140% auto; /* try 140–220% */
       </div>
 
       <div class="ctl btn" id="nextBtn">Next</div>
+
+      <!-- Singles mode only. Revealed by clicking the header title, so nothing
+           extra sits on camera. Break mode uses the sold panel instead. -->
+      <div class="admin-row" id="adminRow">
+        <div class="pill" id="sTickerBtn">Ticker</div>
+        <div class="pill" id="sTitleBtn">Title</div>
+        <div class="pill" id="sFacecamBtn">Facecam BG</div>
+        <div class="pill" id="sLayoutBtn">Layout: Break board</div>
+        <div class="pill" id="sCustomBtn">Custom Board</div>
+      </div>
     </div>
 
   </div>
@@ -1132,8 +1315,29 @@ background-size: 140% auto; /* try 140–220% */
       <div class="pill" id="tickerBtn">Set Ticker</div>
       <div class="pill" id="exportBtn">Export CSV</div>
       <div class="pill" id="sportBtn">Change Sport</div>
+      <div class="pill" id="facecamBtn">Facecam BG</div>
+      <div class="pill" id="layoutBtn">Layout: Singles</div>
+      <div class="pill" id="customBtn">Custom Board</div>
     </div>
     <div class="sold-grid" id="soldGrid"></div>
+  </div>
+
+  <!-- Facecam Background Popup -->
+  <div class="popup" id="facecamPopup">
+    <div class="popup-card">
+      <h2>Facecam Background</h2>
+      <div class="modal-note" id="facecamNote">
+        Pick any image. It is resized and saved in this browser source only, so it survives an OBS restart.
+      </div>
+      <div class="btn-row">
+        <div class="pill" id="browseBtn">Browse for image</div>
+        <div class="pill" id="clearBgBtn">Clear background</div>
+      </div>
+      <input class="hidefile" type="file" id="bgFile" accept="image/*">
+      <div class="popup-btns">
+        <button id="closeFacecam">Done</button>
+      </div>
+    </div>
   </div>
 
   <!-- Export Popup -->
@@ -1178,6 +1382,28 @@ background-size: 140% auto; /* try 140–220% */
   </div>
 
   <!-- Ticker Settings Popup -->
+  <div class="popup" id="customPopup">
+    <div class="popup-card">
+      <h2>Custom Board</h2>
+      <div style="color:rgba(255,255,255,0.65);font-size:11px;text-align:center;letter-spacing:1.5px;margin-top:-6px;">ONE ENTRY PER LINE &nbsp;•&nbsp; NAMES MUST MATCH THE WHATNOT LISTINGS EXACTLY</div>
+      <textarea id="customEntriesInput" placeholder="Patrick Mahomes&#10;Josh Allen&#10;Pack 1&#10;Pack 2" style="min-height:170px;"></textarea>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:2px;flex-wrap:wrap;">
+        <button id="csvBtn" type="button" style="white-space:nowrap;">Import CSV</button>
+        <input id="csvFile" type="file" accept=".csv,.txt,text/csv,text/plain" style="display:none;" />
+        <span id="customCount" style="font-size:12px;opacity:0.7;letter-spacing:1px;"></span>
+      </div>
+      <div style="font-size:11px;opacity:0.45;line-height:1.5;">
+        Paste a column from a sheet, or import a CSV and the first column is used.
+        A header row is skipped and duplicate names are dropped.
+      </div>
+      <div class="popup-btns">
+        <button id="applyCustom">Save &amp; use</button>
+        <button id="clearCustom">Clear</button>
+        <button id="closeCustom">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div class="popup" id="tickerPopup">
     <div class="popup-card">
       <h2>Ticker Settings</h2>
@@ -1230,8 +1456,10 @@ background-size: 140% auto; /* try 140–220% */
 const CLIENT_ID = "bigger-than-cardboard";
 
 const LS = {
-  get(k, d=""){ const v = localStorage.getItem(`${CLIENT_ID}.${k}`); return (v==null ? d : v); },
-  set(k, v){ localStorage.setItem(`${CLIENT_ID}.${k}`, String(v)); }
+  get(k, d=""){ try { const v = localStorage.getItem(`${CLIENT_ID}.${k}`); return (v==null ? d : v); } catch(_) { return d; } },
+  // returns false when the write fails (quota), so callers can report it
+  set(k, v){ try { localStorage.setItem(`${CLIENT_ID}.${k}`, String(v)); return true; } catch(_) { return false; } },
+  del(k){ try { localStorage.removeItem(`${CLIENT_ID}.${k}`); } catch(_) {} }
 };
 
 
@@ -1256,11 +1484,17 @@ document.documentElement.style.setProperty(
 const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com";
 const BRIDGE_KEY_DEFAULT = "3bc79a79-5ed9-4bea-9c11-ef970abf743a";
 
-const BRIDGE_KEY = (() => {
+// TSU Standard 2.4 sec 8: the baked key is PRIMARY. ?key= is an opt-in test override only.
+// localStorage is never consulted — a stale tsu.bridgeKey from a test session used to win
+// silently and put the overlay on the wrong client's scope (the cross-client bleed bug).
+function getBridgeKey(){
   const q = new URLSearchParams(location.search).get('key');
-  if (q && q.trim()) { localStorage.setItem('tsu.bridgeKey', q.trim()); return q.trim(); }
-  return (localStorage.getItem('tsu.bridgeKey') || BRIDGE_KEY_DEFAULT).trim();
-})();
+  return (q && q.trim()) ? q.trim() : BRIDGE_KEY_DEFAULT;
+}
+const BRIDGE_KEY = getBridgeKey();
+
+// One-time cleanup: purge the legacy override so old OBS caches can't resurrect it.
+try { localStorage.removeItem('tsu.bridgeKey'); } catch(_) {}
 
 
 const CHANNELS = (() => {
@@ -1533,14 +1767,13 @@ function rememberSaleId(saleId){
     const saved = localStorage.getItem("bigger-than-cardboard.headerTitle");
     const el = document.getElementById("headerTitle");
     headerTitleText = (saved && saved.trim().length) ? saved : (el?.textContent || headerTitleText);
-    if (el) el.textContent = headerTitleText;
+    renderHeaderTitle();
   }
   function setHeaderTitle(txt){
     const t = String(txt ?? "").trim();
     if (!t) return;
     headerTitleText = t;
-    const el = document.getElementById("headerTitle");
-    if (el) el.textContent = headerTitleText;
+    renderHeaderTitle();
     saveHeaderTitle();
   }
 
@@ -1597,24 +1830,56 @@ function loadSport(){
   }
 
   function inferCodeFromTitle(title){
-    const teams = breakTypes[currentSport].teams;
+    // 08-10: reads activeSpots() so a custom board resolves by entry name. The match
+    // ORDER below is unchanged and still load bearing.
+    const teams = activeSpots();
     const lookup = buildLookup(teams);
     const t = norm(title);
     if (!t) return null;
 
+    // 0. Exact whole-title match.
     if (lookup.has(t)) return lookup.get(t);
 
-    const m = String(title || "").match(/\b([A-Z]{2,4})\b/);
-    if (m && m[1]) {
-      const token = norm(m[1]);
-      if (lookup.has(token)) return lookup.get(token);
+    // TSU Standard 2.4 sec 9.2 — ORDER IS LOAD BEARING:
+    // match against team NAMES first, longest name first, on WORD BOUNDARIES, and only
+    // then fall back to a 2-4 char uppercase code token.
+    //
+    // The previous implementation ran a loose `t.includes(key)` scan across a key set that
+    // also contained the 3-letter team codes. That silently mis-grabbed codes buried inside
+    // ordinary words: "Kansas City Chiefs" contains "chi", so it marked the NHL BLACKHAWKS.
+    // Same class of bug for "sabres"/"sab", "packers"/"pac". Names-first with word
+    // boundaries is the documented fix.
+    const words = t.split(" ").filter(Boolean);
+    const hasPhrase = (phrase) => {
+      const pw = String(phrase || "").split(" ").filter(Boolean);
+      if (!pw.length) return false;
+      for (let i = 0; i + pw.length <= words.length; i++){
+        let hit = true;
+        for (let j = 0; j < pw.length; j++){
+          if (words[i + j] !== pw[j]) { hit = false; break; }
+        }
+        if (hit) return true;
+      }
+      return false;
+    };
+
+    // 1. Names only, longest (most specific) first — "florida panthers" beats "panthers".
+    const nameKeys = teams
+      .map(x => norm(x.name))
+      .filter(Boolean)
+      .sort((a, b) => b.split(" ").length - a.split(" ").length || b.length - a.length);
+
+    for (const k of nameKeys){
+      if (hasPhrase(k)) return lookup.get(k);
     }
 
-    const keys = Array.from(lookup.keys()).sort((a,b) => b.length - a.length);
-    for (const k of keys){
-      if (k.length < 3) continue;
-      if (t.includes(k)) return lookup.get(k);
+    // 2. Only now, an explicit uppercase code token, and it must stand alone as a word.
+    const m = String(title || "").match(/\b([A-Z]{2,4})\b/g) || [];
+    for (const raw of m){
+      const token = norm(raw);
+      if (lookup.has(token) && hasPhrase(token)) return lookup.get(token);
     }
+
     return null;
   }
 
@@ -1638,7 +1903,9 @@ function normalizeCodeAliases(code, sportKey){
 function isValidCodeForSport(code, sportKey){
   const s = String(sportKey || "").toLowerCase();
   if (!code || !breakTypes[s]) return false;
-  const lookup = buildLookup(breakTypes[s].teams);
+  // 08-10: validate against every spot on the board, not teams only. Teams-only made
+  // this guard reject every SPOT code, so custom sales were dropped with no error.
+  const lookup = buildLookup(activeSpots());
   return lookup.has(norm(code));
 }
 
@@ -1655,7 +1922,26 @@ function requireValidCodeOrBail(code, sportKey, titleRaw){
 function applySportCSS(){
   const cfg = breakTypes[currentSport];
   document.documentElement.style.setProperty('--bottomCols', String(cfg.bottomCols));
+
+  // Publish the sport so the per-sport --tileH block in :root can select on it.
+  // Height itself is decided in CSS, not here, so there is one place to edit.
+  document.documentElement.dataset.sport = currentSport;
 }
+  // A singles auction is not a sport break, so the "• NFL" suffix is noise there.
+  // The stored title keeps the suffix so switching back to the board restores it;
+  // only what gets painted changes.
+  function stripSportSuffix(t){
+    return String(t || "").replace(/\s*[•·|-]\s*(NFL|NBA|MLB|NHL)\s*$/i, "").trim();
+  }
+
+  function renderHeaderTitle(){
+    const el = document.getElementById("headerTitle");
+    if (!el) return;
+    el.textContent = (currentLayout === "singles")
+      ? (stripSportSuffix(headerTitleText) || headerTitleText)
+      : headerTitleText;
+  }
+
   function updateHeaderSport(){
     const cfg = breakTypes[currentSport];
     const el = document.getElementById("headerTitle");
@@ -1665,7 +1951,7 @@ function applySportCSS(){
     if (isDefaultish){
       setHeaderTitle(`BIGGER THAN CARDBOARD • ${cfg.name}`);
     } else {
-      el.textContent = headerTitleText;
+      renderHeaderTitle();
     }
   }
 
@@ -1682,42 +1968,116 @@ function buildTile(team){
   fx.className = 'fx';
   d.appendChild(fx);
 
+  // A custom entry has no logo, so the tile IS the name. Team tiles keep the image
+  // with the existing code fallback.
+  if (team.custom || !team.image){
+    const label = document.createElement('div');
+    label.className = 'tile-label';
+    label.textContent = team.name;
+    label.title = team.name;
+    d.appendChild(label);
+    d.addEventListener('click', () => toggleTeam(team.code));
+    return d;
+  }
+
   const img = document.createElement('img');
   img.src = team.image;
   img.alt = team.name;
-  img.onerror = () => { d.textContent = team.code; };
+  img.onerror = () => { d.textContent = team.name || team.code; };
 
   d.appendChild(img);
   d.addEventListener('click', () => toggleTeam(team.code));
   return d;
 }
 
-  function getSportCount(){ return breakTypes[currentSport].count; }
+  // 08-10: on a custom board the total is the number of entries, not the sport's team
+  // count. Left unfixed this showed "31 LEFT" on a 4-entry board.
+  function getSportCount(){
+    return (currentLayout === "custom")
+      ? customEntries.length
+      : breakTypes[currentSport].count;
+  }
 
   function renderTeams(){
     const cfg = breakTypes[currentSport];
-    const TEAMS = cfg.teams;
+    // 08-10: a custom board renders the seller's entries through the same four grids.
+    // The split is computed from the entry count, so structure is decided once at
+    // render time and never reflows mid-break.
+    const custom = (currentLayout === "custom");
+    const TEAMS = custom ? customTeamObjects() : cfg.teams;
 
     leftGrid.innerHTML   = '';
     rightGrid.innerHTML  = '';
     topGrid.innerHTML    = '';
     bottomGrid.innerHTML = '';
 
-    const topN    = cfg.topCount    || 0;
-    const bottomN = cfg.bottomCount || 0;
-    const sideTotal = (cfg.count || TEAMS.length) - topN - bottomN;
+    // 08-10 (Mike): a custom board fills the two side columns first, and once 30 tiles
+    // are placed the rest go under the camera, same as the bottom row on a team board.
+    // Side columns are 2 wide, so 30 a board = 15 a side = 8 rows in the taller column.
+    // --sideRows is republished so the existing clamp shrinks the tiles to fit, which is
+    // what keeps the OBS footprint identical no matter how many entries there are.
+    const SIDE_CAP = 30;
+    const topN    = custom ? 0 : (cfg.topCount || 0);
+    const bottomN = custom ? Math.max(0, TEAMS.length - SIDE_CAP) : (cfg.bottomCount || 0);
+    const sideTotal = (custom ? Math.min(TEAMS.length, SIDE_CAP) : (cfg.count || TEAMS.length)) - topN - (custom ? 0 : bottomN);
+
+    if (custom){
+      const perSide = Math.ceil(sideTotal / 2);
+      // Never let a short board balloon the tiles: the sport's own row count is the floor.
+      const sportRows = Math.max(1, Math.round(((cfg.count || 32) - (cfg.bottomCount || 0)) / 4));
+      const rows = Math.max(sportRows, Math.ceil(perSide / 2));
+
+      // Under-camera tiles run in ONE row where they can (up to 14 across), so a big
+      // board grows sideways rather than downwards into the banner.
+      // 8 across is the most that stays readable on stream under the camera; past that
+      // it wraps to another row rather than shrinking the text into noise.
+      const cols = Math.min(Math.max(bottomN, 1), 8);
+      const bottomRows = bottomN ? Math.ceil(bottomN / cols) : 0;
+      document.documentElement.style.setProperty('--bottomCols', String(cols));
+
+      // Mike 08-10: past ~36 slots the under-camera row starts pushing the overlay taller.
+      // Charge those rows to the clamp so every tile shrinks a little and the OBS footprint
+      // stays locked. Below that threshold nothing changes.
+      document.documentElement.style.setProperty('--sideRows', String(rows + bottomRows));
+    } else {
+      // Hand the sport's own geometry back.
+      document.documentElement.style.removeProperty('--sideRows');
+      document.documentElement.style.setProperty('--bottomCols', String(cfg.bottomCols));
+    }
     const leftN   = Math.ceil(sideTotal / 2);
     const rightN  = sideTotal - leftN;
 
     const leftTeams   = TEAMS.slice(0, leftN);
     const rightTeams  = TEAMS.slice(leftN, leftN + rightN);
     const topTeams    = TEAMS.slice(leftN + rightN, leftN + rightN + topN);
-    const bottomTeams = TEAMS.slice(leftN + rightN + topN, leftN + rightN + topN + bottomN);
+    const bottomTeams = custom
+      ? TEAMS.slice(SIDE_CAP)                                                        // everything past the 30th
+      : TEAMS.slice(leftN + rightN + topN, leftN + rightN + topN + bottomN);
 
     leftTeams.forEach(t   => leftGrid.appendChild(buildTile(t)));
     rightTeams.forEach(t  => rightGrid.appendChild(buildTile(t)));
     topTeams.forEach(t    => topGrid.appendChild(buildTile(t)));
     bottomTeams.forEach(t => bottomGrid.appendChild(buildTile(t)));
+
+    // 08-10: fit the under-camera rows into whatever the camera leaves. One measured
+    // pass at render time, never during a break, so the grid still never moves on air.
+    if (custom && bottomN){
+      document.documentElement.style.removeProperty('--bottomTileH');
+      const cam  = document.getElementById('camFrame') || document.querySelector('.cam');
+      if (cam){
+        const limit = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mainMinH')) || 430;
+        const cols  = Math.min(Math.max(bottomN, 1), 8);
+        const rowsB = Math.ceil(bottomN / cols);
+        const spare = limit - cam.getBoundingClientRect().height - (rowsB * 12) - 8;
+        const per   = Math.floor(spare / rowsB);
+        // Below ~22px a tile stops being readable on stream, so it is allowed to grow
+        // instead of shrinking into mush.
+        if (per >= 22) document.documentElement.style.setProperty('--bottomTileH', per + 'px');
+        else console.warn('[Overlay] custom board:', bottomN, 'under-camera tiles exceed the locked height; overlay will grow.');
+      }
+    } else {
+      document.documentElement.style.removeProperty('--bottomTileH');
+    }
 
     soldTeams.forEach(code => {
       const el = document.querySelector(`[data-team-code="${code}"]`);
@@ -1732,6 +2092,11 @@ function buildTile(team){
      Sold FX — card flies to cam center, 3D flip, stamp
   ========================== */
   function playSoldAnimation(code, onComplete){
+    // Singles mode has no board on camera. The tile the card flies from is hidden,
+    // so its rect is all zeros and the FX would launch from the top-left corner of
+    // the screen. Skip it and just apply the state.
+    if (currentLayout === "singles"){ onComplete?.(); return; }
+
     const teams = breakTypes[currentSport].teams;
     const team  = teams.find(t => t.code === code);
     if (!team){ onComplete?.(); return; }
@@ -1819,6 +2184,7 @@ function buildTile(team){
 
   soldTeams.add(code);
   if (!soldTeamsList.some(x => x.code === code)) soldTeamsList.push({code, buyer:''});
+  saveSoldState();
 
   const el = document.querySelector(`[data-team-code="${code}"]`);
   if (animated && el){
@@ -1839,6 +2205,7 @@ function markUnsold(code){
   soldTeams.delete(code);
   const idx = soldTeamsList.findIndex(x => x.code === code);
   if (idx !== -1) soldTeamsList.splice(idx, 1);
+  saveSoldState();
 
   // Then try to update the DOM (if it exists right now)
   const el = document.querySelector(`[data-team-code="${code}"]`);
@@ -1847,7 +2214,12 @@ function markUnsold(code){
 
 
 function sseMarkSold(code, buyer=""){
-  markSold(code, false); // no animation on SSE sells — apply state directly
+  // TSU Standard 2.4 sec 14: soldFlash is required on EVERY sale. On Whatnot every sale
+  // arrives over SSE, so passing false here meant the celebration never played on stream.
+  // Guarded: only animate a tile that isn't already sold, so a duplicate/respin event
+  // can't stack animations.
+  const alreadySold = soldTeams.has(code);
+  markSold(code, !alreadySold);
   if (buyer){
     const row = soldTeamsList.find(x => x.code === code);
     if (row) row.buyer = buyer;
@@ -1870,9 +2242,313 @@ function buildExportTSV(){
   return header + rows + (rows ? "\n" : "");
 }
 
-function breakIdMatches(value){
-  const v = parseInt(value, 10);
-  return Number.isInteger(v) && v === breakNum;
+// TSU Standard 2.4 sec 9.3. breakId is `${yyyymmdd}-${breakType}-${breakNumber}`.
+// Rule: no incoming breakId means PASS (most senders omit it). If one is present it must
+// match this overlay's current break. The old parseInt() version would have rejected every
+// standard-format id, so it was never safe to call — this replaces it.
+function currentBreakId(){
+  const d = new Date();
+  const yyyymmdd = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  return `${yyyymmdd}-${currentSport}-${breakNum}`;
+}
+
+function breakIdMatches(data){
+  if (!data || typeof data !== "object") return true;
+  const raw = data.breakId || data.break_id || (data.data && (data.data.breakId || data.data.break_id));
+  if (raw === undefined || raw === null || String(raw).trim() === "") return true;  // absent = pass
+
+  const incoming = String(raw).trim().toLowerCase();
+
+  // Exact match on the canonical form.
+  if (incoming === currentBreakId().toLowerCase()) return true;
+
+  // Tolerate senders that pass a bare break number, or a "<ns>:<sport>:<n>" form
+  // (this overlay's own warmup ping uses the latter).
+  const tail = incoming.split(/[-:]/).pop();
+  if (tail && String(parseInt(tail, 10)) === String(breakNum)) return true;
+
+  console.warn("[Overlay] dropped event for a different break:", incoming, "current:", currentBreakId());
+  return false;
+}
+
+/* =========================
+   Sold-state persistence — TSU Standard 2.4 sec 10/14 (required Tier 2+)
+   Without this, an OBS browser-source refresh mid-break wipes the whole board and the
+   seller has to re-click every sold tile by hand on stream. Persists to
+   `bigger-than-cardboard.soldState` via the per-client LS namespace (sec 4).
+========================== */
+const SOLD_STATE_KEY = "soldState";
+
+function saveSoldState(){
+  try {
+    LS.set(SOLD_STATE_KEY, JSON.stringify({
+      v: 1,
+      sport: currentSport,
+      breakNum: breakNum,
+      sold: soldTeamsList.map(x => ({ code: x.code, buyer: x.buyer || "" })),
+      respin: Array.from(lastCodeByListingKey.entries()),
+      highBid: highBid,
+      buyers: Array.from(buyerTotals.entries()),
+      savedAt: Date.now()
+    }));
+  } catch(_) {}
+}
+
+function loadSoldState(){
+  let raw = "";
+  try { raw = LS.get(SOLD_STATE_KEY, ""); } catch(_) { return; }
+  if (!raw) return;
+
+  let st = null;
+  try { st = JSON.parse(raw); } catch(_) { return; }
+  if (!st || typeof st !== "object") return;
+
+  // Only restore into the same sport + same break. A different break means the saved
+  // board is stale and restoring it would show last break's sales on a fresh board.
+  if (st.sport !== currentSport) return;
+  if (Number.isInteger(st.breakNum) && st.breakNum !== breakNum) return;
+
+  // Drop anything older than 12h so a machine left off overnight starts clean.
+  if (Number.isFinite(st.savedAt) && (Date.now() - st.savedAt) > 12 * 60 * 60 * 1000) return;
+
+  (Array.isArray(st.sold) ? st.sold : []).forEach(e => {
+    const code = String(e && e.code || "").toUpperCase();
+    if (!code) return;
+    if (!isValidCodeForSport(code, currentSport)) return;   // guard against cross-sport bleed
+    if (soldTeams.has(code)) return;
+    soldTeams.add(code);
+    soldTeamsList.push({ code, buyer: (e.buyer || "") });
+    const el = document.querySelector(`[data-team-code="${code}"]`);
+    if (el) el.classList.add('sold');
+  });
+
+  if (Array.isArray(st.respin)){
+    st.respin.forEach(pair => {
+      if (Array.isArray(pair) && pair.length === 2) lastCodeByListingKey.set(String(pair[0]), String(pair[1]));
+    });
+  }
+
+  if (Number.isFinite(st.highBid)) setHighBid(st.highBid);
+
+  if (Array.isArray(st.buyers)){
+    buyerTotals = new Map(st.buyers.filter(p => Array.isArray(p) && p.length === 2));
+    let topName = '', topTotal = -1;
+    for (const [name, total] of buyerTotals.entries()){
+      if (total > topTotal){ topTotal = total; topName = name; }
+    }
+    if (topName) setTopBuyer(topName);
+  }
+
+  console.log("[Overlay] restored sold state:", soldTeamsList.length, "tiles for", currentSport, "break", breakNum);
+}
+
+
+/* =========================================================
+   LAYOUT MODES  (added 2026-08-07)
+   "break"   = the team board, the original scene, default
+   "singles" = header + facecam + ticker, for singles auctions
+
+   Purely a view concern. Every board element stays in the DOM, so
+   renderTeams(), markSold(), the sold panel and the whole SSE path
+   behave identically in both modes. If a sale lands while the seller
+   is in singles mode the state still records it, and switching back
+   to the board shows it correctly.
+
+   Resolution order matches the existing ?sport= convention:
+   URL param wins for the session, otherwise the saved choice.
+========================================================= */
+const LAYOUTS = ["break", "singles", "custom"];   // "custom" added 08-10: seller-supplied board
+const K_LAYOUT = "layout";
+
+let currentLayout = (() => {
+  const q = String(new URLSearchParams(location.search).get("layout") || "").toLowerCase().trim();
+  if (LAYOUTS.includes(q)) return q;
+  const saved = String(LS.get(K_LAYOUT, "")).toLowerCase().trim();
+  return LAYOUTS.includes(saved) ? saved : "break";
+})();
+
+/* =========================================================
+   Custom board (08-10)
+
+   The seller types, pastes, or imports a CSV of entry names and the board
+   renders one tile per entry instead of the sport's teams. Entries get codes
+   SPOT1..SPOTn, and automation is preserved by widening the lookup set that
+   inferCodeFromTitle and the sport guard read from: a Whatnot sale still
+   resolves by NAME, so the names on the board must match the Whatnot listing
+   titles exactly. That is the whole contract.
+
+   Entries persist in localStorage, so an OBS refresh mid-break keeps the board.
+========================================================= */
+const K_CUSTOM = "customEntries";
+let customEntries = (() => {
+  try{ const v = JSON.parse(LS.get(K_CUSTOM, "[]")); return Array.isArray(v) ? v.filter(x => String(x||"").trim()) : []; }
+  catch(_){ return []; }
+})();
+
+function saveCustomEntries(){ LS.set(K_CUSTOM, JSON.stringify(customEntries)); }
+
+// Entry names -> team-shaped objects the existing tile/lookup code already understands.
+function customTeamObjects(){
+  return customEntries.map((name, i) => ({
+    code: "SPOT" + (i + 1),
+    name: String(name).trim(),
+    image: "",          // no logo for a custom entry; buildTile falls back to the name
+    custom: true
+  }));
+}
+
+// Every spot currently on the board. Automation must match against THIS, not teams,
+// or custom sales resolve to nothing and silently never mark.
+function activeSpots(){
+  return (currentLayout === "custom")
+    ? customTeamObjects()
+    : breakTypes[currentSport].teams;
+}
+
+function parseEntryText(raw){
+  const txt = String(raw || "").replace(/^\uFEFF/, "");
+  let lines = txt.split(/\r?\n/);
+  // A single comma-separated line is a legitimate paste shape too.
+  if (lines.filter(l => l.trim()).length === 1 && txt.includes(",")) lines = txt.split(",");
+  const HEADERS = new Set(["name","names","team","teams","player","players","spot","spots","entry","entries","item","items","title","titles"]);
+  const out = [];
+  lines.forEach((line, idx) => {
+    // CSV: take the first column, and honour simple quoting.
+    let cell = String(line);
+    const m = cell.match(/^\s*"((?:[^"]|"")*)"\s*(?:,|$)/);
+    cell = m ? m[1].replace(/""/g, '"') : cell.split(",")[0];
+    cell = cell.trim();
+    if (!cell) return;
+    if (idx === 0 && HEADERS.has(cell.toLowerCase())) return;   // drop an obvious header row
+    out.push(cell);
+  });
+  // De-dupe case-insensitively: two identical names cannot be told apart by a sale.
+  const seen = new Set(); const uniq = [];
+  for (const e of out){ const k = e.toLowerCase(); if (seen.has(k)) continue; seen.add(k); uniq.push(e); }
+  return uniq;
+}
+
+/* Admin row visibility (08-10). Sticky by design: nothing but the toggle closes it.
+   Persisted so an OBS source refresh mid-break does not drop the seller's controls. */
+// Build stamp. Logged on load so there is never any doubt which file OBS or a browser
+// actually has open. If this line is missing from the console, it is not this build.
+const TSU_BUILD = "BTC index.html - 2026-08-10c - sticky admin row + no header in singles + custom board w/ under-cam overflow";
+console.log("%c[TSU] " + TSU_BUILD, "background:#0a3d5c;color:#7fd8ff;padding:2px 6px;border-radius:3px");
+
+const K_ADMIN = "adminRowOpen";
+function applyAdminRow(){
+  const row = document.getElementById("adminRow");
+  if (row) row.classList.toggle("active", LS.get(K_ADMIN, "0") === "1");
+}
+function toggleAdminRow(){
+  LS.set(K_ADMIN, LS.get(K_ADMIN, "0") === "1" ? "0" : "1");
+  applyAdminRow();
+}
+
+function applyLayout(){
+  document.documentElement.dataset.layout = currentLayout;
+
+  const singles = (currentLayout === "singles");
+  const NEXT_LABEL = { "break": "Layout: Singles", "singles": "Layout: Custom board", "custom": "Layout: Break board" };
+  const lbl = NEXT_LABEL[currentLayout] || "Layout: Singles";
+  const a = document.getElementById("layoutBtn");
+  if (a) a.textContent = lbl;
+  const b = document.getElementById("sLayoutBtn");
+  if (b) b.textContent = lbl;
+
+  // FIX 08-10: this used to strip .active whenever the layout changed, so the panel
+  // vanished the moment the seller clicked the layout pill inside it. The panel is now
+  // sticky: only the toggle closes it, and the choice survives a reload.
+
+  // Repaint the header so the sport suffix drops in singles and returns on the board.
+  if (typeof renderHeaderTitle === "function") renderHeaderTitle();
+}
+
+function setLayout(next){
+  const v = String(next || "").toLowerCase().trim();
+  if (!LAYOUTS.includes(v) || v === currentLayout) return;
+  currentLayout = v;
+  LS.set(K_LAYOUT, currentLayout);
+  applyLayout();
+  // The board's tiles differ between a team board and a custom board, so repaint.
+  if (typeof renderTeams === "function") renderTeams();
+}
+
+function toggleLayout(){
+  // 08-10: three-way cycle. Break -> Singles -> Custom -> Break.
+  const i = LAYOUTS.indexOf(currentLayout);
+  setLayout(LAYOUTS[(i + 1) % LAYOUTS.length]);
+}
+
+
+/* =========================================================
+   Facecam background. Works in both layouts, since the cam is shared.
+   Raw photos are far too big for localStorage, so the image is
+   downscaled and re-encoded before saving, and a quota failure
+   reports in the modal instead of vanishing on the next restart.
+========================================================= */
+const K_FACECAM_BG  = "facecamBg";
+const BG_MAX_EDGE   = 1600;
+const BG_MAX_BYTES  = 2000000;
+
+function applyFacecamBg(dataUrl){
+  const bg   = document.getElementById("camBg");
+  const logo = document.getElementById("camLogo");
+  if (!bg) return;
+  if (dataUrl){
+    bg.style.backgroundImage = `url("${dataUrl}")`;
+    if (logo) logo.style.display = "none";   // watermark is the empty state
+  } else {
+    bg.style.backgroundImage = "";
+    if (logo) logo.style.display = "";
+  }
+}
+
+function facecamNote(msg, kind){
+  const el = document.getElementById("facecamNote");
+  if (!el) return;
+  el.textContent = msg;
+  el.className = "modal-note" + (kind ? " " + kind : "");
+}
+
+function resizeToDataUrl(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read that file."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("That file is not an image the browser can open."));
+      img.onload = () => {
+        try{
+          const w = img.naturalWidth, h = img.naturalHeight;
+          if (!w || !h) return reject(new Error("That image has no dimensions."));
+          const scale = Math.min(1, BG_MAX_EDGE / Math.max(w, h));
+          const cw = Math.max(1, Math.round(w * scale));
+          const ch = Math.max(1, Math.round(h * scale));
+          const canvas = document.createElement("canvas");
+          canvas.width = cw; canvas.height = ch;
+          canvas.getContext("2d").drawImage(img, 0, 0, cw, ch);
+          let out = "";
+          for (const q of [0.9, 0.8, 0.7, 0.6, 0.5]){
+            out = canvas.toDataURL("image/jpeg", q);
+            if (out.length <= BG_MAX_BYTES) break;
+          }
+          if (out.length > BG_MAX_BYTES){
+            return reject(new Error("That image is too large even after resizing. Try a smaller one."));
+          }
+          resolve(out);
+        }catch(_){
+          reject(new Error("Could not process that image."));
+        }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadFacecamBg(){
+  applyFacecamBg(LS.get(K_FACECAM_BG, "") || "");
 }
 
 function buildLayout(){
@@ -1909,38 +2585,74 @@ let _scoreCycleTimer = null;
 let _cycleIdx = 0;
 const _cycleOrder = ["nba","nfl","mlb","nhl"];
 
+  // TSU Standard 2.4 sec 13 — INCREMENTAL PATCH, never an innerHTML wipe.
+  // This runs on every single bridge event. The old version rebuilt the whole panel each
+  // time, which destroyed any buyer name the seller was mid-way through typing and caused
+  // the visible flash-and-reset clients report as "the overlay glitched".
+  // Rows are keyed by data-code; a focused input is never overwritten.
   function renderSoldPanel(){
-    soldGrid.innerHTML = '';
+    if (!soldGrid) return;
+
     if (soldTeamsList.length === 0){
+      soldGrid.replaceChildren();
       soldOpen = false;
       soldWrap.classList.remove('active');
       return;
     }
 
-    soldTeamsList.forEach(entry => {
-      const tile = document.querySelector(`[data-team-code="${entry.code}"]`);
-      const src = tile?.querySelector('img')?.src || '';
-
-      const row = document.createElement('div');
-      row.className = 'sold-item';
-
-      if (src){
-        const img = document.createElement('img');
-        img.src = src;
-        row.appendChild(img);
-      }
-
-      const input = document.createElement('input');
-      input.value = entry.buyer || '';
-      input.placeholder = 'Buyer';
-      input.addEventListener('input', e => entry.buyer = e.target.value);
-      input.addEventListener('keydown', e => {
-        if (e.key === 'Enter'){ e.preventDefault(); e.target.blur(); }
-      });
-
-      row.appendChild(input);
-      soldGrid.appendChild(row);
+    // 1. Drop rows for teams that are no longer sold.
+    soldGrid.querySelectorAll('.sold-item[data-code]').forEach(row => {
+      if (!soldTeamsList.some(e => e.code === row.dataset.code)) row.remove();
     });
+
+    // 2. Add or update rows without rebuilding.
+    soldTeamsList.forEach(entry => {
+      let row = soldGrid.querySelector(`.sold-item[data-code="${entry.code}"]`);
+
+      if (!row){
+        const tile = document.querySelector(`[data-team-code="${entry.code}"]`);
+        const src = tile?.querySelector('img')?.src || '';
+
+        row = document.createElement('div');
+        row.className = 'sold-item';
+        row.dataset.code = entry.code;
+
+        if (src){
+          const img = document.createElement('img');
+          img.src = src;
+          img.onerror = () => img.remove();
+          row.appendChild(img);
+        }
+
+        const input = document.createElement('input');
+        input.value = entry.buyer || '';
+        input.placeholder = 'Buyer';
+        input.addEventListener('input', e => { entry.buyer = e.target.value; saveSoldState(); });
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter'){ e.preventDefault(); e.target.blur(); }
+        });
+
+        row.appendChild(input);
+        soldGrid.appendChild(row);
+      } else {
+        // Update the buyer value ONLY if the seller isn't currently typing in it.
+        const input = row.querySelector('input');
+        if (input && document.activeElement !== input){
+          const next = entry.buyer || '';
+          if (input.value !== next) input.value = next;
+        }
+      }
+    });
+
+    // 3. Keep DOM order in sync with soldTeamsList — but NEVER while the seller is typing.
+    //    Moving a node that contains the focused input blurs it in Chromium, which would
+    //    reintroduce the very bug this function exists to prevent.
+    if (!soldGrid.contains(document.activeElement)){
+      soldTeamsList.forEach(entry => {
+        const row = soldGrid.querySelector(`.sold-item[data-code="${entry.code}"]`);
+        if (row) soldGrid.appendChild(row);
+      });
+    }
 
     soldOpen = true;
     soldWrap.classList.add('active');
@@ -2008,6 +2720,8 @@ function resetAll(){
   setHighBid(0);
   buyerTotals = new Map();
   setTopBuyer('');
+
+  saveSoldState();   // persist the cleared board so a refresh doesn't resurrect it
 }
 
   function nextBreak(){
@@ -2273,14 +2987,19 @@ const onAny = (e) => {
   es.addEventListener("message", onAny);
 
   // IMPORTANT: your server uses `event: <type>` so we must subscribe to those names
+  // TSU Standard 2.4 sec 8/9.1: named SSE events bypass onmessage, so every alias the
+  // contract lists must be registered explicitly or those events are silently dropped.
   const SSE_EVENTS = [
-    "team_sold", "sold", "sale",
+    "team_sold", "sold", "sale", "purchase", "whatnot_purchase",
     "team_unsold", "unsold",
+    "buyer", "buyer_update",
     "reset",
-    "set_break", "break_set",
+    "set_break", "break_set", "next_break",
     "banner_set",
     "set_title",
+    "set_ticker",
     "set_sport", "sport_set",
+    "scores", "scores_update",
     "stream_stats",
     "overlay_warmup"
   ];
@@ -2308,13 +3027,38 @@ function handleSSEEvent(data){
     const type = String(payload.type || payload.event || rootType || "").toLowerCase();
     if (!type || type === "hello") return;
 
+    // TSU Standard 2.4 sec 9.3: breakId guard FIRST, before any state is touched.
+    if (!breakIdMatches(data)) return;
+
     console.log("[Overlay] SSE IN:", { type, payload });
 
-if (type === "team_sold" || type === "sold" || type === "sale"){
+if (type === "team_sold" || type === "sold" || type === "sale" || type === "purchase" || type === "whatnot_purchase"){
   const sid = payload.saleId || payload.saleID || payload.sale_id;
 
-  // Determine which team this sale is for
-let code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
+  // Determine which team this sale is for.
+  //
+  // MULTI-SPORT SAFETY (BTC breaks NFL/NBA/MLB/NHL). The extension runs sport:"nil" and
+  // resolves a title against its rule list in league order, so a shared nickname resolves
+  // to the first league that owns it — "Panthers" always comes back NFL CAR. CAR is also
+  // a valid NHL code (Hurricanes), so during an NHL break the raw payload code would mark
+  // the WRONG TILE with no error anywhere. The overlay knows which sport is actually on
+  // screen, so it is the authority: if the sender resolved against a different league,
+  // discard its code and re-infer from the title scoped to the current sport.
+  const payloadSport = String(payload.sport || "").toLowerCase().trim();
+  const sportMismatch = payloadSport && payloadSport !== "nil" && payloadSport !== currentSport;
+
+  let code;
+  if (sportMismatch){
+    code = inferCodeFromTitle(payload.title) || "";
+    if (!code){
+      console.warn("[Overlay] sale resolved to", payloadSport, "but board is", currentSport,
+                   "and the title does not match a", currentSport, "team — dropped:", payload.title);
+      return;
+    }
+    console.log("[Overlay] re-resolved cross-league sale:", payload.title, "->", code, "for", currentSport);
+  } else {
+    code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.title);
+  }
 
   // EXTRA GUARD: verify code belongs to currentSport (bail if not)
   const checked = requireValidCodeOrBail(code, currentSport, payload.title || "");
@@ -2335,6 +3079,24 @@ let code = (payload.code || "").toUpperCase() || inferCodeFromTitle(payload.titl
       // Update mapping + memory cap
       lastCodeByListingKey.set(String(sid).trim(), code);
       rememberSaleId(sid);
+    }
+
+    // TSU Standard 2.4 sec 9.3 — buyer uniqueness. Before assigning a buyer to a new
+    // team, unsell any team that buyer already owns, so one buyer can't hold two tiles.
+    // 08-10 SCOPED EXCEPTION to sec 9.3. On a random-team break one buyer holds one
+    // team, so releasing their previous tile is right. A custom board is a list of
+    // packs / singles / lots where the SAME buyer routinely wins several, and the rule
+    // would silently unsell their earlier win with no error anywhere. So it is enforced
+    // on team boards only. Flip this one constant to restore the old behaviour.
+    const BUYER_UNIQUENESS = (currentLayout !== "custom");
+    const incomingBuyer = String(payload.buyer || payload.buyerName || payload.name || '').trim();
+    if (BUYER_UNIQUENESS && incomingBuyer){
+      soldTeamsList
+        .filter(x => x.code !== code && String(x.buyer || '').trim().toLowerCase() === incomingBuyer.toLowerCase())
+        .forEach(x => {
+          console.log("[Overlay] buyer uniqueness: releasing", x.code, "from", incomingBuyer);
+          sseMarkUnsold(x.code);
+        });
     }
 
     // Mark the current team sold
@@ -2361,6 +3123,7 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
   }
 
   updateBuyerStats(buyer, amt);
+  saveSoldState();
 }
 
 
@@ -2390,6 +3153,23 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
 }
 
       if (type === "reset") resetAll();
+
+      if (type === "next_break") nextBreak();
+
+      if (type === "set_ticker"){
+        const v = payload.value ?? payload.text ?? payload.ticker;
+        if (typeof v === "string" && v.trim()){
+          tickerText = v.trim();
+          localStorage.setItem(TICKER_TEXT_KEY, tickerText);
+          updateCtlTicker();
+        }
+        const spd = parseInt(payload.speed ?? payload.seconds, 10);
+        if (Number.isFinite(spd) && spd >= 5 && spd <= 120){
+          tickerSpeed = spd;
+          localStorage.setItem(TICKER_SPEED_KEY, String(tickerSpeed));
+          applyTickerSpeed(tickerSpeed);
+        }
+      }
 
       if (type === "overlay_warmup"){
         console.log("[Overlay] warmup received — bridge connection confirmed");
@@ -2455,8 +3235,11 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
     }
   }
 
-  // Optional: postMessage bridge (external control)
+  // Optional: postMessage bridge (external control).
+  // Same-origin only — an OBS browser source shares no window with anything else, and
+  // this keeps a third-party frame from injecting sold events straight past the guards.
   window.addEventListener('message', (e) => {
+    if (e.source !== window && e.origin !== location.origin) return;
     if (!e.data) return;
     let payload = e.data;
     if (typeof payload === 'string'){
@@ -2473,6 +3256,108 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
   document.getElementById('soldToggle').addEventListener('click', toggleSold);
 
   document.getElementById('sportBtn').addEventListener('click', cycleSport);
+
+  /* ---------- Layout switching ---------- */
+  const layoutBtn = document.getElementById('layoutBtn');
+  if (layoutBtn) layoutBtn.addEventListener('click', toggleLayout);
+  const sLayoutBtn = document.getElementById('sLayoutBtn');
+  if (sLayoutBtn) sLayoutBtn.addEventListener('click', toggleLayout);
+
+  // In singles mode the button row is hidden, so the invisible hotspot over the
+  // logo badge at the bottom of the camera frame is the way back to the controls.
+  // It is pointer-events:none outside singles mode, so it can never intercept a
+  // click on the board.
+  document.getElementById('camToggle').addEventListener('click', toggleAdminRow);
+
+  // ===== Custom board wiring (08-10) =====
+  (function(){
+    const pop   = document.getElementById('customPopup');
+    const input = document.getElementById('customEntriesInput');
+    const count = document.getElementById('customCount');
+
+    function refreshCount(){
+      const n = parseEntryText(input.value).length;
+      count.textContent = n ? (n + (n === 1 ? " entry" : " entries")) : "";
+    }
+    function open(){
+      input.value = customEntries.join('\n');
+      refreshCount();
+      pop.classList.add('active');
+      setTimeout(() => input.focus(), 0);
+    }
+    ['customBtn','sCustomBtn'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.addEventListener('click', open);
+    });
+    input.addEventListener('input', refreshCount);
+
+    document.getElementById('csvBtn').addEventListener('click', () => document.getElementById('csvFile').click());
+    document.getElementById('csvFile').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        const names = parseEntryText(r.result);
+        // Import replaces rather than appends: a re-import after a fix should not double the board.
+        input.value = names.join('\n');
+        refreshCount();
+      };
+      r.readAsText(f);
+      e.target.value = "";   // let the same file be picked again after an edit
+    });
+
+    document.getElementById('applyCustom').addEventListener('click', () => {
+      customEntries = parseEntryText(input.value);
+      saveCustomEntries();
+      pop.classList.remove('active');
+      // Saving entries switches to the custom board, which is what the seller meant.
+      if (customEntries.length && currentLayout !== "custom") setLayout("custom");
+      else { renderTeams(); applyLayout(); }
+    });
+    document.getElementById('clearCustom').addEventListener('click', () => {
+      input.value = ""; refreshCount();
+    });
+    document.getElementById('closeCustom').addEventListener('click', () => pop.classList.remove('active'));
+  })();
+
+  // Singles-mode duplicates of the existing modals.
+  document.getElementById('sTickerBtn').addEventListener('click', () => document.getElementById('tickerBtn').click());
+  document.getElementById('sTitleBtn').addEventListener('click',  () => document.getElementById('setTitleBtn').click());
+  document.getElementById('sFacecamBtn').addEventListener('click',() => document.getElementById('facecamBtn').click());
+
+  /* ---------- Facecam background ---------- */
+  document.getElementById('facecamBtn').addEventListener('click', () => {
+    facecamNote("Pick any image. It is resized and saved in this browser source only, so it survives an OBS restart.", "");
+    document.getElementById('facecamPopup').classList.add('active');
+  });
+  document.getElementById('closeFacecam').addEventListener('click', () => {
+    document.getElementById('facecamPopup').classList.remove('active');
+  });
+  document.getElementById('browseBtn').addEventListener('click', () => document.getElementById('bgFile').click());
+
+  document.getElementById('bgFile').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";                       // allow re-picking the same file
+    if (!file) return;
+    facecamNote("Working on it...", "");
+    try{
+      const dataUrl = await resizeToDataUrl(file);
+      const stored  = LS.set(K_FACECAM_BG, dataUrl);
+      applyFacecamBg(dataUrl);
+      facecamNote(stored
+        ? "Background set and saved."
+        : "Background applied, but this browser source is out of storage so it will not survive a restart. Try a smaller image.",
+        stored ? "ok" : "err");
+    }catch(err){
+      facecamNote((err && err.message) ? err.message : "Could not set that background.", "err");
+    }
+  });
+
+  document.getElementById('clearBgBtn').addEventListener('click', () => {
+    LS.del(K_FACECAM_BG);
+    applyFacecamBg("");
+    facecamNote("Background cleared.", "ok");
+  });
 
 
   // Set break popup
@@ -2645,8 +3530,19 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
     const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
     if (qSport && breakTypes[qSport]) currentSport = qSport;
 
+    // Layout mode first, so the first paint is already the right scene
+    // and the client never sees the board flash before singles takes over.
+    applyLayout();
+    applyAdminRow();   // 08-10: restore the seller's sticky panel choice
+    loadFacecamBg();
+
     // Layout
     buildLayout();
+
+    // Restore the board BEFORE first paint of the stats/panel, so an OBS refresh
+    // mid-break comes back with the same sold tiles instead of a blank board.
+    loadSoldState();
+
     updateStats();
     renderSoldPanel();
 
@@ -2661,7 +3557,9 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
     // Bridge SSE — connect to each channel
     const channels = (CHANNELS && CHANNELS.length) ? CHANNELS : ["main"];
     channels.forEach(ch => {
-      const url = `${BRIDGE_URL}/events?key=${BRIDGE_KEY}&channel=${ch}`;
+      // TSU Standard 2.4 sec 8: EventSource cannot send headers, so the key MUST ride in
+      // the query string, encoded.
+      const url = `${BRIDGE_URL}/events?key=${encodeURIComponent(BRIDGE_KEY)}&channel=${encodeURIComponent(ch)}`;
       connectSSE(url);
     });
 

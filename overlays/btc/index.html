@@ -67,8 +67,8 @@
            NBA / MLB  (6 rows per side column)  max 66px
       ===================================================== */
       --tileH-nfl: 55px;
-      --tileH-nba: 65px;
-      --tileH-mlb: 65px;
+      --tileH-nba: 55px;
+      --tileH-mlb: 55px;
       --tileH-nhl: 55px;
 
       /* Geometry the clamp depends on. Keep in step with .colgrid and .board:
@@ -338,7 +338,7 @@ background-size: 140% auto; /* try 140–220% */
 
     .cam{
       aspect-ratio: 16 / 9;   /* sized for a 1920x1080 facecam */
-      width: 106%;
+      width: 100%;
       border-radius: 16px;
       background: #000;
       border: none;
@@ -370,9 +370,9 @@ background-size: 140% auto; /* try 140–220% */
       width:104%; height:102%;
       object-fit:fill;
       z-index:3;
-      left:-31px;
+      left:-30px;
       pointer-events:none;
-      animation: camGlow 3.5s ease-in-out infinite;
+      animation: camGlow 4.5s ease-in-out infinite;
     }
     /* Sheen sweep masked to the frame art so it only travels along the border */
     .cam-sheen{
@@ -391,8 +391,8 @@ background-size: 140% auto; /* try 140–220% */
       100% { background-position: -60% 0; }
     }
     @keyframes camGlow{
-      0%,100% { filter: drop-shadow(0 0 3px rgba(201,201,201,0.52)); }
-      50%     { filter: drop-shadow(0 0 9px rgba(255,255,255,0.75)); }
+      0%,100% { filter: drop-shadow(0 0 3px rgba(201,201,201,0.22)); }
+      50%     { filter: drop-shadow(0 0 9px rgba(255,255,255,0.45)); }
     }
 
     
@@ -430,6 +430,9 @@ background-size: 140% auto; /* try 140–220% */
       grid-template-columns: repeat(var(--bottomCols), 1fr);
       gap: 12px;
     }
+    /* 08-10: on a big custom board the under-camera rows get their own fitted height.
+       The camera cannot shrink, so charging those rows to --tileH alone is not enough. */
+    .bottomGrid .tile{ height: var(--bottomTileH, var(--tileH)); }
 
     /* Tiles */
     .tile{
@@ -1158,7 +1161,38 @@ background-size: 140% auto; /* try 140–220% */
     html[data-layout="singles"] #soldToggle,
     html[data-layout="singles"] .controls .ctl.stat{ display:none !important; }
 
+    /* The admin row is the singles control surface; board layouts use the sold panel.
+       It stays scoped to singles on purpose. What was broken was that it also got its
+       .active class stripped on every layout change, so one click on the layout pill
+       inside it made it vanish. That strip is gone and the open/closed choice is
+       persisted, so only the toggle closes it. */
     html[data-layout="singles"] .admin-row.active{ display:flex; }
+
+    /* Custom-entry tile: no logo, so the name is the tile. Shrinks to fit long names
+       instead of overflowing the grid. */
+    .tile-label{
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      padding:4px 6px; text-align:center;
+      font-weight:800; letter-spacing:0.5px; line-height:1.1;
+      /* 08-10: sized off the TILE, not the viewport. Viewport-based text kept its size
+         while tiles shrank on a big board, so names clipped to "ry Lot". */
+      font-size: min(clamp(9px, 1.35vw, 17px), calc(var(--tileH) * 0.34));
+      color:#fff; text-shadow:0 2px 6px rgba(0,0,0,0.85);
+      overflow:hidden; word-break:break-word; hyphens:auto;
+    }
+    /* A sold custom tile shows the X, so the name steps back instead of tangling with it. */
+    .tile.sold .tile-label{ opacity:0.32; }
+    /* Under-camera tiles are shorter and narrower, so their labels scale off their own
+       height and are allowed to run to three lines before clipping. */
+    .bottomGrid .tile-label{
+      font-size: min(13px, calc(var(--bottomTileH, var(--tileH)) * 0.31));
+      letter-spacing:0; padding:2px 3px;
+    }
+    html[data-layout="custom"] .tile{ background-image:none; }
+
+    /* 08-10: singles is a clean auction shot. No header. */
+    html[data-layout="singles"] .header{ display:none; }
 
     /* Invisible controls toggle, sitting exactly over the round logo badge at the
        bottom of the camera frame. Geometry is derived from btc-cam.png: the badge
@@ -1266,6 +1300,7 @@ background-size: 140% auto; /* try 140–220% */
         <div class="pill" id="sTitleBtn">Title</div>
         <div class="pill" id="sFacecamBtn">Facecam BG</div>
         <div class="pill" id="sLayoutBtn">Layout: Break board</div>
+        <div class="pill" id="sCustomBtn">Custom Board</div>
       </div>
     </div>
 
@@ -1282,6 +1317,7 @@ background-size: 140% auto; /* try 140–220% */
       <div class="pill" id="sportBtn">Change Sport</div>
       <div class="pill" id="facecamBtn">Facecam BG</div>
       <div class="pill" id="layoutBtn">Layout: Singles</div>
+      <div class="pill" id="customBtn">Custom Board</div>
     </div>
     <div class="sold-grid" id="soldGrid"></div>
   </div>
@@ -1346,6 +1382,28 @@ background-size: 140% auto; /* try 140–220% */
   </div>
 
   <!-- Ticker Settings Popup -->
+  <div class="popup" id="customPopup">
+    <div class="popup-card">
+      <h2>Custom Board</h2>
+      <div style="color:rgba(255,255,255,0.65);font-size:11px;text-align:center;letter-spacing:1.5px;margin-top:-6px;">ONE ENTRY PER LINE &nbsp;•&nbsp; NAMES MUST MATCH THE WHATNOT LISTINGS EXACTLY</div>
+      <textarea id="customEntriesInput" placeholder="Patrick Mahomes&#10;Josh Allen&#10;Pack 1&#10;Pack 2" style="min-height:170px;"></textarea>
+      <div style="display:flex;align-items:center;gap:12px;margin-top:2px;flex-wrap:wrap;">
+        <button id="csvBtn" type="button" style="white-space:nowrap;">Import CSV</button>
+        <input id="csvFile" type="file" accept=".csv,.txt,text/csv,text/plain" style="display:none;" />
+        <span id="customCount" style="font-size:12px;opacity:0.7;letter-spacing:1px;"></span>
+      </div>
+      <div style="font-size:11px;opacity:0.45;line-height:1.5;">
+        Paste a column from a sheet, or import a CSV and the first column is used.
+        A header row is skipped and duplicate names are dropped.
+      </div>
+      <div class="popup-btns">
+        <button id="applyCustom">Save &amp; use</button>
+        <button id="clearCustom">Clear</button>
+        <button id="closeCustom">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div class="popup" id="tickerPopup">
     <div class="popup-card">
       <h2>Ticker Settings</h2>
@@ -1565,8 +1623,8 @@ const CHANNELS = (() => {
     try {
       const raw = localStorage.getItem(BANNER_MSGS_KEY);
       const arr = raw ? JSON.parse(raw) : null;
-      return (Array.isArray(arr) && arr.length) ? arr : ["Follow us @BiggerThanCardboardBreaks"];
-    } catch(_) { return ["Follow us @BiggerThanCardboardBreaks"]; }
+      return (Array.isArray(arr) && arr.length) ? arr : ["Follow us @BiggerThanCardboardBreaks • Join our Discord!"];
+    } catch(_) { return ["Follow us @BiggerThanCardboardBreaks • Join our Discord!"]; }
   })();
 
   let bannerInterval = (() => {
@@ -1772,7 +1830,9 @@ function loadSport(){
   }
 
   function inferCodeFromTitle(title){
-    const teams = breakTypes[currentSport].teams;
+    // 08-10: reads activeSpots() so a custom board resolves by entry name. The match
+    // ORDER below is unchanged and still load bearing.
+    const teams = activeSpots();
     const lookup = buildLookup(teams);
     const t = norm(title);
     if (!t) return null;
@@ -1843,7 +1903,9 @@ function normalizeCodeAliases(code, sportKey){
 function isValidCodeForSport(code, sportKey){
   const s = String(sportKey || "").toLowerCase();
   if (!code || !breakTypes[s]) return false;
-  const lookup = buildLookup(breakTypes[s].teams);
+  // 08-10: validate against every spot on the board, not teams only. Teams-only made
+  // this guard reject every SPOT code, so custom sales were dropped with no error.
+  const lookup = buildLookup(activeSpots());
   return lookup.has(norm(code));
 }
 
@@ -1906,42 +1968,116 @@ function buildTile(team){
   fx.className = 'fx';
   d.appendChild(fx);
 
+  // A custom entry has no logo, so the tile IS the name. Team tiles keep the image
+  // with the existing code fallback.
+  if (team.custom || !team.image){
+    const label = document.createElement('div');
+    label.className = 'tile-label';
+    label.textContent = team.name;
+    label.title = team.name;
+    d.appendChild(label);
+    d.addEventListener('click', () => toggleTeam(team.code));
+    return d;
+  }
+
   const img = document.createElement('img');
   img.src = team.image;
   img.alt = team.name;
-  img.onerror = () => { d.textContent = team.code; };
+  img.onerror = () => { d.textContent = team.name || team.code; };
 
   d.appendChild(img);
   d.addEventListener('click', () => toggleTeam(team.code));
   return d;
 }
 
-  function getSportCount(){ return breakTypes[currentSport].count; }
+  // 08-10: on a custom board the total is the number of entries, not the sport's team
+  // count. Left unfixed this showed "31 LEFT" on a 4-entry board.
+  function getSportCount(){
+    return (currentLayout === "custom")
+      ? customEntries.length
+      : breakTypes[currentSport].count;
+  }
 
   function renderTeams(){
     const cfg = breakTypes[currentSport];
-    const TEAMS = cfg.teams;
+    // 08-10: a custom board renders the seller's entries through the same four grids.
+    // The split is computed from the entry count, so structure is decided once at
+    // render time and never reflows mid-break.
+    const custom = (currentLayout === "custom");
+    const TEAMS = custom ? customTeamObjects() : cfg.teams;
 
     leftGrid.innerHTML   = '';
     rightGrid.innerHTML  = '';
     topGrid.innerHTML    = '';
     bottomGrid.innerHTML = '';
 
-    const topN    = cfg.topCount    || 0;
-    const bottomN = cfg.bottomCount || 0;
-    const sideTotal = (cfg.count || TEAMS.length) - topN - bottomN;
+    // 08-10 (Mike): a custom board fills the two side columns first, and once 30 tiles
+    // are placed the rest go under the camera, same as the bottom row on a team board.
+    // Side columns are 2 wide, so 30 a board = 15 a side = 8 rows in the taller column.
+    // --sideRows is republished so the existing clamp shrinks the tiles to fit, which is
+    // what keeps the OBS footprint identical no matter how many entries there are.
+    const SIDE_CAP = 30;
+    const topN    = custom ? 0 : (cfg.topCount || 0);
+    const bottomN = custom ? Math.max(0, TEAMS.length - SIDE_CAP) : (cfg.bottomCount || 0);
+    const sideTotal = (custom ? Math.min(TEAMS.length, SIDE_CAP) : (cfg.count || TEAMS.length)) - topN - (custom ? 0 : bottomN);
+
+    if (custom){
+      const perSide = Math.ceil(sideTotal / 2);
+      // Never let a short board balloon the tiles: the sport's own row count is the floor.
+      const sportRows = Math.max(1, Math.round(((cfg.count || 32) - (cfg.bottomCount || 0)) / 4));
+      const rows = Math.max(sportRows, Math.ceil(perSide / 2));
+
+      // Under-camera tiles run in ONE row where they can (up to 14 across), so a big
+      // board grows sideways rather than downwards into the banner.
+      // 8 across is the most that stays readable on stream under the camera; past that
+      // it wraps to another row rather than shrinking the text into noise.
+      const cols = Math.min(Math.max(bottomN, 1), 8);
+      const bottomRows = bottomN ? Math.ceil(bottomN / cols) : 0;
+      document.documentElement.style.setProperty('--bottomCols', String(cols));
+
+      // Mike 08-10: past ~36 slots the under-camera row starts pushing the overlay taller.
+      // Charge those rows to the clamp so every tile shrinks a little and the OBS footprint
+      // stays locked. Below that threshold nothing changes.
+      document.documentElement.style.setProperty('--sideRows', String(rows + bottomRows));
+    } else {
+      // Hand the sport's own geometry back.
+      document.documentElement.style.removeProperty('--sideRows');
+      document.documentElement.style.setProperty('--bottomCols', String(cfg.bottomCols));
+    }
     const leftN   = Math.ceil(sideTotal / 2);
     const rightN  = sideTotal - leftN;
 
     const leftTeams   = TEAMS.slice(0, leftN);
     const rightTeams  = TEAMS.slice(leftN, leftN + rightN);
     const topTeams    = TEAMS.slice(leftN + rightN, leftN + rightN + topN);
-    const bottomTeams = TEAMS.slice(leftN + rightN + topN, leftN + rightN + topN + bottomN);
+    const bottomTeams = custom
+      ? TEAMS.slice(SIDE_CAP)                                                        // everything past the 30th
+      : TEAMS.slice(leftN + rightN + topN, leftN + rightN + topN + bottomN);
 
     leftTeams.forEach(t   => leftGrid.appendChild(buildTile(t)));
     rightTeams.forEach(t  => rightGrid.appendChild(buildTile(t)));
     topTeams.forEach(t    => topGrid.appendChild(buildTile(t)));
     bottomTeams.forEach(t => bottomGrid.appendChild(buildTile(t)));
+
+    // 08-10: fit the under-camera rows into whatever the camera leaves. One measured
+    // pass at render time, never during a break, so the grid still never moves on air.
+    if (custom && bottomN){
+      document.documentElement.style.removeProperty('--bottomTileH');
+      const cam  = document.getElementById('camFrame') || document.querySelector('.cam');
+      if (cam){
+        const limit = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mainMinH')) || 430;
+        const cols  = Math.min(Math.max(bottomN, 1), 8);
+        const rowsB = Math.ceil(bottomN / cols);
+        const spare = limit - cam.getBoundingClientRect().height - (rowsB * 12) - 8;
+        const per   = Math.floor(spare / rowsB);
+        // Below ~22px a tile stops being readable on stream, so it is allowed to grow
+        // instead of shrinking into mush.
+        if (per >= 22) document.documentElement.style.setProperty('--bottomTileH', per + 'px');
+        else console.warn('[Overlay] custom board:', bottomN, 'under-camera tiles exceed the locked height; overlay will grow.');
+      }
+    } else {
+      document.documentElement.style.removeProperty('--bottomTileH');
+    }
 
     soldTeams.forEach(code => {
       const el = document.querySelector(`[data-team-code="${code}"]`);
@@ -2221,7 +2357,7 @@ function loadSoldState(){
    Resolution order matches the existing ?sport= convention:
    URL param wins for the session, otherwise the saved choice.
 ========================================================= */
-const LAYOUTS = ["break", "singles"];
+const LAYOUTS = ["break", "singles", "custom"];   // "custom" added 08-10: seller-supplied board
 const K_LAYOUT = "layout";
 
 let currentLayout = (() => {
@@ -2231,20 +2367,98 @@ let currentLayout = (() => {
   return LAYOUTS.includes(saved) ? saved : "break";
 })();
 
+/* =========================================================
+   Custom board (08-10)
+
+   The seller types, pastes, or imports a CSV of entry names and the board
+   renders one tile per entry instead of the sport's teams. Entries get codes
+   SPOT1..SPOTn, and automation is preserved by widening the lookup set that
+   inferCodeFromTitle and the sport guard read from: a Whatnot sale still
+   resolves by NAME, so the names on the board must match the Whatnot listing
+   titles exactly. That is the whole contract.
+
+   Entries persist in localStorage, so an OBS refresh mid-break keeps the board.
+========================================================= */
+const K_CUSTOM = "customEntries";
+let customEntries = (() => {
+  try{ const v = JSON.parse(LS.get(K_CUSTOM, "[]")); return Array.isArray(v) ? v.filter(x => String(x||"").trim()) : []; }
+  catch(_){ return []; }
+})();
+
+function saveCustomEntries(){ LS.set(K_CUSTOM, JSON.stringify(customEntries)); }
+
+// Entry names -> team-shaped objects the existing tile/lookup code already understands.
+function customTeamObjects(){
+  return customEntries.map((name, i) => ({
+    code: "SPOT" + (i + 1),
+    name: String(name).trim(),
+    image: "",          // no logo for a custom entry; buildTile falls back to the name
+    custom: true
+  }));
+}
+
+// Every spot currently on the board. Automation must match against THIS, not teams,
+// or custom sales resolve to nothing and silently never mark.
+function activeSpots(){
+  return (currentLayout === "custom")
+    ? customTeamObjects()
+    : breakTypes[currentSport].teams;
+}
+
+function parseEntryText(raw){
+  const txt = String(raw || "").replace(/^\uFEFF/, "");
+  let lines = txt.split(/\r?\n/);
+  // A single comma-separated line is a legitimate paste shape too.
+  if (lines.filter(l => l.trim()).length === 1 && txt.includes(",")) lines = txt.split(",");
+  const HEADERS = new Set(["name","names","team","teams","player","players","spot","spots","entry","entries","item","items","title","titles"]);
+  const out = [];
+  lines.forEach((line, idx) => {
+    // CSV: take the first column, and honour simple quoting.
+    let cell = String(line);
+    const m = cell.match(/^\s*"((?:[^"]|"")*)"\s*(?:,|$)/);
+    cell = m ? m[1].replace(/""/g, '"') : cell.split(",")[0];
+    cell = cell.trim();
+    if (!cell) return;
+    if (idx === 0 && HEADERS.has(cell.toLowerCase())) return;   // drop an obvious header row
+    out.push(cell);
+  });
+  // De-dupe case-insensitively: two identical names cannot be told apart by a sale.
+  const seen = new Set(); const uniq = [];
+  for (const e of out){ const k = e.toLowerCase(); if (seen.has(k)) continue; seen.add(k); uniq.push(e); }
+  return uniq;
+}
+
+/* Admin row visibility (08-10). Sticky by design: nothing but the toggle closes it.
+   Persisted so an OBS source refresh mid-break does not drop the seller's controls. */
+// Build stamp. Logged on load so there is never any doubt which file OBS or a browser
+// actually has open. If this line is missing from the console, it is not this build.
+const TSU_BUILD = "BTC index.html - 2026-08-10c - sticky admin row + no header in singles + custom board w/ under-cam overflow";
+console.log("%c[TSU] " + TSU_BUILD, "background:#0a3d5c;color:#7fd8ff;padding:2px 6px;border-radius:3px");
+
+const K_ADMIN = "adminRowOpen";
+function applyAdminRow(){
+  const row = document.getElementById("adminRow");
+  if (row) row.classList.toggle("active", LS.get(K_ADMIN, "0") === "1");
+}
+function toggleAdminRow(){
+  LS.set(K_ADMIN, LS.get(K_ADMIN, "0") === "1" ? "0" : "1");
+  applyAdminRow();
+}
+
 function applyLayout(){
   document.documentElement.dataset.layout = currentLayout;
 
   const singles = (currentLayout === "singles");
+  const NEXT_LABEL = { "break": "Layout: Singles", "singles": "Layout: Custom board", "custom": "Layout: Break board" };
+  const lbl = NEXT_LABEL[currentLayout] || "Layout: Singles";
   const a = document.getElementById("layoutBtn");
-  if (a) a.textContent = singles ? "Layout: Break board" : "Layout: Singles";
+  if (a) a.textContent = lbl;
   const b = document.getElementById("sLayoutBtn");
-  if (b) b.textContent = singles ? "Layout: Break board" : "Layout: Singles";
+  if (b) b.textContent = lbl;
 
-  // Leaving singles mode should never strand the admin row on screen.
-  if (!singles){
-    const row = document.getElementById("adminRow");
-    if (row) row.classList.remove("active");
-  }
+  // FIX 08-10: this used to strip .active whenever the layout changed, so the panel
+  // vanished the moment the seller clicked the layout pill inside it. The panel is now
+  // sticky: only the toggle closes it, and the choice survives a reload.
 
   // Repaint the header so the sport suffix drops in singles and returns on the board.
   if (typeof renderHeaderTitle === "function") renderHeaderTitle();
@@ -2256,11 +2470,16 @@ function setLayout(next){
   currentLayout = v;
   LS.set(K_LAYOUT, currentLayout);
   applyLayout();
+  // The board's tiles differ between a team board and a custom board, so repaint.
+  if (typeof renderTeams === "function") renderTeams();
 }
 
 function toggleLayout(){
-  setLayout(currentLayout === "singles" ? "break" : "singles");
+  // 08-10: three-way cycle. Break -> Singles -> Custom -> Break.
+  const i = LAYOUTS.indexOf(currentLayout);
+  setLayout(LAYOUTS[(i + 1) % LAYOUTS.length]);
 }
+
 
 /* =========================================================
    Facecam background. Works in both layouts, since the cam is shared.
@@ -2864,8 +3083,14 @@ if (type === "team_sold" || type === "sold" || type === "sale" || type === "purc
 
     // TSU Standard 2.4 sec 9.3 — buyer uniqueness. Before assigning a buyer to a new
     // team, unsell any team that buyer already owns, so one buyer can't hold two tiles.
+    // 08-10 SCOPED EXCEPTION to sec 9.3. On a random-team break one buyer holds one
+    // team, so releasing their previous tile is right. A custom board is a list of
+    // packs / singles / lots where the SAME buyer routinely wins several, and the rule
+    // would silently unsell their earlier win with no error anywhere. So it is enforced
+    // on team boards only. Flip this one constant to restore the old behaviour.
+    const BUYER_UNIQUENESS = (currentLayout !== "custom");
     const incomingBuyer = String(payload.buyer || payload.buyerName || payload.name || '').trim();
-    if (incomingBuyer){
+    if (BUYER_UNIQUENESS && incomingBuyer){
       soldTeamsList
         .filter(x => x.code !== code && String(x.buyer || '').trim().toLowerCase() === incomingBuyer.toLowerCase())
         .forEach(x => {
@@ -3042,9 +3267,58 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
   // logo badge at the bottom of the camera frame is the way back to the controls.
   // It is pointer-events:none outside singles mode, so it can never intercept a
   // click on the board.
-  document.getElementById('camToggle').addEventListener('click', () => {
-    document.getElementById('adminRow').classList.toggle('active');
-  });
+  document.getElementById('camToggle').addEventListener('click', toggleAdminRow);
+
+  // ===== Custom board wiring (08-10) =====
+  (function(){
+    const pop   = document.getElementById('customPopup');
+    const input = document.getElementById('customEntriesInput');
+    const count = document.getElementById('customCount');
+
+    function refreshCount(){
+      const n = parseEntryText(input.value).length;
+      count.textContent = n ? (n + (n === 1 ? " entry" : " entries")) : "";
+    }
+    function open(){
+      input.value = customEntries.join('\n');
+      refreshCount();
+      pop.classList.add('active');
+      setTimeout(() => input.focus(), 0);
+    }
+    ['customBtn','sCustomBtn'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.addEventListener('click', open);
+    });
+    input.addEventListener('input', refreshCount);
+
+    document.getElementById('csvBtn').addEventListener('click', () => document.getElementById('csvFile').click());
+    document.getElementById('csvFile').addEventListener('change', (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = () => {
+        const names = parseEntryText(r.result);
+        // Import replaces rather than appends: a re-import after a fix should not double the board.
+        input.value = names.join('\n');
+        refreshCount();
+      };
+      r.readAsText(f);
+      e.target.value = "";   // let the same file be picked again after an edit
+    });
+
+    document.getElementById('applyCustom').addEventListener('click', () => {
+      customEntries = parseEntryText(input.value);
+      saveCustomEntries();
+      pop.classList.remove('active');
+      // Saving entries switches to the custom board, which is what the seller meant.
+      if (customEntries.length && currentLayout !== "custom") setLayout("custom");
+      else { renderTeams(); applyLayout(); }
+    });
+    document.getElementById('clearCustom').addEventListener('click', () => {
+      input.value = ""; refreshCount();
+    });
+    document.getElementById('closeCustom').addEventListener('click', () => pop.classList.remove('active'));
+  })();
 
   // Singles-mode duplicates of the existing modals.
   document.getElementById('sTickerBtn').addEventListener('click', () => document.getElementById('tickerBtn').click());
@@ -3259,6 +3533,7 @@ console.log("[Overlay] SOLD state:", code, "soldTeams has?", soldTeams.has(code)
     // Layout mode first, so the first paint is already the right scene
     // and the client never sees the board flash before singles takes over.
     applyLayout();
+    applyAdminRow();   // 08-10: restore the seller's sticky panel choice
     loadFacecamBg();
 
     // Layout
