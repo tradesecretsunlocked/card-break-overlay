@@ -428,7 +428,7 @@ background-size: 140% auto; /* try 140–220% */
     .bottomGrid{
       display:grid;
       grid-template-columns: repeat(var(--bottomCols), 1fr);
-      gap: 12px;
+      gap: var(--bottomGap, 12px);
     }
     /* 08-10: on a big custom board the under-camera rows get their own fitted height.
        The camera cannot shrink, so charging those rows to --tileH alone is not enough. */
@@ -1183,6 +1183,36 @@ background-size: 140% auto; /* try 140–220% */
     }
     /* A sold custom tile shows the X, so the name steps back instead of tangling with it. */
     .tile.sold .tile-label{ opacity:0.32; }
+
+    /* 08-10: on a big custom board the camera gives up height so the rows beneath it fit.
+       aspect-ratio keeps it 16:9, so setting the height sizes the width to match and it
+       stays centred. Only the custom layout is affected; break and singles are untouched. */
+    .overlay.cam-fitted .cam{
+      height: var(--camH);
+      width: auto;            /* aspect-ratio 16/9 sizes the width from the height */
+      max-width: 104%;
+      align-self: center;
+      margin: 0 auto;
+    }
+
+    /* Custom Board modal, 08-10: Mike asked for the whole thing to be bigger. Scoped to
+       .custom-card so the other popups keep their existing sizing. */
+    .custom-card{ min-width: 620px; }
+    .custom-card h2{ font-size: 26px; letter-spacing: 1px; }
+    .custom-card .custom-sub{
+      color:rgba(255,255,255,0.72); font-size:14px; text-align:center;
+      letter-spacing:1.2px; margin-top:-4px; line-height:1.45;
+    }
+    .custom-card #customEntriesInput{
+      min-height: 240px; font-size: 17px; line-height: 1.5; padding: 12px 14px;
+    }
+    .custom-card .custom-row{
+      display:flex; align-items:center; gap:16px; margin-top:6px; flex-wrap:wrap;
+    }
+    .custom-card .custom-row button{ white-space:nowrap; font-size:16px; padding:10px 18px; }
+    .custom-card #customCount{ font-size:16px; opacity:0.85; letter-spacing:0.8px; font-weight:700; }
+    .custom-card .custom-hint{ font-size:14px; opacity:0.6; line-height:1.6; }
+    .custom-card .popup-btns button{ font-size:16px; padding:11px 20px; }
     /* Under-camera tiles are shorter and narrower, so their labels scale off their own
        height and are allowed to run to three lines before clipping. */
     .bottomGrid .tile-label{
@@ -1383,16 +1413,16 @@ background-size: 140% auto; /* try 140–220% */
 
   <!-- Ticker Settings Popup -->
   <div class="popup" id="customPopup">
-    <div class="popup-card">
+    <div class="popup-card custom-card">
       <h2>Custom Board</h2>
-      <div style="color:rgba(255,255,255,0.65);font-size:11px;text-align:center;letter-spacing:1.5px;margin-top:-6px;">ONE ENTRY PER LINE &nbsp;•&nbsp; NAMES MUST MATCH THE WHATNOT LISTINGS EXACTLY</div>
-      <textarea id="customEntriesInput" placeholder="Patrick Mahomes&#10;Josh Allen&#10;Pack 1&#10;Pack 2" style="min-height:170px;"></textarea>
-      <div style="display:flex;align-items:center;gap:12px;margin-top:2px;flex-wrap:wrap;">
-        <button id="csvBtn" type="button" style="white-space:nowrap;">Import CSV</button>
+      <div class="custom-sub">ONE ENTRY PER LINE &nbsp;•&nbsp; NAMES MUST MATCH THE WHATNOT LISTINGS EXACTLY</div>
+      <textarea id="customEntriesInput" placeholder="Patrick Mahomes&#10;Josh Allen&#10;Pack 1&#10;Pack 2"></textarea>
+      <div class="custom-row">
+        <button id="csvBtn" type="button">Import CSV</button>
         <input id="csvFile" type="file" accept=".csv,.txt,text/csv,text/plain" style="display:none;" />
-        <span id="customCount" style="font-size:12px;opacity:0.7;letter-spacing:1px;"></span>
+        <span id="customCount"></span>
       </div>
-      <div style="font-size:11px;opacity:0.45;line-height:1.5;">
+      <div class="custom-hint">
         Paste a column from a sheet, or import a CSV and the first column is used.
         A header row is skipped and duplicate names are dropped.
       </div>
@@ -1927,7 +1957,8 @@ function applySportCSS(){
   // Height itself is decided in CSS, not here, so there is one place to edit.
   document.documentElement.dataset.sport = currentSport;
 }
-  // A singles auction is not a sport break, so the "• NFL" suffix is noise there.
+  // Neither a singles auction nor a custom board is a sport break, so the "• NFL"
+  // suffix is noise on both (custom added 08-10 at Mike's request).
   // The stored title keeps the suffix so switching back to the board restores it;
   // only what gets painted changes.
   function stripSportSuffix(t){
@@ -1937,7 +1968,8 @@ function applySportCSS(){
   function renderHeaderTitle(){
     const el = document.getElementById("headerTitle");
     if (!el) return;
-    el.textContent = (currentLayout === "singles")
+    const noSport = (currentLayout === "singles" || currentLayout === "custom");
+    el.textContent = noSport
       ? (stripSportSuffix(headerTitleText) || headerTitleText)
       : headerTitleText;
   }
@@ -1947,6 +1979,8 @@ function applySportCSS(){
     const el = document.getElementById("headerTitle");
     if (!el) return;
 
+    // On a custom board the sport is not part of the identity, so a sport change must
+    // not re-stamp the suffix onto the painted title.
     const isDefaultish = /BIGGER THAN CARDBOARD\s*•/i.test(headerTitleText);
     if (isDefaultish){
       setHeaderTitle(`BIGGER THAN CARDBOARD • ${cfg.name}`);
@@ -2016,29 +2050,40 @@ function buildTile(team){
     // Side columns are 2 wide, so 30 a board = 15 a side = 8 rows in the taller column.
     // --sideRows is republished so the existing clamp shrinks the tiles to fit, which is
     // what keeps the OBS footprint identical no matter how many entries there are.
-    const SIDE_CAP = 30;
+    // 08-10 (Mike): the side stacks stay 2 columns wide and fill to the SPORT'S own row
+    // count, exactly like the team board, then the balance goes under the camera. NFL/NHL
+    // run 7 rows a side (14 a side, 28 total), NBA/MLB 6 rows (12 a side, 24 total).
+    // Tiles keep the sport's height because the row count matches the team board, so the
+    // board reads identically whether it is teams or custom entries.
+    const SPORT_ROWS  = Math.max(1, Math.round(((cfg.count || 32) - (cfg.bottomCount || 0)) / 4));
+    const UNDER_COLS  = 6;                              // Mike 08-10: ~6 across under the facecam
+    const STEP        = 4 + UNDER_COLS;                 // each new row = 2 left + 6 under + 2 right
+    const BASE_CAP    = SPORT_ROWS * 4 + UNDER_COLS;    // NFL 28 + 6 = 34, the no-shrink point
+    const MAX_SPOTS   = 80;
+
+    // 08-10 (Mike): up to 34 spots this is the team board with one row under the camera and
+    // no shrinking. Past 34 each extra row adds 2 a side and 6 under the camera, and the
+    // tiles shrink to pay for it. The camera is the only element with give, so it yields
+    // height as rows stack beneath it. Ceiling is 80 spots.
+    const nSpots = custom ? Math.min(TEAMS.length, MAX_SPOTS) : TEAMS.length;
+    if (custom && TEAMS.length > MAX_SPOTS){
+      console.warn('[Overlay] custom board is capped at', MAX_SPOTS, 'spots;', TEAMS.length - MAX_SPOTS, 'entries are not shown.');
+    }
+    const step      = (custom && nSpots > BASE_CAP) ? Math.ceil((nSpots - BASE_CAP) / STEP) : 0;
+    const SIDE_ROWS = SPORT_ROWS + step;
+    const SIDE_CAP  = SIDE_ROWS * 4;
+
     const topN    = custom ? 0 : (cfg.topCount || 0);
-    const bottomN = custom ? Math.max(0, TEAMS.length - SIDE_CAP) : (cfg.bottomCount || 0);
-    const sideTotal = (custom ? Math.min(TEAMS.length, SIDE_CAP) : (cfg.count || TEAMS.length)) - topN - (custom ? 0 : bottomN);
+    const bottomN = custom ? Math.max(0, nSpots - SIDE_CAP) : (cfg.bottomCount || 0);
+    const sideTotal = (custom ? Math.min(nSpots, SIDE_CAP) : (cfg.count || TEAMS.length)) - topN - (custom ? 0 : bottomN);
 
     if (custom){
-      const perSide = Math.ceil(sideTotal / 2);
-      // Never let a short board balloon the tiles: the sport's own row count is the floor.
-      const sportRows = Math.max(1, Math.round(((cfg.count || 32) - (cfg.bottomCount || 0)) / 4));
-      const rows = Math.max(sportRows, Math.ceil(perSide / 2));
+      document.documentElement.style.setProperty('--sideRows', String(SIDE_ROWS));
 
-      // Under-camera tiles run in ONE row where they can (up to 14 across), so a big
-      // board grows sideways rather than downwards into the banner.
-      // 8 across is the most that stays readable on stream under the camera; past that
-      // it wraps to another row rather than shrinking the text into noise.
-      const cols = Math.min(Math.max(bottomN, 1), 8);
-      const bottomRows = bottomN ? Math.ceil(bottomN / cols) : 0;
-      document.documentElement.style.setProperty('--bottomCols', String(cols));
-
-      // Mike 08-10: past ~36 slots the under-camera row starts pushing the overlay taller.
-      // Charge those rows to the clamp so every tile shrinks a little and the OBS footprint
-      // stays locked. Below that threshold nothing changes.
-      document.documentElement.style.setProperty('--sideRows', String(rows + bottomRows));
+      // Under the camera: 6 across, divided evenly so the last row is never a stub.
+      const uRows = bottomN ? Math.ceil(bottomN / UNDER_COLS) : 0;
+      const uCols = bottomN ? Math.max(1, Math.ceil(bottomN / Math.max(uRows, 1))) : 1;
+      document.documentElement.style.setProperty('--bottomCols', String(uCols));
     } else {
       // Hand the sport's own geometry back.
       document.documentElement.style.removeProperty('--sideRows');
@@ -2051,7 +2096,7 @@ function buildTile(team){
     const rightTeams  = TEAMS.slice(leftN, leftN + rightN);
     const topTeams    = TEAMS.slice(leftN + rightN, leftN + rightN + topN);
     const bottomTeams = custom
-      ? TEAMS.slice(SIDE_CAP)                                                        // everything past the 30th
+      ? TEAMS.slice(SIDE_CAP, nSpots)          // past the side stacks, up to the 80-spot ceiling
       : TEAMS.slice(leftN + rightN + topN, leftN + rightN + topN + bottomN);
 
     leftTeams.forEach(t   => leftGrid.appendChild(buildTile(t)));
@@ -2059,24 +2104,39 @@ function buildTile(team){
     topTeams.forEach(t    => topGrid.appendChild(buildTile(t)));
     bottomTeams.forEach(t => bottomGrid.appendChild(buildTile(t)));
 
-    // 08-10: fit the under-camera rows into whatever the camera leaves. One measured
-    // pass at render time, never during a break, so the grid still never moves on air.
+    // 08-10: the camera pays for the rows stacked under it. Side tiles are already sized
+    // by the clamp off --sideRows; the under-camera rows take the SAME height so the whole
+    // board reads as one grid, and the camera keeps whatever is left. One measured pass at
+    // render time, never during a break, so nothing moves on air.
+    const ovEl = document.querySelector('.overlay');
     if (custom && bottomN){
-      document.documentElement.style.removeProperty('--bottomTileH');
-      const cam  = document.getElementById('camFrame') || document.querySelector('.cam');
-      if (cam){
-        const limit = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mainMinH')) || 430;
-        const cols  = Math.min(Math.max(bottomN, 1), 8);
-        const rowsB = Math.ceil(bottomN / cols);
-        const spare = limit - cam.getBoundingClientRect().height - (rowsB * 12) - 8;
-        const per   = Math.floor(spare / rowsB);
-        // Below ~22px a tile stops being readable on stream, so it is allowed to grow
-        // instead of shrinking into mush.
-        if (per >= 22) document.documentElement.style.setProperty('--bottomTileH', per + 'px');
-        else console.warn('[Overlay] custom board:', bottomN, 'under-camera tiles exceed the locked height; overlay will grow.');
+      const limit = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--mainMinH')) || 430;
+      // Measure a real tile. --tileH is a min()/calc() expression, so reading the custom
+      // property back gives the unresolved string, not a number.
+      const probe = document.querySelector('#leftGrid .tile') || document.querySelector('.tile');
+      const tileH = probe ? probe.getBoundingClientRect().height : 55;
+      const uRows = Math.max(1, Math.ceil(bottomN / UNDER_COLS));
+      const gap   = uRows > 1 ? 6 : 12;             // tighten the gutters once rows stack
+
+      document.documentElement.style.setProperty('--bottomGap', gap + 'px');
+      document.documentElement.style.setProperty('--bottomTileH', Math.floor(tileH) + 'px');
+
+      const block = uRows * tileH + uRows * gap;
+      const camH  = Math.floor(limit - block - 8);
+      if (camH >= 150){
+        document.documentElement.style.setProperty('--camH', camH + 'px');
+        if (ovEl) ovEl.classList.add('cam-fitted');
+      } else {
+        // A camera under 150px is not worth streaming. Let the overlay grow and say so.
+        document.documentElement.style.removeProperty('--camH');
+        if (ovEl) ovEl.classList.remove('cam-fitted');
+        console.warn('[Overlay] custom board:', bottomN, 'under-camera tiles would leave the camera under 150px; overlay will grow.');
       }
     } else {
       document.documentElement.style.removeProperty('--bottomTileH');
+      document.documentElement.style.removeProperty('--camH');
+      document.documentElement.style.removeProperty('--bottomGap');
+      if (ovEl) ovEl.classList.remove('cam-fitted');
     }
 
     soldTeams.forEach(code => {
@@ -2432,7 +2492,7 @@ function parseEntryText(raw){
    Persisted so an OBS source refresh mid-break does not drop the seller's controls. */
 // Build stamp. Logged on load so there is never any doubt which file OBS or a browser
 // actually has open. If this line is missing from the console, it is not this build.
-const TSU_BUILD = "BTC index.html - 2026-08-10c - sticky admin row + no header in singles + custom board w/ under-cam overflow";
+const TSU_BUILD = "BTC overlays/btc/index.html - 2026-08-10e - custom board up to 80 spots, each row +2 left / +6 under cam / +2 right, tiles and camera shrink to hold the footprint (keeps Mike 65px NBA/MLB + 104%/-24px cam frame)";
 console.log("%c[TSU] " + TSU_BUILD, "background:#0a3d5c;color:#7fd8ff;padding:2px 6px;border-radius:3px");
 
 const K_ADMIN = "adminRowOpen";
