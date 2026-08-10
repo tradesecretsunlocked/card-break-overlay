@@ -2199,9 +2199,29 @@ function buildTile(team){
     const startX = startCX - cardW / 2;
     const startY = startCY - cardH / 2;
 
-    // Target: center of the cam frame
-    const endCX = (camRect.left - layerRect.left) + camRect.width  / 2;
-    const endCY = (camRect.top  - layerRect.top)  + camRect.height / 2;
+    // Target, 08-10 (Mike): the card used to land on the CENTRE OF THE CAMERA, where the
+    // OBS facecam source sits on top of it and hid the whole celebration. It now lands over
+    // the tile grid BELOW the camera instead: horizontally centred on the camera, vertically
+    // centred on the under-camera grid when that grid has tiles, otherwise just beneath the
+    // camera. Then it is clamped so it can never creep back under the camera or off the
+    // bottom of the overlay.
+    const endCX = (camRect.left - layerRect.left) + camRect.width / 2;
+
+    const gridEl   = document.getElementById("bottomGrid");
+    const gridRect = (gridEl && gridEl.querySelectorAll(".tile").length)
+      ? gridEl.getBoundingClientRect()
+      : null;
+
+    let endCY = gridRect
+      ? (gridRect.top - layerRect.top) + gridRect.height / 2
+      : (camRect.bottom - layerRect.top) + cardH / 2 + 8;
+
+    // Never overlap the camera, and never hang off the overlay.
+    const ovRect = document.querySelector(".overlay").getBoundingClientRect();
+    const minCY  = (camRect.bottom - layerRect.top) + cardH / 2 + 6;
+    const maxCY  = (ovRect.bottom  - layerRect.top) - cardH / 2 - 6;
+    endCY = Math.min(Math.max(endCY, minCY), Math.max(minCY, maxCY));
+
     const endX  = endCX - cardW / 2;
     const endY  = endCY - cardH / 2;
 
@@ -2514,7 +2534,7 @@ function parseEntryText(raw){
    Persisted so an OBS source refresh mid-break does not drop the seller's controls. */
 // Build stamp. Logged on load so there is never any doubt which file OBS or a browser
 // actually has open. If this line is missing from the console, it is not this build.
-const TSU_BUILD = "BTC overlays/btc/index.html - 2026-08-10f - sold FX now fires on the custom board (flies to cam centre, flips, holds 2s), custom board up to 80 spots, each row +2 left / +6 under cam / +2 right, tiles and camera shrink to hold the footprint (keeps Mike 65px NBA/MLB + 104%/-24px cam frame)";
+const TSU_BUILD = "BTC overlays/btc/index.html - 2026-08-10g - sold FX fires on the custom board and lands BELOW the camera over the tile grid (flips, holds 2s, clear of the OBS facecam), custom board up to 80 spots, each row +2 left / +6 under cam / +2 right, tiles and camera shrink to hold the footprint (keeps Mike 65px NBA/MLB + 104%/-24px cam frame)";
 console.log("%c[TSU] " + TSU_BUILD, "background:#0a3d5c;color:#7fd8ff;padding:2px 6px;border-radius:3px");
 
 const K_ADMIN = "adminRowOpen";
