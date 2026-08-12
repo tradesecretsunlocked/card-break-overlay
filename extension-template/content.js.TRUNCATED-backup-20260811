@@ -1,30 +1,6 @@
 (() => {
-  // ══ v2.3 SINGLE-INSTANCE GUARD ═════════════════════════════════════════════
-  // Two copies of the TSU extension in one browser both inject here, both poll,
-  // and both POST the same sale. That is the duplicate team_sold source (observed
-  // 0.19s apart). First instance claims the page, later ones stand down.
-  if (window.__TSU_BRIDGE_ACTIVE__) {
-    console.warn("[TSU] another TSU content script already owns this page. Standing down.");
-    return;
-  }
-  window.__TSU_BRIDGE_ACTIVE__ = true;
-
   /**
-   * TSU Standard content.js — v2.3 (Multi-Tenant Bridge Edition)
-   * CANONICAL TEMPLATE. Bake per client: bridgeKey, sellerUsername, sport, overlayId.
-   *
-   * v2.3, 2026-08-11 data-integrity incident:
-   *  [CRITICAL] SELLER OWNERSHIP GATE. Previously liveId came from the URL with no
-   *             owner check, so ANY Whatnot live page open in the browser fed this
-   *             client's overlay and portal. An audit of one client found 89 of 112
-   *             shows belonged to other sellers, 4,613 foreign sales, $249k gross.
-   *             Now the show host must match DEFAULTS.sellerUsername or we abort.
-   *  [CRITICAL] TEAM ALIAS MATCHING is word-boundary based and aliases shorter than
-   *             3 characters are dropped. The Oakland alias "as" matched inside
-   *             "PLEASE" and "MASTER", so $0 giveaway items posted as OAK and
-   *             marked a real spot off the board.
-   *  [CRITICAL] SINGLE-INSTANCE GUARD above, plus a cross-tab poll lock, so one
-   *             show is only ever polled by one tab.
+   * TSU Standard content.js — v2.2 (Multi-Tenant Bridge Edition)
    * FIXED: localStorage persistence for dedup map to prevent event floods on reload
    *
    * BUGS FIXED vs v2.0/v2.1:
@@ -53,10 +29,6 @@
   //    overlayId: {client-slug}-overlay (must match overlay HTML's overlayId in the warmup POST)
   const DEFAULTS = {
     bridgeKey:    "REPLACE_WITH_CLIENT_UUID_FROM_SUPABASE",
-    // REQUIRED as of v2.3. The client's Whatnot handle exactly as shown on their
-    // live page: lowercase, no @. Capture is DISABLED while this is unset, which
-    // is deliberate. An unbaked build must not hoover up strangers' shows.
-    sellerUsername: "REPLACE_WITH_CLIENT_WHATNOT_HANDLE",
     sport:        "nil",
     overlayId:    "REPLACE_WITH_CLIENT_SLUG-overlay",
     channel:      "main",
@@ -198,24 +170,11 @@
     { sport: "mlb", code: "WSH", names: ["washington nationals", "nationals"] }
   ];
 
-  // v2.3: aliases are matched on WORD BOUNDARIES, not raw substring, and anything
-  // shorter than 3 characters is discarded. The old code did s.includes("as") for
-  // Oakland, so "PLEASE FOLLOW+BOOKMARK" and "LUDACRIS/ Master P" both resolved to
-  // OAK and marked a spot sold. Keep this guard when adding new aliases.
-  const MIN_ALIAS_LEN = 3;
-
-  function aliasRegex(normalizedName) {
-    const escaped = normalizedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp("(^|[^a-z0-9])" + escaped + "([^a-z0-9]|$)");
-  }
-
   const EXPANDED_RULES = (() => {
     const out = [];
     for (const rule of TEAM_TITLE_RULES) {
       for (const name of rule.names) {
-        const norm = normalizeTitle(name);
-        if (!norm || norm.replace(/\s/g, "").length < MIN_ALIAS_LEN) continue;
-        out.push({ sport: rule.sport, code: rule.code, name: norm, re: aliasRegex(norm) });
+        out.push({ sport: rule.sport, code: rule.code, name: normalizeTitle(name) });
       }
     }
     return out.sort((a, b) => b.name.length - a.name.length);
@@ -234,7 +193,7 @@
     const s = normalizeTitle(title);
     if (!s) return null;
     for (const rule of EXPANDED_RULES) {
-      if (rule.re.test(s)) return { sport: rule.sport, code: rule.code };
+      if (s.includes(rule.name)) return { sport: rule.sport, code: rule.code };
     }
     return null;
   }
@@ -498,15 +457,7 @@
           if (lsSummaryEvery) summaryEvery = clampInt(lsSummaryEvery, summaryEvery, 1, 50);
         } catch (_) {}
 
-        let sellerUsername = String(cfg.sellerUsername || DEFAULTS.sellerUsername || "")
-          .trim().toLowerCase().replace(/^@/, "");
-        try {
-          const lsSeller = String(localStorage.getItem("tsu.sellerUsername") || "")
-            .trim().toLowerCase().replace(/^@/, "");
-          if (lsSeller) sellerUsername = lsSeller;
-        } catch (_) {}
-
-        resolve({ bridgeKey, sport, overlayId, channel, pollMs, summaryEvery, sellerUsername });
+        resolve({ bridgeKey, sport, overlayId, channel, pollMs, summaryEvery });
       });
     });
   }
@@ -584,74 +535,10 @@
 
     const cfg = await getConfig();
 
-    if (!cfg.bridgeKey || cfg.bridgeKey.startsWith("REPLACE_WITH")) {
+    if (!cfg.bridgeKey || cfg.bridgeKey === "REPLACE_WITH_CLIENT_KEY") {
       console.error("[TSU] bridgeKey not set! Update DEFAULTS.bridgeKey in content.js for this client.");
       return;
     }
-
-    // ══ v2.3 SELLER OWNERSHIP GATE ═══════════════════════════════════════════
-    // Fail CLOSED. Without a configured handle we cannot prove this show belongs
-    // to our client, and the old behaviour (capture anything) is exactly the bug.
-    if (!cfg.sellerUsername || cfg.sellerUsername === "replace_with_client_whatnot_handle") {
-      console.error(
-        "[TSU] sellerUsername not set. Capture is DISABLED.\n" +
-        "Set DEFAULTS.sellerUsername in content.js to the client's Whatnot handle " +
-        "(lowercase, no @), rebuild, and reload the extension."
-      );
-      return;
-    }
-
-    let showHost = null;
-    try {
-      const ctx = await requestInjected("WHATNOT_SPY_FETCH_LIVESTREAM", { liveId });
-      showHost = String(ctx?.user?.username || "").trim().toLowerCase();
-    } catch (err) {
-      console.error("[TSU] could not read the show host (" + (err?.message || err) + "). Capture aborted for safety.");
-      return;
-    }
-
-    if (!showHost) {
-      console.error("[TSU] show host came back empty. Capture aborted for safety.");
-      return;
-    }
-
-    if (showHost !== cfg.sellerUsername) {
-      console.log(
-        "[TSU] this show belongs to @" + showHost + ", not @" + cfg.sellerUsername +
-        ". Not capturing. You can watch other sellers freely, nothing is sent to your overlay."
-      );
-      return;
-    }
-
-    // ══ v2.3 CROSS-TAB POLL LOCK ═════════════════════════════════════════════
-    // Same show open in two tabs would double-post. One tab holds the lock and
-    // refreshes it; a stale lock (owner tab closed) is reclaimed after 15s.
-    const INSTANCE_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    const LOCK_KEY    = "tsu.pollLock." + liveId;
-    const LOCK_STALE_MS = 15000;
-
-    function readLock() {
-      try { return JSON.parse(localStorage.getItem(LOCK_KEY) || "null"); } catch (_) { return null; }
-    }
-    function claimLock() {
-      try {
-        const cur = readLock();
-        const now = Date.now();
-        if (cur && cur.owner !== INSTANCE_ID && (now - (cur.ts || 0)) < LOCK_STALE_MS) return false;
-        localStorage.setItem(LOCK_KEY, JSON.stringify({ owner: INSTANCE_ID, ts: now }));
-        return true;
-      } catch (_) { return true; }   // no localStorage: degrade to previous behaviour
-    }
-    function holdsLock() {
-      const cur = readLock();
-      return !cur || cur.owner === INSTANCE_ID;
-    }
-
-    if (!claimLock()) {
-      console.warn("[TSU] another tab is already polling this show. Standing down to avoid duplicate sales.");
-      return;
-    }
-    console.log("[TSU] host verified: @" + showHost + " — capture ON.");
 
     console.log("[TSU] ══════════════════════════════════");
     console.log("[TSU] Bridge:", BRIDGE_URL);
@@ -689,12 +576,6 @@
     }
 
     while (true) {
-      if (!holdsLock()) {
-        console.warn("[TSU] lost the poll lock for this show to another tab. Stopping.");
-        return;
-      }
-      claimLock();   // heartbeat
-
       try {
         const allEdges = await fetchAllSoldEdges(liveId, seen);
         const nodes = allEdges.map((e) => e?.node).filter(Boolean).reverse();
@@ -788,19 +669,4 @@
             if (c > topCount) { topCount = c; topBuyer = b; }
           }
           await sendEvent(cfg, {
-            type:     "stream_stats",
-            topBuyer,
-            lastSale: lastSaleText,
-            liveId
-          });
-        }
-
-        await sleep(cfg.pollMs);
-
-      } catch (err) {
-        console.warn("[TSU] poll error:", err?.message || err, "(soldItems totalCount~" + lastTotalCount + ")");
-        await sleep(5000);
-      }
-    }
-  })();
-})();
+  

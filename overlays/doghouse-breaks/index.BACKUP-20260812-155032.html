@@ -2785,12 +2785,6 @@ if (PROMPT_MODE === 'ticker'){
     let sse = null;
     let sseScores = null;
 
-    // TSU shared bridge (migrated off tsu-bridge-doghouse.onrender.com 2026-08-12).
-    // Hardcoded defaults so a stale localStorage value from the old per-client
-    // bridge can never win. ?bridge= and ?key= remain opt-in overrides.
-    const BRIDGE_URL_DEFAULT = "https://bridge.tradesecretsunlocked.com";
-    const BRIDGE_KEY_DEFAULT = "c30f708e-e72b-4331-b46b-a7c5603a18f9";
-
     function getBridgeUrl() {
       const q = new URLSearchParams(location.search).get("bridge");
       if (q) {
@@ -2798,7 +2792,8 @@ if (PROMPT_MODE === 'ticker'){
         localStorage.setItem(LS.BRIDGE, cleaned);
         return cleaned;
       }
-      return BRIDGE_URL_DEFAULT;
+      const saved = localStorage.getItem(LS.BRIDGE);
+      return saved ? saved.replace(/\/$/, "") : "";
     }
 
     function getBridgeKey() {
@@ -2807,7 +2802,7 @@ if (PROMPT_MODE === 'ticker'){
         localStorage.setItem(LS.KEY, q);
         return q;
       }
-      return BRIDGE_KEY_DEFAULT;
+      return localStorage.getItem(LS.KEY) || "";
     }
 
   function getChannel(){
@@ -2896,8 +2891,7 @@ function connectScoresSSE(base, sportsChannel = "sports"){
   if (sseScores) { try { sseScores.close(); } catch(_){} }
 
   try{
-    // shared bridge is multi-tenant: the key is required on subscribe
-    const url = `${base}/stream?channel=${encodeURIComponent(sportsChannel)}&key=${encodeURIComponent(getBridgeKey())}`;
+    const url = `${base}/stream?channel=${encodeURIComponent(sportsChannel)}`;
     sseScores = new EventSource(url);
 
     const ingest = (e) => {
@@ -2931,7 +2925,7 @@ function startSSE(){
   const channel = getChannel();
   const sportsChannel = getScoresChannel();
 
-  connectSSE(`${base}/stream?channel=${encodeURIComponent(channel)}&key=${encodeURIComponent(getBridgeKey())}`);
+  connectSSE(`${base}/stream?channel=${encodeURIComponent(channel)}`);
 
   if (sportsChannel) {
     connectScoresSSE(base, sportsChannel);

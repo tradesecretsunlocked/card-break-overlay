@@ -285,15 +285,36 @@ Current templates on disk, all four verified to carry the bridge host permission
 
 ### DEFAULTS block in content.js: the only per-client change
 
+> ### v2.3 REQUIRED, added 2026-08-11 after a data-integrity incident
+> **`sellerUsername` is a fourth mandatory per-client value.** The extension verifies the
+> Whatnot show host matches it before capturing anything, and **fails closed** if the handle
+> is unset, the lookup fails, or the host differs. Without the gate, `liveId` comes from the
+> URL, so every Whatnot live page the seller opens feeds their overlay and portal. Audit of
+> one client: **89 of 112 shows belonged to other sellers, 4,613 foreign sales, about $249k
+> of gross that was not theirs**, and board spots marking off while the client was offline.
+>
+> Two more v2.3 rules that must not regress:
+> - **Team aliases match on word boundaries, minimum 3 characters.** The Oakland alias `"as"`
+>   with a bare `includes()` made "PLEASE" and "MASTER" resolve to `OAK`, roughly 12,700 false
+>   events across clients, 1,190 of them $0 giveaway items that burned a live board spot.
+> - **One poller per show:** `window.__TSU_BRIDGE_ACTIVE__` single-instance guard plus a
+>   `localStorage` lock keyed `tsu.pollLock.<liveId>`. Duplicate instances inflated sales up
+>   to 5.7x.
+>
+> **Never ship an extension without running `node --check content.js`.** `extension-template/`
+> was truncated mid-statement and unparsable until 2026-08-11; the working code had to be
+> recovered from a client zip. Backup of the broken file: `content.js.TRUNCATED-backup-20260811`.
+
 ```js
 // LOCKED, identical for every client. Do not change this per client.
 const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com";
 
-// CHANGE PER CLIENT, only these three fields differ between clients.
+// CHANGE PER CLIENT, only these four fields differ between clients.
 const DEFAULTS = {
-  bridgeKey:    "CLIENT-KEY-HERE",   // from Supabase bridge_keys, see §16
-  sport:        "nfl",               // "nfl" | "nba" | "mlb" | "nil"
-  overlayId:    "client-handle",     // must equal the overlay's overlayId
+  bridgeKey:      "CLIENT-KEY-HERE",   // from Supabase bridge_keys, see §16
+  sellerUsername: "client-handle",     // REQUIRED v2.3. Whatnot handle, lowercase, no @
+  sport:          "nfl",               // "nfl" | "nba" | "mlb" | "nil"
+  overlayId:      "client-handle",     // must equal the overlay's overlayId
   channel:      "main",
   pollMs:       3000,
   summaryEvery: 5

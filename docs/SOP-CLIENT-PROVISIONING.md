@@ -461,23 +461,54 @@ Two details that cause silent bugs if a clone drops them:
 - **When:** after the bridge key exists.
 - **How:** check `builds.extension_needed` first. Then:
 
-1. Copy the canonical template `extension-UPDATED-04-14-2026/` (currently
-   v2.2.1). Never edit the template in place.
-2. Open `content.js` and set the `DEFAULTS` block:
+1. Copy the canonical template `extension-template/` (v2.3.0 as of 2026-08-11).
+   Never edit the template in place.
+2. Open `content.js` and set the `DEFAULTS` block. **`bridgeUrl` is gone**, the bridge is
+   a locked constant. Four values change per client:
 
 ```js
+const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com"; // LOCKED, never per client
+
 const DEFAULTS = {
-  bridgeUrl: "https://bridge.tradesecretsunlocked.com", // shared, same for ALL clients
-  bridgeKey: "REPLACE_WITH_CLIENT_KEY",                 // unique per client
+  bridgeKey:      "REPLACE_WITH_CLIENT_KEY",       // unique per client
+  sellerUsername: "REPLACE_WITH_CLIENT_HANDLE",    // REQUIRED. Whatnot handle, lowercase, no @
   sport: "nfl",       // "nfl" | "nba" | "mlb" | "nil"
-  overlayId: "",      // e.g. "northland"
+  overlayId: "",      // e.g. "northland-overlay"
   channel: "main",
   pollMs: 3000,
   summaryEvery: 5
 };
 ```
 
-3. Zip the folder to `{client-slug}-extension.zip`.
+> ### v2.3 REQUIRED, added 2026-08-11 after a data-integrity incident
+> **`sellerUsername` is a fourth mandatory per-client value.** The extension verifies the
+> Whatnot show host matches it before capturing anything, and **fails closed** if the handle
+> is unset, the lookup fails, or the host differs. Without the gate, `liveId` comes from the
+> URL, so every Whatnot live page the seller opens feeds their overlay and portal. Audit of
+> one client: **89 of 112 shows belonged to other sellers, 4,613 foreign sales, about $249k
+> of gross that was not theirs**, and board spots marking off while the client was offline.
+>
+> Two more v2.3 rules that must not regress:
+> - **Team aliases match on word boundaries, minimum 3 characters.** The Oakland alias `"as"`
+>   with a bare `includes()` made "PLEASE" and "MASTER" resolve to `OAK`, roughly 12,700 false
+>   events across clients, 1,190 of them $0 giveaway items that burned a live board spot.
+> - **One poller per show:** `window.__TSU_BRIDGE_ACTIVE__` single-instance guard plus a
+>   `localStorage` lock keyed `tsu.pollLock.<liveId>`. Duplicate instances inflated sales up
+>   to 5.7x.
+>
+> **Never ship an extension without running `node --check content.js`.** `extension-template/`
+> was truncated mid-statement and unparsable until 2026-08-11; the working code had to be
+> recovered from a client zip. Backup of the broken file: `content.js.TRUNCATED-backup-20260811`.
+
+3. Verify, then zip the folder to `{client-slug}-extension.zip`:
+
+```
+node --check content.js            # must pass
+grep -nE 'REPLACE_WITH_CLIENT_(UUID|WHATNOT_HANDLE|SLUG)' content.js  # must return nothing
+```
+
+4. Smoke test on the client's machine: load one of THEIR shows, console should read
+   `host verified`. Then open a DIFFERENT seller's show and confirm nothing is captured.
 
 Three values must match between the overlay and the extension or nothing will
 appear on screen: the **bridge key**, the **channel** (the standard is `main`),
