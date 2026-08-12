@@ -2904,7 +2904,10 @@ function connectScoresSSE(base, sportsChannel = "sports"){
       try{
         const data = JSON.parse(e.data);
         if (data?.type === "hello") return;
-        if (String(data?.type || "").toLowerCase() === "scores") {
+        // The bridge emits "scores_update"; older builds emitted "scores".
+        // Accept BOTH so a bridge-side rename can never silently kill live scores.
+        const t = String(data?.type || "").toLowerCase();
+        if (t === "scores" || t === "scores_update") {
           handleSSEEvent(data);
         }
       }catch(_){}
@@ -3011,7 +3014,7 @@ function startSSE(){
 
       if (type === 'hello') return;
 
-if (type === 'scores'){
+if (type === 'scores' || type === 'scores_update'){
   const sport = String(data?.sport || data?.league || '').toLowerCase().trim();
   const txt = normalizeScorePayloadToText(data);
 
