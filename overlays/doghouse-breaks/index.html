@@ -2791,6 +2791,11 @@ if (PROMPT_MODE === 'ticker'){
     const BRIDGE_URL_DEFAULT = "https://bridge.tradesecretsunlocked.com";
     const BRIDGE_KEY_DEFAULT = "c30f708e-e72b-4331-b46b-a7c5603a18f9";
 
+    // ESPN scores come from a SEPARATE service. bridge.tradesecretsunlocked.com
+    // does NOT broadcast scores, so the score SSE must point here instead.
+    // Matches jp2-cards and quantum-breaks, the builds with working live scores.
+    const SCORES_BRIDGE_BASE = "https://tsu-scores-bridge.onrender.com";
+
     function getBridgeUrl() {
       const q = new URLSearchParams(location.search).get("bridge");
       if (q) {
@@ -2937,7 +2942,8 @@ function startSSE(){
   connectSSE(`${base}/stream?channel=${encodeURIComponent(channel)}&key=${encodeURIComponent(getBridgeKey())}`);
 
   if (sportsChannel) {
-    connectScoresSSE(base, sportsChannel);
+    // scores live on the dedicated score bridge, not the main bridge
+    connectScoresSSE(SCORES_BRIDGE_BASE, sportsChannel);
   }
 }
 
