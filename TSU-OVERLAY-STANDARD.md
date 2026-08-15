@@ -522,13 +522,37 @@ The `overlayId` in the overlay and in the extension DEFAULTS must be the identic
 
 > **CORRECTED IN 2.4.** Version 2.3 of this document instructed builders to return `` `sports-${SCORES_NAMESPACE}` `` from `getScoresChannel()` and explicitly labelled the bare string `"sports"` as "OLD / WRONG". **That was inverted.** Bare `"sports"` is correct. The rest of this section is the corrected rule plus the evidence, so this does not get flipped back.
 
-### The rule
+### The rule, part 1: the CHANNEL
 
 ```js
 function getScoresChannel(){ return "sports"; }
 ```
 
-That is the whole rule. There is no per-client scores channel and no `SCORES_NAMESPACE` in a new build.
+There is no per-client scores channel and no `SCORES_NAMESPACE` in a new build.
+
+### The rule, part 2: the HOST (added 2026-08-12, this is the one that keeps biting)
+
+**Scores do NOT come from the main bridge. They come from a separate service.**
+
+```js
+const BRIDGE_BASE        = "https://bridge.tradesecretsunlocked.com"; // sales, channel "main"
+const SCORES_BRIDGE_BASE = "https://tsu-scores-bridge.onrender.com";  // scores, channel "sports"
+```
+
+```js
+// sales  -> main bridge
+connectBridgeSSE(`${BRIDGE_BASE}/stream?channel=main&key=${KEY}`);
+// scores -> dedicated score service. NOT the main bridge base.
+connectScoresSSE(`${SCORES_BRIDGE_BASE}/stream?channel=sports&key=${KEY}`);
+```
+
+Getting the channel right but the host wrong produces the exact failure this section
+was written to prevent: the overlay connects, the connection stays open, no error is
+logged anywhere, and **no scores ever arrive**. Doghouse Breaks lost scores this way,
+and the fleet audit below shows it is the majority case, not an edge case.
+
+Reference builds that are correct: `overlays/jp2-cards`, `overlays/quantum-breaks`,
+`overlays/doghouse-breaks`.
 
 ### Why bare "sports" is correct
 
@@ -594,15 +618,124 @@ ticker: [client text] • [NBA] • [client text] • [MLB] • [client text] �
 
 A client's overlay only shows scores when that client has `service = 'scores'` entitled and enabled in `client_services`. Toggling that row is the only control needed, no code change and no redeploy.
 
-*Open item for the owner: confirm which producer is actually running in Render today, so the other can be retired. Path A is gated by `ESPN_ENABLED` on the bridge service and Path B is a separate service. Both broadcasting is harmless (the overlay dedups by freshness) but only one should be paying for ESPN polling. This also closes `TSU-MEMORY.md` §7.6.*
+### RESOLVED 2026-08-12: which producer is actually running
+
+The open item above is closed. Answer, with evidence from a live Render log plus the
+deployed source:
+
+- **Path A (in-bridge ESPN polling) is NOT deployed.** It exists only in
+  `card-break-overlay/bridge/server.js`, which was last touched **2026-06-09** and is a
+  stale copy. Do not read it to understand production. It is the file that says
+  `type: "scores_update"`; nothing deployed emits that name. Treat that file as reference
+  only until it is reconciled or deleted.
+- **Path B (`tsu-score-bridge`) is the live producer.** It emits `type: "scores"`.
+- **The deployed copy of Path B is itself stale.** The working tree at
+  `tsu-score-bridge/server.js` contains a fix dated 2026-08-11 that has **never been
+  committed or deployed** (last commit 2026-05-16). Production is still running the old
+  templated fan-out:
+
+  ```js
+  await postToBridge(`sports-${client.namespace}`, sport, games);   // DEPLOYED, broken
+  ```
+
+  which is why a live log shows `ch=sports-crunchzone listeners=0`,
+  `ch=sports-windy-city-breaks listeners=0`. No overlay subscribes to those names.
+  The uncommitted fix posts per client on the bare channel, which is correct:
+
+  ```js
+  await postToBridge("sports", sport, games, client.key);           // LOCAL, correct
+  ```
+
+### The two ways an overlay can receive scores, and why it matters commercially
+
+| Path | How | Works today | Entitlement gated |
+|---|---|---|---|
+| **Direct** | overlay connects to `tsu-scores-bridge.onrender.com/stream?channel=sports` | **Yes** | **NO** |
+| **Relayed** | score service POSTs to the main bridge per client key, overlay listens on main bridge `channel=sports` | Not until the fix above is deployed | Yes, via `client_services` |
+
+**Read the "NO" carefully.** `tsu-score-bridge`'s `/stream` endpoint performs no key check
+and no entitlement lookup. It pushes every tick to every open connection:
+
+```js
+app.get("/stream", (req, res) => { clients.add(res); ... });   // no key, no gating
+function broadcast(obj){ for (const res of clients) res.write(...); }
+```
+
+So the `key=` we pass on that URL is decorative today, and **anyone with the URL receives
+scores whether or not they pay for them.** The direct path is the correct choice right now
+because it is the only one that works, but it means scores are effectively ungated until
+the relayed path is deployed. Do not price or promise scores as a gated upsell on the
+strength of `client_services` alone until that is fixed.
 
 ### Overlay constants
 
 ```js
-const BRIDGE_BASE        = "https://bridge.tradesecretsunlocked.com";
+const BRIDGE_BASE        = "https://bridge.tradesecretsunlocked.com"; // sales
+const SCORES_BRIDGE_BASE = "https://tsu-scores-bridge.onrender.com";  // scores
 const BRIDGE_KEY_DEFAULT = "CLIENT-KEY-HERE";
 // no SCORES_NAMESPACE
 ```
+
+### Migrating an EXISTING client onto the current standard
+
+Legacy clients were provisioned on a private `tsu-bridge-<client>.onrender.com` instance
+and their OBS URL carries `?bridge=...`. Migrating them is not just a URL swap. Run every
+step, in order. Doghouse Breaks 2026-08-12 is the worked example.
+
+1. **Hardcode both hosts and the key in the overlay.** Do not leave them resolving from
+   `localStorage` or a URL param. A legacy client has the old Render URL cached in the OBS
+   browser source and a stale cached value silently wins over the new default.
+
+   ```js
+   function getBridgeUrl(){ const q=param("bridge"); return q ? clean(q) : BRIDGE_URL_DEFAULT; }
+   function getBridgeKey(){ const q=param("key");    return q ? q       : BRIDGE_KEY_DEFAULT; }
+   ```
+
+2. **Add `&key=` to BOTH subscribe URLs.** A per-client bridge did not need a key because
+   the whole instance was that client. The shared bridge is multi-tenant and a keyless
+   subscribe gets nothing. Miss this on the scores connection only and sales work while
+   scores are silently dead.
+
+3. **Point the scores connection at `SCORES_BRIDGE_BASE`,** not at the main bridge base.
+   See "The rule, part 2" above. This is the single most common migration miss.
+
+4. **Entitle the service:** `client_services` row for `service='scores'` with **both**
+   `entitled = true` and `enabled = true`. Either one false means no scores.
+
+5. **Register the client's real bridge key in `bridge_keys`** and confirm `active = true`.
+   Legacy extensions often carry a key that was only ever valid on the private instance and
+   does not exist in `bridge_keys` at all. The shared bridge returns 403 for it. Doghouse's
+   old extension was sending `15a65c6691a5d5fb0fd781af0a06dfc4`, which matched no row.
+
+6. **Rebuild the extension** from the current v2.2 template with the correct key baked in.
+   Have the client REMOVE the old extension rather than disable it, so two copies cannot
+   both post.
+
+7. **Set `bridge_keys.whatnot_handle`.**
+
+8. **Portal:** entitle `portal`, then after the client signs in once, link their
+   `auth.users.id` into `client_users`. The row cannot be created before their first login.
+
+9. **Give them a clean OBS URL with no query string,** and tell them to replace the URL
+   rather than refresh. A refresh keeps the old `?bridge=` override.
+
+10. **Verify, do not assume.** Two independent checks:
+
+    ```sql
+    -- sales are arriving
+    select event_type, count(*), max(occurred_at) from bridge_events
+    where bridge_key = '<key>' and occurred_at > now() - interval '1 hour'
+    group by event_type;
+    ```
+
+    Scores can NOT be verified this way. `NO_LOG_EVENT_TYPES` on the bridge deliberately
+    excludes `scores` and `stream_stats`, so they never appear in `bridge_events` and an
+    empty result proves nothing. Verify scores in the client's browser instead: DevTools,
+    Network, filter `stream`, confirm an open connection to
+    `tsu-scores-bridge.onrender.com/stream?channel=sports`.
+
+    Seasonality caveat: if ESPN returns no games for a sport, nothing renders and that is
+    correct. Judge only against a sport with live games that day.
 
 ### Scores feature flag
 

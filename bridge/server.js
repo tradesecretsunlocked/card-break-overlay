@@ -1,4 +1,20 @@
 /**
+ * ⚠️  STALE COPY — NOT DEPLOYED.  Verified 2026-08-12.
+ * ─────────────────────────────────────────────────────────────────────────────
+ * This file was last meaningfully touched 2026-06-09 and does NOT match what runs
+ * in production. Reading it to diagnose live behaviour will send you the wrong way.
+ *
+ * Specifically, the ESPN scores block below is NOT how scores work today:
+ *   - This file emits  type: "scores_update".  NOTHING deployed emits that name.
+ *   - The live producer is the separate service `tsu-score-bridge`, which emits
+ *     type: "scores" and is what overlays actually consume, via
+ *     https://tsu-scores-bridge.onrender.com  (channel "sports").
+ *
+ * The main bridge does NOT broadcast ESPN scores to overlays today.
+ * See TSU-OVERLAY-STANDARD.md §11 for the current rule and the migration checklist,
+ * and docs/SCORES-CONFIG-AUDIT.md for which overlays are wired correctly.
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
  * TSU Multi-Tenant Bridge Server
  * ─────────────────────────────────────────────────────────────────────────────
  * One Render service replaces N per-client bridges.
