@@ -2642,25 +2642,39 @@ function inferCodeFromTitle(title, sportHint){
   }
 
   return null;
-}const BRIDGE_URL = (() => {
+}// TSU standard 2026-08-15: bridge URL is BAKED. It used to resolve from ?bridge= then
+// localStorage and fall back to "", which made automationEnabled() (!!BRIDGE_URL)
+// permanently false, so this overlay never connected to anything. ?bridge= stays as a
+// debug-only override; localStorage is never primary.
+const BRIDGE_URL = (() => {
   const q = new URLSearchParams(location.search).get("bridge");
-  if (q) {
-    const cleaned = q.replace(/\/$/, "");
-    localStorage.setItem(LS.BRIDGE, cleaned);
-    return cleaned;
-  }
-  const saved = localStorage.getItem(LS.BRIDGE) || localStorage.getItem(LS.URL_LEGACY);
-  return saved ? saved.replace(/\/$/, "") : "";
+  const chosen = (q && q.trim()) ? q.trim() : "https://bridge.tradesecretsunlocked.com";
+  return chosen.replace(/\/$/, "");
 })();
 
+// TSU standard: the per-client key is BAKED into the overlay and the extension. It is
+// never shipped on the OBS URL as the deployment method and localStorage is never primary,
+// which prevents a stale saved value from one client bleeding into another.
+// Breakz4Dayz, Supabase bridge_keys, active = true.
 const BRIDGE_KEY = (() => {
   const q = new URLSearchParams(location.search).get("key");
-  if (q) {
-    localStorage.setItem(LS.KEY, q);
-    return q;
-  }
-  return localStorage.getItem(LS.KEY) || localStorage.getItem(LS.KEY_LEGACY) || "";
+  return ((q && q.trim()) ? q.trim() : "562c9fcc-90d1-4075-b9cd-f775e8ea3957").trim();
 })();
+
+// Must match the overlayId baked into this client's extension.
+const OVERLAY_ID = "breakz4dayz-overlay";
+
+const TSU_BUILD = "Breakz4Dayz overlays/breakz4dayz/index.html - 2026-08-15a - Tier 1 -> automation: bridge URL + key baked (localStorage demoted to override), overlayId guard added, scores channel verified";
+console.log("%c[TSU] " + TSU_BUILD, "background:#3a0d0c;color:#ffb3ae;padding:2px 6px;border-radius:3px");
+
+// Lenient on purpose: only rejects an event explicitly stamped for a DIFFERENT overlay.
+// Unstamped events (scores, warmups, older senders) still pass, so this cannot blank a
+// working board.
+function overlayIdMatches(payload){
+  const incoming = String((payload && (payload.overlay_id || payload.overlayId)) || "").trim().toLowerCase();
+  if (!incoming) return true;
+  return incoming === OVERLAY_ID.toLowerCase();
+}
 function automationEnabled(){
   return !!BRIDGE_URL;
 }
@@ -2912,6 +2926,13 @@ function handleSSEEvent(data){
   ).toLowerCase();
 
   if (!type || type === "hello") return;
+
+  // 2026-08-15: reject anything explicitly stamped for a different overlay.
+  if (!overlayIdMatches(payload)){
+    console.warn("[Overlay] ignoring event for another overlay:",
+                 payload.overlay_id || payload.overlayId, "expected", OVERLAY_ID);
+    return;
+  }
 
   if (type === "reset"){
     resetAll();
