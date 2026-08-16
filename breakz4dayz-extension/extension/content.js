@@ -325,10 +325,35 @@
 
   function stableId(n) {
     if (n?.id) return String(n.id);
+
+    // FIX 2026-08-15. The fallback used to be `${listingId}_${buyerId}`, which is NOT
+    // unique in a break: one break is a SINGLE listing that the same buyer wins many
+    // times. Every spot that buyer took collapsed onto one id, so each new win looked
+    // like the previous item being re-resolved to a different team. The poll loop then
+    // fired its "code changed" branch and emitted team_unsold for the spot they had
+    // already won. Observed live on Breakz4Dayz: one buyer took CUSTOM_001, then HOU,
+    // then IND, and each new win released the one before it.
+    // The spot TITLE and the PRICE are what actually differ between spots, so they go
+    // into the composite. Titles are normalised the same way the dedup check does it,
+    // so this stays consistent with `seen`.
     const lid = n?.listing?.id || "";
     const bid = n?.buyer?.id || "";
-    if (lid || bid) return `${lid}_${bid}`;
-    console.warn("[TSU] item missing stable ID — using random (will not dedup)", n);
+    const rawTitle =
+      n?.listing?.title ||
+      n?.listing?.subtitle ||
+      n?.listing?.description ||
+      n?.title ||
+      n?.product?.title ||
+      "";
+    const spot = stripPrefixTitle(rawTitle).trim().toLowerCase();
+    const price = parsePrice(n);
+    const cents = (price && price.cents != null) ? String(price.cents) : "";
+
+    const composite = [lid, bid, spot, cents].filter(Boolean).join("_");
+    // Require more than just listing+buyer, otherwise we are back to the old collapse.
+    if (composite && (spot || cents)) return composite;
+
+    console.warn("[TSU] item missing stable ID and has no title/price to disambiguate — using random (will not dedup)", n);
     return `_unstable_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   }
 
