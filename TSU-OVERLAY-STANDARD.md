@@ -27,6 +27,7 @@ Everything else in the repo is reference, and much of it is stale.
 | **`bridge_keys` schema fixed** | The CREATE TABLE in v2.3 omitted `client_email` and `owner_contact_id`. `client_email` is load bearing: it feeds the portal auto-link trigger. See §16. |
 | **Extension manifest drift closed** | Every live extension template already carries `bridge.tradesecretsunlocked.com/*` in `host_permissions`. Only `archived/extension/` still has the legacy `*.onrender.com` entry. The checklist item stays as a verification, the "the template is broken" claim is retired. |
 | **Automation contract expanded** | Full `team_sold` payload shape, the complete event alias list, the five-step code resolution with the name-first matcher rule, `breakIdMatches`, and the dedup rule (never key on `productId`). New §9. |
+| **Dedup key uniqueness rule (v2.3.1)** | New in §9.3 and the §7 pre-ship gate after the 2026-08-15 Breakz4Dayz incident: a dedup key built from listing and/or buyer identity collapses every spot one buyer wins, and the extension then unsells spots that were legitimately sold. Includes the two-sided test any key must pass. Affected 12+ clients before detection. |
 | **New drift recorded** | The repo copy of `provision-client` no longer matches the deployed function. See §21.1. |
 | **Authority claim narrowed** | v2.3 called itself "the single source of truth" for everything. Three documents made that claim at once. Only the scoping above survives. |
 
@@ -255,6 +256,15 @@ For the Divisions/Board family, alias `--gold: var(--primary)` and `--bg0` / `--
 
 Current templates on disk, all four verified to carry the bridge host permission: `extension-template/`, `extension-UPDATED-04-14-2026/`, `tsu-extension-v2.2/extension/`, and the per-client forks. **`archived/extension/` is the one exception and must never be used:** its `host_permissions` still lists legacy `https://*.onrender.com/*` and omits the bridge domain.
 
+### Pre-ship gate for `content.js` (all four required, no exceptions)
+
+Run these before zipping any client build. Items 1 and 2 have each caused a production incident.
+
+1. **`node --check content.js`.** The template shipped truncated and unparsable once (recovered 2026-08-11 from a client install zip). A file that does not parse does nothing at all, silently.
+2. **Inspect `stableId()` before shipping.** Confirm the fallback is not built only from listing and/or buyer identity, and run the two-sided test in §9.3. This is the 2026-08-15 incident and it reached 12+ clients before anyone noticed, because the symptom (a spot quietly reverting) looks like a seller misclick rather than a bug.
+3. **`grep -n 'REPLACE_WITH' content.js`** returns only the startup guard line, never a DEFAULTS value.
+4. **`sellerUsername` is baked** with the client's real Whatnot handle, lowercase, no `@`. Capture is disabled while unset, deliberately. Never guess it and never ship the placeholder.
+
 ### Standard manifest.json
 
 ```json
@@ -454,6 +464,10 @@ SSE clients support `onmessage` plus named events, auto-reconnect at about 2.5s,
 
 - **`breakIdMatches(data)` at the top of every handler.** `breakId` is `${yyyymmdd}-${breakType}-${breakNumber}`. No incoming `breakId` means pass, otherwise it must match. Required in every overlay. Some legacy files omit it, add it.
 - **Dedup and respin key on `saleId || id || listingId`. Never on `productId`.** Keying on `productId` causes false unsolds, because one product spans many sales. When a key already maps to a *different* code, fire `sseMarkUnsold(prev)` before marking the new code sold.
+- **The dedup key must be unique per SPOT, not per listing and not per buyer.** This rule was already written as "never `productId`", and the same class of bug still shipped, so state it positively: a break is **one listing that the same buyer wins many times**. Any key built only from listing and/or buyer identity collapses every spot that buyer took onto a single value. Each new win then reads as the previous item re-resolving to a different team, the code-changed branch fires, and the extension emits `team_unsold` for a spot the buyer had already won. **Live incident 2026-08-15 (Breakz4Dayz):** `stableId()` fell back to `${listingId}_${buyerId}`, one buyer took `CUSTOM_001`, then `HOU`, then `IND`, and each new win released the one before it. A sweep of `bridge_events` found the same signature across **12+ clients**, led by Northland Breaks with 43,283 affected sale IDs and Legends Hobby with 21,330.
+  - **Acceptable key:** the platform's own per-sale id when present, otherwise a composite that includes something that actually varies per spot, such as the spot **title** and **price**.
+  - **Never acceptable:** `productId`; `listingId` alone; `buyerId` alone; `listingId + buyerId`.
+  - **Two-sided test any key must pass, both halves required:** (a) three different spots won by the SAME buyer in the SAME break produce three DIFFERENT keys, and (b) the SAME spot re-read on the next poll produces the SAME key. Half a test is how this shipped: passing only (b) looks like working dedup while silently unselling spots.
 - **Buyer uniqueness.** Before assigning a buyer to a new team, unsell any team that buyer already owns. This prevents a double-sold tile.
 
 ### 9.4 The four things that must match per client
@@ -1175,6 +1189,7 @@ Run every one of these before marking an overlay ready for review. Most are a si
 | SSE named listeners | All handled types registered, including `team_sold`, `team_unsold`, `buyer`, `scores`, `scores_update` |
 | `breakIdMatches` | Present, and called at the top of every SSE event handler |
 | Dedup key | Keyed on `saleId || id || listingId`. **Never `productId`.** |
+| Dedup key uniqueness | Key varies per SPOT. **Never** `listingId + buyerId` or either alone. Run the two-sided test in §9.3: same buyer + three spots gives three keys, and a re-poll of one spot gives the same key. |
 | `team_sold` handler | Includes the `lastCodeByListingKey` reassignment check |
 | Buyer uniqueness | Assigning a buyer unsells any other team that buyer already owns |
 | `overlayId` match | The overlay's `overlayId` string equals the extension's `DEFAULTS.overlayId` |
