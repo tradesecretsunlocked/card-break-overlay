@@ -660,8 +660,25 @@ background-size: 140% auto; /* try 140–220% */
       filter: drop-shadow(0 0 10px rgba(30,102,255,0.45)) drop-shadow(0 4px 8px rgba(0,0,0,0.55));
       z-index:4; pointer-events:none;
     }
+    /* Hidden hotspot, top-left. Toggles ONLY the sold buyer/team list.
+       Separate from the Sold-stat toggle, which still opens/closes the whole
+       admin panel exactly as before. Invisible on stream. */
+    #buyerPanelToggle{
+      position:fixed; top:0; left:0;
+      width:74px; height:44px;
+      z-index:2147483647; cursor:pointer;
+      opacity:0; background:transparent; pointer-events:auto;
+    }
+    .sold-wrap.hide-buyers #soldGrid{ display:none !important; }
+
+    /* FIX 2026-08-18: the banner was position:fixed at a hardcoded 50%/52% and read
+       --wheel-size, which is set on #wheel-float. Because the banner was NOT a
+       descendant of the wheel it never saw that variable and always fell back to
+       420px, so it neither moved when the wheel was dragged nor scaled when resized.
+       It is now a child of #wheel-float and positioned against it. */
     #wheel-winner-banner{
-      position:fixed; left:50%; top: calc(52% + var(--wheel-size, 420px) * 0.44);
+      position:absolute; left:50%; top:100%;
+      margin-top: calc(var(--wheel-size, 420px) * 0.035);
       transform: translateX(-50%); z-index:9001;
       min-width: calc(var(--wheel-size, 420px) * 0.70);
       max-width: calc(var(--wheel-size, 420px) * 1.05);
@@ -1080,6 +1097,9 @@ background-size: 140% auto; /* try 140–220% */
   </div>
 
   <!-- Sold Panel -->
+  <!-- Hidden top-left hotspot: hides/shows the sold buyer/team list only. -->
+  <div id="buyerPanelToggle" title="Toggle sold buyer list"></div>
+
   <div class="sold-wrap" id="soldWrap">
     <div class="sold-top">
       <div class="pill" id="setBreakBtn">Set Break #</div>
@@ -1280,10 +1300,20 @@ function overlayIdMatches(payload){
   return incoming === OVERLAY_ID.toLowerCase();
 }
 
+// FIX 2026-08-18: scores are published by a SEPARATE service, not the main bridge.
+// The 2026-08-15 change subscribed to the right CHANNEL on the WRONG HOST, so the
+// connection opened, raised no error, and delivered nothing forever. See
+// TSU-OVERLAY-STANDARD section 11 (added 2026-08-12) and bridge/server.js header:
+// "The main bridge does NOT broadcast ESPN scores to overlays today."
+const SCORES_BRIDGE_BASE = (() => {
+  const q = new URLSearchParams(location.search).get('scoresBridge');
+  return (q && q.trim() ? q.trim() : "https://tsu-scores-bridge.onrender.com").replace(/\/$/, '');
+})();
+
 function getScoresChannel(){ return "sports"; }
 
 // Build stamp, logged on load so there is never any doubt which file OBS actually has open.
-const TSU_BUILD = "Blue Light Rips overlays/blue-light-rips/index.html - 2026-08-15b - sports channel subscribed (live scores), sold panel no longer self-closes (+60s idle), TSV export, cross-league sale guard, word-boundary title matching, rebuilt promo motion, overlayId guard";
+const TSU_BUILD = "Blue Light Rips overlays/blue-light-rips/index.html - 2026-08-18a - LIVE SCORES repointed at tsu-scores-bridge (was main bridge, silent no-op), wheel Refresh now restores removed spots, winner banner tracks wheel drag+resize, hidden top-left buyer-panel toggle";
 console.log("%c[TSU] " + TSU_BUILD, "background:#0b2f5c;color:#8ec5ff;padding:2px 6px;border-radius:3px");
 
 const CHANNELS = (() => {
@@ -1604,6 +1634,13 @@ const CHANNELS = (() => {
   }
 
   function refreshWheelEntries(){
+    // FIX 2026-08-18: Refresh rebuilt the list while STILL filtering out everything in
+    // wheelExcluded, so spots removed with "Remove Spot" never came back and Refresh
+    // looked like it did nothing. Refresh is now a full reset: every unsold team
+    // returns and rotation is zeroed. Seller-typed custom spots are kept, since
+    // deleting those on a Refresh would be destructive and unexpected.
+    wheelExcluded.clear();
+    wheelRotation = 0;
     wheelEntries = collectWheelEntries();
     wheelWinner = null;
     drawWheel();
@@ -2622,7 +2659,7 @@ const onAny = (e) => {
 
   // IMPORTANT: your server uses `event: <type>` so we must subscribe to those names
   const SSE_EVENTS = [
-    "scores",
+    "scores", "scores_update",
     "team_sold", "sold", "sale",
     "team_unsold", "unsold",
     "reset",
@@ -2665,7 +2702,7 @@ function handleSSEEvent(data){
                    payload.overlay_id || payload.overlayId, "expected", OVERLAY_ID);
       return;
     }
--*rw2 e jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj 
+
 if (type === "team_sold" || type === "sold" || type === "sale"){
   const sid = payload.saleId || payload.saleID || payload.sale_id;
 
@@ -2794,7 +2831,7 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
   }
 }
 
-     if (type === "scores" && Array.isArray(payload.games)){
+     if ((type === "scores" || type === "scores_update") && Array.isArray(payload.games)){
   const s = String(payload.sport || "").toLowerCase();
   if (s === "nba" || s === "nfl" || s === "mlb"){
     setScoreboard(payload.games, s);
@@ -2838,6 +2875,27 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
   document.getElementById('resetBtn').addEventListener('click', resetAll);
   document.getElementById('nextBtn').addEventListener('click', nextBreak);
   document.getElementById('soldToggle').addEventListener('click', toggleSold);
+
+  /* Hidden top-left hotspot — hides ONLY the sold buyer/team list.
+     Deliberately separate from the Sold-stat toggle above, which still opens and
+     closes the whole admin panel. Choice persists across an OBS restart. */
+  (function initBuyerPanelToggle(){
+    const hotspot = document.getElementById('buyerPanelToggle');
+    const wrap    = document.getElementById('soldWrap');
+    if (!hotspot || !wrap) return;
+
+    let hidden = LS.get('hideBuyerPanel','0') === '1';
+    const apply = () => wrap.classList.toggle('hide-buyers', hidden);
+    apply();
+
+    hotspot.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hidden = !hidden;
+      LS.set('hideBuyerPanel', hidden ? '1' : '0');
+      apply();
+      if (typeof armSoldIdleTimer === 'function') armSoldIdleTimer();
+    });
+  })();
 
   document.getElementById('sportBtn').addEventListener('click', cycleSport);
 
@@ -2965,8 +3023,9 @@ if (BRIDGE_URL) {
   // sales and the BARE string "sports" for scores. Never build this name from a namespace,
   // a templated channel fails completely silently.
   const scoresCh = getScoresChannel();
-  if (scoresCh && !CHANNELS.includes(scoresCh)){
-    connectSSE(`${BRIDGE_URL}/stream?channel=${encodeURIComponent(scoresCh)}&key=${encodeURIComponent(BRIDGE_KEY)}`);
+  if (scoresCh){
+    // Dedicated score service — a DIFFERENT HOST from sales, on purpose.
+    connectSSE(`${SCORES_BRIDGE_BASE}/stream?channel=${encodeURIComponent(scoresCh)}&key=${encodeURIComponent(BRIDGE_KEY)}`);
   }
 } else {
   console.warn("[Overlay] No BRIDGE_URL set. Set localStorage tsu.bridge or add ?bridge=https://...");
@@ -3083,10 +3142,11 @@ if (BRIDGE_URL) {
   <canvas id="wheelCanvasFloat"></canvas>
   <div class="wheel-pointer-float"></div>
   <div id="wheel-resize-handle"></div>
-</div>
-<div id="wheel-winner-banner">
-  <span id="wheel-winner-label">WINNER</span>
-  <span id="wheel-winner-text">—</span>
+  <!-- Moved INSIDE the wheel so it inherits --wheel-size and follows drag + resize. -->
+  <div id="wheel-winner-banner">
+    <span id="wheel-winner-label">WINNER</span>
+    <span id="wheel-winner-text">—</span>
+  </div>
 </div>
 <div class="wheel-controls" id="wheel-controls" style="display:none">
   <span class="wheel-drag" id="wheel-controls-grip" title="Drag to move">⣿</span>
