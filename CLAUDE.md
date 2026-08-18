@@ -21,7 +21,12 @@ Whatnot stream (host's browser)
 
 - **Read the queue** from `builds` — active work is any row whose `status` is not `delivered`/`live`/`failed`/`cancelled` (i.e. `questionnaire`, `in_queue`, `in_build`, `review`, `revision`, `approved`, `call_scheduled`). The client questionnaire, brand colors, logo, layout preference, and feature requests are all columns on the row (`brand_primary`, `brand_secondary`, `logo_url`, `layout_preference`, `questionnaire` JSON, `agent_notes`, etc.).
 - **Write status back** to the same `builds` row: `status`, `stage_detail`, `action_needed`, `agent_notes` (source used + edits applied + bridge key + overlayId + namespace + extension draft path), `source_template`, `output_file`, and `bridge_key`.
-- **A draft staged for Mike's review** = keep `status = 'in_build'` with `stage_detail = 'Overlay draft staged for review'` and `action_needed = 'Review overlay draft'`. The `review` status is reserved for the **client** review feature (portal review rounds), so don't use it for internal draft staging.
+- **A draft staged for Mike's review** = `status = 'review'`, with `stage_detail = 'Overlay draft staged for review'` and `action_needed = 'Review overlay draft'`.
+  > **Reconciled 2026-08-18.** This file previously said to use `status = 'in_build'` and to keep
+  > `review` for client-facing portal review rounds, which contradicted Mike's standing Cowork
+  > instruction to write `review`. Mike settled it on 2026-08-16 in favour of `review`. Do not
+  > re-raise this. If the portal ever needs to distinguish an internal staging state from a client
+  > review round, add a separate column rather than overloading `status` again.
 - The agent's only other build-time Supabase write is the `bridge_keys` active row (see the three-things list below). Entitlement rows stay with `tsu-overlay-promote`.
 - Legacy note (being closed out 2026-07-30): a corrected `tsu-overlay-agent` was rewritten against this section and delivered as a `.skill` file for reinstall. `tsu-overlay-promote` and `tsu-graphic-generator` have not been rewritten yet, so their queue steps still describe the pre-`builds` workflow. Treat those steps as **superseded by this section** and map them onto the `builds` columns above.
 
@@ -38,6 +43,7 @@ Whatnot stream (host's browser)
 | `bridge/server.js` | The shared Node bridge. SSE + REST. Deployed to Render. |
 | `CURRENT-PROD-BACKUP=TEMPLATE-05-18-2026/bridge/` | Snapshot of the production bridge for reference/rollback. |
 | `_drafts/<client>/` | In-progress builds before they go to `overlays/`. The build agent stages here for Mike's review. |
+| `docs/OVERLAY-FEATURE-NOTES.md` | Nuance and one-off seller-facing features: why they are shaped the way they are, and the trap behind each. **Read before building any new seller control.** |
 | `.claude/skills/` | Repo-scoped Claude skills (troubleshoot playbook). |
 
 ## Per-client extension lives outside this repo

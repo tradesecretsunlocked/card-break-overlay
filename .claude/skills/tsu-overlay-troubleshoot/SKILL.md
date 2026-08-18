@@ -58,6 +58,9 @@ Read `project_infrastructure.md` for the full catalog. Quick reference:
 | 10 | 24/7 stream: poll errors + automation goes dark mid-day | Whatnot 500s on deep pagination of a marathon stream's huge sold-list; one failed page killed the whole poll | Extension `fetchAllSoldEdges` — adaptive early-stop + per-page isolation (v2.2.1+) |
 | 11 | OBS floods `Error decoding video` continuously (`repeated for N more lines`, ~30/sec) | Live iPhone `ios-camera-source` undecodable every frame — old obs-ios-camera plugin version/format mismatch, or Continuity Camera contending for the iPhone. NOT TSU | Client-side — hide source to confirm; disable Continuity Camera; match app/plugin versions; portrait shooters use Camo. SUPPORT-GUIDE §4 |
 | 12 | Stream keeps disconnecting, `Reconnecting…`, WHIP `404` | Outbound OBS→Whatnot WebRTC/WHIP session ended/expired on Whatnot's side — NOT TSU | Client-side — restart the Whatnot stream (fresh WHIP session); check network. SUPPORT-GUIDE §11 |
+| 14 | LIVE SCORES box never populates, no error anywhere | Overlay subscribes to channel `sports` on the **main bridge**. Scores come from a **different service** | Overlay — add `SCORES_BRIDGE_BASE` and connect `sports` against it. Bug 14 below |
+| 15 | Board completely blank, no tiles, nothing marks sold | Syntax error anywhere in the single inline `<script>` kills the whole block | Overlay HTML — find the reported line, remove it, `node --check`. Bug 15 below |
+| 16 | Fix verified locally but client sees no change (or vice versa) | Local working copy has drifted from what GitHub Pages actually serves | Rebase onto the deployed file. Bug 16 below |
 | 13 | Team not marked sold after a purchase (intermittent; worse on See2Pick1 / Stash-or-Pass picks) | A sold item's title transiently **reverts to its slot number** (`CUSTOM_NNN` / `#NN`) after resolving to a real team. Overlay un-marked *any* previous code on a change → real team un-marked, slot marked instead. Extension also re-sent the real→slot downgrade. | Overlay `applyAssignmentPayload` **real→slot guard** (ignore the downgrade, keep the team marked) + extension `content.js` source-side downgrade guard (**v2.2.3+**). First rule out Bug 4 dual-instance: if every `(saleId,code)` fires **2×** in `bridge_events`, two extensions/tabs are running. |
 
 ## Step 4 — Verify the affected extension/overlay against the standards audit
@@ -102,6 +105,130 @@ Commit the repo changes with a descriptive message. Memory file lives outside th
 Relies on Whatnot returning newest-first (the existing `.reverse()` already assumes this). If a future case shows new sales landing on deep pages, the fallback is an explicit newest-first `sort` (`ShopSortInput`) captured from a live Whatnot session.
 
 **Operational stopgap** (no code): have the seller end + restart the Whatnot stream periodically → new `liveId` → small list → full pagination works.
+
+## Bug 14 — LIVE SCORES never populates (right channel, wrong host)
+
+**Symptom.** The LIVE SCORES panel or ticker sits on its placeholder ("No Games Found",
+"Waiting for feed…") for the entire stream. No console error, no failed request, no 403.
+Sales automation works perfectly, which makes it look like a scores-entitlement problem.
+
+**Root cause.** Scores are **not** broadcast by the main bridge. They come from a separate
+service:
+
+```
+sales   → https://bridge.tradesecretsunlocked.com   channel "main"
+scores  → https://tsu-scores-bridge.onrender.com    channel "sports"   ← different HOST
+```
+
+An overlay that does `connectSSE(`${BRIDGE_URL}/stream?channel=sports&key=...`)` opens a
+perfectly valid connection to a service that never publishes scores. It stays open, raises
+no error, and delivers nothing forever. `bridge/server.js` carries a dated note saying so:
+*"The main bridge does NOT broadcast ESPN scores to overlays today."*
+
+**This is the trap.** Getting the channel right feels like the whole job. Blue Light Rips was
+"fixed" on 2026-08-15 by adding the `sports` subscription — on the wrong host — and the
+`known_issues` row was marked resolved. It was still broken on 2026-08-18.
+
+**Confirm.** You cannot see this in `bridge_events`; the bridge deliberately never logs
+`scores`. Two ways:
+
+```bash
+grep -c 'tsu-scores-bridge' overlays/<client>/index.html   # must be 1
+grep -c 'onrender.com'      overlays/<client>/index.html   # must be 1, the line above
+```
+
+or in OBS → DevTools → Network → filter `stream`: there must be an **open** connection to
+`tsu-scores-bridge.onrender.com`.
+
+**Fix.**
+
+```js
+const SCORES_BRIDGE_BASE = "https://tsu-scores-bridge.onrender.com";
+function getScoresChannel(){ return "sports"; }   // bare string, never templated
+
+connectSSE(`${SCORES_BRIDGE_BASE}/stream?channel=${encodeURIComponent(getScoresChannel())}`
+         + `&key=${encodeURIComponent(BRIDGE_KEY)}`);
+```
+
+Also accept **both** event names — the deployed producer emits `scores`, the stale in-repo
+producer emits `scores_update`, and the two docs disagree about which is current:
+
+```js
+if (type === "scores" || type === "scores_update") { ... }
+```
+
+and register `scores_update` in the named-listener array, because named SSE events bypass
+`onmessage` entirely.
+
+**Blast radius.** `docs/SCORES-CONFIG-AUDIT.md` (2026-08-12) found **31 of 34** scores-wired
+overlays on the wrong host, including `legends-hobby`, the Row-grid canonical reference.
+Working references to copy from: `doghouse-breaks`, `jp2-cards`, `quantum-breaks`.
+
+**Entitlement is a red herring.** `client_services.scores` gates nothing today — the score
+service's `/stream` performs no key check and no entitlement lookup. Confirm entitlement so
+billing is right, but it will never be the cause.
+
+---
+
+## Bug 15 — Board completely blank (dead inline script)
+
+**Symptom.** Frame, header, control bar and panels all render, but there are **no team
+tiles**, nothing marks sold, and the scores box never leaves its placeholder.
+
+**Root cause.** A TSU overlay is one self-contained file with **one** inline `<script>`. A
+syntax error anywhere in that block means the browser parses **none** of it. No tiles, no
+SSE, no handlers. The static HTML shell still paints, so it reads as a data problem instead
+of a dead script.
+
+Seen 2026-08-18: a stray keystroke saved into a local copy of `blue-light-rips`:
+
+```
+-*rw2 e jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj
+```
+
+**Confirm.** Load the file in a browser and look at the console — a single
+`Uncaught SyntaxError` and a missing `[TSU]` build stamp is conclusive. Locally:
+
+```bash
+python3 - <<'EOF'
+import re; s=open('index.html',encoding='utf-8').read()
+open('/tmp/x.js','w',encoding='utf-8').write('\n'.join(re.findall(r'<script>(.*?)</script>', s, re.S)))
+EOF
+node --check /tmp/x.js
+```
+
+**Fix.** Remove the stray text and re-run `node --check`. **Then check Bug 16** before
+telling anyone the client is affected.
+
+**Prevention.** `node --check` on the extracted script is now a required gate before any
+overlay ships. It is the same gate the extension has had since 2026-08-11.
+
+---
+
+## Bug 16 — Local copy has drifted from what the client runs
+
+**Symptom.** A fix is verified locally but the client reports no change, or a bug reproduces
+locally that the client has never seen.
+
+**Root cause.** The mounted GitHub folder has **no network egress**, so nothing pushes from a
+Cowork session. Local edits accumulate against a file that GitHub Pages is not serving.
+
+**Confirm.** Ask Mike to pull the deployed file from GitHub — he saves it as
+`git-index.html` in the client folder — then:
+
+```bash
+diff -u overlays/<client>/git-index.html overlays/<client>/index.html
+```
+
+**Fix.** Rebase onto the **deployed** file. If the local copy has no changes worth keeping,
+`git checkout` it. On 2026-08-18 the local blue-light-rips file differed from GitHub by
+exactly one line — the Bug 15 corruption — so the client was never affected and the local
+file had nothing to preserve.
+
+**Do this FIRST** on any "why is this broken for the client" question. Diagnosing the wrong
+file wastes the whole investigation and can raise a false alarm.
+
+---
 
 ## Extension version log
 

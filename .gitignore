@@ -1,8 +1,25 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# card-break-overlay .gitignore
+# Reviewed 2026-08-18.
+#
+# READ THIS FIRST. This repo is served by GitHub Pages. Anything an overlay
+# loads at runtime MUST stay tracked or live clients break:
+#   overlays/<client>/index.html   and that client's media in the same folder
+#   images/**                      shared team logos and FX used by overlays
+# Never add a blanket *.png / *.mp4 rule. Unreferenced media is excluded by
+# explicit path at the bottom of this file instead.
+#
+# NOTE: adding a path here does NOT remove it from GitHub if it is already
+# tracked. It must also be untracked with:  git rm --cached --  <path>
+# ─────────────────────────────────────────────────────────────────────────────
+
 # ── Build artifacts & backups (never commit) ──
 *.zip
 *.bak
+*.bak-*
 *.tmp
 *.orig
+*.rej
 
 # ── OS / editor cruft ──
 .DS_Store
@@ -10,27 +27,98 @@ Thumbs.db
 desktop.ini
 *~
 ~$*
+.vscode/
+.idea/
 
 # ── Secrets / env ──
 .env
 .env.*
 *.key
 *.pem
+*.p12
+credentials*.json
+service-account*.json
+# ...but keep the env TEMPLATE, it documents required vars and holds no secrets
+!*.env.example
+!bridge/.env.example
 
-# ── Node tooling (if added later) ──
+# ── Node tooling ──
 node_modules/
 npm-debug.log*
+yarn-error.log
 
+# ── Python tooling (graphics generator runs locally only) ──
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Working areas — local only, nothing here is served
+# ─────────────────────────────────────────────────────────────────────────────
 _drafts*
-
-
-
 _to_delete/
 archived/
-blue-light-rips-extension/extension
-docs/
-extension-UPDATED-04-14-2026/
 overlays/_staging*
 overlays/_drafts*
-# NOTE: overlay media (.png .mp4 .mov .webm .gif) is intentionally TRACKED —
-# those are live assets served from GitHub Pages. Do not ignore them.
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Client extension builds — LOCAL ONLY.
+# These carry a baked per-client bridgeKey and are NOT loaded by GitHub Pages.
+# They are delivered to the client as a zip, so there is no reason to publish
+# them. Covers the root <client>-extension/ folders and any nested extension/.
+# ─────────────────────────────────────────────────────────────────────────────
+*-extension/
+*-extension-*/
+extension-template/
+extension-UPDATED-*/
+tsu-extension-*/
+**/extension/
+**/loupe-extension/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Graphics generation — source + build scaffolding, run locally
+# ─────────────────────────────────────────────────────────────────────────────
+graphics/**/_build/
+**/_build/
+*.bat
+generate_graphics.py
+prep_anchor.py
+**/anchors/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Backup / scratch copies of overlays. The live file is always index.html.
+# ─────────────────────────────────────────────────────────────────────────────
+**/OLD-*.html
+**/old-index.html
+**/*-Copy.html
+**/* Copy.html
+**/git-index.html
+**/index-*.html
+**/*-backup.html
+**/*-old.html
+
+# ── Office docs — the .md is the source of truth, the .docx is an export ──
+*.docx
+*.doc
+*.pptx
+*.xlsx
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Unreferenced heavy media — kept locally as design source, not published.
+# Verified 2026-08-18: zero references across every tracked html/js/css/json.
+# Re-check with the reference scan before re-adding any of these.
+# ─────────────────────────────────────────────────────────────────────────────
+images/fx/glass-shatter_1.webm
+images/fx/old.webm
+images/logos/see2-pick1-vid.mp4
+images/logos/stash-or-pass-green.mp4
+images/logos/see2pick1-green2.mp4
+images/logos/See2-pick1-green.mp4
+images/logos/luxcards-clear.png
+overlays/h-vault/h-vault-package/
+
+# ── Local server scratch ──
+server/node_modules/
+bridge/node_modules/

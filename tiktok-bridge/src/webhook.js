@@ -14,6 +14,7 @@ export const TOPIC = {
   RECIPIENT_ADDRESS_UPDATE: 3,
   PACKAGE_UPDATE: 4,
   PRODUCT_STATUS_CHANGE: 5,
+  CANCELLATION_STATUS_CHANGE: 11,
   SELLER_DEAUTHORIZATION: 6,
   UPCOMING_AUTHORIZATION_EXPIRATION: 7,
   SHOPPABLE_CONTENT_POSTING: 17,
@@ -115,6 +116,17 @@ async function processEvent(event) {
       });
       break;
     }
+
+    case TOPIC.CANCELLATION_STATUS_CHANGE:
+      // cancel_status walks PENDING -> SUCCESS | CANCELLED -> COMPLETE. Only the
+      // terminal SUCCESS/COMPLETE states actually release a slot, and topic 1 fires
+      // for those anyway, so this is logged rather than acted on for now.
+      log.info("cancellation status change", {
+        order_id: data?.order_id,
+        cancel_status: data?.cancel_status,
+        role: data?.cancellations_role,
+      });
+      break;
 
     case TOPIC.SHOPPABLE_CONTENT_POSTING:
     case TOPIC.REVERSE_STATUS_UPDATE:

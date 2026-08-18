@@ -106,7 +106,10 @@ You want `"ok": true` and **`"db": true`**. If `db` is false the service role ke
 
 ## Step 4. Register the webhooks
 
-Once one client has authorized (step 6), run this once per client. Until then it has nothing to register against, so do step 5 and 6 first and come back.
+> **ORDERING: do steps 5 and 6 FIRST, then come back here.** This step needs an
+> authorized client to register against. Skipping it is the single most common failure:
+> everything looks correct, the overlay connects, and no sale ever arrives, because
+> TikTok was never told to send anything.
 
 ```bash
 curl -X POST https://tiktok-bridge.tradesecretsunlocked.com/admin/webhooks/<BRIDGE_KEY> \
@@ -169,7 +172,16 @@ curl -N "https://tiktok-bridge.tradesecretsunlocked.com/stream?key=<BRIDGE_KEY>&
 
 You should immediately get a `bridge_hello`. Leave it running.
 
-Or just point the client's actual overlay at it. That is the real test.
+**To point a real overlay at the TikTok bridge, no rebuild is needed.** Every TSU overlay
+already accepts two URL overrides (`getBridgeBase()` returns `getParam('bridge')` and
+`getBridgeKey()` returns `getParam('key')`). Append them to the normal overlay address:
+
+```
+?bridge=https://tiktok-bridge.tradesecretsunlocked.com&key=<BRIDGE_KEY>
+```
+
+Paste that full address into OBS as the Browser Source. Drop the two values off the end
+and the same file goes back to working normally on Whatnot.
 
 ---
 
@@ -190,6 +202,72 @@ Within a few seconds you should see:
 3. The tile lighting on the board, if you pointed a real overlay at it.
 
 **That third one is the whole point: an unmodified overlay rendering a TikTok sale.**
+
+---
+
+## Step 8b. Placing a test order
+
+Authorising lets TSU ask TikTok questions. Webhooks make TikTok talk to us. This is how
+you make something actually happen.
+
+### One time, on your machine
+
+```bash
+npm install -g @tts-open-toolkit/cli
+tts_open_toolkit doctor
+tts_open_toolkit auth login          # opens a browser, approve with Partner Center
+tts_open_toolkit auth status --json
+```
+
+### Create the product by hand, once
+
+The CLI can create orders but **not products**. Make the product in Partner Center under
+Development Kits, Development Shops, and **name the SKU exactly like a board tile**:
+`Minnesota Vikings` for a team test, `#22` for a slot test. Give it stock of 5 or more.
+
+### Then create orders from the terminal
+
+```bash
+tts_open_toolkit sandbox shop list --region-code 840 --json
+tts_open_toolkit sandbox product list --shop-id YOUR_SHOP_ID --json
+
+tts_open_toolkit sandbox order create \
+  --shop-id YOUR_SHOP_ID \
+  --item PRODUCT_ID:SKU_ID:1 \
+  --order-count 1 \
+  --logistics-service-id YOUR_SANDBOX_LOGISTICS_ID \
+  --payment-method YOUR_SANDBOX_PAYMENT_METHOD \
+  --json
+
+tts_open_toolkit sandbox order list --shop-id YOUR_SHOP_ID --page-size 10 --json
+```
+
+**Never invent `logistics-service-id` or `payment-method`.** They are sandbox fixtures
+listed in your Development Shop settings.
+
+**If the create errors, read before retrying.** It can exit nonzero and still have
+created the order. If an `order_id` came back, do not create a second one. A new order
+can take up to 30 seconds to become visible, which is not a failure.
+
+To advance an order one state at a time (`UNPAID` to `ON_HOLD` to `AWAITING_SHIPMENT`
+and so on):
+
+```bash
+tts_open_toolkit sandbox order transition ORDER_ID --shop-id YOUR_SHOP_ID --json
+```
+
+For a basic board test you do not need this: TSU treats `UNPAID` as sold, because that
+is the moment the slot is gone.
+
+### Watch it land
+
+Leave this running before you create the order:
+
+```bash
+curl -N "https://tiktok-bridge.tradesecretsunlocked.com/stream?key=BRIDGE_KEY&channel=main"
+```
+
+`bridge_hello` immediately, then `team_sold` a few seconds after the order is created.
 
 ---
 

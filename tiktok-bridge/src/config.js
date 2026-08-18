@@ -35,11 +35,12 @@ export const ADMIN_TOKENS = req("ADMIN_TOKENS")
  *   live_rooms/*                 202502             202309
  *   blind_box_result/callback    202605             202511
  *
- * Neither source is guaranteed newest, so every version lives here and nowhere else,
- * and `npm run probe` (scripts/probe-versions.js) resolves the truth at runtime by
- * calling each candidate and keeping the first that does not 404.
+ * RESOLVED 2026-08-18 for live_rooms: the official doc page "Get Live Room Core Stats"
+ * states the path as /analytics/202502/live_rooms/{live_room_id}/core_stats. THE
+ * BUNDLED OAS IS STALE. This was shipped as 202309 and would have 404'd. When the two
+ * sources disagree, THE DOC PAGE WINS and the OAS is treated as a stale mirror.
  *
- * Never inline a version string anywhere else in this codebase.
+ * Every version lives here and nowhere else. Never inline a version string.
  */
 export const V = {
   authShops: "202309", // GET /authorization/{v}/shops
@@ -48,7 +49,7 @@ export const V = {
   priceDetail: "202407", // GET  /order/{v}/orders/{id}/price_detail
   externalOrders: "202406", // POST /order/{v}/orders/external_orders
   webhooks: "202309", // GET|PUT|DELETE /event/{v}/webhooks
-  liveRooms: "202309", // GET /analytics/{v}/live_rooms/{room}/... (candidates below)
+  liveRooms: "202502", // GET /analytics/{v}/live_rooms/{room}/...  CREATOR token (user_type=1)
   shopLives: "202509", // GET /analytics/{v}/shop_lives/...
   blindBox: "202511", // POST /order/{v}/orders/blind_box_result/callback
   productSearch: "202502", // POST /product/{v}/products/search
@@ -56,7 +57,7 @@ export const V = {
 
 /** Candidates tried by the version probe, newest first. */
 export const V_CANDIDATES = {
-  liveRooms: ["202502", "202309"],
+  liveRooms: ["202502", "202309"], // RESOLVED to 202502, see the note above
   blindBox: ["202605", "202511"],
   shopLives: ["202509", "202508", "202505"],
   orderDetail: ["202507", "202309"],

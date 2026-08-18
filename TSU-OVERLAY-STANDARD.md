@@ -1,6 +1,12 @@
 # TSU Overlay Standard: Build, Wire and Deploy Reference
 
-**Version:** 2.4 | **Updated:** 2026-07-30 | **Owner:** Mike (PMM) | **Review cadence:** on every canonical-reference change
+**Version:** 2.4 | **Header last bumped:** 2026-07-30 | **Content watermark:** 2026-08-18 | **Owner:** Mike (PMM) | **Review cadence:** on every canonical-reference change
+
+> **Read the inline dates, not the version number.** This file carries unversioned
+> amendments dated after the 2.4 header: 2026-08-11 (extension v2.3 `sellerUsername`),
+> 2026-08-12 (scores HOST rule), 2026-08-15 (dedup key uniqueness, v2.3.1) and
+> 2026-08-18 (scores host verification gate, overlay parse gate, deployed-file rule).
+> Where a checklist and an inline dated block disagree, the dated block wins.
 
 ## Authority and scope
 
@@ -32,6 +38,39 @@ Everything else in the repo is reference, and much of it is stale.
 | **Authority claim narrowed** | v2.3 called itself "the single source of truth" for everything. Three documents made that claim at once. Only the scoping above survives. |
 
 ---
+
+### Amendments after the 2.4 header (read these, they are newer than the version number)
+
+**2026-08-18 — three new provisioning gates, all from the Blue Light Rips audit.**
+
+1. **Scores are not verified until the HOST is verified.** A scores fault is only closed after
+   confirming the overlay points at `tsu-scores-bridge.onrender.com`, not merely that
+   `getScoresChannel()` returns `"sports"`. Blue Light Rips was marked fixed on 2026-08-15 with
+   the channel correct and the host wrong, and stayed dark for three days. Right channel plus
+   wrong host is indistinguishable from working code from the outside: the connection opens,
+   nothing errors, nothing arrives. See §11 and `docs/SCORES-CONFIG-AUDIT.md`.
+
+2. **Every overlay must parse before it ships.** Extract the inline `<script>` and run
+   `node --check` on it. A TSU overlay has exactly one inline script, so a single syntax error
+   anywhere kills the entire block — no tiles, no SSE, no handlers — while the static HTML shell
+   still paints, which disguises it as a data problem. This is now the same hard gate
+   `content.js` has had since 2026-08-11.
+
+3. **Diagnose against the DEPLOYED file, never the local working copy.** The mounted repo has no
+   network egress, so local edits never reach GitHub Pages on their own and drift silently. Pull
+   the served file first and diff. On 2026-08-18 a local copy differed from the deployed one by a
+   stray keystroke that would have blanked a live client's board had it ever been pushed.
+
+**Also corrected 2026-08-18:** two `known_issues` rows were marked `fixed` when they were not —
+`overlay-scores-missing-sports-channel` (the 08-15 wrong-host "fix") and
+`extension-stableid-collapse-unsells-spots` (fixed in the template only, while deployed client
+builds still carried it). **A fix landing in a template is not a fix landing with a client.**
+Record the distribution state, not just the code state.
+
+**Companion docs.** `docs/SCORES-CONFIG-AUDIT.md` (which overlays are wired correctly for scores),
+`docs/OVERLAY-FEATURE-NOTES.md` (nuance and one-off seller-facing features, and the trap behind
+each), `.claude/skills/tsu-overlay-troubleshoot/SKILL.md` (the live-fault bug catalog), and the
+Supabase `known_issues` table (what TSU Assist can tell a seller).
 
 ## Table of Contents
 
@@ -1211,6 +1250,19 @@ Run every one of these before marking an overlay ready for review. Most are a si
 
 ---
 
+### Added 2026-08-18 — gates that would have caught live faults
+
+| Check | Command | Expected |
+|---|---|---|
+| Overlay script parses | extract the inline `<script>`, `node --check` | exit 0. A syntax error kills the WHOLE overlay |
+| Scores host is the dedicated service | `grep -c 'tsu-scores-bridge' index.html` | `1` if scores are wired |
+| No other Render host | `grep -c 'onrender.com' index.html` | `1`, and it is the line above |
+| Scores event aliases | `grep -c 'scores_update' index.html` | `>=1`, registered AND handled alongside `scores` |
+| Layout rule cannot leak to the banner | `grep -c '\.overlay > \.main' index.html` | `1` in any sms-derived file. See §20 |
+| Dedup key is per-SPOT | read `stableId()` in the client's `content.js` | must NOT be listing id, buyer id, or the two joined |
+| Deployed file matches local | `diff overlays/<c>/git-index.html overlays/<c>/index.html` | no unexplained differences |
+
+
 ## 20. Known Bugs and Anti-Patterns
 
 | Bug | Symptom | Root cause | Fix |
@@ -1236,6 +1288,33 @@ Run every one of these before marking an overlay ready for review. Most are a si
 | Every feature 403s with `code:"upgrade"` | `toggle-feature` refuses everything | Rows were written with `enabled` but not `entitled` | Set `entitled = true` (§12) |
 
 ---
+
+### The `.main` class collision (sms-derived files) — added 2026-08-18
+
+In the sms family the layout container is `<div class="main">` **and** the promo banner's
+message div built in `renderBanner()` is also `class="main"`. An unscoped rule:
+
+```css
+.main{ display:grid; grid-template-columns: var(--sideW) 1fr var(--sideW); }
+```
+
+therefore applies to every banner message, rendering it inside the 255px first grid column.
+`text-align:center` then centres the text **in that column**, not in the banner. The symptom is
+banner text that looks off-centre and appears to drift with message length, and it cannot be
+fixed from the banner CSS.
+
+**Fix:** scope the layout rule to `.overlay > .main`, reset `display/grid/gap/margin` on
+`.banner-text .main`, and scope any `document.querySelector('.main')` the same way.
+
+**Present in `overlays/sms` and every clone of it.** Fixed so far in `heatcheckcards` and
+`tyschap-breakz`. Not yet swept across the rest.
+
+### Destructive image fallback — added 2026-08-18
+
+`img.onerror = () => { d.textContent = team.code; }` wipes **every child** of the tile, including
+the `.fx` layer and any `.chaseTag`. A team whose logo 404s silently loses its chaser badge and
+CHASE tag. §14 requires a `.fallback-code` child element instead. Present in `blue-light-rips`.
+
 
 ## 21. Known Drift Still Open
 

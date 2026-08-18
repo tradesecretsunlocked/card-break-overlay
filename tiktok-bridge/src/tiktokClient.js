@@ -221,6 +221,68 @@ export async function getOrders({ accessToken, shopCipher, ids }) {
   });
 }
 
+/* ---- Shop-level LIVE analytics -------------------------------------------
+ * Scope `data.shop_analytics.public.read`, SELLER access token (user_type = 0),
+ * and shop_cipher. These work with the SAME seller authorization the sold path
+ * already uses, so they need no separate creator flow.
+ *
+ * Caveat from the docs: the minute-level and per-product session endpoints only
+ * return data for streams hosted by the shop OFFICIAL or MARKETING account, and
+ * interaction metrics are withheld for AFFILIATE_ACCOUNTS.
+ * ------------------------------------------------------------------------- */
+
+/** Session list. `id` here is the `live_id` the other shop_lives endpoints need. */
+export async function getShopLivePerformanceList({
+  accessToken,
+  shopCipher,
+  startDateGe,
+  endDateLt,
+  pageSize = 50,
+  pageToken,
+  accountType = "ALL",
+  currency = "LOCAL",
+}) {
+  const query = {
+    start_date_ge: startDateGe,
+    end_date_lt: endDateLt,
+    page_size: pageSize,
+    account_type: accountType,
+    currency,
+  };
+  if (pageToken) query.page_token = pageToken;
+  return call({ path: `/analytics/${V.shopLives}/shop_lives/performance`, query, accessToken, shopCipher });
+}
+
+/** `today: true` overrides the date range and returns real-time shop LIVE metrics. */
+export async function getShopLiveOverview({ accessToken, shopCipher, today = true, startDateGe, endDateLt, currency = "LOCAL" }) {
+  const query = { currency };
+  if (today) query.today = true;
+  else Object.assign(query, { start_date_ge: startDateGe, end_date_lt: endDateLt });
+  return call({ path: `/analytics/${V.shopLives}/shop_lives/overview_performance`, query, accessToken, shopCipher });
+}
+
+/** Full minute-by-minute series for one finished session. Feeds the recap card. */
+export async function getShopLiveMinutePerformance({ accessToken, shopCipher, liveId, pageToken, currency = "LOCAL" }) {
+  const query = { currency };
+  if (pageToken) query.page_token = pageToken;
+  return call({
+    path: `/analytics/202510/shop_lives/${liveId}/performance_per_minutes`,
+    query,
+    accessToken,
+    shopCipher,
+  });
+}
+
+/* ---- Real-time LIVE room analytics ---------------------------------------
+ * Scope `creator.data.live.read.public` and a CREATOR access token
+ * (user_type = 1), obtained through the SEPARATE creator authorization flow at
+ * shop.tiktok.com/alliance/creator/auth. Confirmed by the doc pages, which state
+ * "The creator access_token value ... when user_type = 1".
+ *
+ * These take NO shop_cipher. Until the creator flow is built these will fail with
+ * a permission error, which is why nothing calls them yet.
+ * ------------------------------------------------------------------------- */
+
 export async function getLiveRoomProductStats({ accessToken, roomId }) {
   // No shop_cipher: this family is creator scoped (creator.data.live.read.public).
   return call({ path: `/analytics/${V.liveRooms}/live_rooms/${roomId}/product_stats`, accessToken });
