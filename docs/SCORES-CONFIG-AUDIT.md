@@ -31,12 +31,12 @@ deliberately never logs `scores` events. It must be checked in the file or the b
 | barn-breaks | **BROKEN**, points at main bridge |
 | birdie-breaks | **BROKEN**, points at main bridge |
 | blue-light-rips | **FIXED 2026-08-18**, dedicated service (was BROKEN, wired 08-15 against the main bridge) |
+| crunch-zone | **FIXED 2026-08-18** overlay side, dedicated service. **Producer side still open**: bridge_keys.namespace='crunchzone' means the producer publishes to `sports-crunchzone`, which nobody listens to. See known_issues bug 17 |
 | break-doctor | **BROKEN**, points at main bridge |
 | breakout-kings | **BROKEN**, points at main bridge |
 | breakz4dayz | **BROKEN**, points at main bridge |
 | cbcb | **BROKEN**, points at main bridge |
 | chance-pehrson | **BROKEN**, points at main bridge |
-| crunch-zone | **BROKEN**, points at main bridge |
 | doghouse-breaks | OK, dedicated service |
 | doublembreakz | **BROKEN**, points at main bridge |
 | golden-triangle | **BROKEN**, points at main bridge |

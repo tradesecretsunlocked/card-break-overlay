@@ -195,7 +195,43 @@
     { sport: "mlb", code: "TB",  names: ["tampa bay rays", "rays"] },
     { sport: "mlb", code: "TEX", names: ["texas rangers", "rangers"] },
     { sport: "mlb", code: "TOR", names: ["toronto blue jays", "blue jays"] },
-    { sport: "mlb", code: "WSH", names: ["washington nationals", "nationals"] }
+    { sport: "mlb", code: "WSH", names: ["washington nationals", "nationals"] },
+
+    // Codes mirror the overlay's NHL array exactly. Shared nicknames across leagues
+    // (panthers, rangers, kings, jets, giants) are disambiguated by the overlay, which
+    // re-infers against the sport actually on screen. See overlay handler comment.
+    { sport: "nhl", code: "ANA", names: ["anaheim ducks", "ducks"] },
+    { sport: "nhl", code: "BOS", names: ["boston bruins", "bruins"] },
+    { sport: "nhl", code: "BUF", names: ["buffalo sabres", "sabres"] },
+    { sport: "nhl", code: "CGY", names: ["calgary flames", "flames"] },
+    { sport: "nhl", code: "CAR", names: ["carolina hurricanes", "hurricanes", "canes"] },
+    { sport: "nhl", code: "CHI", names: ["chicago blackhawks", "blackhawks"] },
+    { sport: "nhl", code: "COL", names: ["colorado avalanche", "avalanche", "avs"] },
+    { sport: "nhl", code: "CBJ", names: ["columbus blue jackets", "blue jackets"] },
+    { sport: "nhl", code: "DAL", names: ["dallas stars", "stars"] },
+    { sport: "nhl", code: "DET", names: ["detroit red wings", "red wings", "redwings"] },
+    { sport: "nhl", code: "EDM", names: ["edmonton oilers", "oilers"] },
+    { sport: "nhl", code: "FLA", names: ["florida panthers"] },
+    { sport: "nhl", code: "LAK", names: ["los angeles kings", "la kings"] },
+    { sport: "nhl", code: "MIN", names: ["minnesota wild", "wild"] },
+    { sport: "nhl", code: "MTL", names: ["montreal canadiens", "canadiens", "habs"] },
+    { sport: "nhl", code: "NSH", names: ["nashville predators", "predators", "preds"] },
+    { sport: "nhl", code: "NJD", names: ["new jersey devils", "devils"] },
+    { sport: "nhl", code: "NYI", names: ["new york islanders", "ny islanders", "islanders"] },
+    { sport: "nhl", code: "NYR", names: ["new york rangers", "ny rangers"] },
+    { sport: "nhl", code: "OTT", names: ["ottawa senators", "senators", "sens"] },
+    { sport: "nhl", code: "PHI", names: ["philadelphia flyers", "flyers"] },
+    { sport: "nhl", code: "PIT", names: ["pittsburgh penguins", "penguins", "pens"] },
+    { sport: "nhl", code: "SJS", names: ["san jose sharks", "sharks"] },
+    { sport: "nhl", code: "SEA", names: ["seattle kraken", "kraken"] },
+    { sport: "nhl", code: "STL", names: ["st louis blues", "st. louis blues", "blues"] },
+    { sport: "nhl", code: "TBL", names: ["tampa bay lightning", "lightning", "bolts"] },
+    { sport: "nhl", code: "TOR", names: ["toronto maple leafs", "maple leafs", "leafs"] },
+    { sport: "nhl", code: "UTA", names: ["utah mammoth", "mammoth"] },
+    { sport: "nhl", code: "VAN", names: ["vancouver canucks", "canucks"] },
+    { sport: "nhl", code: "VGK", names: ["vegas golden knights", "golden knights"] },
+    { sport: "nhl", code: "WSH", names: ["washington capitals", "capitals", "caps"] },
+    { sport: "nhl", code: "WPG", names: ["winnipeg jets", "winnipeg"] }
   ];
 
   // v2.3: aliases are matched on WORD BOUNDARIES, not raw substring, and anything

@@ -102,7 +102,62 @@ export async function handleOrderStatusChange({ shopId, data }) {
 /** Shared by the webhook path and the reconciliation poller. */
 export async function emitOrder(order, auth) {
   const ctx = await getClientContext(auth.bridge_key);
-  const events = orderToEvents(order, ctx);
+
+  // Capture anything the mapper skips so it is visible in the logs AND in the database.
+  const dropped = [];
+  const events = orderToEvents(order, {
+    ...ctx,
+    onDrop: (reason, detail) => dropped.push({ reason, ...detail }),
+  });
+
+  for (const d of dropped) {
+    log.warn("TIKTOK SALE DROPPED, no board tile matched", {
+      bridge_key: auth.bridge_key,
+      order_id: order?.id,
+      reason: d.reason,
+      product_name: d.rawTitle,
+      sport_in_use: d.sport,
+      hint: "rename the TikTok product to match a board tile, for example 'Minnesota Vikings' or '#22'",
+    });
+    // Recorded as a FULL revenue row. Deliberately NOT `team_sold`, so it can never
+    // reach the board or `v_sales`, but it carries the complete money payload so the
+    // reporting side can still count it. A sale TSU cannot draw is still a sale TSU
+    // must report. See `v_sales_unmatched` and `v_revenue_all`.
+    const saleId = `tt:${d.lineItemId ?? `${order?.id}:${d.skuId}:${d.idx}`}`;
+    await recordEvent({
+      bridgeKey: auth.bridge_key,
+      clientName: ctx.clientName,
+      channel: "main",
+      eventType: "unmatched_sale",
+      payload: {
+        type: "unmatched_sale",
+        platform: "tiktok",
+        ts: Date.now(),
+        // why it did not reach the board
+        reason: d.reason,
+        productName: d.rawTitle ?? null,
+        normalizedTitle: d.title ?? null,
+        code: null,
+        // the revenue, in the same shape a team_sold uses so reporting can union them
+        saleId,
+        id: saleId,
+        buyer: d.buyer ?? null,
+        buyerName: d.buyer ?? null,
+        title: d.rawTitle ?? null,
+        amountCents: d.amountCents ?? 0,
+        amount: (d.amountCents ?? 0) / 100,
+        currency: d.currency ?? "USD",
+        sport: d.sport ?? ctx.sport,
+        liveId: order?.line_items?.[d.idx]?.room_id || order?.auto_combine_group_id || null,
+        orderId: order?.id ?? null,
+        productId: d.productId ?? null,
+        listingId: d.skuId ?? null,
+        overlay_id: ctx.overlayId,
+        channel: "main",
+      },
+    });
+  }
+
   if (!events.length) return 0;
 
   let emitted = 0;

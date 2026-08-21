@@ -9,6 +9,7 @@ import { addClient, clientCount, connectedKeys } from "./src/sse.js";
 import { isActiveBridgeKey, isTikTokProvisioned, getShopAuthByBridgeKey, db } from "./src/store.js";
 import { startWorkers, reconcileAll } from "./src/poller.js";
 import { ensureFreshToken, listWebhooks, putWebhook } from "./src/tiktokClient.js";
+import { inferCodeFromTitle, stripPrefixTitle, isBadTitle } from "./src/teamCodes.js";
 
 assertBootConfig();
 
@@ -152,6 +153,35 @@ app.post("/admin/webhooks/:bridgeKey", requireAdmin, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+/**
+ * Name checker. Answers "will this product name light a tile?" instantly, with no
+ * order and no TikTok call. Use it during onboarding BEFORE a client lists anything.
+ *
+ *   GET /admin/resolve?title=Minnesota%20Vikings&sport=nfl
+ */
+app.get("/admin/resolve", requireAdmin, (req, res) => {
+  const title = String(req.query.title || "");
+  const sport = String(req.query.sport || "nil");
+  if (!title) return res.status(400).json({ error: "title is required" });
+
+  const bad = isBadTitle(title);
+  const normalized = stripPrefixTitle(title);
+  const code = bad ? "" : inferCodeFromTitle(normalized, sport);
+
+  res.json({
+    title,
+    sport,
+    normalized,
+    code: code || null,
+    willLightATile: Boolean(code),
+    verdict: code
+      ? `OK. This sells as tile "${code}".`
+      : bad
+        ? "REJECTED. This title is treated as junk and is always ignored."
+        : "NO MATCH. Nothing on the board matches this name, so the sale would be dropped. Rename it to a team, for example 'Minnesota Vikings', or a slot, for example '#22'.",
+  });
 });
 
 app.post("/admin/reconcile", requireAdmin, async (_req, res) => {

@@ -60,7 +60,11 @@ export function toCents(amount) {
  * Returns [] when the order is in a state the board does not care about.
  */
 export function orderToEvents(order, ctx = {}) {
-  const { overlayId = null, sport = "nil", breakId = null } = ctx;
+  const { overlayId = null, sport = "nil", breakId = null, onDrop } = ctx;
+  // onDrop(reason, detail) lets the caller SEE a line item that was skipped.
+  // Silently dropping a sale is the single most confusing failure this bridge can
+  // produce: the webhook arrives, everything logs success, and the board stays dark.
+  const drop = (reason, detail) => { try { onDrop && onDrop(reason, detail); } catch { /* never break the sale path */ } };
 
   const status = normalizeStatus(order?.status);
   const isSold = SOLD_STATUSES.has(status);
@@ -80,15 +84,36 @@ export function orderToEvents(order, ctx = {}) {
     const lineIsUnsold = UNSOLD_STATUSES.has(liStatus);
 
     const rawTitle = li?.sku_name || li?.product_name || "";
-    if (isBadTitle(rawTitle)) continue;
+    const cents = toCents(li?.sale_price ?? li?.original_price);
+    // Money travels with the drop report. A sale that cannot light a tile is still
+    // REAL REVENUE and must remain countable, so the caller gets everything it needs
+    // to record it for reporting even though nothing goes to the board.
+    const dropContext = {
+      rawTitle,
+      lineItemId: li?.id ?? null,
+      skuId: li?.sku_id ?? null,
+      productId: li?.product_id ?? null,
+      amountCents: cents,
+      currency: li?.currency || order?.payment?.currency || "USD",
+      buyer,
+      sport,
+      idx,
+    };
+
+    if (isBadTitle(rawTitle)) {
+      drop("unusable_title", dropContext);
+      continue;
+    }
 
     const title = stripPrefixTitle(rawTitle);
     const code = inferCodeFromTitle(title, sport);
     // No resolvable code means the board has no tile to light. Emitting anyway would
-    // put an untargeted event on the wire, so it is dropped and counted instead.
-    if (!code) continue;
+    // put an untargeted event on the wire, so it is dropped and REPORTED.
+    if (!code) {
+      drop("no_matching_tile", { ...dropContext, title });
+      continue;
+    }
 
-    const cents = toCents(li?.sale_price ?? li?.original_price);
     // The index is in the fallback deliberately. Two of the same SKU are two separate
     // line items, so an id-less fallback of order:sku would collide and the second
     // tile would be silently swallowed by the replay guard.

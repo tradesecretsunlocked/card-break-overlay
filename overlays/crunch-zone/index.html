@@ -1557,6 +1557,12 @@ function setSport(s){
 ========================= */
 const BRIDGE_BASE = "https://bridge.tradesecretsunlocked.com";
 const BRIDGE_KEY_DEFAULT = "c7d707420f471348def8372bd898590c";
+// SCORES_NAMESPACE is vestigial and deliberately UNUSED (Standard sec 11, 18, 19).
+// The scores channel is the bare string "sports" for every client. Never build a
+// channel name from this value: a templated channel fails completely silently.
+// NOTE 2026-08-18: bridge_keys.namespace is also still set to 'crunchzone' for this
+// client, the only key on the platform with one. Verify against the tsu-scores-bridge
+// producer before clearing it, the deployed producer posts to sports-${namespace}.
 const SCORES_NAMESPACE = "crunchzone";
 
 function getParam(name){
@@ -1684,6 +1690,16 @@ function isFreshSportScore(sport){
   return (Date.now() - (SCORES_UPDATED_AT[sport] || 0)) < 1000 * 60 * 20;
 }
 
+// FIX 2026-08-18: scores are published by a SEPARATE service, not the main bridge.
+// connectScoresSSE() below used getBridgeBase(), i.e. bridge.tradesecretsunlocked.com.
+// The channel was already correct, so the connection opened, raised no error, and
+// delivered nothing forever. See TSU-OVERLAY-STANDARD section 11 (added 2026-08-12)
+// and bridge/server.js: "The main bridge does NOT broadcast ESPN scores to overlays".
+const SCORES_BRIDGE_BASE = (() => {
+  const q = new URLSearchParams(location.search).get('scoresBridge');
+  return (q && q.trim() ? q.trim() : "https://tsu-scores-bridge.onrender.com").replace(/\/$/, '');
+})();
+
 function getScoresChannel(){ return "sports"; }
 
 // Current-date guard: ESPN status shows "M/D - time" for scheduled games; skip any whose date
@@ -1727,7 +1743,7 @@ function normalizeScorePayloadToText(data){
 let sseScores = null;
 function connectScoresSSE(){
   if (!ENABLE_SCORES || !bridgeEnabled()) return;
-  const base = getBridgeBase();
+  const base = SCORES_BRIDGE_BASE;   // dedicated score service, NOT the main bridge
   const channel = getScoresChannel();
   const url = `${base}/stream?channel=${encodeURIComponent(channel)}&key=${encodeURIComponent(getBridgeKey())}`;
   if (sseScores) try { sseScores.close(); } catch(_){}
@@ -1736,8 +1752,13 @@ function connectScoresSSE(){
     sseScores.onmessage = (e) => {
       try{ const d = JSON.parse(e.data); if(d?.type==="scores"||d?.type==="scores_update") normalizeScorePayloadToText(d); }catch(_){}
     };
-    sseScores.addEventListener("scores", (e) => {
-      try{ const d = JSON.parse(e.data); normalizeScorePayloadToText(d); }catch(_){}
+    // Named SSE events bypass onmessage entirely, so BOTH aliases must be registered.
+    ["scores","scores_update"].forEach(ev => {
+      try {
+        sseScores.addEventListener(ev, (e) => {
+          try{ const d = JSON.parse(e.data); normalizeScorePayloadToText(d); }catch(_){}
+        });
+      } catch(_){}
     });
     sseScores.onerror = () => {
       try{ sseScores.close(); }catch(_){}
@@ -2256,4 +2277,3 @@ function endDraft(){ draft.active=false; document.body.classList.remove('draft-m
 
 </body>
 </html>
-           

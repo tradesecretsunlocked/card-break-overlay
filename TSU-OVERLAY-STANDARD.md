@@ -34,6 +34,7 @@ Everything else in the repo is reference, and much of it is stale.
 | **Extension manifest drift closed** | Every live extension template already carries `bridge.tradesecretsunlocked.com/*` in `host_permissions`. Only `archived/extension/` still has the legacy `*.onrender.com` entry. The checklist item stays as a verification, the "the template is broken" claim is retired. |
 | **Automation contract expanded** | Full `team_sold` payload shape, the complete event alias list, the five-step code resolution with the name-first matcher rule, `breakIdMatches`, and the dedup rule (never key on `productId`). New §9. |
 | **Dedup key uniqueness rule (v2.3.1)** | New in §9.3 and the §7 pre-ship gate after the 2026-08-15 Breakz4Dayz incident: a dedup key built from listing and/or buyer identity collapses every spot one buyer wins, and the extension then unsells spots that were legitimately sold. Includes the two-sided test any key must pass. Affected 12+ clients before detection. |
+| **Buyer uniqueness RETIRED (2026-08-21)** | §9.3 previously required unselling any tile a buyer already held before giving them a new one. It is now retired and must be removed on sight. A buyer winning several spots in one break is normal. Live incident: Bigger Than Cardboard, three full 32-team NFL breaks whose boards finished on 13, 10 and 12 tiles, 61 spots wrongly put back, export short by 61 of 96 rows, with every sale id distinct so dedup was not involved. The rule prevented nothing: two buyers on one tile is already handled by sale-id reassignment. |
 | **New drift recorded** | The repo copy of `provision-client` no longer matches the deployed function. See §21.1. |
 | **Authority claim narrowed** | v2.3 called itself "the single source of truth" for everything. Three documents made that claim at once. Only the scoping above survives. |
 
@@ -60,6 +61,46 @@ Everything else in the repo is reference, and much of it is stale.
    network egress, so local edits never reach GitHub Pages on their own and drift silently. Pull
    the served file first and diff. On 2026-08-18 a local copy differed from the deployed one by a
    stray keystroke that would have blanked a live client's board had it ever been pushed.
+
+**2026-08-18 — asset paths: Supabase storage is intake, not a runtime host.**
+
+Every asset an overlay loads MUST resolve through the `BASE` constant and live in this
+repo. Supabase `client-uploads/` is where a client's logo lands during **intake**; it is
+not a CDN and must never be referenced from a live overlay.
+
+```js
+const LOGO_PATH = `${BASE}images/logos/<client-slug>-logo.png`;   // correct
+const nflImg = (f) => `${BASE}images/nfl/${f}`;                   // correct
+const LOGO_PATH = "https://....supabase.co/storage/v1/.../logo.png";  // WRONG
+```
+
+Canonical layout, and `BASE` resolves correctly from both `_drafts/<client>/` and
+`overlays/<client>/` because both are two levels deep:
+
+```
+card-break-overlay/images/logos/<client-slug>-logo.png
+card-break-overlay/images/nfl|nba|mlb/<team>.png
+card-break-overlay/overlays/<client-slug>/index.html
+```
+
+**Build step:** mirror the client's uploaded logo from `builds.logo_url` into
+`images/logos/<client-slug>-logo.png` and reference it from there. Pointing at the
+Supabase URL because the repo asset "does not exist yet" is not an acceptable shortcut —
+it makes a live overlay depend on a bucket's public policy and URL format, outside this
+repo and outside version control.
+
+**Drift found 2026-08-18, all resolved 2026-08-19.** Fixed copies are staged in
+`_drafts/` and await promotion; the `overlays/` originals are untouched by the agent.
+
+| Client | What was wrong | State |
+|---|---|---|
+| `tyschap-breakz` | `LOGO_PATH` set to a Supabase URL. The correct asset already existed at the standard path and was never checked | Fixed |
+| `coachs111sports` / `coachs111breaks` | Supabase URL first in `BRAND_LOGO_CANDIDATES`, and **every fallback pointed at H-Vault's logo** — a failed load would have put another client's branding on stream | Fixed, chain reduced to one in-repo asset |
+| `heat-check-cards` | Dead `LOGO_PATH` constant left after the header logo was removed by design | Constant removed |
+
+**Second rule out of the coachs111 case: never put another client's asset in a fallback
+chain.** Showing nothing is always better than showing the wrong client's branding. A
+fallback chain should contain one client's assets only.
 
 **Also corrected 2026-08-18:** two `known_issues` rows were marked `fixed` when they were not —
 `overlay-scores-missing-sports-channel` (the 08-15 wrong-host "fix") and
@@ -507,7 +548,13 @@ SSE clients support `onmessage` plus named events, auto-reconnect at about 2.5s,
   - **Acceptable key:** the platform's own per-sale id when present, otherwise a composite that includes something that actually varies per spot, such as the spot **title** and **price**.
   - **Never acceptable:** `productId`; `listingId` alone; `buyerId` alone; `listingId + buyerId`.
   - **Two-sided test any key must pass, both halves required:** (a) three different spots won by the SAME buyer in the SAME break produce three DIFFERENT keys, and (b) the SAME spot re-read on the next poll produces the SAME key. Half a test is how this shipped: passing only (b) looks like working dedup while silently unselling spots.
-- **Buyer uniqueness.** Before assigning a buyer to a new team, unsell any team that buyer already owns. This prevents a double-sold tile.
+- **Buyer uniqueness: RETIRED 2026-08-21. Do not implement it. Remove it wherever it still exists.**
+  Earlier versions of this section required: *"Before assigning a buyer to a new team, unsell any team that buyer already owns. This prevents a double-sold tile."* **That rule was wrong and it corrupted live breaks.**
+  - **What it actually did.** One buyer routinely wins several spots in a single break. Releasing their previous tile put an already-sold spot back on the board, on stream, mid-break, and dropped that sale from the sold list and therefore from the CSV export.
+  - **Live incident 2026-08-21 (Bigger Than Cardboard).** Three consecutive NFL breaks, each a full 32-team sellout. All 96 sales carried DISTINCT sale ids, so dedup was working perfectly and this rule alone caused the damage. The boards finished showing **13, 10 and 12** tiles instead of 32, and **61 spots were wrongly put back**. One buyer took 20 teams in a single break; every win after their first released the one before it. The seller's export held 35 of 96 rows.
+  - **It never prevented anything.** A double-sold TILE means two buyers on ONE tile. That is a different failure, and it is already handled correctly by the sale-id reassignment rule above, which releases only the tile that genuinely moved. Buyer uniqueness could only ever fire on sales that were genuinely separate, so **every time it fired it was wrong**.
+  - **The correct rule: a buyer may hold as many tiles as they win.** Nothing about a repeat buyer is an error. Only a sale id re-resolving to a different code releases a tile.
+  - **Scoping it is not a fix.** It was scoped to team boards on 2026-08-10 on the reasoning that "on a random-team break one buyer holds one team". That premise is false for team breaks too, and the 08-21 incident is what proved it.
 
 ### 9.4 The four things that must match per client
 
@@ -1230,7 +1277,7 @@ Run every one of these before marking an overlay ready for review. Most are a si
 | Dedup key | Keyed on `saleId || id || listingId`. **Never `productId`.** |
 | Dedup key uniqueness | Key varies per SPOT. **Never** `listingId + buyerId` or either alone. Run the two-sided test in §9.3: same buyer + three spots gives three keys, and a re-poll of one spot gives the same key. |
 | `team_sold` handler | Includes the `lastCodeByListingKey` reassignment check |
-| Buyer uniqueness | Assigning a buyer unsells any other team that buyer already owns |
+| Buyer uniqueness ABSENT | **Retired 2026-08-21.** Grep for `buyer uniqueness` and `BUYER_UNIQUENESS`. Any code that unsells a tile because the same buyer won another one must be removed. A buyer may hold as many tiles as they win. See §9.3. |
 | `overlayId` match | The overlay's `overlayId` string equals the extension's `DEFAULTS.overlayId` |
 | No deprecated `scoresChannel` | Search for `scoresChannel`. Must return 0 results. |
 | `ENABLE_SCORES` | Present, reads the `?scores=` param, defaults on |
@@ -1261,6 +1308,8 @@ Run every one of these before marking an overlay ready for review. Most are a si
 | Layout rule cannot leak to the banner | `grep -c '\.overlay > \.main' index.html` | `1` in any sms-derived file. See §20 |
 | Dedup key is per-SPOT | read `stableId()` in the client's `content.js` | must NOT be listing id, buyer id, or the two joined |
 | Deployed file matches local | `diff overlays/<c>/git-index.html overlays/<c>/index.html` | no unexplained differences |
+| No external asset hosts | `grep -c 'supabase.co/storage' index.html` | **0**. Every asset resolves through `BASE` |
+| Client logo is in the repo | `grep -n 'LOGO_PATH' index.html` | `` `${BASE}images/logos/<slug>-logo.png` `` |
 
 
 ## 20. Known Bugs and Anti-Patterns

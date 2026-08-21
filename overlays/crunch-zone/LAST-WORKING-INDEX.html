@@ -87,9 +87,9 @@
       pointer-events:none;
     }
     .logoBox img{
-      height: 125px;
+      height: 95px;
       width:auto;
-top:-20px;
+top:-12px;
 z-index: 999;
 position:absolute;
 rotate:1deg;
@@ -306,15 +306,16 @@ z-index: 1;
 
     /* ===== CENTER SLOT (opening) ===== */
     .centerSlot{
-      background: #d7d7d7 url('cz-banner-2.png') center / cover no-repeat;
+      background: #d7d7d7 url('../../images/logos/cz-center-promo.png') center / cover no-repeat;
       color:#111;
       border: 2px solid rgba(21, 101, 192, 1);
       outline: 1px solid rgba(255,255,255,0.10);
-      display:none;
+      top:-1px;
       align-items:center;
       justify-content:center;
       position:relative;
-      overflow:hidden;
+      overflow:visible;
+      height:140px;
     }
     .centerSlot .centerMedia{
       position:absolute;
@@ -733,7 +734,7 @@ z-index: 1;
 #draftTop{ display:none; }
 .dfEntry{ display:none; background:linear-gradient(180deg,rgba(8,12,22,0.96),rgba(5,8,16,0.97)); border:2px solid #ffd54a; border-radius:14px; padding:1px 1px; }
 .dfBoard{ display:none; background:linear-gradient(180deg,rgba(8,12,22,0.55),rgba(5,8,16,0.66)); border:1px solid rgba(255,213,74,.55); border-radius:10px; padding:8px 12px; }
-.dfBoard .dfStripHead{ display:flex; justify-content:space-between; align-items:center; color:#ffd54a; font-weight:900; letter-spacing:1px; text-transform:uppercase; font-size:19px; margin-bottom:4px; }
+.dfBoard .dfStripHead{ display:flex; justify-content:space-between; align-items:center; color:#ffd54a; font-weight:900; letter-spacing:1px; text-transform:uppercase; font-size:15px; margin-bottom:7px; }
 .dfBoard .dfStripCtrls button{ background:rgba(255,255,255,0.06); border:1px solid rgba(255,213,74,.5); color:#ffe9a6; font-weight:900; font-size:14px; padding:6px 16px; border-radius:8px; cursor:pointer; margin-left:7px; }
 .dfStripRow{ display:flex; align-items:center; gap:10px; }
 .dfStripPinned{ flex:0 0 auto; }   /* on-the-clock chip pinned static on the left */
@@ -749,7 +750,7 @@ z-index: 1;
 .dfFullBlock{ margin-bottom:9px; }
 .dfFullRound{ color:#ffd54a; font-weight:900; font-size:13px; letter-spacing:1px; margin-bottom:5px; }
 .dfFullCells{ display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:6px; }
-.dfFullCell{ display:flex; align-items:center; gap:6px; background:rgba(10,16,30,0.85); border:1px solid rgba(255,255,255,.14); border-radius:7px; padding:3px 3px; font-size:19px; font-weight:700; color:#e7eeff; white-space:nowrap; overflow:hidden; }
+.dfFullCell{ display:flex; align-items:center; gap:6px; background:rgba(10,16,30,0.85); border:1px solid rgba(255,255,255,.14); border-radius:7px; padding:6px 10px; font-size:14px; font-weight:700; color:#e7eeff; white-space:nowrap; overflow:hidden; }
 .dfFullCell b{ color:#ffd54a; }
 .dfFullCell span{ margin-left:auto; color:#bfe3ff; }
 .dfFullCell.done span{ color:#7CFFB0; }
@@ -913,12 +914,37 @@ function loadTicker(){
 function saveTicker(v){
   try{ localStorage.setItem(TICKER_LS, String(v||"")); }catch(_){}
 }
+
+// Live-score ticker: interleave the seller's scroll message(s) with fresh live scores by sport.
+// Pattern: message • NFL score • message • NBA score • message • MLB score • …  (Mike 07-16)
+// Split the saved ticker on "||" or newlines to run multiple rotating messages between scores.
+let _czLastTicker = "";
+function czBuildTickerText(){
+  const msgs = String(loadTicker()).split(/\s*\|\|\s*|\r?\n/).map(s => s.trim()).filter(Boolean);
+  const baseMsgs = msgs.length ? msgs : [DEFAULT_TICKER];
+  const order = ["mlb"];   // CrunchZone: baseball only (Mike 07-16)
+  const scores = order
+    .filter(s => isFreshSportScore(s) && SCORES_BY_SPORT[s])
+    .map(s => s.toUpperCase() + ":  " + SCORES_BY_SPORT[s]);
+  if (!scores.length) return baseMsgs.join("     •     ");   // no live games → just the messages
+  const parts = [];
+  scores.forEach((sc, i) => { parts.push(baseMsgs[i % baseMsgs.length]); parts.push(sc); });
+  return parts.join("     •     ");
+}
+function czRenderTicker(){
+  const el = document.getElementById("tickerText");
+  if (!el) return;
+  const txt = czBuildTickerText();
+  if (txt === _czLastTicker) return;   // only re-render (restarts the scroll) when content changes
+  _czLastTicker = txt;
+  el.textContent = txt;
+  applyTickerSpeed();
+}
 function setTicker(v){
   const safe = (String(v||"").trim() || DEFAULT_TICKER);
-  const el = document.getElementById("tickerText");
-  el.textContent = safe;
   saveTicker(safe);
-  applyTickerSpeed();
+  _czLastTicker = "";   // force recompose with the new base message
+  czRenderTicker();     // renders the base message interleaved with any fresh live scores
 }
 
 function applyTicker(){
@@ -928,21 +954,27 @@ function applyTicker(){
 
 function loadTickerSpeedSec(){
   const raw = parseInt(localStorage.getItem(TICKER_SPEED_LS) || "22", 10);
-  return (Number.isFinite(raw) && raw >= 8 && raw <= 60) ? raw : 22;
+  return (Number.isFinite(raw) && raw >= 8 && raw <= 120) ? raw : 22;
 }
 function saveTickerSpeedSec(sec){
   const s = (Number.isFinite(sec) ? sec : 22);
-  const clamped = Math.max(8, Math.min(60, s));
+  const clamped = Math.max(8, Math.min(120, s));
   localStorage.setItem(TICKER_SPEED_LS, String(clamped));
 }
 function applyTickerSpeed(){
   const sec = loadTickerSpeedSec();
   const el = document.getElementById("tickerText");
   if (!el) return;
-  el.style.setProperty("--tickerDur", `${sec}s`);
+  // Scale scroll duration by how much text is in the ticker so the SPEED (px/sec) stays constant
+  // no matter how many live scores are interleaved — otherwise long tickers whip by even at the
+  // slowest setting. Reference length 1600px = what the raw "sec" setting is tuned for. (Mike 07-16)
+  const track = el.parentElement;
+  const dist = (track ? track.clientWidth : 1080) + (el.scrollWidth || 0);
+  const dur = Math.max(6, sec * (dist / 1600));
+  el.style.setProperty("--tickerDur", `${dur.toFixed(1)}s`);
   el.style.animation = "none";
   void el.offsetHeight;
-  el.style.animation = `scroll ${sec}s linear infinite`;
+  el.style.animation = `scroll ${dur.toFixed(1)}s linear infinite`;
 }
 
 function loadTitle(){
@@ -1654,14 +1686,35 @@ function isFreshSportScore(sport){
 
 function getScoresChannel(){ return "sports"; }
 
+// Current-date guard: ESPN status shows "M/D - time" for scheduled games; skip any whose date
+// isn't today. Live/final games carry no date in the status → treated as today's slate. (Mike 07-16)
+function czIsCurrentDate(status){
+  const m = String(status || "").match(/\b(\d{1,2})\/(\d{1,2})\b/);
+  if (!m) return true;
+  const now = new Date();
+  return parseInt(m[1], 10) === (now.getMonth() + 1) && parseInt(m[2], 10) === now.getDate();
+}
 function normalizeScorePayloadToText(data){
   const sport = String(data?.sport || "").toLowerCase();
   if (!sport || !SCORES_BY_SPORT.hasOwnProperty(sport)) return;
+  if (sport !== "mlb") return;   // CrunchZone: baseball scores only (Mike 07-16)
   let text = "";
   if (data.text) {
     text = String(data.text);
   } else if (Array.isArray(data.games)) {
-    text = data.games.map(g => `${g.away} ${g.awayScore}-${g.homeScore} ${g.home} (${g.status})`).join(" | ");
+    // Bridge sends each game as { status, teams:[{name,score,home}] }. Tolerate a flat
+    // {away,home,awayScore,homeScore} shape too. Skip games with no team names. (Mike 07-16)
+    text = data.games.map(g => {
+      if (!czIsCurrentDate(g.status)) return "";   // only today's games
+      if (Array.isArray(g.teams)) {
+        const away = g.teams.find(t => !t.home) || g.teams[0] || {};
+        const home = g.teams.find(t => t.home)  || g.teams[1] || {};
+        if (!away.name && !home.name) return "";
+        return `${away.name || "?"} ${away.score ?? "0"}-${home.score ?? "0"} ${home.name || "?"}${g.status ? ` (${g.status})` : ""}`;
+      }
+      if (g.away == null && g.home == null) return "";
+      return `${g.away} ${g.awayScore}-${g.homeScore} ${g.home}${g.status ? ` (${g.status})` : ""}`;
+    }).filter(Boolean).join("   •   ");
   } else if (Array.isArray(data.lines)) {
     text = data.lines.join(" | ");
   }
@@ -1924,6 +1977,7 @@ function handleSSEEvent(data){
 
   if (type === "scores" || type === "scores_update"){
     normalizeScorePayloadToText(data);
+    czRenderTicker();   // refresh the ticker so new scores appear interleaved with messages
     return;
   }
 
@@ -2078,6 +2132,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   connectScoresSSE();
+  czRenderTicker();                        // initial compose (messages, + scores once they arrive)
+  setInterval(czRenderTicker, 15000);      // refresh: pick up new scores, drop stale (>20 min) ones
 
   bridgeWarmup({ breakId: computeBreakId(), breakType: currentSport });
 });

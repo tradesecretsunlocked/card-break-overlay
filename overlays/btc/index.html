@@ -2534,7 +2534,7 @@ function parseEntryText(raw){
    Persisted so an OBS source refresh mid-break does not drop the seller's controls. */
 // Build stamp. Logged on load so there is never any doubt which file OBS or a browser
 // actually has open. If this line is missing from the console, it is not this build.
-const TSU_BUILD = "BTC overlays/btc/index.html - 2026-08-10g - sold FX fires on the custom board and lands BELOW the camera over the tile grid (flips, holds 2s, clear of the OBS facecam), custom board up to 80 spots, each row +2 left / +6 under cam / +2 right, tiles and camera shrink to hold the footprint (keeps Mike 65px NBA/MLB + 104%/-24px cam frame)";
+const TSU_BUILD = "BTC overlays/btc/index.html - 2026-08-21a - BUYER UNIQUENESS REMOVED. One buyer may now hold as many tiles as they win; sale-id reassignment still releases a tile that genuinely moved. Fixes spots reappearing on the board mid-break.";
 console.log("%c[TSU] " + TSU_BUILD, "background:#0a3d5c;color:#7fd8ff;padding:2px 6px;border-radius:3px");
 
 const K_ADMIN = "adminRowOpen";
@@ -3183,14 +3183,28 @@ if (type === "team_sold" || type === "sold" || type === "sale" || type === "purc
       rememberSaleId(sid);
     }
 
-    // TSU Standard 2.4 sec 9.3 — buyer uniqueness. Before assigning a buyer to a new
-    // team, unsell any team that buyer already owns, so one buyer can't hold two tiles.
-    // 08-10 SCOPED EXCEPTION to sec 9.3. On a random-team break one buyer holds one
-    // team, so releasing their previous tile is right. A custom board is a list of
-    // packs / singles / lots where the SAME buyer routinely wins several, and the rule
-    // would silently unsell their earlier win with no error anywhere. So it is enforced
-    // on team boards only. Flip this one constant to restore the old behaviour.
-    const BUYER_UNIQUENESS = (currentLayout !== "custom");
+    // BUYER UNIQUENESS — OFF EVERYWHERE AS OF 2026-08-21. Do not re-enable.
+    //
+    // The old rule released any tile a buyer already held before giving them a new
+    // one. On 08-10 it was scoped to team boards on the theory that "on a random-team
+    // break one buyer holds one team". The live data falsifies that outright.
+    //
+    // BTC's NFL break on 2026-08-21: 96 sales across only 27 buyers, all 96 with
+    // DISTINCT sale ids. One buyer (hodeze76sportscards) took 20 teams in that single
+    // break. Every one of those 20 wins released the tile before it, which is exactly
+    // the reported symptom: a spot coming off the board puts a previously hit spot
+    // back on. Buying several teams in one break is normal, not an error.
+    //
+    // The rule was also redundant. Legitimate reassignment (a sale re-resolving to a
+    // different team) is already handled correctly ABOVE by the lastCodeByListingKey
+    // path, which is keyed on the SALE id and so only releases the tile that actually
+    // moved. Buyer uniqueness could only ever fire on sales that were genuinely
+    // separate, so every single time it fired it was wrong.
+    //
+    // Standard 2.4 sec 9.3 carried "Buyer uniqueness" as a requirement. That bullet was
+    // corrected in the same pass; it prevented nothing and corrupted the board and the
+    // CSV export. Left as a constant purely so this decision stays greppable.
+    const BUYER_UNIQUENESS = false;
     const incomingBuyer = String(payload.buyer || payload.buyerName || payload.name || '').trim();
     if (BUYER_UNIQUENESS && incomingBuyer){
       soldTeamsList

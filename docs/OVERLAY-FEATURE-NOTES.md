@@ -173,3 +173,60 @@ unreadable, so it was aliased onto the **second accent** instead. Read the colou
 following the example literally.
 
 Every build needs visible contrast variance. No flat single-colour designs.
+
+---
+
+## Asset paths — BASE, always
+
+Every asset resolves through `BASE`. Nothing an overlay loads at runtime may live outside
+this repo.
+
+```js
+const BASE = (() => {
+  const isGhPages = location.hostname.endsWith('github.io');
+  if (isGhPages) {
+    const parts = location.pathname.split('/').filter(Boolean);
+    return `/${parts.length ? parts[0] : ''}/`;
+  }
+  return '../../';
+})();
+
+const LOGO_PATH = `${BASE}images/logos/<client-slug>-logo.png`;
+const nflImg = (f) => `${BASE}images/nfl/${f}`;
+const nbaImg = (f) => `${BASE}images/nba/${f}`;
+const mlbImg = (f) => `${BASE}images/mlb/${f}`;
+```
+
+`'../../'` works from both `_drafts/<client>/` and `overlays/<client>/` because both sit
+two levels below the repo root. That is why a draft can be promoted without touching a
+single path.
+
+**The trap, and it is mine (2026-08-18).** When building tyschap_breakz I pointed
+`LOGO_PATH` at the client's Supabase `client-uploads/` URL, reasoning that the repo asset
+"did not exist yet" so at least the logo would render. Two things wrong with that:
+
+1. It makes a live overlay depend on a storage bucket's public policy, URL format and
+   uptime — outside the repo, outside version control, invisible to every validation grep.
+2. **The asset already existed** at `images/logos/tyschap-breakz-logo.png`. I never looked.
+
+Supabase `client-uploads/` is an **intake** location. The build step is to mirror the file
+from `builds.logo_url` into `images/logos/<client-slug>-logo.png`, then reference that.
+If the asset genuinely is not there yet, use the standard path anyway and let the fallback
+handle it — a missing local asset is a visible, fixable gap. An external URL is an
+invisible dependency.
+
+Gate: `grep -c 'supabase.co/storage' index.html` must return **0**.
+
+### Logo fallback chains
+
+Some overlays resolve the brand logo through a `BRAND_LOGO_CANDIDATES` array, trying each
+entry until one loads. That is fine, with one hard rule:
+
+**A fallback chain contains ONE client's assets. Never another client's.**
+
+coachs111 shipped with a chain that started at a Supabase URL and then fell back to
+**H-Vault's** logo three times. If Supabase had blipped, Coach's stream would have shown a
+different client's branding — far worse than an empty logo slot. Fixed 2026-08-19 to a
+single entry: `imgPathLogos("coachs111-logo.png")`.
+
+If you want real insurance, add a case variant of the same client's file. Nothing else.

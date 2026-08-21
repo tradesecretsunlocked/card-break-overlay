@@ -608,12 +608,12 @@ function sseMarkSold(payload){
     lastCodeByListingKey.set(listingKey, code);
   }
 
-  // buyer uniqueness: clear any other tile already assigned to this buyer
-  if (buyer){
-    soldTeamsList
-      .filter(e => e.buyer && e.buyer.toLowerCase() === buyer.toLowerCase() && e.code !== code)
-      .forEach(e => sseMarkUnsold({ code: e.code, sport: e.sport }));
-  }
+  // BUYER UNIQUENESS REMOVED 2026-08-21. A buyer winning several spots in one break is
+  // normal, not an error: BTC's 08-21 NFL break had 96 sales across 27 buyers, one of
+  // them taking 20 teams. Releasing their previous tile put already-sold spots back on
+  // the board. Legitimate reassignment is handled by the lastCodeByListingKey path
+  // above, which is keyed on the SALE id, so this block only ever fired on genuinely
+  // separate sales. See Standard 2.4 sec 9.3.
 
   // resolve target tile
   if (sport && sport !== currentSport && SPORTS[sport]) buildLayout(sport);
@@ -667,10 +667,8 @@ function sseUpdateBuyer(payload){
   const idx = indexOfCode(code);
   if (idx === -1) return;
 
-  // buyer uniqueness across the entire sold list
-  soldTeamsList
-    .filter(e => e.buyer && e.buyer.toLowerCase() === buyer.toLowerCase() && e.code !== code)
-    .forEach(e => sseMarkUnsold({ code: e.code }));
+  // BUYER UNIQUENESS REMOVED 2026-08-21 (second site). Same reasoning as above: a buyer
+  // may hold as many tiles as they win. See Standard 2.4 sec 9.3.
 
   const entry = soldTeamsList.find(e => e.index === idx);
   if (entry){
