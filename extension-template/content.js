@@ -320,6 +320,12 @@
     if (!raw) return true;
     const s = raw.toLowerCase();
     if (s === "sale" || s === "—") return true;
+    // REQUIRED (Standard sec 7). When listing.title is null on the first Whatnot
+    // GraphQL poll the API falls back to listing.subtitle, which Whatnot auto-fills
+    // with the SLOT INDEX ("#3", "#15"). Without this the extension treats that as a
+    // real title and emits code:"" events. Deliberately does NOT mark the item seen,
+    // so it retries on the next poll once the real title lands.
+    if (/^#?\d+$/.test(raw)) return true;
     const tail = stripPrefixTitle(raw);
     if (!tail || tail.toLowerCase() === "sale") return true;
     return false;
