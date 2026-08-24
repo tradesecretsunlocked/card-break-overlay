@@ -59,6 +59,20 @@
     sellerUsername: "REPLACE_WITH_CLIENT_WHATNOT_HANDLE",
     sport:        "nil",
     overlayId:    "REPLACE_WITH_CLIENT_SLUG-overlay",
+    // Emit a sale even when the title resolves to NO team code, with code:"" so a board that
+    // matches on the LISTING TITLE can still place it.
+    //
+    // Leave FALSE for a standard team board: a code-less event still reaches the overlay, and a
+    // junk listing ("PLEASE FOLLOW + BOOKMARK") can fuzzy-match a tile there.
+    // Set TRUE for any board whose spots are matched by NAME rather than by team code: repack
+    // and bundle boards, player-name boards, custom-tile boards, chaser/pack listings sold as
+    // their own items.
+    //
+    // This existed in the v2.2 lineage and was lost when v2.3 was cut. Without it,
+    // `if (!code) continue;` drops every named-spot sale before it reaches the bridge, with no
+    // error and no bridge_events row, which reads as a capture failure rather than a filter.
+    // Restored 2026-08-24. See known_issues bug 25.
+    sendUnresolved: false,
     channel:      "main",
     pollMs:       3000,
     summaryEvery: 5
@@ -729,9 +743,34 @@
 
     await sendEvent(cfg, { type: "overlay_warmup", liveId, sport: cfg.sport || "" });
 
-    // Load persisted dedup state from localStorage (survives page reloads)
-    const savedSeen = localStorage.getItem('tsu.seen');
-    const seen = new Map(savedSeen ? JSON.parse(savedSeen) : []);
+    // Load persisted dedup state from localStorage (survives page reloads).
+    //
+    // NAMESPACED PER OVERLAY as of 2026-08-24. whatnot.com is a SINGLE origin, so a client
+    // running two Whatnot accounts had both extensions sharing one 'tsu.seen' map: one
+    // account's sale ids were already present in the other's map and those sales were skipped
+    // with no log line at all. See known_issues bug 24.
+    //
+    // MIGRATION: on the first run after this change the namespaced key does not exist yet. Adopt
+    // the legacy map instead of starting empty, because an empty map makes the next poll re-send
+    // the current show's entire sold list, replaying it across the overlay with animations and
+    // buyer popups (bug 5). The legacy key is left in place for older installs.
+    const SEEN_LS = 'tsu.seen:' + (cfg.overlayId || 'default');
+    let savedSeen = localStorage.getItem(SEEN_LS);
+    if (savedSeen == null) {
+      const legacySeen = localStorage.getItem('tsu.seen');
+      if (legacySeen != null) {
+        savedSeen = legacySeen;
+        try { localStorage.setItem(SEEN_LS, legacySeen); } catch (_) {}
+        console.log("[TSU] migrated dedup map to", SEEN_LS);
+      }
+    }
+    let seen;
+    try {
+      seen = new Map(savedSeen ? JSON.parse(savedSeen) : []);
+    } catch (e) {
+      console.warn("[TSU] dedup map unreadable, starting empty:", e?.message);
+      seen = new Map();
+    }
 
     const lastCodeByItem   = new Map();
     const buyerCounts      = new Map();
@@ -749,7 +788,7 @@
       }
       seen.set(key, value);
       try {
-        localStorage.setItem('tsu.seen', JSON.stringify([...seen.entries()]));
+        localStorage.setItem(SEEN_LS, JSON.stringify([...seen.entries()]));
       } catch (e) {
         console.warn("[TSU] localStorage persist failed:", e?.message);
       }
@@ -802,14 +841,16 @@
 
           const code = inferCodeFromTitle(title, sport);
 
-          if (!code) {
+          if (!code && !DEFAULTS.sendUnresolved) {
             console.warn("[TSU] unresolved title (will retry):", { id, title, sport, rawTitle });
             continue;
           }
+          // passthrough (sendUnresolved): no code resolved, but emit anyway with code:"" so a
+          // title-matching board can place the spot.
 
           const prevCode    = lastCodeByItem.get(id);
           const prevIsReal  = prevCode && !prevCode.startsWith("CUSTOM_");
-          const newIsReal   = !code.startsWith("CUSTOM_");
+          const newIsReal   = !!code && !code.startsWith("CUSTOM_");
 
           if (prevIsReal && newIsReal && prevCode !== code) {
             await sendEvent(cfg, {

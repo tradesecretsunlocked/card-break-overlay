@@ -108,6 +108,88 @@ fallback chain should contain one client's assets only.
 builds still carried it). **A fix landing in a template is not a fix landing with a client.**
 Record the distribution state, not just the code state.
 
+**2026-08-24: the baked key is primary, and a URL override must not outlive its page load.**
+
+Found on coachs111 while splitting one shared overlay into two. `getBridgeKey()` and
+`getBridgeBase()` wrote the `?key=` / `?bridge=` value into `localStorage` and then read
+`localStorage` **ahead of** the baked constant. The override therefore survived the load that
+set it and won on every load afterwards, while the OBS URL looked clean. One debug load,
+weeks earlier, is enough. Nothing errors.
+
+```js
+function getBridgeKey(){                      // correct
+  const q = param("key");
+  if (q && q.trim()) return q.trim();         // this load only, NOT persisted
+  return BRIDGE_KEY;                          // baked constant is the source of truth
+}
+
+function getBridgeKey(){                      // WRONG
+  const q = param("key");
+  if (q && q.trim()){ localStorage.setItem("overlay.bridge.key", q.trim()); return q.trim(); }
+  return localStorage.getItem("overlay.bridge.key") || BRIDGE_KEY;   // localStorage wins
+}
+```
+
+The legacy `tsu.bridgeUrl` / `tsu.bridgeKey` / `tsu.url` / `tsu.key` fallback chains have the
+same defect and are removed on sight. This restates §8: the key is baked into the file, the
+URL parameter is a debugging affordance, and `localStorage` is never primary.
+
+**Gate:** grep every overlay for `localStorage.setItem` inside `getBridgeKey` or
+`getBridgeBase`, and for any `localStorage` read that precedes the baked default. Tracked as
+`known_issues` bug 23.
+
+**2026-08-24: multi-account clients: five things separate, not one.**
+
+Two overlays for one client share a GitHub Pages origin, which is one `localStorage` scope, and
+their two extensions share whatnot.com, which is another. Everything not namespaced is shared.
+For coachs111 (SPORTS + BREAKS, both live at once) the full list is:
+
+| Layer | Where | Failure if shared |
+|---|---|---|
+| baked `BRIDGE_KEY` | overlay | real isolation layer, enforced at the bridge |
+| `LS_PREFIX` | overlay | sold state, ticker, promos, break number all trample |
+| `overlayId` + `overlayIdMatches()` | overlay | sibling account's events are accepted |
+| `sellerUsername` (v2.3 gate) | extension | each extension captures whichever show is open |
+| `tsu.seen:<overlayId>` | extension | one account's sales look already-processed to the other and are dropped |
+
+`overlayIdMatches()` must pass events that carry no overlay field, or a producer that omits it
+goes dark. The dedup namespace is the newest of the five: the canonical
+`extension-template/content.js` still writes a bare `tsu.seen`, which is safe for single-account
+clients but must be namespaced before the next multi-account build. Tracked as `known_issues`
+bug 24. Worked example: `_drafts/coachs111sports/LAYOUT-NOTES.md`.
+
+**2026-08-24: extension template is v2.3.2. Ask whether the board is title-matched.**
+
+`inferCodeFromTitle()` returns a team code in exactly three cases: the title carries a real team
+name or alias, a bare team-code token, or a bare slot number in an approved form (`spot 4`,
+`envelope 12`). Everything else returns `""`. v2.3.1 then did `if (!code) continue;`, dropping the
+sale **before it reached the bridge**, with no error and no `bridge_events` row. The v2.2 lineage
+had a `sendUnresolved` flag for exactly this and it was lost when v2.3 was cut.
+
+Restored in v2.3.2, defaulting to `false` so team-board behaviour is unchanged:
+
+```js
+sendUnresolved: false,                                 // DEFAULTS: set true per client
+if (!code && !DEFAULTS.sendUnresolved) { ... continue; }
+const newIsReal = !!code && !code.startsWith("CUSTOM_");
+```
+
+Set it `true` for any board whose spots are matched by NAME rather than by team code: repack and
+bundle boards, player-name boards, custom-tile boards, and chasers or packs sold as their own
+listings. Leave it `false` for a standard team board, where a code-less event could let a junk
+listing fuzzy-match a tile.
+
+**Decide by reading the overlay, not by vocabulary.** `markSold(code)` against a team table means
+`false`. `findSpotByText(title)` or any name lookup means `true`. `blue-light-rips` uses the word
+"chaser" heavily but marks chasers as flagged TEAM tiles, so its chaser sales carry a normal code
+and the flag does nothing for it. Fleet audit 2026-08-24: `blue-light-rips`, `breakz4dayz` and
+`birdie-breaks` are all pure team-code boards; `coachs111` repack was the only title-matched board.
+
+v2.3.2 also namespaces the extension dedup map to `tsu.seen:<overlayId>` (bug 24), with a
+migration shim that adopts the legacy bare-key map on first run. Without the shim an update starts
+with an empty map and the next poll re-sends the whole current sold list, replaying it with
+animations and buyer popups. **Clients update between shows, never mid-break.**
+
 **Companion docs.** `docs/SCORES-CONFIG-AUDIT.md` (which overlays are wired correctly for scores),
 `docs/OVERLAY-FEATURE-NOTES.md` (nuance and one-off seller-facing features, and the trap behind
 each), `.claude/skills/tsu-overlay-troubleshoot/SKILL.md` (the live-fault bug catalog), and the
