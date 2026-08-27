@@ -28,7 +28,7 @@
       --tickerDur:20s;
       --division-cols:4;
       --team-height:55px;
-      --board-height:315px;
+      --board-height:335px;
     }
     *{ box-sizing:border-box; }
     html,body{
@@ -276,7 +276,7 @@
       margin-top:6px;
     }
     .division-name{
-      font-size:12px;
+      font-size:11px;
       font-weight:1000;
       text-transform:uppercase;
       letter-spacing:1px;
@@ -600,20 +600,44 @@ body.team-board-mode #soldPanel{
       /* Bigger now the city is gone: a nickname fits where "Oklahoma City Thunder" would not.
          Long nicknames step down instead of clipping, since a single long word like
          TIMBERWOLVES cannot wrap and would otherwise render as "IBERWOLV". */
-      font-size:16px;
+      font-size:18px;
       font-weight:900;
       letter-spacing:.3px;
-      line-height:1.05;
+      line-height:1;
       text-align:center;
       text-transform:uppercase;
       color:#ffffff;
       -webkit-text-stroke:1.5px rgba(0,0,0,0.85);
       paint-order:stroke fill;
     }
-    .team-idname.len-m{ font-size:16px; background:black; }
-    .team-idname.len-l{ font-size:14px; background:black; letter-spacing:0; }
-    .team-idname.len-xl{ font-size:14px; background:black; letter-spacing:0; }
+    .team-idname.len-m{ font-size:14px; }
+    .team-idname.len-l{ font-size:12px; letter-spacing:0; }
+    .team-idname.len-xl{ font-size:10.5px; letter-spacing:0; }
     .team.sold .team-idtag{ opacity:.30; }
+
+    /* ===== SOLD ANIMATION =====
+       applySale() rebuilds the whole board, so there is no persistent element to animate
+       and a plain .sold animation would replay on every unrelated sale and on page load.
+       teamTile() therefore tags ONLY the tile that just sold with .sold-flash, and the
+       animation runs once as that fresh element is inserted. */
+    @keyframes soldFlash{
+      0%   { transform:scale(1);    box-shadow:0 0 0 0 rgba(248,184,56,0); }
+      35%  { transform:scale(1.07); box-shadow:0 0 26px 6px rgba(248,184,56,0.85); border-color:rgba(248,184,56,1); }
+      70%  { transform:scale(0.99); box-shadow:0 0 18px 3px rgba(46,91,215,0.6); }
+      100% { transform:scale(1);    box-shadow:0 0 0 0 rgba(248,184,56,0); }
+    }
+    @keyframes soldMarkIn{
+      0%   { opacity:0; transform:scale(2.1) rotate(-18deg); }
+      60%  { opacity:1; transform:scale(0.88) rotate(4deg); }
+      100% { opacity:1; transform:scale(1) rotate(0deg); }
+    }
+    .team.sold-flash{
+      animation:soldFlash 620ms cubic-bezier(.2,.8,.3,1) 1;
+      z-index:8;
+    }
+    .team.sold-flash::after{
+      animation:soldMarkIn 520ms cubic-bezier(.2,.9,.25,1) 1;
+    }
 
     /* ===== TILE DISPLAY MODES =====
        The seller picks which of the three identifiers a tile shows. Driven entirely by a
@@ -758,7 +782,9 @@ body.team-board-mode #soldPanel{
     .division-grid{
       display:grid;
       gap:4px;
-      grid-template-columns:repeat(4, 1fr);
+      /* Was hardcoded to 4, which wrapped every 5-team NBA division onto a second row.
+         Set per break type from the largest division so each division is exactly one row. */
+      grid-template-columns:repeat(var(--divisionGridCols, 4), 1fr);
     }
     .division-group.sold .team img,
     .division-group.sold .fallback-code{
@@ -864,7 +890,7 @@ body.team-board-mode #soldPanel{
       min-height:60px;
       border-radius:12px;
       background:rgba(0,0,0,0.55);
-      border:2px solid rgb(255 210 30 / 77%) !important;
+      border:2px solid rgba(255,255,255,0.18);
       cursor:pointer;
     }
     .stat-box .value{
@@ -874,7 +900,7 @@ body.team-board-mode #soldPanel{
       text-shadow:0 2px 0 rgba(0,0,0,0.85);
     }
     .stat-box .label{
-      font-size:14px;
+      font-size:12px;
       letter-spacing:1px;
       text-transform:uppercase;
       opacity:.88;
@@ -1428,7 +1454,7 @@ body.split-team-mode #soldList{
 .sold-list.sold-team-style{
   grid-template-columns: repeat(4, 1fr);
   gap:4px;
-  max-height:184px;
+  max-height:380px;
   padding:4px;
   border-radius:14px;
   background:rgba(0,0,0,0.34);
@@ -1526,12 +1552,26 @@ body.split-team-mode #soldList{
 }
 
 .teams-section.split-team-mode .team.sold::after{
-  content:"" !important;
+  /* This rule used to set content:"" and render only a flat 42% black scrim, which is why
+     no X appeared on a sold tile: the base .team.sold::after does draw an X, but this more
+     specific rule blanked it. The scrim and the mark are now the same element, so a sold
+     spot reads at a glance from across a stream. */
+  content:"\2715" !important;
   position:absolute;
   inset:0;
-  display:block !important;
+  display:flex !important;
+  align-items:center;
+  justify-content:center;
+  font-size:52px;
+  font-weight:1000;
+  line-height:1;
+  color:#fff3cc;
   background:rgba(0,0,0,0.42);
-  z-index:3;
+  text-shadow:
+    0 0 10px rgba(46,91,215,0.75),
+    0 0 16px rgba(248,184,56,0.6),
+    0 8px 20px rgba(0,0,0,0.9);
+  z-index:6;
   pointer-events:none;
 }
 
@@ -1554,7 +1594,7 @@ body.split-team-mode #soldList{
   background:rgba(0,0,0,0.72);
   border:1px solid rgba(255,255,255,0.20);
   color:var(--gold);
-  font-size:11px;
+  font-size:12px;
   line-height:1;
   letter-spacing:.7px;
   text-align:center;
@@ -1587,7 +1627,7 @@ body.split-team-mode #soldList{
 .sold-list.sold-team-style{
   grid-template-columns:repeat(4, minmax(0, 1fr));
   gap:4px;
-  max-height:220px;
+  max-height:360px;
   padding:4px;
   border-radius:14px;
   background:rgba(0,0,0,0.34);
@@ -1785,7 +1825,7 @@ body.view-list .overlay{
   width:var(--buyer-list-width, 500px) !important;
   height:var(--buyer-list-height, 620px) !important;
   min-width:320px !important;
-  min-height:240px !important;
+  min-height:360px !important;
   max-width:none !important;
   max-height:none !important;
   resize:none !important;
@@ -1924,7 +1964,7 @@ body.view-list .popup{
 }
 
 body.view-list #playerListPopupMask textarea{
-  min-height:240px !important;
+  min-height:380px !important;
 }
 
 /* ===== TSU PATCH: make Edit Player clickable in OBS list view ===== */
@@ -2341,9 +2381,328 @@ body.view-list .overlay{
     0 0 22px rgba(248,184,56,0.12) !important;
 }
 
-  </style>
+  
+/* ===== FULL SOLD CELEBRATION =====
+   Cloned from the canonical TSU implementation (overlays/chaotic-card-crew, itself from
+   btc) rather than written fresh, and retinted to Samoxin's gold. Keyframes are namespaced
+   sx* so they cannot collide with anything already in this file.
+   The layer is a direct child of <body>, OUTSIDE .wrap: the wrapper clips, and a card that
+   travels toward the middle of the screen would be cut off inside it. */
+.sold-fx-layer{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99990;
+  overflow: visible;
+}
+
+.sold-fx-strike{
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--fx-strike-len, 300px);
+  height: 10px;
+  opacity: 0;
+  transform-origin: left center;
+  transform:
+    translate3d(var(--fx-strike-x, 0px), var(--fx-strike-y, 0px), 0)
+    rotate(var(--fx-strike-angle, 0deg))
+    scaleX(0.08);
+  filter:
+    drop-shadow(0 0 10px rgba(248,184,56,0.55))
+    drop-shadow(0 0 14px rgba(248,184,56,0.45));
+}
+
+.sold-fx-strike::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:999px;
+  background:
+    linear-gradient(90deg,
+      rgba(248,184,56,0.00) 0%,
+      rgba(248,184,56,0.92) 14%,
+      rgba(255,255,255,0.98) 48%,
+      rgba(248,184,56,0.92) 78%,
+      rgba(248,184,56,0.00) 100%);
+  box-shadow:
+    0 0 12px rgba(248,184,56,0.35),
+    0 0 12px rgba(255,255,255,0.22);
+}
+
+.sold-fx-strike::after{
+  content:"";
+  position:absolute;
+  right:-10px;
+  top:50%;
+  width: 24px;
+  height: 24px;
+  transform: translateY(-50%);
+  border-radius:50%;
+  background:
+    radial-gradient(circle, rgba(255,255,255,0.95) 0 24%, rgba(248,184,56,0.85) 46%, rgba(248,184,56,0) 72%);
+  box-shadow:
+    0 0 18px rgba(248,184,56,0.55),
+    0 0 16px rgba(255,255,255,0.18);
+}
+
+.sold-fx-strike.play{
+  animation: sxSoldFxStrike 560ms cubic-bezier(.2,.82,.2,1) forwards;
+}
+
+.sold-fx-card{
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 420px;
+  height: 250px;
+  opacity: 0;
+  transform: translate3d(0,0,0) scale(.28);
+  transform-origin: center center;
+  filter:
+    drop-shadow(0 18px 28px rgba(0,0,0,0.74))
+    drop-shadow(0 0 24px rgba(248,184,56,0.18))
+    drop-shadow(0 0 24px rgba(255,255,255,0.10));
+  will-change: transform, opacity;
+}
+
+.sold-fx-card.play{
+  animation: sxSoldFxCardTravel 1850ms cubic-bezier(.18,.84,.18,1) forwards;
+}
+
+.sold-fx-spin{
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.sold-fx-card.play .sold-fx-spin{
+  animation: sxSoldFxSpin 760ms cubic-bezier(.2,.8,.2,1) 120ms forwards;
+}
+
+.sold-fx-inner{
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(240px 110px at 20% 14%, rgba(248,184,56,0.16), transparent 60%),
+    radial-gradient(240px 110px at 80% 86%, rgba(255,255,255,0.10), transparent 60%),
+    linear-gradient(180deg, rgba(18,18,18,0.98), rgba(4,4,4,0.98));
+  border: 2px solid rgba(248,184,56,0.55);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,0.06),
+    0 0 30px rgba(0,0,0,0.35);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.sold-fx-inner::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.05) 0px,
+      rgba(255,255,255,0.05) 1px,
+      rgba(0,0,0,0) 3px,
+      rgba(0,0,0,0) 6px
+    );
+  opacity:.10;
+  pointer-events:none;
+}
+
+.sold-fx-team-img{
+  position:absolute;
+  inset: 14px 14px 54px 14px;
+  width: calc(100% - 28px);
+  height: calc(100% - 68px);
+  object-fit: cover;
+  border-radius: 14px;
+  border: 2px solid rgba(248,184,56,0.18);
+  background:#000;
+}
+
+.sold-fx-name{
+  position:absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  text-align:center;
+  font-size: 20px;
+  letter-spacing: 1px;
+  font-weight: 900;
+  color:#fff;
+  text-transform: uppercase;
+  text-shadow:
+    0 2px 12px rgba(0,0,0,0.95),
+    0 0 12px rgba(248,184,56,0.12);
+}
+
+.sold-fx-stamp{
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg) scale(1.8);
+  padding: 12px 28px;
+  border-radius: 14px;
+  border: 3px solid rgba(255,255,255,0.92);
+  background: linear-gradient(135deg, rgba(248,184,56,0.96), rgba(0,154,26,0.98));
+  color:#000;
+  font-size: 40px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-shadow: 0 2px 8px rgba(255,255,255,0.18);
+  box-shadow:
+    0 0 24px rgba(248,184,56,0.36),
+    0 10px 24px rgba(0,0,0,0.42);
+  opacity: 0;
+}
+
+.sold-fx-card.play .sold-fx-stamp{
+  animation: sxSoldFxStamp 620ms cubic-bezier(.12,.84,.22,1) 760ms forwards;
+}
+
+.sold-fx-burst{
+  position:absolute;
+  inset:-10%;
+  pointer-events:none;
+  opacity:0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.28) 0 5%, transparent 16%),
+    radial-gradient(circle at 50% 50%, rgba(248,184,56,0.22) 0 16%, transparent 38%),
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,0.14) 0 24%, transparent 52%);
+}
+
+.sold-fx-card.play .sold-fx-burst{
+  animation: sxSoldFxBurst 850ms ease-out 140ms forwards;
+}
+
+@keyframes sxSoldFxStrike{
+  0%{
+    opacity: 0;
+    transform:
+      translate3d(var(--fx-strike-x, 0px), var(--fx-strike-y, 0px), 0)
+      rotate(var(--fx-strike-angle, 0deg))
+      scaleX(0.08);
+  }
+  18%{ opacity: 1; }
+  70%{
+    opacity: 1;
+    transform:
+      translate3d(var(--fx-strike-x, 0px), var(--fx-strike-y, 0px), 0)
+      rotate(var(--fx-strike-angle, 0deg))
+      scaleX(1);
+  }
+  100%{
+    opacity: 0;
+    transform:
+      translate3d(var(--fx-strike-x, 0px), var(--fx-strike-y, 0px), 0)
+      rotate(var(--fx-strike-angle, 0deg))
+      scaleX(1.08);
+  }
+}
+
+@keyframes sxSoldFxCardTravel{
+  0%{
+    opacity: .25;
+    transform: translate3d(var(--fx-start-x), var(--fx-start-y), 0) scale(.20);
+  }
+  20%{
+    opacity: 1;
+    transform: translate3d(var(--fx-mid-x), var(--fx-mid-y), 0) scale(.72);
+  }
+  36%{
+    opacity: 1;
+    transform: translate3d(var(--fx-end-x), var(--fx-end-y), 0) scale(1.02);
+  }
+  72%{
+    opacity: 1;
+    transform: translate3d(var(--fx-end-x), var(--fx-end-y), 0) scale(1);
+  }
+  100%{
+    opacity: 0;
+    transform: translate3d(var(--fx-end-x), calc(var(--fx-end-y) - 18px), 0) scale(.92);
+  }
+}
+
+@keyframes sxSoldFxSpin{
+  0%{
+    transform: perspective(1200px) rotateY(-95deg) rotateX(6deg);
+  }
+  55%{
+    transform: perspective(1200px) rotateY(18deg) rotateX(-2deg);
+  }
+  75%{
+    transform: perspective(1200px) rotateY(-8deg) rotateX(0deg);
+  }
+  100%{
+    transform: perspective(1200px) rotateY(0deg) rotateX(0deg);
+  }
+}
+
+@keyframes sxSoldFxStamp{
+  0%{
+    opacity:0;
+    transform: translate(-50%, -105%) rotate(-18deg) scale(1.85);
+  }
+  60%{
+    opacity:1;
+    transform: translate(-50%, -50%) rotate(-10deg) scale(.92);
+  }
+  100%{
+    opacity:1;
+    transform: translate(-50%, -50%) rotate(-12deg) scale(1);
+  }
+}
+
+@keyframes sxSoldFxBurst{
+  0%{
+    opacity:0;
+    transform: scale(.55);
+  }
+  28%{
+    opacity:.78;
+  }
+  100%{
+    opacity:0;
+    transform: scale(1.28);
+  }
+}
+
+
+/* ===== ALPHABETICAL SINGLE BOARD (non-division sports) =====
+   The section was a two-column East/West split. With one board the left column takes the
+   full width and the (now empty) right column is removed from the grid entirely, so it
+   cannot leave a gap. */
+.teams-section.split-team-mode{
+  /* The section is a 3-column grid: board | 148px control bar | board. Collapsing it to a
+     single `1fr` swallowed the control column and stacked everything, which blanked the
+     board. One full-width board plus the control bar is `1fr 148px`; the now-unused right
+     column is hidden below and simply has no cell to occupy. */
+  grid-template-columns: 1fr 148px !important;
+}
+.teams-section.split-team-mode #conferenceRight{
+  display:none !important;   /* second conference column is unused on the alphabetical board */
+}
+.alpha-team-grid{
+  grid-template-columns: repeat(var(--division-cols), 1fr) !important;
+}
+/* The per-sport rules (body[data-sport="NBA"|"MLB"|...] .split-team-grid) were sized for a
+   half-width conference column and outrank a bare .alpha-team-grid selector. `body[data-sport]`
+   matches their specificity without naming each sport, and being later in the sheet it wins,
+   so the full-width column count holds for every board including ones added later. */
+body[data-sport] .teams-section.split-team-mode .alpha-team-grid{
+  grid-template-columns: repeat(var(--division-cols), 1fr) !important;
+}
+</style>
 </head>
 <body data-sport="NFL">
+<div id="soldFxLayer" class="sold-fx-layer"></div>
   <div class="overlay">
        <div class="header hydc-header wick">
       <div class="brand hydc-brand-text">
@@ -3293,7 +3652,10 @@ const FULL_TEAM_NAMES = {
     CHC:'Chicago Cubs', CWS:'Chicago White Sox', CIN:'Cincinnati Reds', CLE:'Cleveland Guardians',
     COL:'Colorado Rockies', DET:'Detroit Tigers', HOU:'Houston Astros', KC:'Kansas City Royals',
     LAA:'Los Angeles Angels', LAD:'Los Angeles Dodgers', MIA:'Miami Marlins', MIL:'Milwaukee Brewers',
-    MIN:'Minnesota Twins', NYM:'New York Mets', NYY:'New York Yankees', ATH:'Athletics',
+    MIN:'Minnesota Twins', NYM:'New York Mets', NYY:'New York Yankees',
+    /* Sorted by city, so the A's need their city to land under O like the client's sheet.
+       The tile still reads "Athletics" because that comes from shortName. */
+    ATH:'Oakland Athletics',
     PHI:'Philadelphia Phillies', PIT:'Pittsburgh Pirates', SD:'San Diego Padres', SF:'San Francisco Giants',
     SEA:'Seattle Mariners', STL:'St. Louis Cardinals', TB:'Tampa Bay Rays', TEX:'Texas Rangers',
     TOR:'Toronto Blue Jays', WSH:'Washington Nationals'
@@ -3661,6 +4023,7 @@ function teamTile(teamObj, state, soldCode){
   const el = document.createElement('div');
   el.className = 'team'
     + (state?.sold ? ' sold' : '')
+    + (state?.sold && boardCode && boardCode === justSoldCode ? ' sold-flash' : '')
     + (chaser ? ' chaser' : '');
 
   el.dataset.teamCode = soldCode;
@@ -3849,6 +4212,53 @@ function buildTeamConference(container, confName, divisions){
   });
 }
 
+
+/* Non-division sport boards are ONE board, not an East/West split: no conference heading,
+   every team in a single grid ordered alphabetically by CITY. Sorting on the full name
+   gives exactly that, because .name is already "City Nickname" (Atlanta Hawks, Boston
+   Celtics, Brooklyn Nets ...), so no city has to be parsed out of anything. The tiles keep
+   showing nickname-only via shortName. */
+function buildAlphabeticalTeamBoard(container, cfg){
+  container.innerHTML = '';
+
+  const byCity = (a, b) => String(a.name || a.code || '')
+    .localeCompare(String(b.name || b.code || ''), 'en', { sensitivity:'base' });
+
+  const collect = conf => {
+    const groups = cfg.divisions?.[conf] || {};
+    const out = [];
+    Object.keys(groups).forEach(div => (groups[div] || []).forEach(t => out.push(t)));
+    return out;
+  };
+
+  /* One alphabetical run across every team on the board, conferences ignored entirely, for
+     every sport. The grid wraps freely across the full width, so a row may hold what used
+     to be the tail of one conference and the start of the next. */
+  const teams = (cfg.conferences || []).flatMap(collect).sort(byCity);
+
+  const divWrap = document.createElement('div');
+  divWrap.className = 'division split-team-division alpha-division';
+
+  const grid = document.createElement('div');
+  grid.className = 'division-teams split-team-grid alpha-team-grid';
+
+  teams.forEach(team => {
+    const code = String(team.code || '').toUpperCase();
+    const state = boardState[code] || { sold:false, buyer:'' };
+    const tile = teamTile(team, state, code);
+
+    const label = document.createElement('div');
+    label.className = 'team-label is-code';   /* CODE label: governed by tile display mode */
+    label.textContent = code;
+    tile.appendChild(label);
+
+    tile.onclick = () => toggleSoldNoModal(code);
+    grid.appendChild(tile);
+  });
+
+  divWrap.appendChild(grid);
+  container.appendChild(divWrap);
+}
 
 function buildFlatTeamConference(container, confName, divisions){
   container.innerHTML = '';
@@ -4143,12 +4553,25 @@ function buildLayout(){
     nhl: 4
   };
 
-  const teamCols = teamColsBySport[currentBreakType] || Number(cfg.divisionCols) || 4;
+  /* One board across the full width, so the column count is the whole row, not half of it. */
+  const alphaColsBySport = { nba:10, mlb:10, nfl:8, nhl:8 };
+  const teamCols = alphaColsBySport[currentBreakType] || Number(cfg.divisionCols) || 8;
   document.documentElement.style.setProperty('--division-cols', String(teamCols));
 
-  buildFlatTeamConference(leftEl, cfg.conferences?.[0] || "LEFT", cfg.divisions?.[cfg.conferences?.[0]] || {});
-  buildFlatTeamConference(rightEl, cfg.conferences?.[1] || "RIGHT", cfg.divisions?.[cfg.conferences?.[1]] || {});
+  buildAlphabeticalTeamBoard(leftEl, cfg);
+  if (rightEl) rightEl.innerHTML = '';   /* second conference column is unused now */
 } else {
+    /* Each division is one row: size the grid to the largest division on this board
+       (NBA divisions hold 5, NFL hold 4). */
+    let maxDivSize = 4;
+    (cfg.conferences || []).forEach(conf => {
+      const groups = cfg.divisions?.[conf] || {};
+      Object.keys(groups).forEach(div => {
+        maxDivSize = Math.max(maxDivSize, (groups[div] || []).length);
+      });
+    });
+    document.documentElement.style.setProperty('--divisionGridCols', String(maxDivSize));
+
     const leftRows = [];
     const rightRows = [];
 
@@ -4182,12 +4605,106 @@ function buildLayout(){
 function soldEntry(code){
   return soldTeamsList.find(x => String(x.code).toUpperCase() === String(code).toUpperCase());
 }
+let justSoldCode = null;
+let justSoldTimer = null;
+
+/* Full sold celebration: a light streak fires from the tile, then a card carrying the team
+   logo flips in over the board, stamps SOLD and fades. Positions are measured from the
+   tile at play time, so it works on every board shape without per-layout tuning. */
+function playSoldAnimation(code){
+  const key = String(code || '').toUpperCase().trim();
+  const team = findActiveTeamByCode(key) || { code:key, name:key, image:'' };
+
+  const fxLayer = document.getElementById('soldFxLayer');
+  const tile = document.querySelector(`[data-team-code="${cssEscapeSafe(key)}"]`);
+  if (!fxLayer || !tile) return;
+
+  const tileRect = tile.getBoundingClientRect();
+  const layerRect = fxLayer.getBoundingClientRect();
+
+  const cardW = 420, cardH = 250;
+  const startCenterX = (tileRect.left - layerRect.left) + (tileRect.width / 2);
+  const startCenterY = (tileRect.top  - layerRect.top)  + (tileRect.height / 2);
+  const startX = startCenterX - (cardW / 2);
+  const startY = startCenterY - (cardH / 2);
+  const endX = (layerRect.width / 2) - (cardW / 2);
+  const endY = Math.max(40, (layerRect.height * 0.19));
+  const endCenterX = endX + (cardW / 2);
+  const endCenterY = endY + (cardH / 2);
+  const midX = startX + ((endX - startX) * 0.48);
+  const midY = startY + ((endY - startY) * 0.48) - 28;
+  const dx = endCenterX - startCenterX, dy = endCenterY - startCenterY;
+  const strikeLen   = Math.max(120, Math.sqrt((dx * dx) + (dy * dy)));
+  const strikeAngle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+  setTimeout(() => {
+    const strike = document.createElement('div');
+    strike.className = 'sold-fx-strike';
+    strike.style.setProperty('--fx-strike-x',     `${startCenterX}px`);
+    strike.style.setProperty('--fx-strike-y',     `${startCenterY - 5}px`);
+    strike.style.setProperty('--fx-strike-len',   `${strikeLen}px`);
+    strike.style.setProperty('--fx-strike-angle', `${strikeAngle}deg`);
+    fxLayer.appendChild(strike);
+
+    const card = document.createElement('div');
+    card.className = 'sold-fx-card';
+    card.style.setProperty('--fx-start-x', `${startX}px`);
+    card.style.setProperty('--fx-start-y', `${startY}px`);
+    card.style.setProperty('--fx-mid-x',   `${midX}px`);
+    card.style.setProperty('--fx-mid-y',   `${midY}px`);
+    card.style.setProperty('--fx-end-x',   `${endX}px`);
+    card.style.setProperty('--fx-end-y',   `${endY}px`);
+
+    const label = String(team.shortName || team.name || key);
+    card.innerHTML = `
+      <div class="sold-fx-spin">
+        <div class="sold-fx-inner">
+          <div class="sold-fx-burst"></div>
+          ${team.image ? `<img class="sold-fx-team-img" src="${team.image}" alt="">` : ''}
+          <div class="sold-fx-stamp">SOLD</div>
+          <div class="sold-fx-name"></div>
+        </div>
+      </div>`;
+    /* textContent, never innerHTML, for anything a buyer or seller can influence. */
+    const nameEl = card.querySelector('.sold-fx-name');
+    if (nameEl) nameEl.textContent = label;
+
+    fxLayer.appendChild(card);
+    const img = card.querySelector('.sold-fx-team-img');
+    if (img) img.onerror = () => img.remove();
+
+    requestAnimationFrame(() => {
+      strike.classList.add('play');
+      requestAnimationFrame(() => card.classList.add('play'));
+    });
+
+    setTimeout(() => { strike.remove(); card.remove(); }, 2100);
+  }, 80);
+}
+
+/* CSS.escape is not in every OBS CEF build; codes here are [A-Z0-9_] so this is enough. */
+function cssEscapeSafe(v){
+  const str = String(v == null ? '' : v);
+  return (window.CSS && CSS.escape) ? CSS.escape(str) : str.replace(/["\\]/g, '\\$&');
+}
+
 function applySale(code, buyerName, sold){
   const key = String(code || '').toUpperCase().trim();
   if (!key || !boardState[key]) return;
 
   boardState[key].sold = !!sold;
   boardState[key].buyer = sold ? safeBuyer(buyerName || '') : '';
+
+  /* Remember which spot just sold so the rebuild can animate exactly that one tile.
+     Cleared on a timer so a later rebuild (sport switch, buyer edit, reload) does not
+     replay the celebration on an old sale. */
+  if (sold){
+    justSoldCode = key;
+    clearTimeout(justSoldTimer);
+    justSoldTimer = setTimeout(() => { justSoldCode = null; }, 1200);
+  } else if (justSoldCode === key){
+    justSoldCode = null;
+  }
 
   if (sold){
     soldTeams.add(key);
@@ -4201,6 +4718,9 @@ function applySale(code, buyerName, sold){
 
   persistSoldState();
   buildLayout();
+
+  /* After buildLayout, so the tile the streak is measured from actually exists. */
+  if (sold) requestAnimationFrame(() => playSoldAnimation(key));
 }
 function sseMarkSold(code, buyerName = ''){
   applySale(code, buyerName, true);

@@ -57,7 +57,13 @@
     // live page: lowercase, no @. Capture is DISABLED while this is unset, which
     // is deliberate. An unbaked build must not hoover up strangers' shows.
     sellerUsername: "breakz4dayz",
-    sport:        "nfl",   // Breakz4Dayz run NFL breaks
+    // "nil" = multi-sport: the league is inferred from each listing title.
+    // Was "nfl", which made every sale report NFL no matter what the listing said,
+    // because the sale path prefers the configured sport over the inferred one:
+    //   sport = (configuredSport && configuredSport !== "nil") ? configuredSport : inferredSport
+    // The overlay then honoured that stamp and flipped the board to football on the
+    // first sale of a baseball break. Reported by Breakz4Dayz 2026-08-24.
+    sport:        "nil",
     overlayId:    "breakz4dayz-overlay",
     channel:      "main",
     pollMs:       3000,
