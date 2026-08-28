@@ -2664,7 +2664,15 @@ const BRIDGE_KEY = (() => {
 // Must match the overlayId baked into this client's extension.
 const OVERLAY_ID = "breakz4dayz-overlay";
 
-const TSU_BUILD = "Breakz4Dayz overlays/breakz4dayz/index.html - 2026-08-15a - Tier 1 -> automation: bridge URL + key baked (localStorage demoted to override), overlayId guard added, scores channel verified";
+// Scores come from a DIFFERENT HOST than sales. TSU-OVERLAY-STANDARD.md sec 11:
+//   sales  -> the main bridge, channel "main"
+//   scores -> the dedicated scores service below, channel "sports"
+// Pointing the scores subscription at the main bridge fails completely silently
+// (troubleshoot skill bug 14). This overlay did exactly that until 2026-08-28.
+// Hostname appears ONCE on purpose: the Standard's audit is grep -c and expects 1.
+const SCORES_BRIDGE_BASE = "https://tsu-scores-bridge.onrender.com";
+
+const TSU_BUILD = "Breakz4Dayz overlays/breakz4dayz/index.html - 2026-08-28a - live scores activated: scores SSE repointed from the main bridge to SCORES_BRIDGE_BASE, channel sports. Sales path unchanged.";
 console.log("%c[TSU] " + TSU_BUILD, "background:#3a0d0c;color:#ffb3ae;padding:2px 6px;border-radius:3px");
 
 // Lenient on purpose: only rejects an event explicitly stamped for a DIFFERENT overlay.
@@ -2882,7 +2890,7 @@ function startSSE(){
   const base = normalizeBridge(BRIDGE_URL);
 
   connectSSE(base);
-  connectScoresSSE(base);
+  connectScoresSSE(normalizeBridge(SCORES_BRIDGE_BASE));
 }
 
   async function warmupPing(){
