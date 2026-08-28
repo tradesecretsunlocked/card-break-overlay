@@ -1330,7 +1330,26 @@ function syncTickerSpeedUI(){
 }
 
 let TICKER_LINES = loadTickerLines();
-let SCORE_LINES = [];
+
+// One bucket PER SPORT. This was a single shared SCORE_LINES array, and the score
+// producer posts one separate "scores" event per sport per tick (nba, then nfl, then
+// mlb). Each event replaced the whole array, so the last one to land was the only one
+// ever displayed, and mlb is last. NBA and NFL were arriving and being discarded
+// milliseconds later. TSU-OVERLAY-STANDARD.md sec 11 "Freshness guard".
+const SCORES_BY_SPORT   = { nba: "", nfl: "", mlb: "" };
+const SCORES_UPDATED_AT = { nba: 0,  nfl: 0,  mlb: 0 };
+
+// Overlay-side kill switch. Real per-client control is Supabase client_services.
+const ENABLE_SCORES = (() => {
+  const q = new URLSearchParams(location.search).get("scores");
+  return q === null ? true : q === "1";
+})();
+
+// Drop a sport from the ticker if its last update is older than 20 minutes, so stale
+// finals do not linger once nothing is in progress.
+function isFreshSportScore(sport){
+  return (Date.now() - (SCORES_UPDATED_AT[sport] || 0)) < 1000 * 60 * 20;
+}
 
 function normalizeTickerArray(arr){
   return (Array.isArray(arr) ? arr : [])
@@ -1345,22 +1364,46 @@ function getCustomTickerText(){
     : DEFAULT_TICKER_LINES.join("   •   ");
 }
 
-function getScoresTickerText(){
-  const lines = normalizeTickerArray(SCORE_LINES);
-  return lines.length ? lines.join("   •   ") : "";
-}
-
+// Output pattern: [client] . [NBA] . [client] . [MLB] . [client] . [NFL]
+// Per TSU-OVERLAY-STANDARD.md sec 11 "Ticker interleave". The client's own message
+// is repeated between sports so it is never buried behind a wall of scores.
 function buildTickerLine(){
   const customText = getCustomTickerText();
-  const scoresText = getScoresTickerText();
+  if (!ENABLE_SCORES) return customText;
 
-  return scoresText
-    ? `${customText}   •   LIVE SCORES   •   ${scoresText}`
-    : customText;
+  const order = ["nba", "mlb", "nfl"];
+  const parts = [];
+  for (const sport of order){
+    const txt = String(SCORES_BY_SPORT[sport] || "").trim();
+    if (txt && isFreshSportScore(sport)){
+      parts.push(customText);
+      parts.push(txt);
+    }
+  }
+  return parts.length ? parts.join("   •   ") : customText;
 }
 
+let LAST_TICKER_LINE = null;
+let tickerCoalesceTimer = null;
+
+// Coalesce bursts. The producer fires nba/nfl/mlb within milliseconds of each other,
+// so three separate marquee rebuilds used to happen back to back every tick.
 function updateTickerMarquee(){
+  if (tickerCoalesceTimer) return;
+  tickerCoalesceTimer = setTimeout(() => {
+    tickerCoalesceTimer = null;
+    applyTickerMarquee();
+  }, 250);
+}
+
+function applyTickerMarquee(){
   const line = ` ${buildTickerLine()} `;
+
+  // Restarting the CSS animation snaps the scroll back to position 0, which cut the
+  // client's message off partway through every time a score event landed. Only pay
+  // that cost when the rendered text genuinely changed.
+  if (line === LAST_TICKER_LINE) return;
+  LAST_TICKER_LINE = line;
 
   document.querySelectorAll(".ticker-track").forEach(track => {
     const copies = track.querySelectorAll(".ticker-copy");
@@ -1388,8 +1431,15 @@ function refreshTickerText(){
   updateTickerMarquee();
 }
 
-function setScoreLines(lines){
-  SCORE_LINES = normalizeTickerArray(lines);
+function setScoreLinesForSport(sport, lines){
+  const key = String(sport || "").toLowerCase().trim();
+  if (!(key in SCORES_BY_SPORT)) return;   // ignore leagues this board does not carry
+
+  const text = normalizeTickerArray(lines).join("   •   ");
+  if (!text) return;
+
+  SCORES_BY_SPORT[key]   = text;
+  SCORES_UPDATED_AT[key] = Date.now();
   updateTickerMarquee();
 }
 
@@ -2527,7 +2577,8 @@ function resetAll(){
   pendingBuyers = [];
   if (typeof refreshNextPickChip === 'function') refreshNextPickChip();
   clearOverlayState();
-  SCORE_LINES = [];
+  for (const k of Object.keys(SCORES_BY_SPORT)){ SCORES_BY_SPORT[k] = ""; SCORES_UPDATED_AT[k] = 0; }
+  LAST_TICKER_LINE = null;
   document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
   updateStats();
   updateSoldList();
@@ -2672,7 +2723,7 @@ const OVERLAY_ID = "breakz4dayz-overlay";
 // Hostname appears ONCE on purpose: the Standard's audit is grep -c and expects 1.
 const SCORES_BRIDGE_BASE = "https://tsu-scores-bridge.onrender.com";
 
-const TSU_BUILD = "Breakz4Dayz overlays/breakz4dayz/index.html - 2026-08-28a - live scores activated: scores SSE repointed from the main bridge to SCORES_BRIDGE_BASE, channel sports. Sales path unchanged.";
+const TSU_BUILD = "Breakz4Dayz overlays/breakz4dayz/index.html - 2026-08-28b - live scores: SSE repointed to SCORES_BRIDGE_BASE, per-sport score buckets with 20min freshness, client-text interleave, marquee no longer restarts unless the text changed. Sales path unchanged.";
 console.log("%c[TSU] " + TSU_BUILD, "background:#3a0d0c;color:#ffb3ae;padding:2px 6px;border-radius:3px");
 
 // Lenient on purpose: only rejects an event explicitly stamped for a DIFFERENT overlay.
@@ -2777,10 +2828,11 @@ function handleSportsEvent(data){
   data.__eventType ||
   ""
 ).toLowerCase();
-  if (type !== "scores") return;
+  if (type !== "scores" && type !== "scores_update") return;
 
+  const sport = String(payload.sport || payload.league || "").toLowerCase().trim();
   const lines = extractScoreLines(payload);
-  setScoreLines(lines);
+  setScoreLinesForSport(sport, lines);
 }
 
 let sse = null;
