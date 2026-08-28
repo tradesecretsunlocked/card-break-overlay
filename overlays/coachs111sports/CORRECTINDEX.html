@@ -479,40 +479,10 @@ body { margin: 0px; background: transparent; font-family: Arial, sans-serif; col
       del(k){ try{ localStorage.removeItem(`${LS_PREFIX}:${k}`); }catch(_){ } }
     };
 
-    /* ===== BAKED SELLER DEFAULTS =====
-       Captured from the seller's working browser profile 2026-08-27 and baked here so a
-       fresh browser, a new OBS browser source, or a cleared cache comes up configured.
-       These are DEFAULTS only: every one is still overridable from the CONFIG panel, and
-       anything already saved in localStorage continues to win. */
-
-    const DEFAULT_TICKER = "FOLLOW FOR THE NEXT BREAK\nGOOD LUCK TO ALL";
-
-    /* Promo bar artwork. Relative path, resolved next to this file, so it works the same
-       from GitHub Pages and from a local folder. A local C:\\ path would load in a normal
-       browser and silently show nothing in an OBS browser source. */
-    const DEFAULT_PROMO_BG = "promo-bg.png";
-
-    const DEFAULT_PRODUCT_RAN = "32 TEAM REPACK PAIRINGS";
-
-    /* NOTE: DEFAULT_PROMOS is declared further down and is already correct.
-       The seller's saved copy has a "TFOLLOW FOR THE NEXT BREAK" typo; not baked. */
-
-    /* The seller's edited repack board, exactly as it stood on his machine.
-       CORRECTED 2026-08-27, on the seller's instruction. Three gaps closed:
-         - Indianapolis restored as S14 (nfl:COLTS + nba:PACERS). It had been deleted and
-           never re-added, so Colts and Pacers sales had nowhere to land.
-         - The duplicate "Jacksonville" (S36) removed. nfl:JAGUARS was on two tiles at once,
-           which made a Jaguars sale ambiguous. The surviving S15 inherits mlb:PADRES so the
-           Padres are not stranded by the removal.
-         - mlb:WHITESOX added to Chicago, the one MLB club with no tile anywhere.
-       The board is now 32 city tiles + MULTI/DUAL + MISC, covering all 32 NFL, 30 NBA and
-       30 MLB clubs exactly once. */
-    const DEFAULT_SPOTS = [{"id":"S1","name":"Arizona","members":["nfl:CARDINALS","nba:SUNS","mlb:DIAMONDBACKS"],"custom":false,"sold":false,"buyer":""},{"id":"S2","name":"Atlanta","members":["nfl:FALCONS","nba:HAWKS","mlb:BRAVES"],"custom":false,"sold":false,"buyer":""},{"id":"S4","name":"Buffalo","members":["nfl:BILLS","nba:RAPTORS","mlb:BLUEJAYS"],"custom":false,"sold":false,"buyer":""},{"id":"S5","name":"Carolina","members":["nfl:PANTHERS","nba:HORNETS"],"custom":false,"sold":false,"buyer":""},{"id":"S6","name":"Chicago","members":["nfl:BEARS","nba:BULLS","mlb:CUBS","mlb:WHITESOX"],"custom":false,"sold":false,"buyer":""},{"id":"S7","name":"Cincinnati","members":["nfl:BENGALS","mlb:REDS"],"custom":false,"sold":false,"buyer":""},{"id":"S8","name":"Cleveland","members":["nfl:BROWNS","nba:CAVALIERS","mlb:GUARDIANS"],"custom":false,"sold":false,"buyer":""},{"id":"S9","name":"Dallas","members":["nfl:COWBOYS","nba:MAVERICKS","mlb:RANGERS"],"custom":false,"sold":false,"buyer":""},{"id":"S10","name":"Denver","members":["nfl:BRONCOS","nba:NUGGETS","mlb:ROCKIES"],"custom":false,"sold":false,"buyer":""},{"id":"S11","name":"Detroit","members":["nfl:LIONS","nba:PISTONS","mlb:TIGERS"],"custom":false,"sold":false,"buyer":""},{"id":"S12","name":"Green Bay","members":["nfl:PACKERS","nba:BUCKS","mlb:BREWERS"],"custom":false,"sold":false,"buyer":""},{"id":"S13","name":"Houston","members":["nfl:TEXANS","nba:ROCKETS","mlb:ASTROS"],"custom":false,"sold":false,"buyer":""},{"id":"S14","name":"Indianapolis","members":["nfl:COLTS","nba:PACERS"],"custom":false,"sold":false,"buyer":""},{"id":"S15","name":"Jacksonville","members":["nfl:JAGUARS","mlb:PADRES"],"custom":false,"sold":false,"buyer":""},{"id":"S16","name":"Kansas City","members":["nfl:CHIEFS","nba:THUNDER","mlb:ROYALS"],"custom":false,"sold":false,"buyer":""},{"id":"S17","name":"Las Vegas","members":["nfl:RAIDERS","nba:JAZZ","mlb:ATHLETICS"],"custom":false,"sold":false,"buyer":""},{"id":"S18","name":"Los Angeles","members":["nfl:CHARGERS","nba:CLIPPERS","mlb:DODGERS"],"custom":false,"sold":false,"buyer":""},{"id":"S19","name":"Los Angeles 2","members":["nfl:RAMS","nba:LAKERS","mlb:ANGELS"],"custom":false,"sold":false,"buyer":""},{"id":"S20","name":"Miami","members":["nfl:DOLPHINS","nba:HEAT","mlb:MARLINS"],"custom":false,"sold":false,"buyer":""},{"id":"S21","name":"Minnesota","members":["nfl:VIKINGS","nba:TIMBERWOLVES","mlb:TWINS"],"custom":false,"sold":false,"buyer":""},{"id":"S22","name":"New England","members":["nfl:PATRIOTS","nba:CELTICS","mlb:REDSOX"],"custom":false,"sold":false,"buyer":""},{"id":"S23","name":"New Orleans","members":["nfl:SAINTS","nba:PELICANS"],"custom":false,"sold":false,"buyer":""},{"id":"S24","name":"New York","members":["nfl:GIANTS","nba:KNICKS","mlb:YANKEES"],"custom":false,"sold":false,"buyer":""},{"id":"S25","name":"New York 2","members":["nfl:JETS","nba:NETS","mlb:METS"],"custom":false,"sold":false,"buyer":""},{"id":"S26","name":"Philadelphia","members":["nfl:EAGLES","nba:76ERS","mlb:PHILLIES"],"custom":false,"sold":false,"buyer":""},{"id":"S27","name":"Pittsburgh","members":["nfl:STEELERS","nba:SPURS","mlb:PIRATES"],"custom":false,"sold":false,"buyer":""},{"id":"S28","name":"San Francisco","members":["nfl:49ERS","nba:WARRIORS","mlb:GIANTS"],"custom":false,"sold":false,"buyer":""},{"id":"S29","name":"Seattle","members":["nfl:SEAHAWKS","nba:BLAZERS","mlb:MARINERS"],"custom":false,"sold":false,"buyer":""},{"id":"S30","name":"Tampa Bay","members":["nfl:BUCCANEERS","nba:MAGIC","mlb:RAYS"],"custom":false,"sold":false,"buyer":""},{"id":"S32","name":"Washington","members":["nfl:COMMANDERS","nba:WIZARDS","mlb:NATIONALS"],"custom":false,"sold":false,"buyer":""},{"id":"S33","name":"MULTI/DUAL","members":[],"custom":true,"sold":false,"buyer":""},{"id":"S34","name":"MISC.","members":[],"custom":true,"sold":false,"buyer":""},{"id":"S35","name":"BALTIMORE","members":["nfl:RAVENS","mlb:ORIOLES","nba:KINGS"],"custom":false,"sold":false,"buyer":""},{"id":"S37","name":"TENNESSEE","members":["mlb:CARDINALS","nfl:TITANS","nba:GRIZZLIES"],"custom":false,"sold":false,"buyer":""}];
-
     /* ===== App state ===== */
-    let mode = LS.get("mode", "repack");                  // "regular" | "repack"  [baked default]
+    let mode = LS.get("mode", "regular");                 // "regular" | "repack"
     let regularSport = LS.get("regularSport", "nfl");
-    let repackSports = (LS.get("repackSports", "nfl,mlb,nba") || "nfl,mlb,nba").split(",").filter(Boolean);
+    let repackSports = (LS.get("repackSports", "nfl,nba,mlb") || "nfl,nba,mlb").split(",").filter(Boolean);
     if (!repackSports.length) repackSports = ["nfl","nba","mlb"];
     let onlyBundles = LS.get("onlyBundles", "1") === "1";
     let adminControlsVisible = LS.get("adminControlsVisible", "1") === "1";
@@ -525,28 +495,25 @@ body { margin: 0px; background: transparent; font-family: Arial, sans-serif; col
     let spots = loadSpots();
 
     // Product-being-ran / promo / ticker config
-    let productRan = LS.get("productRan", DEFAULT_PRODUCT_RAN);
-    let promoBg = LS.get("promoBg", DEFAULT_PROMO_BG);
+    let productRan = LS.get("productRan", "");
+    let promoBg = LS.get("promoBg", "");
     let promoAnim = LS.get("promoAnim", "flip");
-    let promoInterval = Math.min(120, Math.max(2, parseInt(LS.get("promoInterval", "4"), 10) || 4));
+    let promoInterval = Math.min(120, Math.max(2, parseInt(LS.get("promoInterval", "6"), 10) || 6));
     const DEFAULT_PROMOS = ["FOLLOW FOR THE NEXT BREAK","GOOD LUCK TO ALL","COACHS111SPORTS BREAKS","LIKE • SHARE • SUBSCRIBE"];
     let promoMessages = loadPromos();
-    let tickerText = LS.get("ticker", DEFAULT_TICKER);
-    let tickerSpeed = Math.min(220, Math.max(30, parseInt(LS.get("tickerSpeed", "60"), 10) || 60));
+    let tickerText = LS.get("ticker", "");
+    let tickerSpeed = Math.min(220, Math.max(30, parseInt(LS.get("tickerSpeed", "90"), 10) || 90));
 
     function loadSpots(){
       try{
         const raw = LS.get("spots", "");
         if (raw){ const a = JSON.parse(raw); if (Array.isArray(a) && a.length) return a; }
       }catch(_){}
-      // Try stored default override, then the baked seller board, then the built-in.
+      // Try stored default override, else built-in default
       try{
         const d = LS.get("spotsDefault", "");
         if (d){ const a = JSON.parse(d); if (Array.isArray(a) && a.length) return a; }
       }catch(_){}
-      if (Array.isArray(DEFAULT_SPOTS) && DEFAULT_SPOTS.length){
-        return JSON.parse(JSON.stringify(DEFAULT_SPOTS));   // deep copy: never hand out the constant
-      }
       return buildDefaultSpots();
     }
     function loadPromos(){

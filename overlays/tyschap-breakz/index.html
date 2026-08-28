@@ -44,8 +44,8 @@
       --bannerH: 70px;
 
       /* layout tuning */
-      --sideW: 220px;
-      --gap: 5px;
+      --sideW: 255px;
+      --gap: 10px;
 
       /* bottom grid per sport (JS updates) */
       --bottomCols: 5;
@@ -57,8 +57,14 @@
          header title, more promo text, more sold rows. Measured natural height
          with an empty scoreboard was 776px; with 8 score rows it grew to 880px,
          which shifts the whole scene in OBS. --H pins it. Inner regions flex
-         into the leftover space and clip instead of pushing. */
-      --H: 655px;
+         into the leftover space and clip instead of pushing.
+         2026-08-25 round 5: the header (65px) and the standalone promo banner
+         row (10px margin + 70px) came out, and the banner moved into the
+         controls row. That freed 145px of chrome. --H is reduced by the same
+         145px so every remaining region keeps the exact size it had in round 4:
+         tiles stay 70px, the camera hole and the sold FX landing do not move.
+         The OBS browser source height must be set to 540. */
+      --H: 540px;
 
       /* Controls row: every box except the ticker is this wide. Reset, Left,
          Sold and Next are trimmed to the narrowest width their labels still
@@ -168,6 +174,14 @@ background-size: 140% auto; /* try 140–220% */
   z-index: 2;
 }
 
+/* 2026-08-25 round 5: the client asked for the top bar to be removed. The markup
+   is deliberately KEPT in the DOM and hidden instead of deleted, because
+   loadBreakNum() holds a hard reference to #breakId and the title loader writes
+   to #headerTitle; deleting the nodes would throw on boot. display:none has to
+   be explicit here, since .header{display:flex} above would beat the browser's
+   hidden attribute. Delete this one rule to bring the header back. */
+.header{ display:none !important; }
+
     .brand-left{
       display:flex;
       align-items:center;
@@ -251,19 +265,18 @@ background-size: 140% auto; /* try 140–220% */
     }
     .wick::after{
       content:"";
-      position:absolute; inset:4px;
+      position:absolute; inset: 2px;
       border-radius: inherit;
       pointer-events:none;
       z-index: 0;
 
       background:
-        linear-gradient(130deg,
-          transparent 0%,
-          rgba(190,56,243,0) 35%,
-          rgba(255, 255, 255, 0.85) 50%,
-          rgba(118,187,64,0.45) 56%,
-          rgba(190,56,243,0) 70%,
-          transparent 100%);
+    linear-gradient(130deg, #62ab4991 9%, 
+    rgb(62 243 56 / 72%) 55%,
+    rgb(93 255 0) 57%,
+    rgba(118, 187, 64, 0.45) 47%,
+    rgba(190, 56, 243, 0) 66%,
+    #78ea59ad 104%);
       background-size: 300% 300%;
       animation: wickRun 5.5s linear infinite;
 
@@ -359,17 +372,15 @@ background-size: 140% auto; /* try 140–220% */
       border-radius:inherit;
     }
     /* Hidden toggles (invisible on stream).
-       #adminToggle: top-left of the screen. STRICTLY the admin control panel
-                       (the pill row). It does not touch the sold list.
+       LEFT stat box: STRICTLY the admin control panel (the pill row). It does
+                       not touch the sold list. This replaced the invisible
+                       top-left #adminToggle hotspot on 2026-08-25 round 5: that
+                       hotspot lived behind the header, and the header is gone.
+                       A visible control the seller can actually find beats an
+                       invisible one, and OBS has no cursor so nothing shows on
+                       stream.
        #soldListToggle: sits on the sold data box itself and shows/hides the
                        sold list only. It does not touch the admin panel. */
-    #adminToggle{
-      position:fixed; top:0; left:0;
-      width:74px; height:44px;
-      z-index:2147483647; cursor:pointer;
-      opacity:0; background:transparent;
-      pointer-events:auto;
-    }
     /* 2026-08-20 fix. The first version was a 74x40 box pinned to the panel's
        top-right corner. It worked, but it was undiscoverable (no affordance at
        all) and it sat on top of the top-right sold-item's buyer input, so it
@@ -750,9 +761,12 @@ background-size: 140% auto; /* try 140–220% */
     /* =========================
        PROMO BANNER (rotating)
     ========================== */
+    /* 2026-08-25 round 5: the banner is no longer its own row. It sits in the
+       controls row, in the middle column the ticker used to occupy, between the
+       buttons/stats on the left and the stats/buttons on the right. */
     .banner{
-      margin-top: 10px;
-      flex: 0 0 auto;   /* locked footprint */
+      margin-top: 0;
+      min-width: 0;
       height: var(--bannerH);
       border-radius: 14px;
       background: rgba(0,0,0,0.55);
@@ -784,7 +798,7 @@ background-size: 140% auto; /* try 140–220% */
       width:100%;
       height:100%;
       object-fit: cover;
-      opacity: 0.92;
+      opacity: 0.52;
       filter: saturate(1.05) contrast(1.02);
     }
 
@@ -797,7 +811,7 @@ background-size: 140% auto; /* try 140–220% */
       justify-content:center;
       gap: 6px;
       padding: 0 8px;
-      border:solid 1px rgba(190,56,243,0.55);
+      border:solid 1px rgba(190,56,243,0.85);
       border-radius: inherit;
     }
 
@@ -823,14 +837,14 @@ background-size: 140% auto; /* try 140–220% */
       text-align:center;
       gap: 2px;
       line-height: 1.05;
-      text-shadow: 0 2px 0 rgba(0,0,0,0.85);
+      text-shadow: 2px 2px 2px rgba(0,0,0,0.85);
     }
 
     .banner-text .top{
       font-size: 12px;
       letter-spacing: 1px;
       text-transform: uppercase;
-      opacity: 0.85;
+      opacity: 1;
     }
     .banner-text .main{
       /* Belt and braces against the .main class collision described above:
@@ -840,10 +854,10 @@ background-size: 140% auto; /* try 140–220% */
       gap: 0;
       margin: 0;
       width: 100%;
-      -webkit-text-stroke: black 2px;
+      -webkit-text-stroke: rgb(103, 0, 238) 1px;
 
-      font-size: 40px;
-      font-weight: 900;
+      font-size: 36px;
+      font-weight: 1000;
       letter-spacing: 0.4px;
     }
 
@@ -855,8 +869,10 @@ background-size: 140% auto; /* try 140–220% */
       margin-top: 4px;
       flex: 0 0 auto;   /* locked footprint */
       display:grid;
-      /* Reset, Left, TICKER, Sold, Next. The four boxes are all the same width;
-         the ticker takes every pixel left over. */
+      /* Reset, Left, PROMO BANNER, Sold, Next. The four boxes are all the same
+         width; the banner takes every pixel left over. It held the scrolling
+         ticker until 2026-08-25 round 5, when the client asked for the ticker to
+         go and the promo bar to move up onto this line. */
       grid-template-columns:
         var(--ctlW) var(--ctlW) minmax(0, 1fr) var(--ctlW) var(--ctlW);
       gap: 10px;
@@ -865,7 +881,9 @@ background-size: 140% auto; /* try 140–220% */
     }
 
     .ctl{
-      height: 65px;
+      /* matches --bannerH so the buttons, the stats and the promo banner all
+         sit on one line at the same height (2026-08-25 round 5) */
+      height: var(--bannerH);
       border-radius: 14px;
       background: linear-gradient(180deg, rgba(0,0,0,0.60), rgba(0,0,0,0.30));
        border: 1px solid rgba(255, 255, 255, 0.815);
@@ -963,6 +981,7 @@ background-size: 140% auto; /* try 140–220% */
     }
     /* the SOLD stat doubles as the sold-list show/hide control */
     #soldToggle{ cursor: pointer; }
+    #leftToggle{ cursor: pointer; }
     .stat .v{
       font-size: 30px;
       color: #fff;
@@ -983,7 +1002,7 @@ background-size: 140% auto; /* try 140–220% */
       background: rgba(0, 0, 0, 0.945);
       border: 1px solid rgba(240, 159, 10, 0.1);
       box-shadow: inset 0 0 0 1px rgba(118,187,64,0.12);
-      padding: 5px;
+      padding: 10px;
       display:block;
       /* anchors #soldListToggle, and keeps a clickable strip alive when both
          the admin panel and the sold list are hidden */
@@ -997,21 +1016,21 @@ background-size: 140% auto; /* try 140–220% */
       display:none;
       align-items:center;
       justify-content: center;
-      gap: 5px;
+      gap: 10px;
       margin-bottom: 10px;
       flex-wrap: wrap;
     }
     .sold-wrap.active .sold-top{ display:flex; }
 
     .pill{
-      padding: 5px 4px;
+      padding: 8px 14px;
       border-radius: 999px;
       background: rgba(73, 71, 71, 0.788);
       border: 1px solid rgba(255,255,255,0.14);
       color:#fff;
       font-weight: 900;
-      font-size: 14px;
-      letter-spacing: .6px;
+      font-size: 12px;
+      letter-spacing: .7px;
       text-transform: uppercase;
       cursor:pointer;
       white-space: nowrap;
@@ -1129,6 +1148,11 @@ background-size: 140% auto; /* try 140–220% */
 <body>
   <div class="overlay">
 
+    <!-- 2026-08-25 round 5: HEADER REMOVED at the client's request. The markup is
+         retained and hidden by CSS (.header{display:none!important}) because
+         #breakId and #headerTitle are referenced without null guards. Break # is
+         no longer displayed anywhere; it still drives computeBreakId() and the
+         breakIdMatches automation guard exactly as before. -->
     <div class="header">
       <div class="brand-left">
         <div class="title" id="headerTitle">TYSCHAP BREAKZ • NFL</div>
@@ -1171,24 +1195,21 @@ background-size: 140% auto; /* try 140–220% */
 
     </div>
 
-    <!-- Rotating promo banner -->
-    <div class="banner wick" id="banner"></div>
-
-    <!-- Controls -->
+    <!-- Controls (2026-08-25 round 5: the promo banner moved onto this line) -->
     <div class="controls">
       <div class="ctl btn" id="resetBtn">Reset</div>
 
-      <div class="ctl stat">
+      <!-- The LEFT stat doubles as the admin-panel toggle, the job the invisible
+           top-left hotspot used to do before the header was removed. -->
+      <div class="ctl stat" id="leftToggle" title="Show or hide the admin controls">
         <div class="v" id="leftCount">30</div>
         <div class="l">Left</div>
       </div>
 
-      <!-- Scrolling ticker (replaced the Highest Bid stat 2026-08-20).
-           Carries everything the removed LIVE SCORES and STREAM STATS boxes used
-           to show, plus the promo messages, so no information was lost. -->
-      <div class="ctl ticker" id="tickerBar">
-        <div class="ticker-track" id="tickerTrack"></div>
-      </div>
+      <!-- Rotating promo banner. Sat in its own row above the controls until
+           2026-08-25 round 5; it now occupies the middle column the scrolling
+           ticker used to fill. -->
+      <div class="banner wick" id="banner"></div>
 
       <div class="ctl stat" id="soldToggle">
         <div class="v" id="soldCount">0</div>
@@ -1200,9 +1221,6 @@ background-size: 140% auto; /* try 140–220% */
 
   </div>
 
-  <!-- Hidden admin toggle (invisible hotspot; click to show/hide admin controls) -->
-  <div id="adminToggle" title="Toggle admin controls"></div>
-
   <!-- Sold Panel -->
   <div class="sold-wrap" id="soldWrap">
     <!-- Hidden toggle #2: show/hide the sold list only -->
@@ -1213,33 +1231,10 @@ background-size: 140% auto; /* try 140–220% */
       <div class="pill" id="exportBtn">Export CSV</div>
       <div class="pill" id="chasersBtn">Pick Chasers</div>
       <div class="pill" id="sportBtn">Change Sport</div>
-      <div class="pill" id="tickerBtn">Ticker Text</div>
       <div class="pill" id="promoBtn">Promo Banner</div>
       <div class="pill" id="camBtn">Facecam Media</div>
     </div>
     <div class="sold-grid" id="soldGrid"></div>
-  </div>
-
-  <!-- Ticker Text Popup -->
-  <div class="popup" id="tickerPopup">
-    <div class="popup-card">
-      <h2>Scroll Ticker</h2>
-      <label style="display:block;font-size:12px;opacity:.85;margin:2px 0 4px;text-align:left;">Ticker messages, one per line. They scroll in this order and repeat.</label>
-      <textarea id="tickerMsgsInput" placeholder="Follow @tyschap_breakz&#10;Randoms fill fast&#10;Shipping every Monday"></textarea>
-      <label style="display:block;font-size:12px;opacity:.85;margin:10px 0 4px;text-align:left;">Also show live break stats (remaining, sold, highest bid, top buyer, chasers)?</label>
-      <select id="tickerStatsInput" style="width:100%;padding:8px;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.18);font-weight:800;">
-        <option value="1">Yes, mix stats in with my messages</option>
-        <option value="0">No, my messages only</option>
-      </select>
-      <label style="display:block;font-size:12px;opacity:.85;margin:10px 0 4px;text-align:left;">Scroll speed (pixels per second). Lower is slower. 92 is the default.</label>
-      <input id="tickerSpeedInput" type="number" min="20" max="400" step="1" />
-      <div id="tickerNote" style="display:none;font-size:11px;line-height:1.35;opacity:.9;margin:8px 0 0;text-align:left;color:#ffd54a;"></div>
-      <div class="popup-btns">
-        <button id="applyTicker">Apply</button>
-        <button id="resetTicker">Reset</button>
-        <button id="closeTicker">Cancel</button>
-      </div>
-    </div>
   </div>
 
   <!-- Export Popup -->
@@ -1316,9 +1311,9 @@ background-size: 140% auto; /* try 140–220% */
   <div class="popup" id="camPopup">
     <div class="popup-card">
       <h2>Facecam Background</h2>
-      <label style="display:block;font-size:12px;opacity:.85;margin:2px 0 4px;text-align:left;">Browse for an image or video on your computer:</label>
-      <input id="camFileInput" type="file" accept="image/*,video/*" />
-      <label style="display:block;font-size:12px;opacity:.85;margin:10px 0 4px;text-align:left;">or type a filename / URL (image or video):</label>
+      <label style="display:block;font-size:12px;opacity:.85;margin:2px 0 4px;text-align:left;">Browse for an image or a video clip &mdash; PNG, JPG, GIF, WEBP, MP4, MOV, M4V or WEBM. Video plays muted on a loop. The picker shows every file, so nothing can be greyed out; anything unusable is explained here instead.</label>
+      <input id="camFileInput" type="file" />
+      <label style="display:block;font-size:12px;opacity:.85;margin:10px 0 4px;text-align:left;">or type a filename / URL (image or video). A filename on its own is read from the same folder as index.html, which is how a big clip is made permanent:</label>
       <input id="camUrlInput" type="text" placeholder="fc-bg.mp4" />
       <div id="camNote" style="display:none;font-size:11px;line-height:1.35;opacity:.9;margin:8px 0 0;text-align:left;color:#ffd54a;"></div>
       <div class="popup-btns">
@@ -2441,6 +2436,35 @@ function setScoreboard(games, sport){
       slide.appendChild(content);
       host.appendChild(slide);
     });
+
+    fitBannerText();
+  }
+
+  /* 2026-08-25 round 5. The banner moved from its own full-width row into the
+     middle column of the controls row, so it is 636px wide instead of 1040px.
+     .banner has overflow:hidden, which means a long promo line would silently
+     clip. Step the message size down until it fits, exactly like fitInfoBody()
+     does for score rows. 40px is the client's own size and stays the default;
+     22px is the floor, below which the message stops reading on stream. */
+  const BANNER_FONT_MAX = 36, BANNER_FONT_MIN = 22;
+  function fitBannerText(){
+    const host = document.getElementById('banner');
+    if (!host) return;
+    host.querySelectorAll('.banner-text .main').forEach(el => {
+      el.style.fontSize = BANNER_FONT_MAX + 'px';
+      el.style.whiteSpace = 'nowrap';
+      const room = el.parentElement && el.parentElement.parentElement
+        ? el.parentElement.parentElement.clientWidth - 16 : host.clientWidth - 16;
+      if (room <= 0) return;
+      for (let size = BANNER_FONT_MAX; size >= BANNER_FONT_MIN; size -= 2){
+        el.style.fontSize = size + 'px';
+        if (el.scrollWidth <= room) return;
+      }
+      // Longer than the floor allows: let it wrap inside the bar rather than
+      // running off the end of it.
+      el.style.whiteSpace = 'normal';
+      el.style.lineHeight = '1.02';
+    });
   }
 
   function rotateBanner(){
@@ -2814,7 +2838,14 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
   ========================== */
   document.getElementById('resetBtn').addEventListener('click', resetAll);
   document.getElementById('nextBtn').addEventListener('click', nextBreak);
-  document.getElementById('adminToggle').addEventListener('click', toggleAdmin);
+  // The LEFT stat box is the admin-panel toggle. It replaced the invisible
+  // top-left hotspot on 2026-08-25 round 5, when the header was removed.
+  // stopPropagation matches the sold-toggle wiring below so the two independent
+  // toggles can never fire each other.
+  document.getElementById('leftToggle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    toggleAdmin();
+  });
   document.getElementById('soldListToggle').addEventListener('click', (e) => {
     e.stopPropagation();
     toggleSoldList();
@@ -2891,56 +2922,11 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
     }
   });
 
-  // Ticker text popup
-  const tickerPopup = document.getElementById('tickerPopup');
-  const tickerMsgsInput = document.getElementById('tickerMsgsInput');
-  const tickerStatsInput = document.getElementById('tickerStatsInput');
-  const tickerSpeedInput = document.getElementById('tickerSpeedInput');
-  const tickerNote = document.getElementById('tickerNote');
-
-  function tickerSay(msg){
-    if (!tickerNote) return;
-    tickerNote.textContent = String(msg || '');
-    tickerNote.style.display = msg ? 'block' : 'none';
-  }
-
-  document.getElementById('tickerBtn').addEventListener('click', () => {
-    tickerMsgsInput.value = TICKER_MSGS.join('\n');
-    tickerStatsInput.value = TICKER_STATS ? '1' : '0';
-    tickerSpeedInput.value = TICKER_SPEED;
-    tickerSay(TICKER_MSGS.length ? '' : 'No ticker lines saved yet, so the bar is currently borrowing your Promo Banner messages.');
-    tickerPopup.classList.add('active');
-    setTimeout(() => tickerMsgsInput.focus(), 0);
-  });
-  document.getElementById('closeTicker').addEventListener('click', () => tickerPopup.classList.remove('active'));
-
-  document.getElementById('applyTicker').addEventListener('click', () => {
-    TICKER_MSGS  = parseMsgList(tickerMsgsInput.value);
-    TICKER_STATS = (String(tickerStatsInput.value) !== '0');
-    let sp = parseInt(tickerSpeedInput.value, 10);
-    if (!Number.isFinite(sp) || sp < 20 || sp > 400) sp = TICKER_SPEED_DEFAULT;
-    TICKER_SPEED = sp;
-    LS.set('tickerMsgs', TICKER_MSGS.join('\n'));
-    LS.set('tickerStats', TICKER_STATS ? '1' : '0');
-    LS.set('tickerSpeed', TICKER_SPEED);
-    // force: content and speed both changed, so the duration must be rewritten
-    scheduleTicker(true);
-    tickerSay('');
-    tickerPopup.classList.remove('active');
-  });
-
-  // Reset clears the seller's lines so the bar falls back to the promo messages.
-  document.getElementById('resetTicker').addEventListener('click', () => {
-    TICKER_MSGS = [];
-    TICKER_STATS = true;
-    TICKER_SPEED = TICKER_SPEED_DEFAULT;
-    LS.set('tickerMsgs',''); LS.set('tickerStats','1'); LS.set('tickerSpeed', TICKER_SPEED_DEFAULT);
-    tickerMsgsInput.value = '';
-    tickerStatsInput.value = '1';
-    tickerSpeedInput.value = TICKER_SPEED_DEFAULT;
-    scheduleTicker(true);
-    tickerSay('Reset. The ticker is back to live stats plus your Promo Banner messages.');
-  });
+  /* Ticker text popup removed 2026-08-25 round 5 with the ticker itself. The
+     ticker's own functions (tickerItems, renderTicker, scheduleTicker) are left
+     in place and are already null-safe: renderTicker returns immediately when
+     #tickerTrack is absent, so every caller in the SSE and scores paths stays
+     valid and untouched. Restoring the bar is markup + this block, nothing else. */
 
   // Promo banner popup
   const promoPopup = document.getElementById('promoPopup');
@@ -3001,9 +2987,18 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
   camFileInput.addEventListener('change', (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    const kind = /^video\//i.test(file.type || '') ? 'video'
-               : /^image\//i.test(file.type || '') ? 'image'
-               : (VIDEO_EXT.test(file.name || '') ? 'video' : 'image');
+    /* Windows does not always register a MIME type for .mov, so file.type comes back
+       empty. Extension wins whenever that happens; the picker no longer filters, so an
+       unusable file is caught right here and explained. */
+    const IMAGE_EXT = /\.(png|jpe?g|gif|webp|bmp|avif)(\?|#|$)/i;
+    const isVid = /^video\//i.test(file.type || '') || VIDEO_EXT.test(file.name || '');
+    const isImg = /^image\//i.test(file.type || '') || IMAGE_EXT.test(file.name || '');
+    if (!isVid && !isImg){
+      camSay('That file is not an image or a video the overlay can use. Supported: PNG, JPG, GIF, WEBP, and MP4, MOV, M4V or WEBM video.');
+      e.target.value = '';
+      return;
+    }
+    const kind = isVid ? 'video' : 'image';
 
     if (file.size > CAM_PERSIST_MAX){
       let url = '';
@@ -3015,12 +3010,22 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
       if (kind === 'video'){
         img.hidden = true; img.removeAttribute('src');
         vid.hidden = false; vid.src = url; vid.muted = true; vid.loop = true;
+        vid.onerror = () => {
+          vid.onerror = null;
+          vid.hidden = true; vid.removeAttribute('src');
+          camSay('That clip loaded but this browser cannot decode it. A .mov from an iPhone is usually HEVC / H.265, which OBS cannot play. Convert it to H.264 MP4 and try again.');
+        };
         const pr = vid.play(); if (pr && pr.catch) pr.catch(() => {});
       } else {
         vid.hidden = true; vid.removeAttribute('src');
         img.hidden = false; img.src = url;
       }
-      camSay('Applied for this session. The file is too large to save in the overlay, so it will not survive an OBS restart. To make it permanent, copy the file into the same folder as index.html and type its filename in the box above.');
+      // Pre-fill the filename box with this clip's exact name. Making it
+      // permanent is then: copy the file next to index.html, click Use URL.
+      try { camUrlInput.value = file.name || ''; } catch(_){}
+      camSay('Applied for this session. ' + (file.name ? '"' + file.name + '" is ' : 'That file is ')
+        + 'too large to save inside the overlay, so it will not survive an OBS restart. '
+        + 'To keep it: copy the file into the same folder as index.html, then click Use URL with the filename already in the box above.');
       return;
     }
 
