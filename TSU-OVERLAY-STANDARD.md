@@ -185,6 +185,26 @@ listing fuzzy-match a tile.
 and the flag does nothing for it. Fleet audit 2026-08-24: `blue-light-rips`, `breakz4dayz` and
 `birdie-breaks` are all pure team-code boards; `coachs111` repack was the only title-matched board.
 
+> **Corrected 2026-08-30. The 2026-08-24 audit was scoped to `overlays/` only and therefore
+> missed every draft.** `_drafts` is gitignored (`.gitignore` line 61, `*_drafts*`), so a build
+> can sit there for weeks, unaudited and unhosted, while its `builds` row says review or even
+> live. `wizards-wonders` was exactly that: a title-matched orbital board built 2026-08-03,
+> shipped with a v2.2.1 extension that hard-dropped every named spot, and invisible to the audit.
+>
+> **Any fleet audit must scan `_drafts/` as well as `overlays/`.** A draft is not out of scope
+> just because it is not hosted; it is the thing most likely to be wrong.
+>
+> Re-run 2026-08-30 across both trees, 119 overlays. Confirmed title-matched, all three need
+> `sendUnresolved: true`: **`coachs111sports`, `coachs111breaks`, `wizards-wonders`** (each
+> present in both `overlays/` and `_drafts/`). 46 classify cleanly as code-matched. **59 could
+> not be classified automatically** because they route sales through helpers the screen does not
+> recognise, so treat that 59 as unaudited, not as safe. The screen keys on a title-routing call
+> (`findSpot*`, `findRepack*`, `markSoldByName`, `matchSpotByTitle`) versus a
+> `payload.code` / `payload.teamCode` reference.
+>
+> **The cheap check that beats any screen:** a board is title-matched if its sold handler can
+> mark a tile from an event whose `code` is `""`. Feed it one and watch.
+
 v2.3.2 also namespaces the extension dedup map to `tsu.seen:<overlayId>` (bug 24), with a
 migration shim that adopts the legacy bare-key map on first run. Without the shim an update starts
 with an empty map and the next poll re-sends the whole current sold list, replaying it with
