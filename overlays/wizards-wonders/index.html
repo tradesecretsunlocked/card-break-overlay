@@ -178,13 +178,14 @@
   .tile{
     height: var(--tileH);
     border-radius: 8px;
-    /* wonders-spot-logo.png sits behind every spot, tinted by the orbital colour,
-       with a scrim on top so the name stays readable over the artwork */
+    /* Each column's own SYMBOL sits behind its spots, tinted by the orbital colour,
+       with a scrim on top so the name stays readable over the artwork. --symbol is
+       set per column in render(); the literal below is only the 7th Realm fallback. */
     background-color: color-mix(in srgb, var(--col,#555) 34%, #0d0b18);
     background-image:
       linear-gradient(180deg, rgba(8,6,18,0.42), rgba(8,6,18,0.68)),
-      url('wonders-spot-logo.png');
-    background-size: cover, 78% auto;
+      var(--symbol, url('wonders-spot-logo.png'));
+    background-size: cover, cover;
     background-position: center, center;
     background-repeat: no-repeat, no-repeat;
     border: 1px solid rgba(255,255,255,0.22);
@@ -343,8 +344,8 @@
     background-color: color-mix(in srgb, var(--col,#6a3df0) 40%, #0d0b18);
     background-image:
       linear-gradient(180deg, rgba(8,6,18,0.35), rgba(8,6,18,0.62)),
-      url('wonders-spot-logo.png');
-    background-size: cover, 74% auto;
+      var(--symbol, url('wonders-spot-logo.png'));
+    background-size: cover, cover;
     background-position:center, center;
     background-repeat:no-repeat, no-repeat;
     border:1px solid rgba(255,255,255,0.5);
@@ -453,20 +454,20 @@
     <h2>Import Spots</h2>
     <p>Two columns: <b>first is the spot name, second is the orbital</b>. Paste it, drop a CSV
        on the box, or pick a file. Comma, tab or pipe all work, a header row is skipped
-       automatically, and anything that does not match an orbital lands in Misc.</p>
+       automatically, and anything that does not match an orbital lands in 7th Realm.</p>
     <div class="importRow">
       <button class="ctl" id="csvBtn" type="button">Choose CSV file</button>
       <span class="importHint" id="importCount">no spots yet</span>
     </div>
     <input type="file" id="csvFile" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden />
-    <textarea id="importInput" placeholder="Spot name, Petraia&#10;Another spot, Umbra&#10;Third spot, Misc"></textarea>
+    <textarea id="importInput" placeholder="Spot name, Boundless&#10;Another spot, Thalwind&#10;Third spot, 7th Realm"></textarea>
     <div class="popup-btns"><button class="primary" id="importApply">Load</button><button id="importClose">Cancel</button></div>
   </div></div>
 
   <!-- Orbitals config popup -->
   <div class="popup" id="orbitalsPopup"><div class="popup-card">
     <h2>Orbitals (columns)</h2>
-    <p>Name and color for the 6 orbital columns. The 7th column is always Misc.</p>
+    <p>Name and color for the 6 orbital columns. The 7th column is always 7th Realm.</p>
     <div id="orbitalsRows"></div>
     <div class="popup-btns"><button class="primary" id="orbitalsApply">Apply</button><button id="orbitalsClose">Cancel</button></div>
   </div></div>
@@ -551,17 +552,28 @@
     }catch(_){}
   }
 
-  // ----- Orbitals: 6 configurable + implicit Misc -----
+  // ----- Orbitals: 6 configurable + the fixed 7th Realm column -----
+  /* Names are Luis's set. Colours are sampled from each column's own SYMBOL
+     artwork so the accent and the card background never fight each other.
+     Boundless takes the silver of its star rather than its blue field, which is
+     what "gray" in his list refers to. Umbrathene's field is near black, too dark
+     to use as an accent, so it keeps the palette purple he asked for. */
   const DEFAULT_ORBITALS = [
-    { key:"o1", name:"Petraia", color:"#4594c1" },
-    { key:"o2", name:"Ignis",   color:"#a73a42" },
-    { key:"o3", name:"Silva",   color:"#bcc563" },
-    { key:"o4", name:"Aqua",    color:"#16508b" },
-    { key:"o5", name:"Umbra",   color:"#8844c6" },
-    { key:"o6", name:"Aer",     color:"#249d42" }
+    { key:"o1", name:"Boundless",  color:"#d0bcae" },
+    { key:"o2", name:"Heliosynth", color:"#be9129" },
+    { key:"o3", name:"Patraia",    color:"#56b04e" },
+    { key:"o4", name:"Solfera",    color:"#ab5748" },
+    { key:"o5", name:"Thalwind",   color:"#497b81" },
+    { key:"o6", name:"Umbrathene", color:"#8844c6" }
   ];
-  let orbitals = (()=>{ try{ const a=JSON.parse(LS.get('orbitals','')); return (Array.isArray(a)&&a.length===6)?a:DEFAULT_ORBITALS.slice(); }catch(_){ return DEFAULT_ORBITALS.slice(); } })();
-  const MISC = { key:"misc", name:"Misc", color:"#9aa0b5" };
+  /* v2 key: the old 'orbitals' entry holds the retired Petraia/Ignis/Silva set and
+     would shadow these defaults on any machine that had the board open before.
+     Bumping the key retires it once; the seller can still rename afterwards. */
+  let orbitals = (()=>{ try{ const a=JSON.parse(LS.get('orbitals_v2','')); return (Array.isArray(a)&&a.length===6)?a:DEFAULT_ORBITALS.slice(); }catch(_){ return DEFAULT_ORBITALS.slice(); } })();
+  /* The 7th column. Renamed from "Misc" to "7th Realm" on 2026-08-30 per Luis.
+     The key stays "misc" on purpose: it is the internal bucket id that spots and
+     stored state hang off, and changing it would strand every saved board. */
+  const MISC = { key:"misc", name:"7th Realm", color:"#9aa0b5" };
 
   // ----- Spots -----
   let spots = (()=>{ try{ const a=JSON.parse(LS.get('spots','[]')); return Array.isArray(a)?a:[]; }catch(_){ return []; } })();
@@ -570,18 +582,48 @@
   function persist(){ LS.set('spots', JSON.stringify(spots)); }
   function norm(s){ return String(s||'').trim().toLowerCase(); }
 
+  /* The 7th column answers to its new name and its old one, so a CSV written
+     before the rename still lands where the seller expects. */
+  function isSeventh(v){
+    const t = norm(v).replace(/[^a-z0-9]/g,'');
+    return t==='misc' || t==='7threalm' || t==='seventhrealm';
+  }
+
   function orbitalFor(spot){
     const t = norm(spot.orbital);
     const hit = orbitals.find(o=> norm(o.name)===t || o.key===t);
     return hit || MISC;
   }
 
-  // Gem artwork filename from the orbital name: "Petraia" -> "PETRAIA.png".
-  // Strips spaces/punctuation so a renamed orbital still resolves predictably.
-  // If the file does not exist the <img> onerror swaps in the CSS diamond fallback.
-  function gemFileFor(name){
-    const base = String(name||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-    return (base || 'MISC') + '.png';
+  /* ===== Artwork is pinned to the COLUMN POSITION, never to the orbital name =====
+     Renaming a column must NOT move its stone or its symbol. The previous build
+     derived the filename from the name ("Petraia" -> PETRAIA.png), so the moment
+     Luis renamed a column the artwork either jumped to another column's file or
+     404'd to the CSS diamond fallback. Position is the identity here.
+
+     Two filenames are deliberately spelled the way they arrived on disk, because
+     they do NOT match their column name and deriving them would break again:
+       column 2 is Heliosynth  ->  HELIOSYNTHI-SYMBOL.png  (extra I)
+       column 3 is Patraia     ->  PETRAIA-SYMBOL.png      (E, not A)
+     If either file is ever renamed, change it HERE and nowhere else. */
+  const COLUMN_ART = [
+    { gem:"BOUNDLESS.png",  symbol:"BOUNDLESS-SYMBOL.png"   },
+    { gem:"HELIOSYNTH.png", symbol:"HELIOSYNTHI-SYMBOL.png" },
+    { gem:"PATRAIA.png",    symbol:"PETRAIA-SYMBOL.png"     },
+    { gem:"SOLFERA.png",    symbol:"SOLFERA-SYMBOL.png"     },
+    { gem:"THALWIND.png",   symbol:"THALWIND-SYMBOL.png"    },
+    { gem:"UMBRATHENE.png", symbol:"UMBRATHENE-SYMBOL.png"  }
+  ];
+  /* The 7th column keeps the house spot logo as its card background.
+     Its stone was renamed MISC.png -> 7th-REALM.png on 2026-08-30, and the column
+     label was renamed to "7th Realm" to match. */
+  const MISC_ART = { gem:"7th-REALM.png", symbol:"wonders-spot-logo.png" };
+  function artFor(ci){ return COLUMN_ART[ci] || MISC_ART; }
+  function symbolForSpotIndex(i){
+    const sp = spots[i]; if (!sp) return MISC_ART.symbol;
+    const c = orbitalFor(sp);
+    const ci = orbitals.findIndex(o => o.key === c.key);
+    return artFor(ci < 0 ? 99 : ci).symbol;
   }
 
   // ----- Render -----
@@ -596,8 +638,10 @@
       const col = document.createElement('div');
       col.className='col'; col.style.setProperty('--col', c.color);
       const head = document.createElement('div'); head.className='colHead';
-      // Gem artwork is named after the orbital, uppercased: Petraia -> PETRAIA.png
-      const gemSrc = gemFileFor(c.name);
+      // Artwork comes from the column POSITION, so a rename never moves it.
+      const art    = artFor(ci);
+      const gemSrc = art.gem;
+      col.style.setProperty('--symbol', `url('${art.symbol}')`);
       // Stagger float + shimmer per column so the gems never move in lockstep
       const gemDelay = (ci * 0.55).toFixed(2) + 's';
       const shimDelay = (ci * 1.15).toFixed(2) + 's';
@@ -613,6 +657,7 @@
       list.forEach(({sp,i})=>{
         const t=document.createElement('div');
         t.className='tile'+(sp.sold?' sold':''); t.style.setProperty('--col', c.color);
+        t.style.setProperty('--symbol', `url('${art.symbol}')`);
         t.dataset.idx = i;   // lets the sold animation find and measure this tile
         t.innerHTML = '<span class="nm">'+esc(sp.name)+'</span>'
                     + '<span class="buyer">'+esc(sp.buyer||'')+'</span>';
@@ -762,6 +807,8 @@
     fly.style.setProperty('--ey', (vh/2 - r.height/2) + 'px');
     fly.style.setProperty('--fscale', scale.toFixed(2));
     if (color) fly.style.setProperty('--col', color);
+    // the celebration card carries the same symbol as the column it flew out of
+    if (idx != null) fly.style.setProperty('--symbol', `url('${symbolForSpotIndex(idx)}')`);
     fly.innerHTML = '<div class="face"><div class="fglow"></div>'
       + '<div class="fname">' + esc(name || 'SOLD') + '</div>'
       + '<div class="fsold">SOLD</div></div>';
@@ -797,7 +844,7 @@
   function looksLikeHeader(cols){
     const a = String(cols[0]||'').trim().toLowerCase().replace(/\s+/g,' ');
     const b = String(cols[1]||'').trim().toLowerCase().replace(/\s+/g,' ');
-    const knownOrbital = orbitals.some(o=> norm(o.name)===norm(b)) || norm(b)==='misc';
+    const knownOrbital = orbitals.some(o=> norm(o.name)===norm(b)) || isSeventh(b);
     if (knownOrbital) return false;                    // guard 1
     const nameish = /^(name|spot|spot name|spotname|item|item name|card|card name|player|title|description)$/;
     const orbish  = /^(orbital|orbitals|column|col|group|category|type|element|set)$/;
@@ -805,7 +852,7 @@
   }
 
   /* Column 1 = spot name, column 2 = orbital. Extra columns are ignored.
-     Anything that does not match a configured orbital falls through to Misc
+     Anything that does not match a configured orbital falls through to 7th Realm
      via orbitalFor() at render time, so a typo never loses a spot. */
   function parseImport(raw){
     const out=[];
@@ -820,7 +867,7 @@
         if (looksLikeHeader(cols)) continue;
       }
       const name = (cols[0]||'').trim();
-      const orb  = (cols[1]||'').trim() || 'Misc';
+      const orb  = (cols[1]||'').trim() || '7th Realm';
       if (name) out.push({ name, orbital:orb, sold:false, buyer:'' });
     }
     return out;
@@ -835,7 +882,7 @@
     const known = orbitals.map(o=>norm(o.name));
     const miscN = parsed.filter(p=> !known.includes(norm(p.orbital))).length;
     el.textContent = parsed.length + ' spot' + (parsed.length===1?'':'s')
-      + (miscN ? '  ·  ' + miscN + ' going to Misc' : '  ·  all orbitals matched');
+      + (miscN ? '  ·  ' + miscN + ' going to 7th Realm' : '  ·  all orbitals matched');
     el.className = 'importHint ' + (miscN ? 'warn' : 'ok');
   }
 
@@ -919,7 +966,7 @@
     $('orbitalsApply').addEventListener('click', ()=>{
       document.querySelectorAll('.oName').forEach(inp=>{ const i=+inp.dataset.i; orbitals[i].name = inp.value.trim()||orbitals[i].name; });
       document.querySelectorAll('.oColor').forEach(inp=>{ const i=+inp.dataset.i; orbitals[i].color = inp.value; });
-      LS.set('orbitals', JSON.stringify(orbitals)); render(); close('orbitalsPopup');
+      LS.set('orbitals_v2', JSON.stringify(orbitals)); render(); close('orbitalsPopup');
     });
 
     $('titleBtn').addEventListener('click', ()=>{ $('subInput').value=eventSub; open('titlePopup'); });
