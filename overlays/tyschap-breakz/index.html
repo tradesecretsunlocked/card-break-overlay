@@ -1311,10 +1311,10 @@ background-size: 140% auto; /* try 140–220% */
   <div class="popup" id="camPopup">
     <div class="popup-card">
       <h2>Facecam Background</h2>
-      <label style="display:block;font-size:12px;opacity:.85;margin:2px 0 4px;text-align:left;">Browse for an image or a video clip &mdash; PNG, JPG, GIF, WEBP, MP4, MOV, M4V or WEBM. Video plays muted on a loop. The picker shows every file, so nothing can be greyed out; anything unusable is explained here instead.</label>
+      <label style="display:block;font-size:12px;opacity:.85;margin:2px 0 4px;text-align:left;">Browse for an image or a video clip &mdash; PNG, JPG, GIF, WEBP, MP4, MOV, M4V or WEBM. Video plays muted on a loop, and it is kept after an OBS restart. The picker shows every file, so nothing can be greyed out; anything unusable is explained here instead.</label>
       <input id="camFileInput" type="file" />
-      <label style="display:block;font-size:12px;opacity:.85;margin:10px 0 4px;text-align:left;">or type a filename / URL (image or video). A filename on its own is read from the same folder as index.html, which is how a big clip is made permanent:</label>
-      <input id="camUrlInput" type="text" placeholder="fc-bg.mp4" />
+      <label style="display:block;font-size:12px;opacity:.85;margin:10px 0 4px;text-align:left;">or type a filename, a full path, or a URL. A filename on its own is read from the same folder as index.html, which is the most reliable way to keep a big clip. A full Windows path pasted from Explorer works too:</label>
+      <input id="camUrlInput" type="text" placeholder="16x9-updated.mp4" />
       <div id="camNote" style="display:none;font-size:11px;line-height:1.35;opacity:.9;margin:8px 0 0;text-align:left;color:#ffd54a;"></div>
       <div class="popup-btns">
         <button id="applyCamUrl">Use URL</button>
@@ -1549,13 +1549,29 @@ const CHANNELS = (() => {
   // Ships with fc-bg.mp4 sitting next to this file, played muted on a loop.
   // The seller can swap it for any image or video from the Facecam Media modal.
   // Resolution order: browsed file data > typed path > baked default.
-  const CAM_DEFAULT = 'fc-bg.mp4';
+  /* 2026-08-28: this client runs the overlay LOCALLY off his own disk, not from a
+     hosted URL, so the reliable place for his clip is beside index.html rather than in
+     browser storage. The defaults are tried in order and the first one that decodes
+     wins, so dropping his file in the folder is all that is needed; if it is missing or
+     unplayable the shipped clip still comes up, and only then the still image. */
+  const CAM_DEFAULTS = ['16x9-updated.mp4', 'fc-bg.mp4'];
+  const CAM_DEFAULT = CAM_DEFAULTS[0];
   const VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv|ogg)(\?|#|$)/i;
 
   function camResolve(v){
-    const raw = String(v || '').trim();
+    let raw = String(v || '').trim();
     if (!raw) return '';
-    if (/^(data:|blob:|https?:)/i.test(raw)) return raw;
+    raw = raw.replace(/^["']|["']$/g, '');            // a path pasted from Explorer arrives quoted
+    if (/^(data:|blob:|https?:|file:)/i.test(raw)) return raw;
+    /* A full Windows path is not a URL: C:\Users\...\clip.mp4 and \\server\share\clip.mp4
+       both fail in new URL(). Convert them to file:// so a seller can paste the path
+       straight out of Explorer instead of copying the file. */
+    if (/^[A-Za-z]:[\\/]/.test(raw)){
+      return 'file:///' + encodeURI(raw.replace(/\\/g, '/'));
+    }
+    if (/^\\\\/.test(raw)){
+      return 'file:' + encodeURI(raw.replace(/\\/g, '/'));
+    }
     // Relative paths resolve next to the overlay file, same rule as the promo
     // banner image, so a seller can drop fc-bg.mp4 beside index.html.
     return new URL(raw, location.href).href;
@@ -1573,17 +1589,105 @@ const CHANNELS = (() => {
     return LS.get('camBgData','') || LS.get('camBg','') || CAM_DEFAULT;
   }
 
+  /* ===== BROWSED MEDIA THAT SURVIVES AN OBS RESTART (2026-08-28) =====
+     A browsed clip used to vanish on restart and drop back to fc-bg.mp4. localStorage
+     holds about 5MB per origin and base64 inflates a file by a third, so any real video
+     blew the quota and could only be applied for the session. IndexedDB has no practical
+     size limit and persists, so the FILE ITSELF now lives there and is re-attached on
+     boot; localStorage keeps only a small "idb:<filename>" marker.
+     Chromium refuses IndexedDB on file:// origins, so every call is guarded and falls
+     back to the old behaviour: session-only blob, plus the filename saved so the seller
+     can drop the file beside index.html for a permanent swap. */
+  const CAM_IDB_DB = 'tyschap-breakz-media', CAM_IDB_STORE = 'files', CAM_IDB_KEY = 'camBg';
+  const CAM_IDB_MARKER = 'idb:';
+
+  function camIdbOpen(){
+    return new Promise((res, rej) => {
+      let req;
+      try { req = indexedDB.open(CAM_IDB_DB, 1); } catch(e){ return rej(e); }
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(CAM_IDB_STORE)) db.createObjectStore(CAM_IDB_STORE);
+      };
+      req.onsuccess = () => res(req.result);
+      req.onerror   = () => rej(req.error || new Error('indexeddb open failed'));
+      req.onblocked = () => rej(new Error('indexeddb blocked'));
+    });
+  }
+  function camIdbPut(blob, name, kind){
+    return camIdbOpen().then(db => new Promise((res, rej) => {
+      let tx;
+      try { tx = db.transaction(CAM_IDB_STORE, 'readwrite'); } catch(e){ db.close(); return rej(e); }
+      tx.objectStore(CAM_IDB_STORE).put({ blob, name, kind, savedAt: Date.now() }, CAM_IDB_KEY);
+      tx.oncomplete = () => { db.close(); res(true); };
+      tx.onerror    = () => { db.close(); rej(tx.error || new Error('indexeddb write failed')); };
+      tx.onabort    = () => { db.close(); rej(tx.error || new Error('indexeddb write aborted')); };
+    }));
+  }
+  function camIdbGet(){
+    return camIdbOpen().then(db => new Promise((res, rej) => {
+      let tx;
+      try { tx = db.transaction(CAM_IDB_STORE, 'readonly'); } catch(e){ db.close(); return rej(e); }
+      const rq = tx.objectStore(CAM_IDB_STORE).get(CAM_IDB_KEY);
+      rq.onsuccess = () => { db.close(); res(rq.result || null); };
+      rq.onerror   = () => { db.close(); rej(rq.error || new Error('indexeddb read failed')); };
+    }));
+  }
+  function camIdbClear(){
+    return camIdbOpen().then(db => new Promise((res) => {
+      let tx;
+      try { tx = db.transaction(CAM_IDB_STORE, 'readwrite'); } catch(e){ db.close(); return res(false); }
+      tx.objectStore(CAM_IDB_STORE).delete(CAM_IDB_KEY);
+      tx.oncomplete = () => { db.close(); res(true); };
+      tx.onerror    = () => { db.close(); res(false); };
+    })).catch(() => false);
+  }
+
+  /* A .mov picked on a machine with no registered MIME arrives with an empty type, and a
+     blob URL with no type will not play in a <video>. Stamp the container from the
+     extension when storing so the re-attached clip plays exactly like the original. */
+  const CAM_MIME_BY_EXT = { mp4:'video/mp4', m4v:'video/x-m4v', mov:'video/quicktime',
+                            webm:'video/webm', ogv:'video/ogg', ogg:'video/ogg',
+                            png:'image/png', jpg:'image/jpeg', jpeg:'image/jpeg',
+                            gif:'image/gif', webp:'image/webp', bmp:'image/bmp', avif:'image/avif' };
+  function camTypedBlob(file){
+    if (file.type) return file;
+    const ext = String(file.name || '').split('.').pop().toLowerCase();
+    const mime = CAM_MIME_BY_EXT[ext];
+    return mime ? new Blob([file], { type: mime }) : file;
+  }
+
   function applyCamBg(){
     const img = document.getElementById('camBgImg');
     const vid = document.getElementById('camBgVid');
     if (!img || !vid) return;
-    const src = camResolve(getCamBg());
+
+    const stored = String(getCamBg() || '');
+    if (stored.indexOf(CAM_IDB_MARKER) === 0){
+      const name = stored.slice(CAM_IDB_MARKER.length);
+      // Named fallback first, so a failed read still lands on something sensible.
+      const fallback = () => camPaint(camResolve(name || CAM_DEFAULT), camIsVideo(name || CAM_DEFAULT));
+      camIdbGet().then(rec => {
+        if (rec && rec.blob) camPaint(URL.createObjectURL(rec.blob), rec.kind === 'video');
+        else fallback();
+      }).catch(fallback);
+      return;
+    }
+    camPaint(camResolve(stored), null);
+  }
+
+  /* One painter for every source: stored blob, typed filename, or the baked default. */
+  function camPaint(src, isVideo){
+    const img = document.getElementById('camBgImg');
+    const vid = document.getElementById('camBgVid');
+    if (!img || !vid) return;
     if (!src){
       img.hidden = true; vid.hidden = true;
       img.removeAttribute('src'); vid.removeAttribute('src');
       return;
     }
-    if (camIsVideo(src)){
+    if (isVideo === null || isVideo === undefined) isVideo = camIsVideo(src);
+    if (isVideo){
       img.hidden = true; img.removeAttribute('src');
       vid.hidden = false;
       if (vid.getAttribute('src') !== src) vid.setAttribute('src', src);
@@ -1592,10 +1696,13 @@ const CHANNELS = (() => {
       const go = () => { const pr = vid.play(); if (pr && pr.catch) pr.catch(() => {}); };
       go();
       vid.onloadeddata = go;
-      // If the video cannot decode, fall back to the still image beside it
-      // rather than leaving a black camera hole.
+      /* If this source will not decode, walk the remaining baked defaults before
+         giving up, then the still image, rather than leaving a black camera hole.
+         A missing 16x9-updated.mp4 therefore lands on fc-bg.mp4 silently. */
       vid.onerror = () => {
         vid.onerror = null;
+        const next = CAM_DEFAULTS.map(camResolve).find(u => u && u !== src);
+        if (next){ camPaint(next, true); return; }
         vid.hidden = true;
         const still = camResolve('fc-bg.png');
         img.hidden = false; img.src = still;
@@ -3000,11 +3107,14 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
     }
     const kind = isVid ? 'video' : 'image';
 
-    if (file.size > CAM_PERSIST_MAX){
-      let url = '';
-      try { url = URL.createObjectURL(file); } catch(_){}
-      if (!url){ camSay('That file could not be read. Try a smaller one.'); return; }
-      try { LS.set('camBgData',''); LS.set('camBg',''); LS.set('camBgKind', kind); } catch(_){}
+    /* PERSISTENCE, in order of preference (2026-08-28):
+         1. IndexedDB. Any size, survives an OBS restart. This is the normal path.
+         2. localStorage data URL, for a small file when IndexedDB is unavailable.
+         3. Session-only blob, when neither works (file:// origin with a large file),
+            with the filename saved so the seller can drop it beside index.html.
+       Before this, anything over 3MB was ALWAYS case 3, which is why a browsed clip
+       reverted to fc-bg.mp4 on every restart. */
+    const showNow = (url) => {
       const img = document.getElementById('camBgImg');
       const vid = document.getElementById('camBgVid');
       if (kind === 'video'){
@@ -3019,42 +3129,75 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
       } else {
         vid.hidden = true; vid.removeAttribute('src');
         img.hidden = false; img.src = url;
+        img.onerror = () => { img.onerror = null; img.hidden = true; };
       }
-      // Pre-fill the filename box with this clip's exact name. Making it
-      // permanent is then: copy the file next to index.html, click Use URL.
-      try { camUrlInput.value = file.name || ''; } catch(_){}
-      camSay('Applied for this session. ' + (file.name ? '"' + file.name + '" is ' : 'That file is ')
-        + 'too large to save inside the overlay, so it will not survive an OBS restart. '
-        + 'To keep it: copy the file into the same folder as index.html, then click Use URL with the filename already in the box above.');
-      return;
-    }
+    };
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const data = String(reader.result || '');
-      try { LS.set('camBgData', data); LS.set('camBg',''); LS.set('camBgKind', kind); }
-      catch(_){ camSay('Applied, but it could not be saved (storage full). It will reset when OBS restarts.'); }
+    const sessionOnly = () => {
+      let url = '';
+      try { url = URL.createObjectURL(file); } catch(_){}
+      if (!url){ camSay('That file could not be read. Try a different one.'); return; }
+      try { LS.set('camBgData',''); LS.set('camBg', file.name || ''); LS.set('camBgKind', kind); } catch(_){}
+      showNow(url);
+      try { camUrlInput.value = file.name || ''; } catch(_){}
+      camSay('Applied for this session only. This browser will not let the overlay store the file, '
+        + 'so it will go back to the default when OBS restarts. To keep it: copy '
+        + (file.name ? '"' + file.name + '"' : 'the file') + ' into the same folder as index.html, then click Use URL.');
+    };
+
+    camIdbPut(camTypedBlob(file), file.name || '', kind)
+      .then(() => {
+        try {
+          LS.set('camBgData','');
+          LS.set('camBg', CAM_IDB_MARKER + (file.name || ''));
+          LS.set('camBgKind', kind);
+        } catch(_){}
+        applyCamBg();
+        try { camUrlInput.value = ''; } catch(_){}
+        camSay('Saved. ' + (file.name ? '"' + file.name + '" ' : 'That file ')
+          + 'is stored in the overlay and will still be here after an OBS restart. '
+          + 'Reset puts the original back.');
+        setTimeout(() => { camSay(''); camPopup.classList.remove('active'); }, 2600);
+      })
+      .catch(() => {
+        // No IndexedDB (file:// origin) or the write was refused.
+        if (file.size > CAM_PERSIST_MAX){ sessionOnly(); return; }
+        const reader = new FileReader();
+        reader.onload = () => {
+          const data = String(reader.result || '');
+          try { LS.set('camBgData', data); LS.set('camBg',''); LS.set('camBgKind', kind); }
+          catch(_){ sessionOnly(); return; }
+          applyCamBg();
+          camSay('');
+          camPopup.classList.remove('active');
+        };
+        reader.onerror = () => camSay('That file could not be read. Try a different one.');
+        reader.readAsDataURL(file);
+      });
+  });
+  document.getElementById('applyCamUrl').addEventListener('click', () => {
+    // A path dragged or copied out of Finder or Explorer arrives wrapped in quotes.
+    // camResolve strips them anyway, but store the clean value so the box reads back tidy.
+    const u = String(camUrlInput.value||'').trim().replace(/^["']|["']$/g, '');
+    try { camUrlInput.value = u; } catch(_){}
+    // Drop any stored file first: the marker would otherwise win over the typed path.
+    camIdbClear().then(() => {
+      LS.set('camBg', u); LS.set('camBgData','');
+      LS.set('camBgKind', VIDEO_EXT.test(u) ? 'video' : 'image');
       applyCamBg();
       camSay('');
       camPopup.classList.remove('active');
-    };
-    reader.onerror = () => camSay('That file could not be read. Try a different one.');
-    reader.readAsDataURL(file);
-  });
-  document.getElementById('applyCamUrl').addEventListener('click', () => {
-    const u = String(camUrlInput.value||'').trim();
-    LS.set('camBg', u); LS.set('camBgData','');
-    LS.set('camBgKind', VIDEO_EXT.test(u) ? 'video' : 'image');
-    applyCamBg();
-    camSay('');
-    camPopup.classList.remove('active');
+    });
   });
   // Reset returns to the baked default (fc-bg.mp4), not to an empty camera.
   document.getElementById('resetCam').addEventListener('click', () => {
-    LS.set('camBg',''); LS.set('camBgData',''); LS.set('camBgKind','');
-    applyCamBg();
-    camSay('');
-    camPopup.classList.remove('active');
+    camIdbClear().then(() => {
+      LS.set('camBg',''); LS.set('camBgData',''); LS.set('camBgKind','');
+      try { camUrlInput.value = ''; } catch(_){}
+      applyCamBg();
+      camSay('');
+      camPopup.classList.remove('active');
+    });
   });
 
   // Export popup
