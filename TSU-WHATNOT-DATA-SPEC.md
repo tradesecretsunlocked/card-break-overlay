@@ -1,6 +1,7 @@
 # TSU Whatnot Data and Deployment Spec
 
-**Status:** DRAFT for Mike's approval. Nothing here is built yet.
+**Status:** APPROVED by Mike 2026-08-30. **PHASE 0 IS SHIPPED** (see the Phase 0 record below).
+Parts A and B beyond Phase 0 are still unbuilt.
 **Author:** Aria, 2026-08-30
 **Supersedes:** nothing. **Amends:** `TSU-OVERLAY-STANDARD.md` §7 and §8, `docs/SOP-CLIENT-PROVISIONING.md` §7.
 **Canon note:** where this doc and a skill reference file disagree, this doc wins until the
@@ -20,6 +21,69 @@ Two capabilities, one shared foundation.
 
 The foundation both need is the same: **one extension, configured from the server, updated
 centrally.**
+
+
+---
+
+## PHASE 0 RECORD, shipped 2026-08-30
+
+**One deliberate deviation from the approved spec.** B2 said the config endpoint would live on the
+bridge. It shipped as a **Supabase Edge Function**, `extension-config`, instead. Two reasons: the repo
+copy of the bridge carries a banner saying it is stale and NOT deployed, so editing it could not be
+verified, and the deployed bridge lives on Render which this session cannot deploy to. The edge
+function was deployable and testable immediately. The contract is otherwise exactly as specified, and
+the bridge stays focused on SSE.
+
+**Endpoint:** `GET https://znyryhgjghjsobkzyfbx.supabase.co/functions/v1/extension-config`
+Headers: `x-bridge-key` (required), `x-ext-version` (optional, telemetry).
+`verify_jwt` is off; the bridge key is the credential.
+
+| Case | Result |
+|---|---|
+| Valid active key | `200` with the full config |
+| Missing key | `401 missing_bridge_key` |
+| Unknown, inactive or archived key | `403 invalid_or_revoked_bridge_key` |
+| Valid key, no config row | `200 configured:false, capture_enabled:false` |
+
+Unknown and revoked return the **same** body on purpose, so a bad key learns nothing about whether it
+exists. `capture_enabled` requires BOTH the kill switch and a real lowercase handle, and
+`capture_blocked_reason` says which one failed. All four cases verified live.
+
+**Table:** `client_extension_config`, one row per bridge key. Columns per B2 plus `ring`,
+`capture_enabled`, `min_ext_version`, `source_build_path`, and telemetry
+(`last_seen_at`, `last_seen_version`, `last_seen_count`). Constraints enforce lowercase handles, a
+valid sport, a valid ring, and `channel = 'main'`. RLS: admins full access, a client may read only
+their own row. Additive; nothing was altered or dropped.
+
+**Telemetry is new capability.** Every config fetch records the reporting extension version, so
+"which build is each client actually running" becomes a query. That was unanswerable before, and it
+is what made the 2026-08-30 Wizards mixup take an hour.
+
+### Seed result, which is the fleet audit
+
+82 rows, one per active bridge key. From the 29 builds on disk, 15 carried a real UUID key; the newest
+build per key won. Handles were then backfilled from `bridge_keys.whatnot_handle`, falling back to
+`crm_contacts.business_name`, accepting only values already lowercase and space-free.
+
+| | count |
+|---|---|
+| Config rows total | 82 |
+| Fully ready (handle + overlay id) | 13 |
+| **Missing a Whatnot handle** | **55** |
+| Missing an overlay id | 67 |
+
+**Two findings from the seed:**
+
+- `Jim and Tabby` (`469c3440`) has a build on disk but the key is `active = false`. The endpoint
+  correctly refuses it. Retired client, stale build; safe to archive the folder.
+- `Northland Breaks Stream 2` (`a22c0803`) is active with a build and **no handle anywhere** in the
+  database. It needs one before it can capture.
+- The backfill picked up `doghouse_breaks` and other underscored handles intact. Under the old
+  "strip non-alphanumeric" rule every one of those would have been silently mangled.
+
+**The 55 missing handles are the Phase 2 backlog, in priority order.** Those clients cannot capture
+under the config model until a handle exists, which is the correct fail-closed behaviour and also the
+reason the migration is worth doing.
 
 ---
 
