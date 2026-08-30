@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wizards Trading Cards — Wonders of the First</title>
+<style>
+  :root{
+    --primary:   #6a3df0;   /* wizards arcane purple */
+    --secondary: #d9b04a;   /* gold accent */
+    --white:     #ffffff;
+
+    --W: 1080px;
+    --pad: 4px;
+    --gap: 2px;
+    --radius: 14px;
+
+    --panel: rgba(8,6,20,0.72);
+    --panelBorder: rgba(221, 0, 210, 0.404);
+    --tileH: 44px;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    width: var(--W);
+    background: transparent;
+    font-family: "Arial Black", Arial, Helvetica, sans-serif;
+    color: var(--white);
+    user-select: none;
+  }
+
+  .overlay{
+    position: relative;
+    width: var(--W);
+    padding: var(--pad);
+    border-radius: 18px;
+    overflow: hidden;
+    background:
+      linear-gradient(180deg, rgba(6,4,16,0.55), rgba(6,4,16,0.66)),
+      url('wonders-bg.png') center center / cover no-repeat;
+    border: 1px solid rgba(217,176,74,0.35);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+  }
+
+  /* ===== header =====
+     overflow stays visible so the logo can break out of the header band. */
+  .header{
+    position: relative;
+    display:flex; align-items:center; justify-content:space-between;
+    height: 50px; padding: 4px 12px; margin-bottom: 8px;
+    border-radius: 10px;
+    border:#bdb6d6;
+    background: linear-gradient(180deg, rgba(106,61,240,0.30), rgba(0,0,0,0.35));
+    border: 1px solid var(--panelBorder);
+    overflow: visible;
+    z-index: 3;               /* header layer sits above the board */
+  }
+  /* Logo is NOT constrained by the header: it is taller than the band and is
+     allowed to spill above and below it, sitting over the header artwork. */
+  .headerLogo{
+    position:absolute;
+    left: var(--logoX, 46%);
+    top: 50%;
+    transform: translateY(-43%);
+    height: var(--logoH, 110px);      /* taller than the 46px header on purpose */
+    width: auto;
+    max-width: none;
+    object-fit: cover;
+    pointer-events:none;
+    z-index: 4;
+    filter: drop-shadow(0 6px 14px rgba(0,0,0,0.75))
+            drop-shadow(0 0 18px rgba(106,61,240,0.45));
+  }
+  /* title and subtitle stay above the board but below the logo */
+  .header .title, .header .sub{ position:relative; z-index: 5; }
+  /* clear the logo so the wordmark never sits underneath it */
+ 
+  .header .title{ font-size: 24px; font-weight:900; letter-spacing:1.5px; text-transform:uppercase; }
+  .header .title b{ color: var(--secondary); }
+  .header .sub{ font-size: 23px; letter-spacing:3px; color: var(--secondary); text-transform:uppercase; }
+
+  /* ===== board: 7 columns ===== */
+  /* FIXED height. The board never grows to fit more spots, so the overlay
+     footprint on stream is identical for a 20 spot break and a 90 spot break. */
+  .board{
+    display:grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: var(--gap);
+    height: var(--boardH, 470px);
+  }
+  .col{
+    background: var(--panel);
+    border: 1px solid var(--panelBorder);
+    border-top: 3px solid var(--col, #888);
+    border-radius: 12px;
+    padding: 2px 2px;
+    display:flex; flex-direction:column; gap:6px;
+    min-height: 0;      /* lets the tile area shrink inside the fixed board */
+    overflow: hidden;
+  }
+  .colHead{ display:flex; flex-direction:column; align-items:center; gap:1px; }
+  /* Gem = real artwork PNG (PETRAIA.png, IGNIS.png, ...). Falls back to the old
+     CSS diamond only if the image is missing, so a renamed orbital never shows a gap. */
+  .gem{
+    width: 44px; height: 44px; position:relative;
+    animation: gemFloat 4.6s ease-in-out infinite;
+    animation-delay: var(--gemDelay, 0s);
+    will-change: transform;
+  }
+  .gem .gemImg{
+    width:100%; height:100%; object-fit:contain; display:block;
+    filter:
+      drop-shadow(0 3px 4px rgba(0,0,0,0.65))
+      drop-shadow(0 0 7px var(--col, #888));
+  }
+  /* Shimmer sweep, masked to the gem artwork so the light follows the gem
+     silhouette instead of a square. Fires roughly once per cycle, staggered. */
+  .gem::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background: linear-gradient(115deg,
+      transparent 38%,
+      rgba(255,255,255,0.35) 46%,
+      rgba(255,255,255,0.92) 50%,
+      rgba(255,255,255,0.35) 54%,
+      transparent 62%);
+    background-size: 260% 260%;
+    -webkit-mask-image: var(--gemSrc); mask-image: var(--gemSrc);
+    -webkit-mask-size: contain;        mask-size: contain;
+    -webkit-mask-repeat: no-repeat;    mask-repeat: no-repeat;
+    -webkit-mask-position: center;     mask-position: center;
+    opacity:0; mix-blend-mode: screen;
+    animation: gemShimmer 7.5s ease-in-out infinite;
+    animation-delay: var(--shimmerDelay, 0s);
+  }
+  @keyframes gemFloat{
+    0%,100%{ transform: translateY(0)     rotate(0deg)    scale(1); }
+    50%    { transform: translateY(-3px)  rotate(1.6deg)  scale(1.03); }
+  }
+  @keyframes gemShimmer{
+    0%, 72% { opacity:0; background-position: 150% 50%; }
+    78%     { opacity:1; }
+    93%     { opacity:1; }
+    100%    { opacity:0; background-position: -50% 50%; }
+  }
+  /* Fallback: original CSS-drawn diamond, only when the PNG fails to load */
+  .gem.noimg::before{
+    content:""; position:absolute; inset:0;
+    clip-path: polygon(50% 0%, 100% 35%, 78% 100%, 22% 100%, 0% 35%);
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.85) 0%, var(--col,#888) 42%, rgba(0,0,0,0.35) 100%);
+    border: 1px solid rgba(255,255,255,0.35);
+  }
+  .colName{ font-size: 14px; letter-spacing:1px; text-transform:uppercase; color:#fff; text-align:center; line-height:1.05; min-height:24px; display:flex; align-items:center; }
+  .colCount{ font-size:12px; color: rgba(255,255,255,0.6); }
+
+  /* Tiles: ONE per row by default with a large, phone-readable name.
+     A column that gets close to full switches to two per row with a smaller
+     wrapping name. Both decided per column in render(), see fitColumn(). */
+  /* Exactly TWO tile presets, never anything in between:
+       default  = 1 per row, 46px tall, 16px name
+       .two     = 2 per row, 40px tall, 14px name
+     Tile size never changes with the text. Only the NAME may shrink, and only
+     enough to keep it on a single line (see fitTileText). */
+  .tiles{
+    display:grid; grid-template-columns: 1fr; gap: 2px;
+    --tileH: 46px; --tileFont: 16px;
+    /* Seller can scroll a long column. The scrollbar itself is hidden so it
+       never shows on stream, but wheel, drag and touch all still work. */
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* legacy Edge */
+    overscroll-behavior: contain; /* scrolling a full column will not scroll the page */
+  }
+  .tiles::-webkit-scrollbar{ width:0; height:0; display:none; }  /* Chromium and OBS */
+  .tiles.two{ grid-template-columns: repeat(2, 1fr); --tileH: 40px; --tileFont: 14px; }
+  .tile{
+    height: var(--tileH);
+    border-radius: 8px;
+    /* wonders-spot-logo.png sits behind every spot, tinted by the orbital colour,
+       with a scrim on top so the name stays readable over the artwork */
+    background-color: color-mix(in srgb, var(--col,#555) 34%, #0d0b18);
+    background-image:
+      linear-gradient(180deg, rgba(8,6,18,0.42), rgba(8,6,18,0.68)),
+      url('wonders-spot-logo.png');
+    background-size: cover, 78% auto;
+    background-position: center, center;
+    background-repeat: no-repeat, no-repeat;
+    border: 1px solid rgba(255,255,255,0.22);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+    /* Names read left to right, not centred. */
+    display:flex; align-items:center; justify-content:flex-start; text-align:left;
+    font-size: var(--tileFont);
+    font-weight:900; letter-spacing:.3px; line-height:1.05;
+    padding: 1px 4px; overflow:hidden; cursor:pointer; position:relative;
+    text-transform:uppercase;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.7);
+    transition: transform .12s ease;
+  }
+  .tile:hover{ transform: translateY(-1px); }
+  /* The name. Wraps ONCE at most (two lines), then ellipsis.
+     Font never goes below 10px, so the first characters always stay readable. */
+  .tile .nm{
+    display:-webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow:hidden;
+    width:100%;
+    word-break: break-word;
+    text-align:left;
+  }
+  .tile .buyer{ display:none; }
+  .tile.sold{ filter: grayscale(1) brightness(0.5); }
+  .tile.sold::after{
+    content:"SOLD"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size: 14px; color: var(--secondary); text-shadow:0 0 6px rgba(0,0,0,0.9); letter-spacing:1px;
+    background: rgba(0,0,0,0.35);
+  }
+  .tile.sold .buyer{ display:block; position:absolute; bottom:1px; left:0; right:0; font-size:9px; color:#fff; opacity:.9; }
+
+  /* ===== stat bar: Sold | ticker | Left =====
+     Clicking the Sold stat toggles the admin control pills (Mike's spec). */
+  .statbar{
+    display:grid; grid-template-columns: 120px 1fr 120px; gap:8px;
+    align-items:stretch; margin-top: 10px;
+  }
+  .stat{
+    text-align:center; padding: 1px 10px; border-radius: 12px;
+    background: rgba(8,6,20,0.72); border:1px solid var(--panelBorder);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .stat.click{ cursor:pointer; }
+  .stat.click:hover{ background: rgba(255,255,255,0.10); }
+  .stat .v{ font-size:25px; font-weight:900; line-height:1; }
+  .stat .l{ font-size:14px; letter-spacing:1px; color: var(--secondary); text-transform:uppercase; margin-top:3px; }
+
+  /* ===== scrolling ticker (seller sets text + speed) ===== */
+  .ticker{
+    position:relative; overflow:hidden; border-radius:12px;
+    background: linear-gradient(180deg, rgba(106,61,240,0.22), rgba(8,6,20,0.85));
+    border:1px solid var(--panelBorder);
+    display:flex; align-items:center;
+  }
+  .ticker::before, .ticker::after{
+    content:""; position:absolute; top:0; bottom:0; width:44px; z-index:2; pointer-events:none;
+  }
+  .ticker::before{ left:0;  background:linear-gradient(90deg, rgba(8,6,20,0.95), transparent); }
+  .ticker::after { right:0; background:linear-gradient(270deg, rgba(8,6,20,0.95), transparent); }
+  .tickerTrack{
+    display:inline-flex; white-space:nowrap; will-change:transform;
+    animation: tickerScroll var(--tickerDur, 30s) linear infinite;
+  }
+  .tickerTrack span{
+    padding-right: 70px; font-size: 19px; font-weight:900; letter-spacing:1.4px;
+    text-transform:uppercase; color:#fff;
+    text-shadow: 0 0 6px rgba(160,120,255,0.55), 0 2px 3px rgba(0,0,0,0.95);
+  }
+  @keyframes tickerScroll{ 0%{ transform:translateX(0); } 100%{ transform:translateX(-50%); } }
+
+  /* ===== sold panel (buyer names + spot) ===== */
+  /* Standalone component: matches the overlay width and sits under it.
+     Toggling it never changes the overlay's own layout. */
+  .sold-wrap{
+    width: var(--W); margin: 10px auto 0;
+    border-radius: 14px; padding: 10px;
+    background: rgba(6,4,16,0.92); border:1px solid var(--panelBorder);
+    box-shadow: inset 0 0 0 1px rgba(106,61,240,0.18);
+  }
+  .sold-wrap.hidden{ display:none; }
+  /* the seller can hide just the admin pills and keep the sold list on screen */
+  .sold-wrap.controls-hidden .sold-top{ display:none; }
+  .sold-top{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    flex-wrap:wrap; margin-bottom:10px;
+  }
+  .ctl{
+    font-size:13px; letter-spacing:.5px; text-transform:uppercase; color:#fff;
+    background: rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.22);
+    border-radius: 999px; padding: 8px 16px; cursor:pointer; white-space:nowrap;
+  }
+  .ctl:hover{ background: rgba(255,255,255,0.14); }
+  .ctl.primary{ background: linear-gradient(180deg,#8a5cff,#5a2fd6); border-color:#c9b0ff; font-weight:900; }
+  .sold-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:6px; }
+  .sold-item{
+    display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
+    background: rgba(255,255,255,0.06); border:1px solid rgba(106,61,240,0.45);
+  }
+  .sold-item .nm{
+    font-size:11px; font-weight:900; text-transform:uppercase; color:#fff;
+    max-width:96px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:none;
+  }
+  .sold-item .dot{ width:8px; height:8px; border-radius:50%; background:var(--col,#888); flex:none; }
+  .sold-item input{
+    flex:1; min-width:0; border:none; outline:none; border-radius:999px;
+    background: rgba(0,0,0,0.55); color:#fff; padding:4px 8px;
+    font-size:13px; font-weight:900; font-family:inherit;
+  }
+  .sold-empty{ grid-column:1/-1; font-size:12px; opacity:.6; padding:4px 2px; }
+
+  /* hidden admin toggle (rescue hotspot + backtick) */
+  #adminToggle{ position:fixed; top:0; left:0; width:70px; height:44px; z-index:2147483647; cursor:pointer; opacity:0; }
+
+  /* ===== SOLD animation =====
+     The tile spins out of the board, flies to the middle of the screen, and the
+     card then HOLDS large in the centre for 2 full seconds before it fades. */
+  #soldFxLayer{ position:fixed; inset:0; z-index:999999; pointer-events:none; overflow:visible; perspective:1400px; }
+  .soldFly{
+    position:absolute; left:0; top:0;
+    width:var(--fw,140px); height:var(--fh,46px);
+    transform-origin:center center;
+    transform-style:preserve-3d;
+    animation: soldFly 3.6s cubic-bezier(.18,.86,.22,1) forwards;
+    will-change:transform,opacity;
+  }
+  /* 0 to 28%  travel + spin   ·  28 to 83%  HOLD (2.0s)  ·  83 to 100%  fade */
+  @keyframes soldFly{
+    0%{
+      opacity:1;
+      transform: translate3d(var(--sx),var(--sy),0) scale(1) rotateY(0deg);
+    }
+    14%{
+      opacity:1;
+      transform: translate3d(calc((var(--sx) + var(--ex))/2), calc((var(--sy) + var(--ey))/2 - 40px),0)
+                 scale(1.9) rotateY(-260deg);
+    }
+    28%{
+      opacity:1;
+      transform: translate3d(var(--ex),var(--ey),0) scale(var(--fscale,3.1)) rotateY(-360deg);
+    }
+    83%{
+      opacity:1;
+      transform: translate3d(var(--ex),var(--ey),0) scale(var(--fscale,3.1)) rotateY(-360deg);
+    }
+    100%{
+      opacity:0;
+      transform: translate3d(var(--ex),calc(var(--ey) - 26px),0) scale(calc(var(--fscale,3.1) * .88)) rotateY(-360deg);
+    }
+  }
+  .soldFly .face{
+    position:absolute; inset:0; border-radius:8px; overflow:hidden;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background-color: color-mix(in srgb, var(--col,#6a3df0) 40%, #0d0b18);
+    background-image:
+      linear-gradient(180deg, rgba(8,6,18,0.35), rgba(8,6,18,0.62)),
+      url('wonders-spot-logo.png');
+    background-size: cover, 74% auto;
+    background-position:center, center;
+    background-repeat:no-repeat, no-repeat;
+    border:1px solid rgba(255,255,255,0.5);
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.6), 0 18px 40px rgba(0,0,0,0.7),
+                0 0 44px rgba(106,61,240,0.55);
+    backface-visibility:hidden;
+  }
+  .soldFly .fname{
+    font-size:11px; font-weight:900; letter-spacing:.3px; line-height:1.05;
+    text-transform:uppercase; color:#fff; text-align:center; padding:0 6px;
+    max-width:100%; overflow:hidden;
+    text-shadow:0 1px 3px rgba(0,0,0,0.95);
+  }
+  .soldFly .fsold{
+    margin-top:3px; font-size:9px; font-weight:900; letter-spacing:2.5px;
+    color: var(--secondary); text-shadow:0 1px 3px rgba(0,0,0,0.95);
+  }
+  .soldFly .fglow{
+    position:absolute; inset:-30%; pointer-events:none; opacity:0;
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.35) 0 8%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(106,61,240,0.35) 0 22%, transparent 58%);
+    animation: soldGlow 900ms ease-out 240ms forwards;
+  }
+  @keyframes soldGlow{ 0%{opacity:0;transform:scale(.5);} 35%{opacity:.9;} 100%{opacity:0;transform:scale(1.4);} }
+
+  /* popups */
+  .popup{ position:fixed; inset:0; z-index:1000000; display:none; align-items:center; justify-content:center; background: rgba(0,0,0,0.6); }
+  .popup.active{ display:flex; }
+  .popup-card{ width:680px; max-width:90%; background:#0b0916; border:1px solid var(--panelBorder); border-radius:16px; padding:22px; font-family:Arial, sans-serif; }
+  .popup-card h2{ margin:0 0 12px; font-size:20px; }
+  .popup-card p{ font-size:13px; color:#bdb6d6; margin:4px 0 8px; }
+  .popup-card label{ display:block; font-size:12px; color:var(--secondary); margin:10px 0 4px; }
+  .popup-card textarea, .popup-card input{ width:100%; background:rgba(255,255,255,0.06); border:1px solid var(--panelBorder); border-radius:10px; color:#fff; padding:10px; font-family:Arial; font-size:14px; }
+  .popup-card textarea{ min-height:150px; resize:vertical; }
+  .importRow{ display:flex; align-items:center; gap:10px; margin:6px 0 8px; }
+  .importHint{ font-size:12px; color:#bdb6d6; }
+  .importHint.ok{ color:#7ee0a8; }
+  .importHint.warn{ color:#ffcf6b; }
+  #importInput.drop{ outline:2px dashed var(--secondary); outline-offset:-4px; background:rgba(217,176,74,0.08); }
+  .orow{ display:grid; grid-template-columns: 1fr 120px; gap:8px; margin-bottom:6px; align-items:center; }
+  .orow input[type=color]{ padding:0; height:34px; }
+  .popup-btns{ display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+  .popup-btns button{ background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25); color:#fff; border-radius:10px; padding:10px 18px; cursor:pointer; }
+  .popup-btns button.primary{ background: linear-gradient(180deg,#8a5cff,#5a2fd6); font-weight:900; border-color:#c9b0ff; }
+</style>
+</head>
+<body>
+  <div class="overlay">
+    <div class="header">
+      <img class="headerLogo" src="wizard-company-breakz-logo.png" alt=""
+           draggable="false" onerror="this.style.display='none'">
+      <div class="title">WIZARDS <b>TRADING CARDS</b></div>
+      <div class="sub" id="eventSub">Wonders of the First</div>
+    </div>
+    <div class="board" id="board"></div>
+
+    <!-- Sold | ticker | Left. Clicking Sold toggles the admin pills. -->
+    <div class="statbar">
+      <div class="stat click" id="soldStat" title="Click to show or hide the admin controls">
+        <div class="v" id="soldCount">0</div><div class="l">Sold</div>
+      </div>
+      <div class="ticker" id="ticker">
+        <div class="tickerTrack" id="tickerTrack"><span id="tickerA"></span><span id="tickerB"></span></div>
+      </div>
+      <div class="stat"><div class="v" id="remainCount">0</div><div class="l">Left</div></div>
+    </div>
+
+  </div>
+
+  <!-- SOLD PANEL: a separate component OUTSIDE .overlay, per the TSU standard.
+       Showing or hiding it never reflows the overlay, so the board structure
+       on stream stays identical whether the panel is up or not. -->
+  <div class="sold-wrap" id="soldWrap">
+    <div class="sold-top" id="soldTop">
+      <div class="ctl primary" id="importBtn">Import Spots</div>
+      <div class="ctl" id="orbitalsBtn">Orbitals</div>
+      <div class="ctl" id="titleBtn">Title</div>
+      <div class="ctl" id="tickerBtn">Ticker</div>
+      <div class="ctl" id="panelBtn">Hide Panel</div>
+      <div class="ctl" id="exportBtn">Export</div>
+      <div class="ctl" id="newBreakBtn">New Break</div>
+      <div class="ctl" id="resetBtn">Reset</div>
+    </div>
+    <div class="sold-grid" id="soldGrid"></div>
+  </div>
+
+  <div id="adminToggle" title="Toggle controls (or press ` )"></div>
+  <div id="soldFxLayer"></div>
+
+  <!-- Export popup -->
+  <div class="popup" id="exportPopup"><div class="popup-card">
+    <h2>Export Board</h2>
+    <p>Every spot with its orbital, whether it sold, and who bought it. Select all and copy,
+       or download it as a CSV. Nothing here changes the board.</p>
+    <div class="importRow">
+      <button class="ctl" id="exportCopy" type="button">Copy to clipboard</button>
+      <a class="ctl" id="exportDownload" download="wonders-board.csv" href="#" style="text-decoration:none">Download CSV</a>
+      <span class="importHint" id="exportCount"></span>
+    </div>
+    <textarea id="exportOutput" readonly></textarea>
+    <div class="popup-btns"><button id="exportClose">Close</button></div>
+  </div></div>
+
+  <!-- Import popup -->
+  <div class="popup" id="importPopup"><div class="popup-card">
+    <h2>Import Spots</h2>
+    <p>Two columns: <b>first is the spot name, second is the orbital</b>. Paste it, drop a CSV
+       on the box, or pick a file. Comma, tab or pipe all work, a header row is skipped
+       automatically, and anything that does not match an orbital lands in Misc.</p>
+    <div class="importRow">
+      <button class="ctl" id="csvBtn" type="button">Choose CSV file</button>
+      <span class="importHint" id="importCount">no spots yet</span>
+    </div>
+    <input type="file" id="csvFile" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden />
+    <textarea id="importInput" placeholder="Spot name, Petraia&#10;Another spot, Umbra&#10;Third spot, Misc"></textarea>
+    <div class="popup-btns"><button class="primary" id="importApply">Load</button><button id="importClose">Cancel</button></div>
+  </div></div>
+
+  <!-- Orbitals config popup -->
+  <div class="popup" id="orbitalsPopup"><div class="popup-card">
+    <h2>Orbitals (columns)</h2>
+    <p>Name and color for the 6 orbital columns. The 7th column is always Misc.</p>
+    <div id="orbitalsRows"></div>
+    <div class="popup-btns"><button class="primary" id="orbitalsApply">Apply</button><button id="orbitalsClose">Cancel</button></div>
+  </div></div>
+
+  <!-- Title popup -->
+  <div class="popup" id="titlePopup"><div class="popup-card">
+    <h2>Header</h2>
+    <label>Subtitle</label>
+    <input id="subInput" type="text" />
+    <div class="popup-btns"><button class="primary" id="titleApply">Apply</button><button id="titleClose">Cancel</button></div>
+  </div></div>
+
+  <!-- Ticker popup -->
+  <div class="popup" id="tickerPopup"><div class="popup-card">
+    <h2>Scrolling Ticker</h2>
+    <p>The message that scrolls under the board. Use a separator like a bullet between lines if you want several messages in one loop.</p>
+    <label>Message</label>
+    <textarea id="tickerInput" placeholder="WONDERS OF THE FIRST  •  FOLLOW @WIZARDSTRADINGCARDS  •  NEW BREAKS EVERY WEEK" style="min-height:110px;"></textarea>
+    <label>Scroll time in seconds (lower is faster)</label>
+    <input id="tickerSpeedInput" type="number" min="5" max="180" />
+    <div class="popup-btns"><button class="primary" id="tickerApply">Save</button><button id="tickerClose">Cancel</button></div>
+  </div></div>
+
+<script>
+(function(){
+  "use strict";
+  const CLIENT_ID = "wizards-wonders";
+  const LS = {
+    get(k,d=""){ const v=localStorage.getItem(`${CLIENT_ID}.${k}`); return v==null?d:v; },
+    set(k,v){ try{ localStorage.setItem(`${CLIENT_ID}.${k}`, String(v)); }catch(_){} }
+  };
+  const $ = (id)=>document.getElementById(id);
+
+  /* ===== Bridge identity (TSU Overlay Standard sec 8) =====
+     The hardcoded constants below ARE the deployment method. ?bridge= and ?key= are
+     opt-in TEST OVERRIDES for the current page load only: they are never written to
+     localStorage, because a stale key silently joins another client's scope.
+     Isolation is by bridge key, not by channel name. There are exactly two channels
+     for every client, main for sales and sports for scores. This board is sales only.
+     Four things must match or the client sees nothing, with no error anywhere:
+       1. this key in Supabase bridge_keys with active = true
+       2. this key baked here
+       3. the same key baked into the extension
+       4. OVERLAY_ID identical here and in the extension */
+  const OVERLAY_ID         = "wizards-wonders-overlay";
+  const BRIDGE_BASE        = "https://bridge.tradesecretsunlocked.com";
+  const BRIDGE_KEY_DEFAULT = "becbe090-0aca-419b-a77e-71dcf418d96f";
+
+  function getParam(n){ return new URLSearchParams(location.search).get(n); }
+  const BRIDGE_URL = (getParam("bridge") || BRIDGE_BASE).replace(/\/$/, "");
+  const BRIDGE_KEY = (getParam("key") || BRIDGE_KEY_DEFAULT).trim();
+  const CHANNELS   = ["main"];
+
+  /* A break id lets a second OBS source, or a tab left open from the last break,
+     be told apart from this one. New Break rotates it. */
+  let breakId = LS.get('breakId','');
+  if (!breakId){ breakId = 'brk-' + Date.now().toString(36); LS.set('breakId', breakId); }
+  function newBreakId(){ breakId = 'brk-' + Date.now().toString(36); LS.set('breakId', breakId); return breakId; }
+
+  /* Guards. Both deliberately PASS an event that carries no field, so a producer
+     that omits it still works; they only reject a value that actively disagrees. */
+  function overlayIdMatches(data){
+    const p = (data && data.data && typeof data.data === 'object') ? data.data : (data||{});
+    const incoming = String(p.overlayId || p.overlay || data.overlayId || data.overlay || '').trim();
+    return !incoming || incoming === OVERLAY_ID;
+  }
+  function breakIdMatches(data){
+    const p = (data && data.data && typeof data.data === 'object') ? data.data : (data||{});
+    const incoming = String(p.breakId || data.breakId || '').trim();
+    return !incoming || incoming === breakId;
+  }
+
+  /* Standard sec 8: warmup is POST /events with type overlay_warmup. There is no
+     /warmup endpoint on the bridge. POSTs authenticate with the x-bridge-key header. */
+  function warmupPing(){
+    try{
+      fetch(`${BRIDGE_URL}/events`, {
+        method: "POST",
+        headers: { "x-bridge-key": BRIDGE_KEY, "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "overlay_warmup", overlayId: OVERLAY_ID, channel: "main" })
+      }).catch(()=>{});
+    }catch(_){}
+  }
+
+  // ----- Orbitals: 6 configurable + implicit Misc -----
+  const DEFAULT_ORBITALS = [
+    { key:"o1", name:"Petraia", color:"#4594c1" },
+    { key:"o2", name:"Ignis",   color:"#a73a42" },
+    { key:"o3", name:"Silva",   color:"#bcc563" },
+    { key:"o4", name:"Aqua",    color:"#16508b" },
+    { key:"o5", name:"Umbra",   color:"#8844c6" },
+    { key:"o6", name:"Aer",     color:"#249d42" }
+  ];
+  let orbitals = (()=>{ try{ const a=JSON.parse(LS.get('orbitals','')); return (Array.isArray(a)&&a.length===6)?a:DEFAULT_ORBITALS.slice(); }catch(_){ return DEFAULT_ORBITALS.slice(); } })();
+  const MISC = { key:"misc", name:"Misc", color:"#9aa0b5" };
+
+  // ----- Spots -----
+  let spots = (()=>{ try{ const a=JSON.parse(LS.get('spots','[]')); return Array.isArray(a)?a:[]; }catch(_){ return []; } })();
+  let eventSub = LS.get('sub','Wonders of the First');
+
+  function persist(){ LS.set('spots', JSON.stringify(spots)); }
+  function norm(s){ return String(s||'').trim().toLowerCase(); }
+
+  function orbitalFor(spot){
+    const t = norm(spot.orbital);
+    const hit = orbitals.find(o=> norm(o.name)===t || o.key===t);
+    return hit || MISC;
+  }
+
+  // Gem artwork filename from the orbital name: "Petraia" -> "PETRAIA.png".
+  // Strips spaces/punctuation so a renamed orbital still resolves predictably.
+  // If the file does not exist the <img> onerror swaps in the CSS diamond fallback.
+  function gemFileFor(name){
+    const base = String(name||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+    return (base || 'MISC') + '.png';
+  }
+
+  // ----- Render -----
+  function render(){
+    const board = $('board'); board.innerHTML='';
+    const cols = orbitals.concat([MISC]);
+    const byCol = {}; cols.forEach(c=> byCol[c.key]=[]);
+    spots.forEach((sp,i)=>{ const c=orbitalFor(sp); byCol[c.key].push({sp,i}); });
+
+    cols.forEach((c,ci)=>{
+      const list = byCol[c.key];
+      const col = document.createElement('div');
+      col.className='col'; col.style.setProperty('--col', c.color);
+      const head = document.createElement('div'); head.className='colHead';
+      // Gem artwork is named after the orbital, uppercased: Petraia -> PETRAIA.png
+      const gemSrc = gemFileFor(c.name);
+      // Stagger float + shimmer per column so the gems never move in lockstep
+      const gemDelay = (ci * 0.55).toFixed(2) + 's';
+      const shimDelay = (ci * 1.15).toFixed(2) + 's';
+      head.innerHTML = `<div class="gem" style="--gemSrc:url('${gemSrc}'); --gemDelay:${gemDelay}; --shimmerDelay:${shimDelay}">`
+        + `<img class="gemImg" src="${gemSrc}" alt="" draggable="false"`
+        + ` onerror="this.parentNode.classList.add('noimg'); this.remove();"></div>`
+        + `<div class="colName">${esc(c.name)}</div>`
+        + `<div class="colCount">${list.filter(x=>!x.sp.sold).length}/${list.length}</div>`;
+      col.appendChild(head);
+      const tiles = document.createElement('div');
+      // one of exactly two presets; the CSS class carries the size, not inline styles
+      tiles.className = 'tiles' + (fitColumn(list.length).perRow === 2 ? ' two' : '');
+      list.forEach(({sp,i})=>{
+        const t=document.createElement('div');
+        t.className='tile'+(sp.sold?' sold':''); t.style.setProperty('--col', c.color);
+        t.dataset.idx = i;   // lets the sold animation find and measure this tile
+        t.innerHTML = '<span class="nm">'+esc(sp.name)+'</span>'
+                    + '<span class="buyer">'+esc(sp.buyer||'')+'</span>';
+        t.addEventListener('click', ()=> toggleSold(i));
+        tiles.appendChild(t);
+      });
+      col.appendChild(tiles);
+      board.appendChild(col);
+    });
+    updateStats();
+    renderSoldPanel();
+    // measure after layout so the one-line shrink uses real widths
+    requestAnimationFrame(()=> fitTileText(board));
+  }
+
+  /* How a single column lays itself out.
+     Mike's rule: ONE per row by default with a big phone-readable name. Only when a
+     column gets close to full do we go to two per row, shrink the name a little and
+     let it wrap, so a viewer on a phone can still read what they are looking at.
+     The switch point is computed from the fixed board height, not a magic number. */
+  /* Two presets only. Tile size NEVER varies with the text, and the board never
+     grows. A column uses the big 1-per-row preset while its spots fit the fixed
+     board height, and switches to the 2-per-row preset once they do not. */
+  const TILE_1 = { h:46, gap:2 };   // must match .tiles       in CSS
+  const TILE_2 = { h:40, gap:2 };   // must match .tiles.two   in CSS
+  function rowsThatFit(tile){
+    const boardH = parseInt(getComputedStyle(document.documentElement)
+                     .getPropertyValue('--boardH'),10) || 470;
+    const colChrome = 6 + 6 + 3;          // col padding top/bottom + top border
+    const headH     = 44 + 4 + 14 + 4 + 12 + 6;  // gem + gaps + name + count
+    const avail = boardH - colChrome - headH;
+    return Math.max(1, Math.floor((avail + tile.gap) / (tile.h + tile.gap)));
+  }
+  function fitColumn(n){
+    return (n <= rowsThatFit(TILE_1)) ? { perRow:1 } : { perRow:2 };
+  }
+
+  /* Name sizing. Target the preset font, shrink only if the name needs more than
+     two lines, and NEVER go below MIN_TILE_FONT. Tile size is never touched.
+     The 12px floor is what guarantees the opening characters stay readable even
+     on the narrow two-per-row preset. */
+  const MIN_TILE_FONT = 12;
+  function fitTileText(root){
+    (root||document).querySelectorAll('.tile').forEach(t=>{
+      const nm = t.querySelector('.nm'); if(!nm) return;
+      const two  = t.parentNode.classList.contains('two');
+      const base = two ? 14 : 16;      // matches --tileFont on each preset
+      nm.style.fontSize = '';
+      let size = base;
+      // scrollHeight exceeds clientHeight once the clamp cuts a third line
+      while (size > MIN_TILE_FONT && nm.scrollHeight > nm.clientHeight + 1){
+        size -= 1;
+        nm.style.fontSize = size + 'px';
+      }
+    });
+  }
+  function esc(s){ return String(s).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c])); }
+
+  function updateStats(){
+    const sold = spots.filter(s=>s.sold).length;
+    $('soldCount').textContent = sold;
+    $('remainCount').textContent = spots.length - sold;
+  }
+
+  /* ----- Sold panel: every sold spot with an editable buyer name ----- */
+  function renderSoldPanel(){
+    const host = $('soldGrid'); if(!host) return;
+    host.innerHTML = '';
+    const sold = spots.map((sp,i)=>({sp,i})).filter(x=>x.sp.sold);
+    if(!sold.length){
+      host.innerHTML = '<div class="sold-empty">No spots sold yet.</div>';
+      return;
+    }
+    sold.forEach(({sp,i})=>{
+      const c = orbitalFor(sp);
+      const row = document.createElement('div');
+      row.className = 'sold-item';
+      row.style.setProperty('--col', c.color);
+      const dot = document.createElement('span'); dot.className='dot';
+      const nm = document.createElement('span'); nm.className='nm';
+      nm.textContent = sp.name; nm.title = sp.name + '  (' + c.name + ')';
+      const inp = document.createElement('input');
+      inp.value = sp.buyer || ''; inp.placeholder = 'Buyer';
+      inp.addEventListener('input', e=>{ sp.buyer = e.target.value; persist(); });
+      inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); e.target.blur(); } });
+      row.appendChild(dot); row.appendChild(nm); row.appendChild(inp);
+      host.appendChild(row);
+    });
+  }
+
+  /* ----- Ticker: seller sets the message and the scroll speed ----- */
+  let tickerText  = LS.get('tickerText','WONDERS OF THE FIRST  •  WIZARDS TRADING CARDS  •  GOOD LUCK TO EVERY SPOT');
+  let tickerSpeed = (()=>{ const v=parseInt(LS.get('tickerSpeed',''),10); return (Number.isFinite(v)&&v>=5)?v:30; })();
+  function applyTicker(){
+    $('tickerA').textContent = tickerText;
+    $('tickerB').textContent = tickerText;   // duplicate makes the -50% loop seamless
+    document.documentElement.style.setProperty('--tickerDur', tickerSpeed + 's');
+  }
+
+  function toggleSold(i, buyer){
+    const sp = spots[i]; if(!sp) return;
+    sp.sold = !sp.sold;
+    if (sp.sold){
+      sp.buyer = buyer || sp.buyer || '';
+      flashSold(sp.name, i, orbitalFor(sp).color);   // measure the tile before render replaces it
+    } else { sp.buyer=''; }
+    persist(); render();
+  }
+  function markSoldByName(name, buyer){
+    const t = norm(name);
+    let idx = spots.findIndex(s=> norm(s.name)===t && !s.sold);
+    if (idx<0) idx = spots.findIndex(s=> t.includes(norm(s.name)) && norm(s.name).length>2 && !s.sold);
+    if (idx>=0){
+      spots[idx].sold=true; spots[idx].buyer=buyer||''; persist();
+      flashSold(spots[idx].name, idx, orbitalFor(spots[idx]).color);
+      render();
+    }
+  }
+  /* Spin the sold tile out of the board and hold it big in the centre.
+     Timing: about 1.0s to fly and spin, then a 2.0s hold, then a 0.6s fade.
+     Called BEFORE render() so the source tile is still on screen to measure. */
+  const SOLD_FLY_MS = 3600;
+  function flashSold(name, idx, color){
+    const layer = $('soldFxLayer'); if(!layer) return;
+    const tile = (idx!=null) ? document.querySelector('.tile[data-idx="'+idx+'"]') : null;
+
+    // measure the source tile, or fall back to the middle of the board
+    let r = tile ? tile.getBoundingClientRect() : null;
+    // a hidden or unrendered tile measures 0, which would make the card invisible
+    if (!r || r.width < 10 || r.height < 10){
+      const b = $('board').getBoundingClientRect();
+      const cx = (b.width  ? b.left + b.width/2  : window.innerWidth/2);
+      const cy = (b.height ? b.top  + b.height/2 : window.innerHeight/2);
+      r = { left: cx - 70, top: cy - 23, width:140, height:46 };
+    }
+    const vw = window.innerWidth, vh = window.innerHeight;
+    // scale so the held card reads large on a 1080 wide overlay
+    const scale = Math.max(2.2, Math.min(4.2, (vw * 0.34) / Math.max(1, r.width)));
+
+    const fly = document.createElement('div');
+    fly.className = 'soldFly';
+    fly.style.setProperty('--fw', r.width + 'px');
+    fly.style.setProperty('--fh', r.height + 'px');
+    fly.style.setProperty('--sx', r.left + 'px');
+    fly.style.setProperty('--sy', r.top + 'px');
+    fly.style.setProperty('--ex', (vw/2 - r.width/2) + 'px');
+    fly.style.setProperty('--ey', (vh/2 - r.height/2) + 'px');
+    fly.style.setProperty('--fscale', scale.toFixed(2));
+    if (color) fly.style.setProperty('--col', color);
+    fly.innerHTML = '<div class="face"><div class="fglow"></div>'
+      + '<div class="fname">' + esc(name || 'SOLD') + '</div>'
+      + '<div class="fsold">SOLD</div></div>';
+    layer.appendChild(fly);
+    setTimeout(()=>{ try{ fly.remove(); }catch(_){} }, SOLD_FLY_MS + 120);
+  }
+
+  // ----- Import -----
+  /* Split one row into columns.
+     Picks the delimiter per line so a pasted "Name | Orbital" list and a real CSV
+     both work, and so a comma inside a name does not split it when a pipe is present.
+     Quoted fields are respected, "" is an escaped quote. */
+  function splitRow(line){
+    const delim = line.indexOf('|') >= 0 ? '|' : (line.indexOf('\t') >= 0 ? '\t' : ',');
+    const out=[]; let cur=''; let inQ=false;
+    for (let i=0;i<line.length;i++){
+      const ch=line[i];
+      if (ch === '"'){
+        if (inQ && line[i+1] === '"'){ cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (!inQ && ch === delim){
+        out.push(cur); cur='';
+      } else cur += ch;
+    }
+    out.push(cur);
+    return out.map(s=>s.trim().replace(/^"|"$/g,'').trim());
+  }
+
+  /* A first row like "Name, Orbital" is a header. A first row like "Spot 1, Ignis"
+     is DATA and must not be eaten. Two guards:
+       1. if column 2 is a real configured orbital, the row is always data
+       2. otherwise match whole words only, so "spot 1" never reads as "spot" */
+  function looksLikeHeader(cols){
+    const a = String(cols[0]||'').trim().toLowerCase().replace(/\s+/g,' ');
+    const b = String(cols[1]||'').trim().toLowerCase().replace(/\s+/g,' ');
+    const knownOrbital = orbitals.some(o=> norm(o.name)===norm(b)) || norm(b)==='misc';
+    if (knownOrbital) return false;                    // guard 1
+    const nameish = /^(name|spot|spot name|spotname|item|item name|card|card name|player|title|description)$/;
+    const orbish  = /^(orbital|orbitals|column|col|group|category|type|element|set)$/;
+    return nameish.test(a) || orbish.test(b);
+  }
+
+  /* Column 1 = spot name, column 2 = orbital. Extra columns are ignored.
+     Anything that does not match a configured orbital falls through to Misc
+     via orbitalFor() at render time, so a typo never loses a spot. */
+  function parseImport(raw){
+    const out=[];
+    const lines = String(raw||'').replace(/^﻿/,'').split(/\r?\n/);
+    let checkedHeader = false;
+    for (const line of lines){
+      const s = line.trim();
+      if (!s) continue;
+      const cols = splitRow(s);
+      if (!checkedHeader){
+        checkedHeader = true;
+        if (looksLikeHeader(cols)) continue;
+      }
+      const name = (cols[0]||'').trim();
+      const orb  = (cols[1]||'').trim() || 'Misc';
+      if (name) out.push({ name, orbital:orb, sold:false, buyer:'' });
+    }
+    return out;
+  }
+
+  /* Live summary under the file button: how many spots, and how they split by
+     orbital, so the seller sees a bad column mapping BEFORE loading it. */
+  function updateImportCount(){
+    const el = $('importCount'); if(!el) return;
+    const parsed = parseImport($('importInput').value);
+    if (!parsed.length){ el.textContent='no spots yet'; el.className='importHint'; return; }
+    const known = orbitals.map(o=>norm(o.name));
+    const miscN = parsed.filter(p=> !known.includes(norm(p.orbital))).length;
+    el.textContent = parsed.length + ' spot' + (parsed.length===1?'':'s')
+      + (miscN ? '  ·  ' + miscN + ' going to Misc' : '  ·  all orbitals matched');
+    el.className = 'importHint ' + (miscN ? 'warn' : 'ok');
+  }
+
+  function loadCsvFile(file){
+    if(!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      $('importInput').value = String(r.result||'');
+      updateImportCount();
+    };
+    r.onerror = () => { const el=$('importCount'); if(el){ el.textContent='could not read that file'; el.className='importHint warn'; } };
+    r.readAsText(file);
+  }
+
+  // ----- Controls / popups -----
+  function open(id){ $(id).classList.add('active'); }
+  function close(id){ $(id).classList.remove('active'); }
+
+  function buildOrbitalRows(){
+    const host=$('orbitalsRows'); host.innerHTML='';
+    orbitals.forEach((o,i)=>{
+      const row=document.createElement('div'); row.className='orow';
+      row.innerHTML = `<input type="text" data-i="${i}" class="oName" value="${esc(o.name)}" /><input type="color" data-i="${i}" class="oColor" value="${o.color}" />`;
+      host.appendChild(row);
+    });
+  }
+
+  /* CSV, quoted so a spot name containing a comma survives the round trip. */
+  function buildExport(){
+    const q = v => { const t=String(v==null?'':v); return /[",\n]/.test(t) ? '"'+t.replace(/"/g,'""')+'"' : t; };
+    const rows = [['Spot','Orbital','Sold','Buyer']].concat(
+      spots.map(s=>[s.name, s.orbital, s.sold?'yes':'no', s.buyer||''])
+    );
+    const csv = rows.map(r=>r.map(q).join(',')).join('\r\n');
+    const ta=$('exportOutput'); if(ta) ta.value = csv;
+    const sold = spots.filter(s=>s.sold).length;
+    const c=$('exportCount'); if(c) c.textContent = spots.length + ' spots, ' + sold + ' sold';
+    const a=$('exportDownload');
+    if(a){
+      try{ a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); }
+      catch(_){ a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); }
+    }
+  }
+
+  function wire(){
+    $('importBtn').addEventListener('click', ()=>{
+      // prefill with the current board as CSV so an edit-and-reload round trip works
+      $('importInput').value = spots.map(s=>{
+        const n = /[",]/.test(s.name) ? '"'+String(s.name).replace(/"/g,'""')+'"' : s.name;
+        return n + ', ' + s.orbital;
+      }).join('\n');
+      updateImportCount();
+      open('importPopup');
+    });
+
+    // CSV file picker
+    $('csvBtn').addEventListener('click', ()=> $('csvFile').click());
+    $('csvFile').addEventListener('change', (e)=>{
+      loadCsvFile(e.target.files && e.target.files[0]);
+      e.target.value = '';   // let the same file be picked again after an edit
+    });
+
+    // Drag a CSV straight onto the textarea
+    const ta = $('importInput');
+    ta.addEventListener('input', updateImportCount);
+    ['dragenter','dragover'].forEach(ev=> ta.addEventListener(ev,(e)=>{
+      e.preventDefault(); e.stopPropagation(); ta.classList.add('drop');
+    }));
+    ['dragleave','drop'].forEach(ev=> ta.addEventListener(ev,(e)=>{
+      e.preventDefault(); e.stopPropagation(); ta.classList.remove('drop');
+    }));
+    ta.addEventListener('drop',(e)=>{
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) loadCsvFile(f);
+    });
+    $('importClose').addEventListener('click', ()=>close('importPopup'));
+    $('importApply').addEventListener('click', ()=>{ spots = parseImport($('importInput').value); persist(); render(); close('importPopup'); });
+
+    $('orbitalsBtn').addEventListener('click', ()=>{ buildOrbitalRows(); open('orbitalsPopup'); });
+    $('orbitalsClose').addEventListener('click', ()=>close('orbitalsPopup'));
+    $('orbitalsApply').addEventListener('click', ()=>{
+      document.querySelectorAll('.oName').forEach(inp=>{ const i=+inp.dataset.i; orbitals[i].name = inp.value.trim()||orbitals[i].name; });
+      document.querySelectorAll('.oColor').forEach(inp=>{ const i=+inp.dataset.i; orbitals[i].color = inp.value; });
+      LS.set('orbitals', JSON.stringify(orbitals)); render(); close('orbitalsPopup');
+    });
+
+    $('titleBtn').addEventListener('click', ()=>{ $('subInput').value=eventSub; open('titlePopup'); });
+    $('titleClose').addEventListener('click', ()=>close('titlePopup'));
+    $('titleApply').addEventListener('click', ()=>{ eventSub=$('subInput').value.trim()||eventSub; LS.set('sub',eventSub); $('eventSub').textContent=eventSub; close('titlePopup'); });
+
+    $('resetBtn').addEventListener('click', ()=>{ spots.forEach(s=>{ s.sold=false; s.buyer=''; }); persist(); render(); });
+
+    /* New Break also rotates the break id, so a sale still in flight from the last
+       break cannot land on this one. Reset just clears the marks. */
+    $('newBreakBtn').addEventListener('click', ()=>{
+      spots.forEach(s=>{ s.sold=false; s.buyer=''; });
+      newBreakId(); persist(); render();
+    });
+
+    $('exportBtn').addEventListener('click', ()=>{ buildExport(); open('exportPopup'); });
+    $('exportClose').addEventListener('click', ()=>close('exportPopup'));
+    $('exportCopy').addEventListener('click', ()=>{
+      const ta=$('exportOutput'); ta.select(); ta.setSelectionRange(0, ta.value.length);
+      let ok=false; try{ ok=document.execCommand('copy'); }catch(_){}
+      if(!ok && navigator.clipboard){ navigator.clipboard.writeText(ta.value).catch(()=>{}); ok=true; }
+      const h=$('exportCount'); if(h) h.textContent = ok ? 'copied' : 'select the text and copy';
+    });
+
+    // Ticker settings
+    $('tickerBtn').addEventListener('click', ()=>{
+      $('tickerInput').value = tickerText;
+      $('tickerSpeedInput').value = String(tickerSpeed);
+      open('tickerPopup');
+    });
+    $('tickerClose').addEventListener('click', ()=>close('tickerPopup'));
+    $('tickerApply').addEventListener('click', ()=>{
+      const txt = String($('tickerInput').value||'').replace(/\s*\n+\s*/g,'  •  ').trim();
+      const spd = parseInt($('tickerSpeedInput').value,10);
+      if (txt) tickerText = txt;
+      tickerSpeed = (Number.isFinite(spd)&&spd>=5) ? spd : tickerSpeed;
+      LS.set('tickerText', tickerText); LS.set('tickerSpeed', tickerSpeed);
+      applyTicker(); close('tickerPopup');
+    });
+
+    // Two independent toggles:
+    //  - Sold stat  -> show/hide the admin pills (panel + sold list stay up)
+    //  - Hide Panel -> hide the whole sold panel
+    $('soldStat').addEventListener('click', toggleControls);
+    $('panelBtn').addEventListener('click', togglePanel);
+
+    // Rescue hotspot + backtick, in case the panel is hidden and the pills are off
+    $('adminToggle').addEventListener('click', ()=>{ showPanel(); toggleControls(); });
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='`'){
+        const t=e.target; if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA')) return;
+        e.preventDefault(); showPanel(); toggleControls();
+      }
+    });
+  }
+
+  let controlsVisible = LS.get('ctlVis','1') !== '0';
+  let panelVisible    = LS.get('panelVis','1') !== '0';
+  function applyControls(){
+    $('soldWrap').classList.toggle('controls-hidden', !controlsVisible);
+    LS.set('ctlVis', controlsVisible ? '1' : '0');
+  }
+  function applyPanel(){
+    $('soldWrap').classList.toggle('hidden', !panelVisible);
+    LS.set('panelVis', panelVisible ? '1' : '0');
+  }
+  function toggleControls(){ controlsVisible = !controlsVisible; applyControls(); }
+  function togglePanel(){ panelVisible = false; applyPanel(); }
+  function showPanel(){ panelVisible = true; applyPanel(); }
+
+  // ----- Bridge SSE -----
+  const _es=new Map();
+  function connectSSE(url){
+    const p=_es.get(url); if(p){try{p.close();}catch(_){}}
+    const es=new EventSource(url); _es.set(url,es);
+    es.onerror=()=>{ try{es.close();}catch(_){}; _es.delete(url); setTimeout(()=>connectSSE(url),2500); };
+    const onAny=(e)=>{ try{ const o=JSON.parse(e.data); if(o&&typeof o==='object'&&!o.type&&!o.event&&e.type&&e.type!=='message')o.type=e.type; handleEvent(o); }catch(_){} };
+    es.onmessage=onAny;
+    /* Standard sec 8: named SSE events bypass onmessage, so every type must be
+       listened for explicitly or it is silently never delivered. */
+    ["team_sold","team_unsold","sold","sale","buyer","reset","set_break","set_title",
+     "set_sport","stream_stats","whatnot_purchase","purchase"].forEach(ev=>es.addEventListener(ev,onAny));
+  }
+  function handleEvent(data){
+    if(!data||typeof data!=='object') return;
+    if(!overlayIdMatches(data)) return;   // guard first, always
+    if(!breakIdMatches(data))   return;
+    const payload=(data.data&&typeof data.data==='object')?data.data:data;
+    const type=String(payload.type||payload.event||data.type||'').toLowerCase();
+    if(!type||type==='hello') return;
+    if(type==='team_sold'||type==='sold'||type==='sale'){
+      const name = payload.title || payload.item || payload.name || '';
+      const buyer = String(payload.buyer||payload.buyerName||payload.username||'').replace(/^@/,'');
+      if(name) markSoldByName(name, buyer);
+    } else if(type==='reset'){
+      spots.forEach(s=>{s.sold=false;s.buyer='';}); persist(); render();
+    } else if(type==='set_title'){
+      if(payload.value){ eventSub=String(payload.value); LS.set('sub',eventSub); $('eventSub').textContent=eventSub; }
+    }
+  }
+
+  // ----- Init -----
+  function init(){
+    $('eventSub').textContent = eventSub;
+    if(!spots.length){
+      // starter sample so the board isn't empty on first load
+      spots = [
+        {name:"Spot 1",orbital:"Ignis",sold:false,buyer:""},
+        {name:"Spot 2",orbital:"Silva",sold:false,buyer:""},
+        {name:"Spot 3",orbital:"Aqua",sold:false,buyer:""},
+        {name:"Spot 4",orbital:"Aer",sold:false,buyer:""},
+        {name:"Spot 5",orbital:"Umbra",sold:false,buyer:""},
+        {name:"Spot 6",orbital:"Petraia",sold:false,buyer:""},
+        {name:"Spot 7",orbital:"Unknown",sold:false,buyer:""}
+      ];
+    }
+    render(); wire();
+    applyTicker(); applyControls(); applyPanel();
+    warmupPing();
+    CHANNELS.forEach(ch=>connectSSE(`${BRIDGE_URL}/stream?channel=${encodeURIComponent(ch)}&key=${encodeURIComponent(BRIDGE_KEY)}`));
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+})();
+</script>
+</body>
+</html>
