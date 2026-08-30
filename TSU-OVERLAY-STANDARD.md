@@ -210,7 +210,13 @@ migration shim that adopts the legacy bare-key map on first run. Without the shi
 with an empty map and the next poll re-sends the whole current sold list, replaying it with
 animations and buyer popups. **Clients update between shows, never mid-break.**
 
-**Companion docs.** `docs/SCORES-CONFIG-AUDIT.md` (which overlays are wired correctly for scores),
+**2026-08-30: a spec is pending that will amend §7 and §8.** `TSU-WHATNOT-DATA-SPEC.md` at the repo
+root covers the Whatnot financial-data ingest and the move from per-client baked extensions to one
+extension configured from an authenticated endpoint, with release rings and a server-side kill
+switch. **Nothing in it is built yet and §7 and §8 below are still current.** The amendments land as
+each phase ships, deliberately, so this document never describes a system that does not exist.
+
+**Companion docs.** `TSU-WHATNOT-DATA-SPEC.md` (pending, above), `docs/SCORES-CONFIG-AUDIT.md` (which overlays are wired correctly for scores),
 `docs/OVERLAY-FEATURE-NOTES.md` (nuance and one-off seller-facing features, and the trap behind
 each), `.claude/skills/tsu-overlay-troubleshoot/SKILL.md` (the live-fault bug catalog), and the
 Supabase `known_issues` table (what TSU Assist can tell a seller).
