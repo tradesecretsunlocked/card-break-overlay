@@ -1,0 +1,5095 @@
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, initial-scale=1.0"/>
+    <title>EnergyVaultTCG: Character Breaks Overlay</title>
+
+    <style>
+  :root{
+    --W:1080px;
+    --H:1920px;
+
+    --safePad: 35px;
+ 
+
+    /* Brand palette pulled from the logo vibe */
+    --ink:#050505;              /* deep black */
+    --ink2:#0a0a0a;
+    --glass: rgba(0,0,0,0.26);  /* panel glass */
+    --glass2: rgba(0,0,0,0.16);
+
+    --white:#ffffff;
+    --muted: rgba(255,255,255,0.80);
+
+    /* TSU brand aliases. Set these two only; the family vars below alias onto them.
+       They happen to be exactly the brief: Charizard fire and Mewtwo psychic purple. */
+    --primary:#E47D07;    /* EnergyVaultTCG accent, fire */
+    --secondary:#70367C;  /* EnergyVaultTCG accent, psychic */
+
+    --gold:var(--primary);
+    --gold2:#ffa93d;
+    --amber:var(--primary);
+
+    --red:var(--secondary);
+    --red2:#4d2456;
+
+    --stroke: rgba(255,255,255,0.10);
+    --goldStroke: rgba(228,125,7,0.55);
+
+    --glowGold: 0 0 18px rgba(228,125,7,0.38), 0 0 44px rgba(228,125,7,0.20);
+    --glowRed:  0 0 14px rgba(112,54,124,0.34), 0 0 34px rgba(112,54,124,0.20);
+
+    /* Sections */
+    --hdrH: 132px;
+    --statsH: 96px;
+    --tickerH: 70px;
+    /* Scrolling card, +70% on 2026-08-27 (was 140px). aspect-ratio locks the
+       shape so the card scales as one piece; only this number is ever tuned. */
+    --pokeCardH: 238px;
+    --pokeH: 286px;
+    --spotsH: 95px;
+    /* Envelope board (layout 2). envScrollH caps the scrolling tail so the board
+       height never changes with the entry count. */
+    --envTileH: 34px;
+    --envCols: 14;
+    /* The spots board is locked per layout: layout 1 keeps 360px, and the
+       envelope layout takes back the stats row and the card row it does not use
+       (96 + 175 + two gaps). Locked either way, so nothing creeps mid-show. */
+    --boardH: 360px;
+    --boardHEnv: 655px;
+
+    --gap: 12px;
+    --r: 18px;
+
+    --shadow: 0 16px 40px rgba(0,0,0,0.55);
+  }
+
+  body{
+    width: var(--W);
+    height: var(--H);
+    overflow: hidden;
+    margin:25px;
+  }
+
+  /* shrink the actual overlay content inward */
+  .stage{
+    width: var(--W);
+    height: var(--H);
+    padding: var(--safePad);
+  }
+
+  /* make the grid fill the padded stage */
+  .grid{
+    position: absolute;
+    inset: var(--safePad); /* replaces inset: 14px */
+  }
+
+
+  /* ===================== EnergyVaultTCG additions ===================== */
+
+  .ambient{
+    position:absolute;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    overflow:hidden;
+  }
+  /* Charizard side: warm fire bloom rising from the lower left. */
+  .ambient-fire{
+    position:absolute;
+    left:-14%; bottom:-18%;
+    width:78%; height:62%;
+    background:
+      radial-gradient(closest-side, rgba(228,125,7,0.34), rgba(228,125,7,0.10) 58%, transparent 72%),
+      radial-gradient(closest-side at 60% 70%, rgba(255,90,0,0.24), transparent 70%);
+    filter:blur(14px);
+    animation: evFire 7.5s ease-in-out infinite alternate;
+  }
+  @keyframes evFire{
+    from{ transform:translate3d(0,0,0) scale(1);      opacity:.72; }
+    to  { transform:translate3d(2%, -3%, 0) scale(1.08); opacity:1; }
+  }
+  /* Mewtwo side: cool psychic bloom from the upper right. */
+  .ambient-psychic{
+    position:absolute;
+    right:-16%; top:-14%;
+    width:74%; height:58%;
+    background:
+      radial-gradient(closest-side, rgba(112,54,124,0.40), rgba(112,54,124,0.12) 60%, transparent 74%),
+      radial-gradient(closest-side at 40% 60%, rgba(168,96,255,0.22), transparent 70%);
+    filter:blur(16px);
+    animation: evPsychic 9s ease-in-out infinite alternate;
+  }
+  @keyframes evPsychic{
+    from{ transform:translate3d(0,0,0) scale(1.04);   opacity:1; }
+    to  { transform:translate3d(-3%, 3%, 0) scale(1); opacity:.7; }
+  }
+  /* Purple electricity: thin arcs that strike, hold a beat, then vanish. */
+  .ambient-arc{
+    position:absolute;
+    width:2px;
+    border-radius:2px;
+    background:linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(214,160,255,0.95) 40%, rgba(112,54,124,0.9) 70%, rgba(255,255,255,0) 100%);
+    box-shadow:0 0 10px rgba(190,120,255,0.85), 0 0 22px rgba(112,54,124,0.6);
+    opacity:0;
+  }
+  .arc1{ left:22%; top:6%;  height:26%; transform:rotate(14deg);  animation: evArc 5.2s ease-in-out infinite;        }
+  .arc2{ left:68%; top:30%; height:20%; transform:rotate(-11deg); animation: evArc 6.4s ease-in-out infinite 1.4s;   }
+  .arc3{ left:47%; top:58%; height:24%; transform:rotate(8deg);   animation: evArc 7.1s ease-in-out infinite 2.9s;   }
+  @keyframes evArc{
+    0%, 84%, 100% { opacity:0; }
+    86%           { opacity:.95; }
+    88%           { opacity:.15; }
+    90%           { opacity:.85; }
+    94%           { opacity:0; }
+  }
+
+  /* Buyer name now rides on the scrolling card the buyer actually bought, so the
+     separate float lane was removed 2026-08-24. One row, both jobs. */
+  /* A card with no artwork still has to read as a card, not a hole. */
+  .poke-card.no-art{
+    background:
+      linear-gradient(180deg, rgba(228,125,7,0.22), rgba(112,54,124,0.30)),
+      rgba(0,0,0,0.5);
+  }
+  .poke-card.no-art .tag{
+    top:50%; bottom:auto;
+    transform:translateY(-50%);
+    background:transparent;
+    border:none;
+    font-size:21px;
+    white-space:normal;
+    line-height:1.15;
+  }
+  .poke-card .buyer{
+    position:absolute;
+    left:8px; right:8px; top:8px;
+    padding:6px 8px;
+    border-radius:12px;
+    border:2px solid var(--goldStroke);
+    background:linear-gradient(120deg, rgba(228,125,7,0.92), rgba(112,54,124,0.92));
+    color:#fff;
+    font-size:22px;
+    font-weight:1000;
+    letter-spacing:0.4px;
+    text-align:center;
+    text-transform:none;
+    text-shadow:0 2px 8px rgba(0,0,0,0.85);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    box-shadow:var(--glowGold);
+    opacity:0;
+    transform:translateY(-6px);
+    transition:opacity 160ms ease, transform 160ms ease;
+    pointer-events:none;
+    z-index:3;
+  }
+  .poke-card.sold .buyer.has-buyer{
+    opacity:1;
+    transform:translateY(0);
+  }
+  /* A fresh sale pulses once so it reads on stream without a travelling card. */
+  .poke-card.just-sold .buyer.has-buyer{
+    animation: evBuyerPop 1500ms ease-out 1;
+  }
+  @keyframes evBuyerPop{
+    0%   { transform:scale(0.82); box-shadow:0 0 0 0 rgba(245,200,75,0.85); }
+    35%  { transform:scale(1.06); box-shadow:0 0 22px 6px rgba(245,200,75,0.55); }
+    100% { transform:scale(1);    box-shadow:var(--glowGold); }
+  }
+
+  .spots-left-pill{
+    display:flex; align-items:baseline; gap:8px;
+    flex: 0 0 auto;
+    padding:6px 16px;
+    border-radius:999px;
+    border:2px solid var(--goldStroke);
+    background:rgba(0,0,0,0.52);
+    z-index:2;
+  }
+  .spots-left-pill .label{
+    font-size:11px; font-weight:900; letter-spacing:1.6px;
+    color:rgba(255,255,255,0.64);
+  }
+  .spots-left-pill .value{
+    font-size:26px; font-weight:1000;
+    color:var(--primary);
+  }
+  .spots-left-pill .sep{ color:rgba(255,255,255,0.28); }
+
+  /* Camera reserves */
+
+
+  /* Spots board.
+     LOCKED HEIGHT. Both layouts render into this one panel, and the envelope
+     board's row count is seller configurable, so without a fixed height the
+     panel would change size when the seller switches mode or resizes the board,
+     walking everything below it down the OBS scene. The envelope scroller
+     absorbs the difference instead. */
+  .panel.spots-board{
+    padding:10px;
+    height: var(--boardH);
+    overflow: hidden;
+  }
+  .spots-grid{
+    display:grid;
+    grid-template-columns:repeat(5, 1fr);
+    gap:8px;
+  }
+  .spot-tile{
+    position:relative;
+    min-height:78px;
+    padding:6px 6px 4px;
+    border-radius:12px;
+    border:2px solid var(--goldStroke);
+    background:linear-gradient(160deg, rgba(228,125,7,0.16), rgba(112,54,124,0.20));
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    overflow:hidden;
+    cursor:pointer;
+  }
+  .spot-num{
+    font-size:22px; font-weight:1000; line-height:1;
+    color:var(--primary);
+    -webkit-text-stroke:2px rgba(0,0,0,0.8);
+    paint-order:stroke fill;
+  }
+  .spot-label{
+    font-size:10px; font-weight:900; letter-spacing:.4px; text-transform:uppercase;
+    text-align:center; line-height:1.1;
+    color:rgba(255,255,255,0.90);
+    max-width:100%;
+    overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  }
+  .spot-buyer{
+    font-size:10px; font-weight:900; letter-spacing:.2px;
+    color:#ffffff;
+    max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .spot-tile.sold{
+    border-color:rgba(255,255,255,0.16);
+    background:rgba(0,0,0,0.55);
+  }
+  .spot-tile.sold .spot-num,
+  .spot-tile.sold .spot-label{ opacity:.30; }
+  .spot-tile.sold .spot-buyer{ color:var(--primary); opacity:1; }
+  .spot-tile.sold::after{
+    content:"";
+    position:absolute; left:6%; right:6%; top:50%;
+    height:3px; border-radius:3px;
+    background:var(--primary);
+    box-shadow:0 0 10px rgba(228,125,7,0.7);
+  }
+
+  /* ===== ENVELOPE BOARD (layout 2) =====
+     Ported from the jim-and-tabby custom envelope board and re-skinned to the
+     EnergyVault palette. Every selector is prefixed env- on purpose: the spot
+     board above uses .spot-* and the two must never share a rule, which is the
+     class-collision trap that cost a day on Heat Check. */
+  /* ===== ENVELOPE MODE ROW SET =====
+     The envelope board is its own layout, not a reskin of layout 1. It does NOT
+     use the stats row or the scrolling card display: its four counters carry the
+     numbers and there is no card to hang a buyer name on. Both rows are hidden
+     and the board takes the height they free, which also closes the dead space
+     under the last row of envelopes. */
+  .mode-envelope .panel.stats,
+  .mode-envelope .panel.poke{
+    display:none !important;
+  }
+  /* Sized to its CONTENT up to a cap, not stretched to the cap. Nothing sits
+     below this panel, so a shorter board moves nothing; a stretched one just
+     leaves a black hole between the last row and the counters. Row count only
+     changes on a config edit, never on a sale, so this cannot creep mid-break. */
+  .mode-envelope .panel.spots-board{
+    height: auto;
+    max-height: var(--boardHEnv);
+  }
+
+  /* The shared container carries .spots-grid (a 5 column grid) in spot mode. Left
+     on, it made the whole envelope board ONE grid cell, 205px wide. The container
+     class is swapped per mode instead. */
+  .env-host{
+    display:block;
+    height:100%;
+  }
+  .env-board{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    width:100%;
+    height:100%;
+    min-height:0;
+  }
+  .env-top-row{
+    display:grid;
+    grid-template-columns:repeat(14, minmax(0,1fr));
+    gap:6px;
+    grid-auto-rows:var(--envTileH);
+    min-width:0;
+  }
+  /* The tail of the board scrolls INSIDE a fixed box. Without this the board
+     grows with the entry count and walks down the OBS scene mid-break, which is
+     the same creep that had to be fixed on coachs111. */
+  .env-scroll{
+    flex:0 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding-right:2px;
+    overscroll-behavior:contain;
+  }
+  .env-scroll::-webkit-scrollbar{ width:6px; }
+  .env-scroll::-webkit-scrollbar-thumb{
+    background:rgba(228,125,7,0.45);
+    border-radius:999px;
+  }
+  .env-grid{
+    display:grid;
+    grid-template-columns:repeat(var(--envCols, 14), minmax(0,1fr));
+    gap:6px;
+    grid-auto-rows:var(--envTileH);
+    min-width:0;
+  }
+
+  .env-tile{
+    position:relative;
+    height:var(--envTileH);
+    border-radius:8px;
+    overflow:hidden;
+    border:2px solid var(--goldStroke);
+    background:
+      linear-gradient(180deg, rgba(228,125,7,0.20), rgba(112,54,124,0.26)),
+      rgba(0,0,0,0.45);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.05), 0 3px 10px rgba(0,0,0,0.35);
+    cursor:pointer;
+    min-width:0;
+  }
+  .env-tile img{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    display:block;
+    filter:brightness(0.74);
+  }
+  .env-label{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(180deg, rgba(0,0,0,0.06), rgba(0,0,0,0.30));
+    z-index:2;
+  }
+  .env-title{
+    font-size:clamp(12px, 1.6vw, 20px);
+    line-height:1;
+    font-weight:900;
+    color:#fffdf4;
+    text-shadow:0 2px 8px rgba(0,0,0,0.92), 0 0 6px rgba(0,0,0,0.55);
+  }
+
+  /* Chase spot: the client asked for chase envelopes to read at a glance. */
+  .env-tile.chase{
+    border-color:rgba(255,223,122,0.95);
+    box-shadow:0 0 14px rgba(245,200,75,0.40), inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+  .env-tile.chase .env-title{ color:#ffe58a; }
+
+  .env-tile.sold{
+    border-color:rgba(255,255,255,0.18);
+  }
+  .env-tile.sold img{ filter:grayscale(85%) brightness(0.42); }
+  .env-tile.sold .env-title{ opacity:0.28; }
+  .env-tile.sold::after{
+    content:"";
+    position:absolute; left:8%; right:8%; top:50%;
+    height:3px; border-radius:3px;
+    background:var(--primary);
+    box-shadow:0 0 10px rgba(228,125,7,0.7);
+    z-index:3;
+  }
+  /* Buyer name sits over the envelope, same idea as the scrolling cards. */
+  .env-buyer{
+    position:absolute;
+    left:3px; right:3px; bottom:2px;
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:0.3px;
+    text-align:center;
+    color:var(--primary);
+    text-shadow:0 2px 8px rgba(0,0,0,0.9);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    z-index:4;
+    opacity:0;
+  }
+  .env-tile.sold .env-buyer{ opacity:1; }
+
+  /* Logo slot punched into the top row, as jim-and-tabby does. */
+  .env-logo-slot{
+    grid-column:span 2;
+    position:relative;
+    height:var(--envTileH);
+    display:flex; align-items:center; justify-content:center;
+    min-width:0;
+    overflow:visible;
+  }
+  .env-logo-slot img{
+    max-width:100%;
+    max-height:calc(var(--envTileH) * 1.6);
+    width:auto; height:auto;
+    object-fit:contain;
+    filter:drop-shadow(0 6px 16px rgba(0,0,0,0.7));
+  }
+
+  /* Envelope / chase counters under the board. */
+  .env-stats{
+    display:grid;
+    grid-template-columns:repeat(4, minmax(0,1fr));
+    gap:6px;
+    margin-top:2px;
+  }
+  .env-stat{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:4px 6px;
+    border-radius:10px;
+    border:2px solid var(--goldStroke);
+    background:rgba(0,0,0,0.45);
+  }
+  .env-stat .value{ font-size:22px; font-weight:1000; color:var(--primary); line-height:1; }
+  .env-stat .label{
+    font-size:10px; font-weight:900; letter-spacing:1.4px; text-transform:uppercase;
+    color:rgba(255,255,255,0.64);
+  }
+
+      *{ box-sizing:border-box; }
+      html,body{ height:100%; }
+      body{
+        margin:0;
+        width:var(--W);
+        height:var(--H);
+        background:transparent;
+        font-family: "Arial Black", Arial, sans-serif;
+        user-select:none;
+        overflow:hidden;
+      }
+
+      /* ===== OVERLAY CANVAS ===== */
+.stage{
+  width:var(--W);
+  height:var(--H);
+  position:relative;
+  overflow:hidden;
+  background: transparent; /* OBS-friendly */
+  padding: var(--safePad);
+}
+
+
+  /* Top-only branded backdrop */
+  .stage::before{
+    content:"";
+    position:absolute;
+    left:0; right:0; top:0;
+    height: calc(var(--hdrH) + var(--statsH) + var(--pokeH) + var(--tickerH) + var(--spotsH) + (var(--gap) * 6) + 60px);
+
+
+
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* Sparkle layer (subtle) */
+  .stage::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; top:0;
+    height: calc(var(--hdrH) + var(--statsH) + var(--pokeH) + var(--tickerH) + var(--spotsH) + (var(--gap) * 6) + 60px);
+
+    background:
+      radial-gradient(circle at 12% 30%, rgba(255,255,255,0.14) 0 2px, transparent 3px),
+      radial-gradient(circle at 38% 18%, rgba(255,223,122,0.18) 0 2px, transparent 3px),
+      radial-gradient(circle at 68% 26%, rgba(255,255,255,0.12) 0 1px, transparent 2px),
+      radial-gradient(circle at 86% 22%, rgba(228,125,7,0.16) 0 2px, transparent 3px);
+    opacity: 0.55;
+    filter: blur(0.2px);
+    pointer-events:none;
+    z-index:0;
+    animation: twinkle 3.8s ease-in-out infinite alternate;
+  }
+
+  @keyframes twinkle{
+    from { opacity: 0.40; transform: translateY(0px); }
+    to   { opacity: 0.70; transform: translateY(1px); }
+  }
+
+
+      .grid{
+        position:absolute;
+        inset: 0;
+        display:flex;
+        flex-direction:column;
+        gap: var(--gap);
+        z-index: 1;
+      }
+
+  .panel{
+    background: linear-gradient(180deg, rgba(0,0,0,0.34), rgba(0,0,0,0.18));
+    border: 2px solid rgba(228,125,7,0.68);
+    border-radius: var(--r);
+    overflow:hidden;
+    position:relative;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.16),
+      0 10px 26px rgba(0,0,0,0.85);
+    backdrop-filter: blur(7px);
+  }
+
+  /* Inner hot edge glow */
+  .panel::after{
+    content:"";
+    position:absolute;
+    inset: 0;
+    pointer-events:none;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgba(255,223,122,0.10);
+  }
+
+  /* remove “frame” look */
+  .poke-card{
+    height: var(--pokeCardH);
+    aspect-ratio: 1 / 1;
+    width: auto;
+    border-radius: 18px;
+
+    border: none;
+    background: transparent;
+    box-shadow: none;
+
+    overflow:hidden;
+    position:relative;
+    flex: 0 0 auto;
+    cursor:pointer;
+    transition: transform 120ms ease, opacity 120ms ease, filter 120ms ease;
+  }
+
+  .poke-card img{
+    width:100%;
+    height:100%;
+    object-fit: cover;
+    display:block;
+    border-radius: 16px;
+    filter: drop-shadow(0 10px 18px rgba(0,0,0,0.55));
+  }
+  .poke{
+    height: var(--pokeH);
+    padding: 10px 0;
+    position:relative;
+    background: transparent; /* let the strip do the work */
+  }
+
+  /* the strip */
+  .poke-inner{
+    position:relative;
+    z-index:2;
+    height:100%;
+    display:flex;
+    align-items:center;
+    overflow:hidden;
+    padding: 0 14px;
+
+    background: rgba(0,0,0,0.22);
+    border-top: 1px solid rgba(228,125,7,0.22);
+    border-bottom: 1px solid rgba(228,125,7,0.22);
+    backdrop-filter: blur(10px);
+  }
+
+
+
+
+
+      /* ===== HEADER ===== */
+      .header{
+        height: var(--hdrH);
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        padding: 10px 10px;
+        /* Fire on the left, psychic on the right: the client's two brand colours
+           and the Charizard/Mewtwo brief in one bar. */
+        background:linear-gradient(90deg, #7a3f02 0%, var(--primary) 26%, #2a1030 58%, var(--secondary) 84%, #3a1a42 100%);
+        border: solid 2px rgba(255,255,255,0.34); 
+            
+      }
+
+      .hdr-left{
+        display:flex;
+        align-items:center;
+        gap: 10px;
+        min-width:0;
+        flex: 1 1 auto;
+      }
+
+
+      .hdr-title{
+        min-width:0;
+        display:flex;
+        flex-direction:column;
+        justify-content:center;
+        padding-left: 26px;
+      }
+      .hdr-title .big{
+        font-size: 54px;
+        letter-spacing: 1px;
+        color: var(--text);
+        text-shadow: 0 3px 12px rgba(0,0,0,0.75);
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .hdr-title .small{
+        font-size: 24px;
+        letter-spacing: 1px;
+        color: rgba(255,255,255,0.85);
+        text-transform: uppercase;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        padding-left:10px;
+      }
+
+      .break-pill{
+        display:flex;
+        align-items:center;
+        gap: 10px;
+        padding: 10px 10px;
+        border-radius: 999px;
+        border: 2px solid rgba(245,200,75,0.75);
+        background: rgba(0,0,0,0.35);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      /* Break pill when used inline in header title stack */
+  .break-pill.break-pill-inline{
+    padding: 6px 10px;
+    gap: 18px;
+    border-radius: 999px;
+    width: fit-content;
+  }
+  .break-pill.break-pill-inline .label{
+    font-size: 40px;
+  }
+  .break-pill.break-pill-inline .value{
+    font-size: 40px;
+  }
+
+      .break-pill .label{ font-size: 30px; color: rgba(255,255,255,0.92); letter-spacing: 1px; }
+      .break-pill .value{ font-size: 28px; color: #fff; letter-spacing: 1px; }
+
+      /* Avg Bid pill (same vibe as break pill) */
+  .avg-pill{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(112,54,124,0.55);
+    background: rgba(0,0,0,0.28);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .avg-pill .label{
+    font-size: 26px;
+    color: rgba(255,255,255,0.78);
+    letter-spacing: 1px;
+  }
+  .avg-pill .value{
+    font-size: 28px;
+    color: #fff;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 14px rgba(0,0,0,0.78), var(--glowRed);
+  }
+
+      /* ===== STATS ROW ===== */
+      .stats{
+        height: var(--statsH);
+        display:flex;
+        align-items:center;
+        gap: 16px;
+        padding: 12px 18px;
+        background:
+          linear-gradient(90deg,
+            rgba(245,200,75,0.10),
+            rgba(0,0,0,0.45),
+            rgba(245,200,75,0.10));
+      }
+      .stats-spacer{ flex:1 1 auto; }
+      .stats-status{
+        font-size: 22px;
+        font-weight: 900;
+        letter-spacing: 1.4px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.82);
+        white-space:nowrap;
+      }
+
+      /* Client logo now sits IN the header. It is contained, not absolutely
+         positioned: the old rule escaped its own box and overlapped the brand row. */
+      .client-logo{
+        width: 260px;
+        height: calc(var(--hdrH) - 24px);
+        border-radius: 16px;
+        border: 2px solid rgba(245,200,75,0.45);
+        background: rgba(0,0,0,0.35);
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        overflow:hidden;
+        flex: 0 0 auto;
+      }
+      .client-logo img{
+        max-width: 100%;
+        max-height: 100%;
+        width:auto; height:auto;
+        object-fit: contain;
+        display:block;
+        filter: drop-shadow(0 2px 10px rgba(0,0,0,0.65));
+      }
+
+
+      /* ===== TICKER ===== */
+      .ticker{
+        height: var(--tickerH);
+        display:flex;
+        align-items:center;
+        overflow:hidden;
+        padding: 0 18px;
+          background: linear-gradient(90deg, rgba(0,0,0,0.30), rgba(228,125,7,0.12), rgba(112,54,124,0.07), rgba(0,0,0,0.30));
+    border-color: rgba(228,125,7,0.28)
+      }
+      .ticker span{
+        display:inline-block;
+        white-space: nowrap;
+        padding-left: 100%;
+        animation: tickerScroll 25s linear infinite;
+        font-size: 34px;
+        letter-spacing: 1px;
+        font-weight: 900;
+        color:#fff;
+        text-shadow: 0 2px 14px rgba(0,0,0,0.75);
+      }
+
+      .ticker span{
+    color: #fff;
+    text-shadow: 0 2px 14px rgba(0,0,0,0.85), var(--glowGold);
+  }
+      @keyframes tickerScroll{
+        0%{ transform: translateX(0); }
+        100%{ transform: translateX(-100%); }
+      }
+
+
+  /* Big white “AYY-style” text */
+  .hdr-title .big{
+    color: var(--white);
+    text-shadow:
+      0 3px 14px rgba(0,0,0,0.78),
+      0 0 20px rgba(255,255,255,0.08),
+      var(--glowGold);
+    letter-spacing: 1px;
+  }
+
+  /* Smaller line gets a gold tint */
+  .stats-status{
+    color: rgba(255,223,122,0.88);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.75);
+  }
+
+  /* Red accent for the Break pill value (POKEPULLS energy) */
+  .break-pill{
+    border-color: rgba(228,125,7,0.72);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), var(--glowGold);
+  }
+  .break-pill .value{
+    color: var(--white);
+    text-shadow: 0 2px 14px rgba(0,0,0,0.75), var(--glowRed);
+  }
+
+
+  .client-logo img{
+    filter: drop-shadow(0 10px 24px rgba(0,0,0,0.70)) drop-shadow(0 0 18px rgba(228,125,7,0.18));
+  }
+
+
+      /* ===== POKEMON SLIDES BAR ===== */
+      .poke{
+        height: var(--pokeH);
+        padding: 14px 0;
+        position:relative;
+      }
+
+      /* border flare around pokemon bar (subtle) */
+      .poke::after{
+        content:"";
+        position:absolute;
+        inset: 6px;
+        border-radius: var(--r);
+        pointer-events:none;
+        background:
+          linear-gradient(130deg,
+            transparent 0%,
+            rgba(255,221,122,0) 35%,
+            rgba(255, 255, 255, 0.75) 50%,
+            rgba(175, 175, 175, 0.35) 56%,
+            rgba(255,221,122,0) 70%,
+            transparent 100%);
+        background-size: 280% 280%;
+        animation: wick 6.2s linear infinite;
+
+        -webkit-mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+
+        mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        mask-composite: exclude;
+
+        padding: 2px;
+        filter: blur(8px);
+        opacity: 0.90;
+        mix-blend-mode: screen;
+      }
+      @keyframes wick{ 0%{background-position:0% 50%} 100%{background-position:100% 50%} }
+
+      .poke-inner{
+        position:relative;
+        z-index:2;
+        height:100%;
+        display:flex;
+        align-items:center;
+        overflow:hidden;
+        padding: 0 14px;
+      }
+
+      .marquee{
+        display:flex;
+        align-items:center;
+        gap: 12px;
+        will-change: transform;
+        animation: pokeMarquee 80s linear infinite;
+      }
+      /* Hovering pauses the scroll so a moving card can actually be clicked.
+         Without this a 238px card drifting past is a genuinely hard target. */
+      .poke:hover .marquee{ animation-play-state: paused; }
+      .poke-card:hover{ cursor: pointer; }
+
+      @keyframes pokeMarquee{
+        0%{ transform: translateX(0); }
+        100%{ transform: translateX(-50%); }
+      }
+
+      .poke-card{
+        height: var(--pokeCardH);
+        aspect-ratio: 1 / 1;
+        width: auto;
+        border-radius: 18px;
+        border: 2px solid rgba(240, 240, 240, 0.952);
+        background: rgba(0, 0, 0, 0.534);
+        overflow:hidden;
+        position:relative;
+        flex: 0 0 auto;
+        cursor:pointer;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.45);
+        transition: transform 120ms ease, opacity 120ms ease, filter 120ms ease;
+      }
+      .poke-card img{
+        width:100%;
+        height:100%;
+        object-fit: cover;
+        display:block;
+        transition: filter 160ms ease;
+      }
+      .poke-card.sold img{ filter: grayscale(80%) brightness(0.7); }
+      .poke-card .tag{
+        position:absolute;
+        left: 10px;
+        right: 10px;
+        bottom: 10px;
+        padding: 6px 8px;
+        border-radius: 12px;
+        background: rgba(0,0,0,0.55);
+        border: 1px solid rgba(255,255,255,0.12);
+        color:#fff;
+        font-size: 22px;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+        text-align:center;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.75);
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+
+      .poke-card:hover{
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 0 18px rgba(245,200,75,0.30), 0 14px 22px rgba(0,0,0,0.55);
+        border-color: rgba(255,223,122,0.95);
+      }
+
+      .poke-card.sold{
+        transform: scale(0.85);
+        opacity: 0.90;
+        /* grayscale on the CARD would drag the buyer badge down with it, so the filter
+           is applied to the artwork only. */
+        filter: none;
+        border-color: rgba(255, 232, 28, 0.5);
+        box-shadow: none;
+      }
+
+      /* ===== CARD NAME / RARITY (SPOTS) ===== */
+      .spots{
+        height: var(--spotsH);
+        display:flex;
+        align-items:center;
+        gap: 14px;
+        padding: 14px 18px;
+        background:
+          linear-gradient(90deg, rgba(245,200,75,0.12), rgba(0,0,0,0.45), rgba(245,200,75,0.12));
+      }
+  .spots .label{
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(228,125,7,0.22);
+    color: var(--white);
+    text-shadow: 0 2px 12px rgba(0,0,0,0.85), var(--glowRed);
+  }
+
+  .spot.active{
+    border-color: rgba(255,223,122,0.95);
+    box-shadow: var(--glowGold);
+  }
+
+      .spots-strip{
+        flex: 1 1 auto;
+        display:flex;
+        gap: 10px;
+        overflow:auto;
+        padding-bottom: 6px;
+        scrollbar-width: thin;
+      }
+      .spot{
+        flex: 0 0 auto;
+        padding: 12px 14px;
+        border-radius: 16px;
+        border: 2px solid rgba(245,200,75,0.35);
+        background: rgba(0,0,0,0.40);
+        color:#fff;
+        font-size: 18px;
+        letter-spacing: 0.7px;
+        cursor:pointer;
+        white-space:nowrap;
+        transition: transform 120ms ease, opacity 120ms ease, filter 120ms ease, border-color 120ms ease;
+        position:relative;
+      }
+      .spot:hover{
+        transform: translateY(-2px);
+        border-color: rgba(255,223,122,0.95);
+        box-shadow: 0 0 16px rgba(245,200,75,0.22);
+      }
+      .spot.active{
+        border-color: rgba(255,223,122,0.95);
+        box-shadow: 0 0 18px rgba(245,200,75,0.28);
+      }
+      .spot.sold{
+        opacity: 0.35;
+        filter: grayscale(100%) brightness(0.55);
+        transform: none;
+        box-shadow:none;
+        border-color: rgba(245,200,75,0.18);
+      }
+
+      /* ===== MAIN CARD PREVIEW ===== */
+    
+  .card-label{
+    position:absolute;
+  top: 50%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    max-width: calc(100% - 80px);
+
+    padding: 12px 18px;
+    border-radius: 999px;
+
+    background: rgba(0,0,0,0.55);
+    border: 1px solid rgba(255,255,255,0.12);
+
+    color:#fff;
+    font-size: 52px;          /* larger */
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    text-shadow: 0 2px 14px rgba(0,0,0,0.80);
+
+    z-index: 5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events:none;
+
+    opacity: 0;               /* start hidden, JS fades it */
+    transition: opacity 260ms ease;
+  }
+
+  /* when JS toggles this class, it fades in */
+  .card-label.show{
+    opacity: 1;
+
+  }
+
+
+    
+      .main{
+        flex: 1 1 auto;
+        display:flex;
+        flex-direction:column;
+        padding: 0px;
+        gap: 12px;
+        background: transparent;
+        position:relative;
+          border: none;
+    box-shadow: none;
+      }
+
+      /* Border flare around MAIN (subtle but visible) */
+      .main::after{
+        content:"";
+        position:absolute;
+        inset: 8px;
+        border-radius: calc(var(--r) + 6px);
+        pointer-events:none;
+
+        background: conic-gradient(
+          from 0deg,
+          rgba(245,200,75,0.00) 0deg,
+          rgba(245,200,75,0.00) 55deg,
+          rgba(255,223,122,0.55) 92deg,
+          rgba(245,200,75,0.22) 120deg,
+          rgba(245,200,75,0.00) 160deg,
+          rgba(245,200,75,0.00) 360deg
+        );
+
+        -webkit-mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+
+        mask:
+          linear-gradient(#000 0 0) content-box,
+          linear-gradient(#000 0 0);
+        mask-composite: exclude;
+
+        padding: 4px;
+        filter: blur(10px);
+        opacity: 0.75;
+        mix-blend-mode: screen;
+        animation: mainRing 2.8s linear infinite;
+      }
+      @keyframes mainRing{ to { transform: rotate(360deg);} }
+
+      .main > *{ position:relative; z-index:2; }
+
+  .card-labelbar{
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap: 12px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .card-labelbar .nowshowing{
+    display:none; /* bye */
+  }
+
+
+  .card-stage{
+    flex: 1 1 auto;
+    border-radius: 22px;
+    border: 2px solid rgba(228,125,7,0.28);
+    background: rgba(0,0,0,0.08); /* very light glass, not a block */
+    overflow:hidden;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    backdrop-filter: blur(8px);
+      --mx: 0px; /* mouse offset x */
+    --my: 0px; 
+  }
+
+      .card-stage img{
+        width: 450px;
+        height: auto;
+        object-fit: contain;
+        align-content: center;
+        display:block;
+        transform: scale(1.01);
+        filter: drop-shadow(0 10px 30px rgba(0,0,0,0.65));
+        transition: transform 200ms ease, opacity 200ms ease, filter 200ms ease;
+      }
+      .card-stage.sold img{
+        transform: scale(0.92);
+        opacity: 0.90;
+        filter: grayscale(100%) brightness(0.65);
+      }
+
+  /* Mouse tilt mode: pause ambient animation while we drive transforms via JS */
+  .card-stage.interactive img{
+    animation: none !important;
+  }
+
+  /* When interactive, we’ll offset the halo + sheen with the mouse */
+  .card-stage.interactive::before{
+    transform: translate(calc(-50% + (var(--mx) * 0.20)), calc(-50% + (var(--my) * 0.20))) scale(1.02) !important;
+  }
+
+  .card-stage.interactive::after{
+    transform: translate(calc(-50% + (var(--mx) * 0.35)), calc(-50% + (var(--my) * 0.35))) rotate(16deg) !important;
+    opacity: 0.40 !important; /* optional: more noticeable on hover */
+  }
+
+  /* Optional: add a little intensity while hovering */
+  .card-stage.interactive{
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 18px 60px rgba(0,0,0,0.55);
+  }
+
+  /* Optional: gives a nicer feel */
+  #cardStage{ cursor: default; }
+  #cardStage:not(.sold){ cursor: pointer; }
+
+
+
+      .sold-badge{
+        position:absolute;
+        inset:0;
+        display:none;
+        align-items:center;
+        justify-content:center;
+        font-size: 92px;
+        letter-spacing: 6px;
+        color: rgba(255,47,47,0.95);
+        text-shadow: 0 10px 40px rgba(0,0,0,0.85), 0 0 18px rgba(255,47,47,0.55);
+        transform: rotate(-10deg);
+        pointer-events:none;
+        font-weight: 900;
+      }
+      .card-stage.sold .sold-badge{ display:flex; }
+
+      .main-footer{
+        display:flex;
+        gap: 10px;
+        align-items:center;
+        justify-content:space-between;
+      }
+
+      .nowshowing{
+        font-size: 22px;
+        letter-spacing: 1px;
+        color:#fff;
+        text-shadow: 0 2px 14px rgba(0,0,0,0.75);
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+        max-width: 72%;
+      }
+      .progress{
+        font-size: 18px;
+        letter-spacing: 1px;
+        color: rgba(255,255,255,0.85);
+        background: rgba(0,0,0,0.35);
+        border: 1px solid rgba(255,255,255,0.12);
+        padding: 10px 12px;
+        border-radius: 999px;
+        white-space:nowrap;
+      }
+
+      /* ===== ADMIN PANEL (toggle for OBS) ===== */
+      .admin-toggle{
+        position:absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 50;
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        border: 2px solid rgba(245,200,75,0.55);
+        background: rgba(0,0,0,0.45);
+        color:#fff;
+        font-weight: 900;
+        cursor:pointer;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        box-shadow: 0 10px 22px rgba(0,0,0,0.55);
+      }
+
+      /* ===== ADMIN EDITORS =====
+         Repeating rows for the scrolling cards and the board spots. Both lists are
+         seller length, so each scrolls inside a capped box rather than pushing the
+         drawer past the canvas. */
+      /* ===== BUYER PROMPT MODAL ===== */
+      .bmodal{
+        position:absolute;
+        inset:0;
+        z-index:120;
+        display:none;
+        align-items:center;
+        justify-content:center;
+        background:rgba(0,0,0,0.62);
+        backdrop-filter:blur(3px);
+      }
+      .bmodal.open{ display:flex; }
+      .bmodal-box{
+        width:min(620px, 78%);
+        padding:22px;
+        border-radius:18px;
+        border:2px solid rgba(245,200,75,0.6);
+        background:rgba(10,12,16,0.97);
+        box-shadow:0 24px 60px rgba(0,0,0,0.75);
+      }
+      .bmodal-title{
+        font-size:22px; font-weight:900; letter-spacing:1px;
+        color:#fff; margin-bottom:14px;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      }
+      #buyerModalInput{
+        width:100%;
+        padding:14px 16px;
+        font-size:26px;
+        font-weight:800;
+        border-radius:12px;
+        border:2px solid rgba(255,255,255,0.25);
+        background:rgba(0,0,0,0.5);
+        color:#fff;
+        outline:none;
+      }
+      #buyerModalInput:focus{ border-color:rgba(245,200,75,0.9); }
+      .bmodal-btns{ display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
+      .bmodal-btn{
+        flex:1 1 auto;
+        padding:12px 14px;
+        border-radius:12px;
+        border:2px solid rgba(255,255,255,0.22);
+        background:rgba(0,0,0,0.45);
+        color:#fff; font-size:14px; font-weight:900; letter-spacing:0.8px;
+        text-transform:uppercase; cursor:pointer;
+      }
+      .bmodal-btn.go{ border-color:rgba(245,200,75,0.9); background:rgba(228,125,7,0.35); }
+      .bmodal-btn.warn{ border-color:rgba(255,90,60,0.6); }
+      .bmodal-btn.ghost{ opacity:.8; }
+      .bmodal-btn:hover{ border-color:rgba(255,223,122,0.95); }
+
+      /* ===== COLLAPSIBLE GROUPS ===== */
+      .grp{
+        margin: 8px 0;
+        border: 1px solid rgba(255,255,255,0.14);
+        border-radius: 12px;
+        background: rgba(255,255,255,0.03);
+        overflow: hidden;
+      }
+      .grp > summary{
+        list-style: none;
+        cursor: pointer;
+        padding: 10px 12px;
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.86);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        user-select: none;
+      }
+      .grp > summary::-webkit-details-marker{ display:none; }
+      .grp > summary::before{
+        content: "\25B8";
+        opacity: .65;
+        transition: transform 120ms ease;
+      }
+      .grp[open] > summary::before{ transform: rotate(90deg); }
+      .grp[open] > summary{
+        border-bottom: 1px solid rgba(255,255,255,0.12);
+        color: #fff;
+      }
+      .grp-body{ padding: 10px 12px 12px 12px; }
+      .grp.sub{ margin: 8px 0 0 0; background: transparent; }
+      .grp.sub > summary{ padding: 6px 0; font-size: 11px; letter-spacing: 1px; }
+      .grp.sub[open] > summary{ border-bottom: none; }
+      .grp.sub .grp-body{ padding: 0; }
+
+      .ed{
+        margin: 10px 0 4px 0;
+        border-top: 1px solid rgba(255,255,255,0.14);
+        padding-top: 8px;
+      }
+      .ed-head{
+        display:flex; align-items:center; justify-content:space-between;
+        gap:8px; margin-bottom:6px;
+      }
+      .ed-head .t{
+        font-size:13px; font-weight:900; letter-spacing:1.2px; text-transform:uppercase;
+        color:rgba(255,255,255,0.78);
+      }
+      .ed-hint{
+        font-size:11px; color:rgba(255,255,255,0.52); margin:0 0 6px 0; line-height:1.35;
+      }
+      .ed-list{
+        max-height: 240px;
+        overflow-y:auto;
+        overflow-x:hidden;
+        padding-right:4px;
+        display:flex; flex-direction:column; gap:6px;
+      }
+      .ed-list::-webkit-scrollbar{ width:6px; }
+      .ed-list::-webkit-scrollbar-thumb{ background:rgba(228,125,7,0.45); border-radius:999px; }
+
+      .ed-row{
+        display:flex; align-items:center; gap:6px;
+        min-width:0;
+      }
+      /* ===== IN PAGE DROPDOWN =====
+         A native <select> opens an OS level popup, and OBS browser sources have
+         no popup layer, so the list simply never appears: the control looks dead.
+         This is a plain div list drawn inside the page, which OBS renders fine. */
+      .dd{ position:relative; flex:0 0 150px; min-width:0; }
+      .dd.wide{ flex:1 1 auto; }
+      .dd-btn{
+        width:100%;
+        display:flex; align-items:center; justify-content:space-between; gap:6px;
+        padding:8px 10px;
+        border-radius:10px;
+        border:1px solid rgba(255,255,255,0.22);
+        background:rgba(0,0,0,0.45);
+        color:#fff; font-size:13px; font-weight:700;
+        cursor:pointer; text-align:left;
+      }
+      .dd-btn .cap{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+      .dd-btn::after{ content:"\25BE"; opacity:.7; flex:0 0 auto; }
+      .dd.open .dd-btn{ border-color:rgba(245,200,75,0.85); }
+      .dd-menu{
+        display:none;
+        position:absolute;
+        left:0; right:0; top:calc(100% + 4px);
+        max-height:240px;
+        overflow-y:auto;
+        z-index:80;
+        border-radius:10px;
+        border:1px solid rgba(245,200,75,0.55);
+        background:rgba(8,10,14,0.98);
+        box-shadow:0 14px 30px rgba(0,0,0,0.7);
+      }
+      .dd.open .dd-menu{ display:block; }
+      .dd-menu::-webkit-scrollbar{ width:6px; }
+      .dd-menu::-webkit-scrollbar-thumb{ background:rgba(228,125,7,0.45); border-radius:999px; }
+      .dd-opt{
+        padding:8px 10px;
+        font-size:13px; color:#fff; cursor:pointer;
+        white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      }
+      .dd-opt:hover{ background:rgba(228,125,7,0.28); }
+      .dd-opt.sel{ background:rgba(228,125,7,0.42); font-weight:900; }
+
+      .ed-row.armed{ outline:2px solid rgba(245,200,75,0.55); outline-offset:2px; border-radius:8px; }
+      .ed-row.drop{ outline:2px dashed rgba(245,200,75,0.95); outline-offset:2px; border-radius:8px; }
+      .ed-row .n{
+        flex:0 0 34px;
+        font-size:12px; font-weight:900; text-align:right;
+        color:rgba(255,255,255,0.55);
+      }
+      .ed-row input[type="text"]{ flex:1 1 auto; min-width:0; }
+      .ed-row select{ flex:0 0 130px; min-width:0; }
+      .ed-thumb{
+        flex:0 0 34px; height:34px;
+        border-radius:8px; overflow:hidden;
+        border:1px solid rgba(255,255,255,0.18);
+        background:rgba(0,0,0,0.45);
+        display:flex; align-items:center; justify-content:center;
+      }
+      .ed-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
+      .ed-btn{
+        flex:0 0 auto;
+        padding:6px 10px;
+        border-radius:8px;
+        border:1px solid rgba(245,200,75,0.55);
+        background:rgba(0,0,0,0.45);
+        color:#fff; font-size:11px; font-weight:900; letter-spacing:0.6px;
+        text-transform:uppercase; cursor:pointer;
+      }
+      .ed-btn:hover{ border-color:rgba(255,223,122,0.95); }
+      .ed-btn.danger{ border-color:rgba(255,90,60,0.6); }
+      .ed-chase{
+        flex:0 0 auto;
+        display:flex; align-items:center; gap:4px;
+        font-size:10px; font-weight:900; letter-spacing:0.6px;
+        color:rgba(255,223,122,0.9); text-transform:uppercase;
+        white-space:nowrap;
+      }
+      .ed-chase input{ width:16px; height:16px; }
+
+      .admin{
+        position:absolute;
+        top: 84px;
+        right: 16px;
+        width: 650px;
+        max-height: calc(var(--H) - 110px);
+        z-index: 50;
+        border-radius: 18px;
+        border: 2px solid rgba(245,200,75,0.45);
+        background: rgba(0,0,0,0.72);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 18px 44px rgba(0,0,0,0.65);
+        padding: 14px;
+        overflow:auto;
+        display:none;
+      }
+      .admin.open{ display:block; }
+
+      .admin h3{
+        margin: 0 0 10px 0;
+        font-size: 20px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.92);
+      }
+      .admin .row{
+        display:flex;
+        gap: 20px;
+        margin-bottom: 10px;
+        align-items:center;
+      }
+      .admin label{
+        width: 135px;
+        font-size: 22px;
+        letter-spacing: 1px;
+        color: rgba(255,255,255,0.80);
+        text-transform: uppercase;
+        flex: 0 0 auto;
+      }
+      .admin input, .admin textarea, .admin select{
+        flex: 1 1 auto;
+        border-radius: 12px;
+        border: 2px solid rgba(245,200,75,0.30);
+        background: rgba(0,0,0,0.35);
+        color:#fff;
+        font-weight: 800;
+        outline:none;
+        padding: 10px 10px;
+        font-size: 22px;
+      }
+      .admin textarea{
+        min-height: 130px;
+        resize: vertical;
+        font-weight: 800;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        font-size: 18px;
+        line-height: 1.25;
+      }
+      .btn{
+        width:100%;
+        padding: 12px 12px;
+        border-radius: 14px;
+        border: 2px solid rgba(245,200,75,0.55);
+        background: linear-gradient(135deg, rgba(245,200,75,1) 0%, rgba(255,223,122,1) 100%);
+        color:#111;
+        font-weight: 900;
+        letter-spacing: 0.6px;
+        cursor:pointer;
+        margin-bottom: 10px;
+      }
+      .btn.ghost{
+        background: rgba(0,0,0,0.35);
+        color:#fff;
+        border: 2px solid rgba(245,200,75,0.45);
+      }
+
+      .btn.warn{
+  border: 1px solid rgba(112,54,124,0.55) !important;
+  background: rgba(112,54,124,0.18) !important;
+  color:#fff !important;
+}
+
+
+      /* ===== SSE pill ===== */
+      .sse{
+        display:flex;
+        align-items:center;
+        gap: 8px;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        opacity: 0.95;
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(0,0,0,0.18);
+        color:#fff;
+        width: fit-content;
+      }
+      .dot{
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        background: #666;
+        box-shadow: 0 0 8px rgba(255,255,255,0.15);
+      }
+      .sse.connected .dot{ background: #3cff8a; box-shadow: 0 0 10px rgba(60,255,138,0.7); }
+      .sse.error .dot{ background: #ff2f2f; box-shadow: 0 0 10px rgba(255,47,47,0.7); }
+
+      /* Scrollbar (because humans love tiny UI problems) */
+      ::-webkit-scrollbar{ height: 10px; width: 10px; }
+      ::-webkit-scrollbar-thumb{ background: rgba(245,200,75,0.28); border-radius: 999px; }
+      ::-webkit-scrollbar-track{ background: rgba(255,255,255,0.06); border-radius: 999px; }
+
+  /* =========================
+    AYY PokePulls BRAND OVERRIDES
+    (paste at END of <style>)
+  ========================= */
+
+  /* fix: you reference var(--text) but never define it */
+  :root{
+    --text:#ffffff;
+
+    /* tighten brand colors */
+    --gold:var(--primary);
+    --gold2:#ffa93d;
+    --amber:var(--primary);
+
+    --red:var(--secondary);
+    --red2:#4d2456;
+
+    --glowGold: 0 0 18px rgba(228,125,7,0.38), 0 0 48px rgba(228,125,7,0.20);
+    --glowRed:  0 0 16px rgba(112,54,124,0.30),  0 0 42px rgba(112,54,124,0.18);
+  }
+
+
+
+  /* Subtle logo watermark (uses JS-set CSS var --brand-wm) */
+  .stage::after{
+    content:"";
+    position:absolute;
+    left:-70px;
+    top: 10px;
+    width: 680px;
+    height: 260px;
+    background-image: var(--brand-wm);
+    background-repeat:no-repeat;
+    background-position:left top;
+    background-size: contain;
+    opacity: 0.07;
+    filter: saturate(1.15) contrast(1.05) drop-shadow(0 18px 40px rgba(0,0,0,0.55));
+    mix-blend-mode: screen;
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* Spark pops */
+  .grid::after{
+    content:"";
+    position:absolute;
+    left: 0; right:0; top:0;
+    height: calc(var(--hdrH) + var(--statsH) + var(--pokeH) + var(--tickerH) + var(--spotsH) + (var(--gap) * 6) + 60px);
+    pointer-events:none;
+    z-index:0;
+    opacity:0.55;
+
+    background:
+      radial-gradient(circle at 10% 22%, rgba(255,255,255,0.20) 0 2px, transparent 3px),
+      radial-gradient(circle at 22% 12%, rgba(255,223,122,0.22) 0 2px, transparent 3px),
+      radial-gradient(circle at 58% 18%, rgba(255,255,255,0.16) 0 1px, transparent 2px),
+      radial-gradient(circle at 82% 10%, rgba(228,125,7,0.20) 0 2px, transparent 3px),
+      radial-gradient(circle at 90% 26%, rgba(112,54,124,0.14) 0 2px, transparent 3px);
+    animation: evTwinkle 3.4s ease-in-out infinite alternate;
+  }
+  @keyframes evTwinkle{ from{opacity:.35; transform:translateY(0)} to{opacity:.65; transform:translateY(1px)} }
+
+  /* Upgrade panels: hot-edge red/gold gradient border like the logo */
+  .panel{
+    border: 2px solid silver !important;
+    
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.06),
+      0 12px 30px rgba(0,0,0,0.55) !important;
+  }
+  .panel::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    padding: 2px;
+    border-radius: inherit;
+    pointer-events:none;
+
+    background: linear-gradient(135deg,
+      rgba(228,125,7,0.92),
+      rgba(228,125,7,0.55),
+      rgba(112,54,124,0.58),
+      rgba(228,125,7,0.80));
+
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+
+    filter: drop-shadow(0 0 14px rgba(228,125,7,0.14));
+    opacity: 0.95;
+  }
+
+  /* Make text feel like logo: bold white with dark stroke + glow */
+  .hdr-title .big{
+    color:#fff !important;
+    -webkit-text-stroke: 1.6px rgba(0,0,0,0.55);
+    text-shadow:
+      0 4px 16px rgba(0,0,0,0.78),
+      0 0 18px rgba(255,255,255,0.08),
+      var(--glowGold) !important;
+  }
+
+  /* Secondary lines: warm gold */
+  .stats-status{
+    color: rgba(255,223,122,0.90) !important;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.78) !important;
+  }
+
+  /* Header + stats row get a little “speech bubble edge” vibe */
+  .stats{
+    background: linear-gradient(90deg,
+      rgba(0,0,0,0.55) 0%,
+      rgba(228,125,7,0.10) 46%,
+      rgba(112,54,124,0.08) 62%,
+      rgba(0,0,0,0.55) 100%) !important;
+      overflow:visible;
+  }
+
+  /* Break pill: gold rim + red energy */
+  .break-pill{
+    border-color: rgba(228,125,7,0.82) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), var(--glowGold) !important;
+  }
+  .break-pill .value{
+    text-shadow: 0 2px 14px rgba(0,0,0,0.75), var(--glowRed) !important;
+  }
+
+  /* Ticker: more AYY punch */
+  .ticker{
+    background: linear-gradient(90deg,
+      rgba(0,0,0,0.30),
+      rgba(228,125,7,0.14),
+      rgba(112,54,124,0.10),
+      rgba(0,0,0,0.30)) !important;
+  }
+  .ticker span{
+    text-shadow: 0 2px 16px rgba(0,0,0,0.88), var(--glowGold) !important;
+  }
+
+  /* Spots: make the “active” feel like a red/gold callout */
+  .spot.active{
+    border-color: rgba(255,223,122,0.98) !important;
+    box-shadow: var(--glowGold), var(--glowRed) !important;
+  }
+
+  /* Logo containers: hot edge like logo outline */
+  .client-logo{
+    box-shadow: var(--glowGold) !important;
+  }
+  /* =========================
+    AYY MODERN CLEAN OVERRIDES (RED/WHITE + SLIGHT GOLD)
+    Paste at VERY END of <style>
+  ========================= */
+
+  :root{
+    --text:#ffffff;
+
+    /* Modern base */
+    --ink:#07080a;
+    --ink2:#0b0d12;
+    --panelBg: rgba(10,12,16,0.62);
+    --panelBg2: rgba(10,12,16,0.42);
+
+    /* Brand accents */
+    --red:var(--secondary);
+    --red2:#4d2456;
+
+    /* Gold becomes subtle */
+    --gold:var(--primary);
+
+    /* Reduce “casino glow” */
+    --glowGold: 0 0 10px rgba(228,125,7,0.14);
+    --glowRed:  0 0 14px rgba(112,54,124,0.22);
+
+    --strokeSoft: rgba(255,255,255,0.10);
+    --strokeSofter: rgba(255,255,255,0.07);
+  }
+
+
+
+  /* Keep watermark, make it cleaner + quieter */
+  .stage::after{
+    opacity: 0.045 !important;
+    filter: saturate(1.05) contrast(1.05) blur(0.2px) !important;
+    mix-blend-mode: screen !important;
+  }
+
+  /* Turn OFF spark pops layer you added */
+  .grid::after{ display:none !important; }
+
+  /* Panels: modern thin neutral borders, no gold rim */
+  .panel{
+    /*background: linear-gradient(180deg, var(--panelBg), var(--panelBg2)) !important;*/
+    border: 2px solid var(--strokeSoft) !important;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.06),
+      0 14px 34px rgba(0,0,0,0.65) !important;
+    backdrop-filter: blur(10px);
+  }
+
+  /* Disable the old “gold gradient frame” pseudo border if it exists */
+  .panel::before{ display:none !important; }
+
+  /* Subtle inner highlight instead of gold */
+  .panel::after{
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06) !important;
+    opacity: 1 !important;
+  }
+
+  /* Header + stats row: simplify backgrounds, add a red accent line */
+  .stats{
+    background: linear-gradient(90deg,
+      rgba(0,0,0,0.42),
+      rgba(255,255,255,0.03),
+      rgba(0,0,0,0.42)) !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    position: relative;
+  }
+
+  /* Red accent line on header + stats row */
+  .header::after, .stats::after{
+    content:"";
+    position:absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 10px;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg,
+      rgba(112,54,124,0.00),
+      rgba(112,54,124,0.85),
+      rgba(228,125,7,0.22),
+      rgba(112,54,124,0.85),
+      rgba(112,54,124,0.00));
+    box-shadow: var(--glowRed);
+    pointer-events:none;
+  }
+
+
+  /* Typography: clean white, reduce gold glow */
+  .hdr-title .big{
+    color: #fff !important;
+    text-shadow: 0 3px 16px rgba(0,0,0,0.78) !important;
+    -webkit-text-stroke: 0px transparent !important; /* remove comic outline */
+  }
+  .stats-status{
+    color: rgba(255,255,255,0.78) !important;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.70) !important;
+  }
+
+  /* Break pill: red/white modern */
+  .break-pill{
+    border: 1px solid rgba(112,54,124,0.55) !important;
+    background: rgba(0,0,0,0.28) !important;
+    box-shadow: none !important;
+  }
+  .break-pill .label{
+    color: rgba(255,255,255,0.78) !important;
+  }
+  .break-pill .value{
+    color: #fff !important;
+    text-shadow: 0 2px 14px rgba(0,0,0,0.78), var(--glowRed) !important;
+  }
+
+  /* Ticker: neutral, with a tiny red hint */
+  .ticker{
+    background: rgba(0, 0, 0, 0.466) !important;
+    border: 1px solid rgba(133, 25, 25, 0.459) !important;
+  }
+  .ticker span{
+    text-shadow: 0 2px 14px rgba(0, 0, 0, 0.897) !important;
+  }
+
+  /* Pokemon strip: neutral borders */
+  .poke-inner{
+    background: rgba(0,0,0,0.38) !important;
+    border-top: 1px solid rgba(255,255,255,0.08) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+  }
+  .poke::after{ display:none !important; } /* remove gold wick flare */
+
+  /* Poke cards: clean border, red hover */
+  .poke-card{
+    border: 1px solid rgba(255,255,255,0.10) !important;
+    background: rgba(0,0,0,0.22) !important;
+    box-shadow: 0 10px 18px rgba(0,0,0,0.48) !important;
+  }
+  .poke-card:hover{
+    border-color: rgba(112,54,124,0.55) !important;
+    box-shadow: 0 0 16px rgba(112,54,124,0.18), 0 14px 22px rgba(0,0,0,0.58) !important;
+  }
+
+  /* Spots: label becomes a red chip */
+  .spots{
+    background: rgba(255,255,255,0.03) !important;
+  }
+  .spots .label{
+    background: rgba(112,54,124,0.14) !important;
+    border: 1px solid rgba(112,54,124,0.45) !important;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.75) !important;
+  }
+
+  /* Spot pills: neutral, red active */
+  .spot{
+    border: 1px solid rgba(255,255,255,0.10) !important;
+    background: rgba(0,0,0,0.22) !important;
+  }
+  .spot:hover{
+    border-color: rgba(112,54,124,0.40) !important;
+    box-shadow: 0 0 14px rgba(112,54,124,0.14) !important;
+  }
+  .spot.active{
+    border-color: rgba(112,54,124,0.70) !important;
+    box-shadow: var(--glowRed) !important;
+  }
+
+  /* Main card stage: neutral frame with tiny red accent */
+  .card-stage{
+    border: 1px solid rgba(255,255,255,0.10) !important;
+    background: rgba(0,0,0,0.08) !important;
+  }
+  .main::after{ display:none !important; } /* remove spinning gold ring */
+
+  /* Scrollbar: stop being gold */
+  ::-webkit-scrollbar-thumb{ background: rgba(112,54,124,0.28) !important; }
+  ::-webkit-scrollbar-track{ background: rgba(255,255,255,0.06) !important; }
+
+  /* Admin UI: neutral */
+  .admin, .admin-toggle{
+    border-color: rgba(255,255,255,0.14) !important;
+  }
+  .btn{
+    border: 1px solid rgba(112,54,124,0.55) !important;
+    background: linear-gradient(135deg, rgba(112,54,124,0.95), rgba(112,54,124,0.95)) !important;
+    color:#fff !important;
+  }
+  .btn.ghost{
+    border: 1px solid rgba(255,255,255,0.14) !important;
+    background: rgba(0,0,0,0.25) !important;
+  }
+
+  /* =========================
+    MAIN CARD: Glow + Ambient Tilt
+    (paste at END of <style>)
+  ========================= */
+
+  /* Give the stage depth */
+  .card-stage{
+    perspective: 1100px !important;
+    transform-style: preserve-3d;
+  }
+
+  /* Soft halo behind the card */
+  .card-stage::before{
+    content:"";
+    position:absolute;
+    left: 50%;
+    top: 52%;
+    transform: translate(-50%, -50%);
+    width: 520px;
+    height: 720px;
+    border-radius: 28px;
+    background:
+      radial-gradient(circle at 50% 40%,
+        rgba(112,54,124,0.22),
+        rgba(228,125,7,0.10) 45%,
+        rgba(0,0,0,0) 72%);
+    filter: blur(18px);
+    opacity: 0.55;
+    pointer-events:none;
+    z-index: 1;
+    animation: cardHaloPulse 6.5s ease-in-out infinite;
+  }
+
+  /* Subtle animated sheen sweep */
+  .card-stage::after{
+    content:"";
+    position:absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(14deg);
+    width: 520px;
+    height: 760px;
+    border-radius: 28px;
+    background: linear-gradient(90deg,
+      rgba(255,255,255,0.00) 0%,
+      rgba(255,255,255,0.08) 35%,
+      rgba(255,255,255,0.00) 70%);
+    opacity: 0.22;
+    filter: blur(1px);
+    mix-blend-mode: screen;
+    pointer-events:none;
+    z-index: 3;
+    animation: cardSheen 7.8s ease-in-out infinite;
+  }
+
+  /* Make sure your existing content stays above the stage background */
+  .card-stage{
+    perspective: 1200px !important;
+    perspective-origin: 50% 50% !important;
+    transform-style: preserve-3d;
+    position: relative; /* already true, but force it */
+  }
+
+  /* HARD CENTER the img so transforms never "walk" it */
+  .card-stage img{
+    position: absolute !important;
+    left: 50% !important;
+    top: 35% !important;
+
+    width: 450px;
+    height: auto;
+
+    transform-style: preserve-3d;
+    transform-origin: 50% 50%;
+
+    /* base: perfectly centered */
+    transform: translate(-50%, -50%) translateZ(55px) rotateX(0deg) rotateY(0deg) scale(1.02);
+
+    will-change: transform, filter;
+    animation: cardTiltBig 5.2s ease-in-out infinite;
+
+    filter:
+      drop-shadow(0 24px 44px rgba(0,0,0,0.72))
+      drop-shadow(0 0 26px rgba(112,54,124,0.22));
+  }
+
+  /* Make label stay above everything */
+  .card-label{ z-index: 6 !important; }
+  .sold-badge{ z-index: 7 !important; }
+
+  /* Soft halo behind the card (stronger + breathes) */
+  .card-stage::before{
+    content:"";
+    position:absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+
+    width: 600px;
+    height: 820px;
+    border-radius: 34px;
+
+    background:
+      radial-gradient(circle at 50% 42%,
+        rgba(112,54,124,0.32),
+        rgba(228,125,7,0.14) 46%,
+        rgba(0,0,0,0) 74%);
+
+    filter: blur(22px);
+    opacity: 0.70;
+    pointer-events:none;
+    z-index: 1;
+
+    animation: cardHaloPulseBig 4.8s ease-in-out infinite;
+  }
+
+  /* Sheen sweep (more noticeable, still tasteful) */
+  .card-stage::after{
+    content:"";
+    position:absolute;
+    left: 50%;
+    top: 50%;
+
+    width: 640px;
+    height: 900px;
+    border-radius: 36px;
+
+    background: linear-gradient(95deg,
+      rgba(255,255,255,0.00) 0%,
+      rgba(255,255,255,0.12) 38%,
+      rgba(255,255,255,0.00) 72%);
+
+    opacity: 0.28;
+    filter: blur(1.2px);
+    mix-blend-mode: screen;
+    pointer-events:none;
+    z-index: 3;
+
+    transform: translate(-50%, -50%) rotate(16deg);
+    animation: cardSheenBig 6.2s ease-in-out infinite;
+  }
+
+
+
+  /* SOLD: stop motion + keep centered */
+  .card-stage.sold::before,
+  .card-stage.sold::after{
+    opacity: 0.10 !important;
+    animation: none !important;
+  }
+  .card-stage.sold img{
+    animation: none !important;
+    transform: translate(-50%, -50%) scale(0.92) !important;
+    filter: grayscale(100%) brightness(0.65) drop-shadow(0 14px 30px rgba(0,0,0,0.60)) !important;
+  }
+
+  /* Dramatic but smooth: tilt + tiny float */
+  @keyframes cardTiltBig{
+    0%   { transform: translate(-50%, -50%) translateZ(55px) rotateX(6deg)  rotateY(-7deg) scale(1.02); }
+    25%  { transform: translate(-50%, -52%) translateZ(62px) rotateX(-7deg) rotateY(-2deg) scale(1.03); }
+    50%  { transform: translate(-50%, -50%) translateZ(70px) rotateX(-3deg) rotateY(8deg)  scale(1.035); }
+    75%  { transform: translate(-50%, -48%) translateZ(62px) rotateX(7deg)  rotateY(3deg)  scale(1.03); }
+    100% { transform: translate(-50%, -50%) translateZ(55px) rotateX(6deg)  rotateY(-7deg) scale(1.02); }
+  }
+
+  @keyframes cardHaloPulseBig{
+    0%,100% { opacity: 0.58; transform: translate(-50%, -50%) scale(0.98); }
+    50%     { opacity: 0.84; transform: translate(-50%, -50%) scale(1.06); }
+  }
+
+  @keyframes cardSheenBig{
+    0%   { opacity: 0.10; transform: translate(-66%, -50%) rotate(16deg); }
+    40%  { opacity: 0.34; transform: translate(-50%, -50%) rotate(16deg); }
+    100% { opacity: 0.10; transform: translate(-34%, -50%) rotate(16deg); }
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce){
+    .card-stage::before,
+    .card-stage::after,
+    .card-stage img{
+      animation: none !important;
+    }
+  }
+
+  /* ---- FIX OVERLAYS: keep label + SOLD centered ---- */
+
+  /* only the card image needs stacking */
+  .card-stage img{
+    z-index: 4 !important;
+  }
+
+
+  /* SOLD centered on the card-stage */
+  .card-stage .sold-badge{
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+
+
+    /* kill any inset behavior */
+    inset: auto !important;
+
+    z-index: 7 !important;
+    width: 100%;
+    height: 100%;
+
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .card-stage.sold .sold-badge{
+    display: flex !important;
+  }
+  /* =========================
+    FINAL: FIX LABEL + SOLD (single source of truth)
+    Paste at VERY END of <style>
+  ========================= */
+
+  :root{
+    --labelLift: 470px; /* <-- adjust this number to move label up/down */
+  }
+
+  /* keep pseudo layers behind everything */
+  .card-stage{
+    position: relative;
+    isolation: isolate; /* prevents blend/z-index weirdness */
+  }
+
+  .card-stage::before{ z-index: 1 !important; }
+  .card-stage::after { z-index: 2 !important; }
+
+  /* card image */
+  .card-stage img{
+    z-index: 5 !important;
+  }
+
+  /* LABEL: centered horizontally, positioned relative to card center */
+  .card-stage .card-label{
+    position: absolute !important;
+    left: 50% !important;
+    top: 41% !important;
+    transform: translate(-50%, calc(-50% - var(--labelLift))) !important;
+
+    z-index: 20 !important;
+    pointer-events: none !important;
+  }
+
+  /* SOLD: dead center of the stage */
+  .card-stage .sold-badge{
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+  
+
+    inset: auto !important;
+    z-index: 30 !important;
+
+    width: 100%;
+    height: 100%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none !important;
+  }
+
+  .card-stage.sold .sold-badge{
+    display: flex !important;
+  }
+
+
+    </style>
+  </head>
+
+  <body>
+    <div class="stage" id="stage">
+      <!-- Ambient background. Pure CSS: OBS Chromium has no network access for assets
+           or webfonts, so the Charizard fire and Mewtwo psychic energy are drawn with
+           gradients and keyframes rather than sprites. Sits behind everything and takes
+           no pointer events. -->
+      <div class="ambient" id="ambient" aria-hidden="true">
+        <div class="ambient-fire"></div>
+        <div class="ambient-psychic"></div>
+        <div class="ambient-arc arc1"></div>
+        <div class="ambient-arc arc2"></div>
+        <div class="ambient-arc arc3"></div>
+      </div>
+
+      <div class="grid">
+
+  <!-- HEADER: client logo + the show title. The Pokemon SET logo was removed 2026-08-24;
+       this client wanted their own mark in the header. Break number, avg bid and the
+       left/sold counters all moved down to the stats row. -->
+  <div class="panel header">
+    <div class="hdr-left">
+      <div class="client-logo">
+        <img id="clientLogoImg" alt="Client Logo" />
+      </div>
+
+      <div class="hdr-title">
+        <div class="big" id="hdrTitle">Character Breaks</div>
+      </div>
+    </div>
+  </div>
+
+
+        <!-- STATS ROW: break number, average bid, and the left/sold counters. All three
+             were split across the header and the old buyer lane before 2026-08-24. -->
+        <div class="panel stats">
+          <div class="break-pill break-pill-inline">
+            <span class="label">Break</span>
+            <span class="value" id="breakNo">1</span>
+          </div>
+          <div class="stats-status" id="hdrSmall">NOW FILLING</div>
+          <div class="stats-spacer"></div>
+          <div class="avg-pill" title="Average bid for this stream">
+            <span class="label">Avg Bid</span>
+            <span class="value" id="avgBid">£0.00</span>
+          </div>
+          <div class="spots-left-pill">
+            <span class="label">LEFT</span><span class="value" id="spotsLeft">20</span>
+            <span class="sep">/</span>
+            <span class="label">SOLD</span><span class="value" id="spotsSold">0</span>
+          </div>
+        </div>
+
+        <!-- SCROLLING CARD DISPLAY: this is what buyers purchase from, so a sold card
+             carries the BUYER NAME across its face. This replaced the separate floating
+             buyer lane on 2026-08-24; one row now does both jobs. -->
+        <div class="panel poke">
+          <div class="poke-inner">
+            <div class="marquee" id="pokeMarquee"></div>
+          </div>
+        </div>
+
+        <!-- TICKER -->
+        <div class="panel ticker">
+          <span id="tickerText">WELCOME IN • DROP A FOLLOW • LET’S RIP</span>
+        </div>
+
+
+
+
+  <!-- SPOTS BOARD: the 20 custom spots, which the source tracked in state but never
+       drew. Buyer name lands on the tile; sold tiles grey out and cross through. -->
+  <div class="panel spots-board">
+    <div class="spots-grid" id="spotsGrid"></div>
+  </div>
+
+  <!-- BIG CARD PREVIEW REMOVED 2026-08-26. It came from the ayy-pokepulls source
+       and this client never used it. The card LIST behind it (state.cards) is
+       left in place because sales still sync through it to the spots. -->
+
+
+      </div>
+
+      <!-- BUYER PROMPT. Click any card, spot or envelope to sell it and type the
+           buyer straight in. In-page modal on purpose: prompt() and alert() are
+           banned in an OBS browser source, nobody is there to dismiss them. -->
+      <div class="bmodal" id="buyerModal">
+        <div class="bmodal-box">
+          <div class="bmodal-title" id="buyerModalTitle">Sold</div>
+          <input id="buyerModalInput" type="text" placeholder="Buyer name" autocomplete="off" />
+          <div class="bmodal-btns">
+            <button class="bmodal-btn go" id="buyerModalSave" type="button">Save</button>
+            <button class="bmodal-btn" id="buyerModalSkip" type="button">No name</button>
+            <button class="bmodal-btn warn" id="buyerModalUnsell" type="button">Unsell</button>
+            <button class="bmodal-btn ghost" id="buyerModalCancel" type="button">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN -->
+      <button class="admin-toggle" id="adminToggle" type="button" title="Toggle Admin">⚙</button>
+      <div class="admin" id="admin">
+        <h3>Overlay Controls</h3>
+
+        <!-- Grouped into collapsible sections 2026-08-27. One flat list of a dozen
+             rows plus two long editors read as a wall; only one section is open at
+             a time and the open one is remembered. -->
+        <details class="grp" data-grp="show" open>
+          <summary>Show</summary>
+          <div class="grp-body">
+            <div class="row">
+              <label>Title</label>
+              <input id="titleInput" type="text" placeholder="Character Breaks" />
+            </div>
+            <div class="row">
+              <label>Break #</label>
+              <input id="breakInput" type="number" min="1" step="1" />
+            </div>
+            <div class="row">
+              <label>Status</label>
+              <input id="hdrSmallInput" type="text" placeholder="NOW FILLING" />
+            </div>
+            <div class="row">
+              <label>Ticker</label>
+              <input id="tickerInput" type="text" placeholder="WELCOME IN • DROP A FOLLOW • LET’S RIP" />
+            </div>
+          </div>
+        </details>
+
+        <details class="grp" data-grp="board">
+          <summary>Board</summary>
+          <div class="grp-body">
+            <div class="row">
+              <label>Layout</label>
+              <div id="boardModeHost" style="flex:1 1 auto; min-width:0;"></div>
+            </div>
+            <div class="row">
+              <label>Envelopes</label>
+              <input id="envelopeCountInput" type="number" min="1" max="150" placeholder="60" />
+            </div>
+            <div class="row">
+              <label>Envelope Art</label>
+              <input id="envelopeImageInput" type="text" placeholder="images/logos/energyvaulttcg-envelope.png" />
+              <button class="ed-btn" id="envelopeArtBrowseBtn" type="button">Browse</button>
+              <button class="ed-btn danger" id="envelopeArtClearBtn" type="button">Clear</button>
+            </div>
+          </div>
+        </details>
+
+        <details class="grp" data-grp="spots">
+          <summary><span id="spotsEditorTitle">Spot Names</span></summary>
+          <div class="grp-body">
+            <div class="ed-head">
+              <span class="ed-hint" id="spotsEditorHint">Rename any spot. Blank falls back to the default.</span>
+              <button class="ed-btn" id="spotsResetNamesBtn" type="button">Reset Names</button>
+            </div>
+            <div class="ed-list" id="spotsEditorList"></div>
+          </div>
+        </details>
+
+        <details class="grp" data-grp="cards">
+          <summary>Scrolling Cards</summary>
+          <div class="grp-body">
+            <div class="ed-head">
+              <span class="ed-hint">
+                Click a card on the overlay to sell it and type the buyer.
+                Artwork: Browse, drag an image onto a row, or click a row and press Ctrl+V.
+              </span>
+              <button class="ed-btn" id="cardAddBtn" type="button">+ Add Card</button>
+            </div>
+            <div class="ed-list" id="cardsEditorList"></div>
+            <p class="ed-hint" id="storageHint"></p>
+            <details class="grp sub">
+              <summary>How the buyer name and artwork work</summary>
+              <div class="grp-body">
+                <p class="ed-hint">
+                  BUYER NAME: click anything on the board, a scrolling card, a spot tile or
+                  an envelope, and type the buyer in. Enter saves, Escape cancels. Click a
+                  sold one again to correct the name or unsell it. Sales arriving from the
+                  bridge fill the name in on their own.
+                </p>
+                <p class="ed-hint">
+                  ARTWORK: an upload stays in THIS browser only. For art that works on any
+                  machine, commit the file to images/pokemon/ named after the card, so
+                  "Charizard EX" becomes charizard-ex.png, and leave the upload empty.
+                </p>
+              </div>
+            </details>
+            <input id="cardImageFile" type="file" accept="image/*" style="display:none" />
+            <input id="envelopeArtFile" type="file" accept="image/*" style="display:none" />
+          </div>
+        </details>
+
+      <button class="btn" id="applyBtn" type="button">APPLY + SAVE</button>
+      <button class="btn warn" id="resetAvgBtn" type="button">RESET AVG BID</button>
+  <button class="btn ghost" id="resetBtn" type="button">RESET SOLD (Pokemon/Spots/Cards)</button>
+
+        <div class="row" style="justify-content:space-between; margin-top:6px;">
+          <div class="sse" id="sseStatus"><span class="dot"></span><span id="sseText">SSE OFF</span></div>
+        </div>
+
+        <div style="margin-top:10px; font-size:12px; color:rgba(255,255,255,0.72); line-height:1.3;">
+          Click Pokemon / Spot / Main card to toggle SOLD.<br/>
+          Admin panel toggles with ⚙ or press <b>`</b> (backtick).
+        </div>
+      </div>
+    </div>
+
+  <script>
+  /* =========================
+    BASE PATH (../../ standard)
+  ========================= */
+  const BASE = (() => {
+    const isGhPages = location.hostname.endsWith('github.io');
+    if (isGhPages) {
+      const parts = location.pathname.split('/').filter(Boolean);
+      const repo = parts.length ? parts[0] : '';
+      return `/${repo}/`;
+    }
+    return '../..\/';
+  })();
+
+  /* =========================
+    SET SELECTOR (a/b)
+    Usage:
+    overlay.html?bridge=https://...&set=a
+    overlay.html?bridge=https://...&set=b
+  ========================= */
+  const QS = new URLSearchParams(location.search);
+  const SET = (QS.get("set") || "a").trim().toLowerCase() === "b" ? "b" : "a";
+  const SHOW_FILE = SET === "b" ? "show-b.json" : "show-a.json";
+
+  function normalizeIncomingAmount(val){
+    const n = Number(val);
+    if (!Number.isFinite(n)) return 0;
+
+    // If it's a whole number and "looks like cents", convert to major units.
+    // This fixes: 100 -> 1.00 (your test)
+    // Still allows real £34.50 etc
+    if (Number.isInteger(n) && n >= 100 && n <= 50000) return n / 100;
+
+    return n;
+  }
+
+
+  const pathFromInput = (p) => {
+    const s = String(p || '').trim();
+    if (!s) return '';
+    /* Uploaded artwork is stored inline as a data: URL. Without this it fell
+       through to the BASE prefix below and every browsed image silently broke. */
+    if (/^(data|blob):/i.test(s)) return s;
+    /* store:<id> is an uploaded image held in the separate image store. */
+    if (s.startsWith("store:")) return storedImage(s.slice(6));
+    if (/^https?:\/\//i.test(s)) return s;
+    // allow passing "images/..." without BASE
+    if (s.startsWith('images/')) return `${BASE}${s}`;
+    // allow passing "../../images/..." explicitly
+    if (s.startsWith('../')) return s;
+    return `${BASE}${s}`;
+  };
+
+  // add near top of your <script>
+const MONEY = (n) => {
+  let val = Number(n);
+  if (!Number.isFinite(val)) val = 0;
+
+  const code = (state && state.currencyCode)
+    ? String(state.currencyCode).toUpperCase()
+    : "USD";
+
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: code }).format(val);
+  } catch (_) {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
+  }
+};
+
+
+
+  /* =========================
+    SHOW.JSON AUTO-LOAD (less manual)
+    Put show.json next to this HTML (same folder), or in BASE/data/show.json
+  ========================= */
+  function slugifyName(name){
+    return String(name||"").toLowerCase().trim()
+      .replace(/&/g,"and")
+      .replace(/[’']/g,"")
+      .replace(/[^a-z0-9]+/g,"-")
+      .replace(/-+/g,"-")
+      .replace(/(^-|-$)/g,"");
+  }
+
+  function normalizeShowConfig(cfg){
+    const c = cfg && typeof cfg === "object" ? cfg : {};
+    const out = {...c};
+
+  if (Array.isArray(out.pokemon)){
+    out.pokemon = out.pokemon.map((p, i) => {
+      const name = p?.name || p?.id || `Pokemon ${i+1}`;
+      const id = p?.id || slugifyName(name) || `p${i+1}`;
+      const img = p?.img || `images/pokemon/${id}.png`;
+      const spotId = p?.spotId || p?.spot || "";   // ✅ keep mapping
+      return { id, name, img, spotId, sold: !!p?.sold };
+    });
+  }
+
+
+    if (Array.isArray(out.spots)){
+      out.spots = out.spots.map((s, i) => {
+        const label = s?.label || s?.name || `Spot ${i+1}`;
+        const id = s?.id || `s${String(i+1).padStart(2,"0")}`;
+        return { id, label, sold: !!s?.sold };
+      });
+    }
+
+    if (Array.isArray(out.cards)){
+      out.cards = out.cards.map((c0, i) => {
+        const label = c0?.label || c0?.name || `Card ${i+1}`;
+        const id = c0?.id || `c${String(i+1).padStart(2,"0")}-${slugifyName(label)}`;
+        const img = c0?.img || `images/cards/${slugifyName(label) || id}.png`;
+        const spotId = c0?.spotId || "";
+        return { id, label, img, spotId, sold: !!c0?.sold };
+      });
+    }
+
+    return out;
+  }
+
+  async function loadShowJson(){
+    // Prefer set-specific file (show-a.json / show-b.json) in same folder as overlay.html
+    // Fall back to show.json if you haven’t created the set file yet.
+    const candidates = [
+      SHOW_FILE,                 // same folder as HTML (best)
+      "show.json",               // fallback
+      `${BASE}${SHOW_FILE}`,     // fallback paths (GitHub Pages etc)
+      `${BASE}show.json`,
+      `${BASE}data/${SHOW_FILE}`,
+      `${BASE}data/show.json`,
+    ];
+
+    for (const url of candidates){
+      try{
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) continue;
+        return normalizeShowConfig(await res.json());
+      }catch(_){}
+    }
+    return null;
+  }
+
+
+  function mergeShowConfig(cfg){
+    if (!cfg) return;
+  const prevPokemon = new Map((state.pokemon||[]).map(x => [x.id, x]));
+  const prevSpots   = new Map((state.spots||[]).map(x => [x.id, x]));
+  const prevCards   = new Map((state.cards||[]).map(x => [x.id, x]));
+
+
+
+    // Merge top-level fields
+    for (const k of ["breakNo","hdrSmall","clientLogo","title","ticker","activeSpotId","activeCardId","boardMode","envelopeCount","envelopeImage"]){
+      if (cfg[k] !== undefined) state[k] = cfg[k];
+    }
+
+    if (Array.isArray(cfg.pokemon)){
+      state.pokemon = cfg.pokemon.map(p => {
+        const prev = prevPokemon.get(p.id);
+        return { ...p, sold: prev ? !!prev.sold : !!p.sold };
+      });
+    }
+
+    if (Array.isArray(cfg.spots)){
+      state.spots = cfg.spots.map(s => {
+        const prev = prevSpots.get(s.id);
+        return { ...s, sold: prev ? !!prev.sold : !!s.sold };
+      });
+    }
+
+    if (Array.isArray(cfg.cards)){
+      state.cards = cfg.cards.map(c => {
+        const prev = prevCards.get(c.id);
+        return { ...c, sold: prev ? !!prev.sold : !!c.sold };
+      });
+    }
+
+    // Fix active ids if missing
+    if (!(state.spots||[]).some(s => s.id === state.activeSpotId)){
+      state.activeSpotId = state.spots?.[0]?.id || "";
+    }
+    if (!(state.cards||[]).some(c => c.id === state.activeCardId)){
+      state.activeCardId = state.cards?.[0]?.id || "";
+    }
+  }
+
+
+
+
+  /* =========================
+    FILE STRUCTURE (suggested)
+  =========================
+
+  ../../images/logos/energyvaulttcg-logo.png
+  ../../images/sets/<set-logo>.png
+  ../../images/pokemon/<pokemon>.png
+  ../../images/cards/<card>.png
+
+  */
+
+  /* =========================
+    STATE + STORAGE
+  ========================= */
+  /* Storage is scoped per client. Overlays served from one GitHub Pages origin share a
+     single localStorage scope, so a shared prefix makes two boards trample each other. */
+  const LS_PREFIX = "energyvault";
+  const KEY = `${LS_PREFIX}.overlay.v1.${SET}`;
+const ADMIN_KEY = `${LS_PREFIX}.overlay.adminOpen.${SET}`;
+
+
+  const defaults = {
+    breakNo: 1,
+    hdrSmall: "NOW FILLING",
+
+    clientLogo: "images/logos/energyvaulttcg-logo.png",
+    /* Header title. Seller editable in the admin drawer; the subtitle line was
+       dropped 2026-08-24 along with the brand banner. */
+    title: "Character Breaks",
+
+    /* ===== TWO LAYOUTS, ONE FILE, ONE KEY =====
+       "spots"    = the 20 custom spot tiles (Character Breaks)
+       "envelope" = the jim-and-tabby style custom envelope board (Repacks)
+       state.spots is ALWAYS the ACTIVE board. The other mode's list parks in
+       spotsByMode so switching never tramples the board you are not on, which is
+       the same per-mode isolation coachs111 needed. Every existing sale path,
+       export and SSE case keeps pointing at state.spots and needs no change. */
+    boardMode: "spots",
+    spotsByMode: {},
+    envelopeCount: 60,
+    envelopeChases: [],
+    envelopeImage: "images/logos/energyvaulttcg-envelope.png",
+    ticker: "WELCOME IN • DROP A FOLLOW • LET'S RIP",
+    hideSoldCards: true,
+
+    /* REMOVED 2026-08-26 as seller-facing settings. Pinned off; the code paths
+       below early-return on these so nothing else had to be unpicked. */
+    mouseTilt: false,
+    showMainCard: false,   /* client asked for a spots board, not a card preview */
+
+    autoplaySec: 0,   /* removed as a setting, autoplay never starts */
+      currencySymbol: "$",
+    currencyCode: "USD",
+
+      // Avg Bid tracker (per stream)
+    bidSum: 0,     // total $ amount summed
+    bidCount: 0,   // number of bids recorded
+
+
+    pokemon: [
+      {id:"charizard", name:"Charizard", img:"images/pokemon/charizard.png", sold:false},
+      {id:"mewtwo",    name:"Mewtwo",    img:"images/pokemon/mewtwo.png", sold:false},
+      {id:"pikachu",   name:"Pikachu",   img:"images/pokemon/pikachu.png", sold:false},
+    ],
+    /* Twenty custom spots, seeded numbered and renamed by the seller in the admin
+       drawer. Ids are zero padded s01..s20 because sellFromLastSaleText() parses
+       "[s07]" and "- #7" out of the Whatnot listing title and pads before lookup;
+       an unpadded id would never match a sale. */
+    spots: Array.from({length: 20}, (_, i) => ({
+      id: `s${String(i + 1).padStart(2, "0")}`,
+      label: `SPOT ${i + 1}`,
+      sold: false
+    })),
+    cards: [],
+
+    activeSpotId: "s01",
+    activeCardId: "",
+  };
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return structuredClone(defaults);
+      const obj = JSON.parse(raw);
+      return {...structuredClone(defaults), ...obj};
+    }catch(_){
+      return structuredClone(defaults);
+    }
+  }
+  function saveState(){
+    try{
+      localStorage.setItem(KEY, JSON.stringify(state));
+    }catch(e){
+      console.error("localStorage save failed:", e);
+    }
+  }
+
+  /* Same write, but it TELLS you whether it landed. saveState() swallows the
+     quota error, which is fine for a ticker edit and dangerous for an image
+     upload: a card big enough to blow the quota would stop the whole overlay
+     persisting, sold state included, and nothing on screen would say so. Any
+     path that can grow state a lot uses this and reverts on failure. */
+  /* ===== IMAGE STORE =====
+     Uploaded artwork lives in its OWN localStorage key, not inside the state
+     blob. Found the hard way 2026-08-26: images inside state meant one oversized
+     upload stopped the entire overlay persisting, sold state included, and the
+     only symptom was "it stopped accepting uploads". Split apart, a full image
+     store costs you images and nothing else.
+     A card's img field holds either a repo path or the marker store:<id>. */
+  const IMG_KEY = `${LS_PREFIX}.images.v1.${SET}`;
+  let imageStore = {};
+  try{
+    imageStore = JSON.parse(localStorage.getItem(IMG_KEY) || "{}") || {};
+  }catch(_){ imageStore = {}; }
+
+  function imageStoreBytes(){
+    try{ return (localStorage.getItem(IMG_KEY) || "").length; }catch(_){ return 0; }
+  }
+  function saveImageStore(){
+    try{
+      localStorage.setItem(IMG_KEY, JSON.stringify(imageStore));
+      return true;
+    }catch(e){
+      console.error("[EV] image store save rejected:", e && e.message);
+      return false;
+    }
+  }
+  function putStoredImage(id, dataUrl){
+    const prev = imageStore[id];
+    imageStore[id] = dataUrl;
+    if (saveImageStore()) return true;
+    if (prev === undefined) delete imageStore[id]; else imageStore[id] = prev;
+    saveImageStore();
+    return false;
+  }
+  function dropStoredImage(id){
+    if (imageStore[id] === undefined) return;
+    delete imageStore[id];
+    saveImageStore();
+  }
+  function storedImage(id){ return imageStore[id] || ""; }
+
+  function saveStateChecked(){
+    try{
+      localStorage.setItem(KEY, JSON.stringify(state));
+      return true;
+    }catch(e){
+      console.error("[EV] state save REJECTED (quota?):", e && e.message);
+      return false;
+    }
+  }
+
+
+  let state = loadState();
+
+  /* ===== LEGACY IMAGE MIGRATION =====
+     The 26c build stored uploaded artwork as data URLs INSIDE state. On a machine
+     that used it, the state key is already megabytes, so the quota is spent before
+     a new upload is even attempted and every Browse silently fails. Move any
+     inline image out to the image store on load, and if the store cannot take it,
+     DROP it: a lost picture is recoverable, a state key too big to write is not,
+     because it takes the sold board down with it. Runs once, then the markers
+     make it a no-op. */
+  (function migrateInlineImages(){
+    let moved = 0, dropped = 0;
+    const relocate = (holder, key, slot) => {
+      const v = String(holder[key] || "");
+      if (!v.startsWith("data:")) return;
+      if (putStoredImage(slot, v)){ holder[key] = `store:${slot}`; moved++; }
+      else { holder[key] = ""; dropped++; }
+    };
+    (state.pokemon || []).forEach(pk => relocate(pk, "img", `card:${pk.id}`));
+    (state.cards || []).forEach(c => relocate(c, "img", `deck:${c.id}`));
+    if (state.envelopeImage) relocate(state, "envelopeImage", "envelope");
+
+    if (moved || dropped){
+      saveState();
+      console.warn(`[EV] migrated ${moved} inline image(s) out of overlay state` +
+                   (dropped ? `, dropped ${dropped} that would not fit` : ""));
+    }
+  })();
+
+/* =========================
+  SALE DEDUPE (prevents repeats coming back)
+  Paste right after: let state = loadState();
+========================= */
+const SALE_DEDUPE_KEY = `${KEY}.saleDedupe`;
+const SALE_DEDUPE_TTL_MS = 6 * 60 * 60 * 1000; // 6h
+
+function loadSaleDedupe(){
+  try{
+    const raw = localStorage.getItem(SALE_DEDUPE_KEY);
+    const obj = raw ? JSON.parse(raw) : {};
+    if (!obj || typeof obj !== "object") return {};
+    return obj;
+  }catch(_){
+    return {};
+  }
+}
+
+function saveSaleDedupe(){
+  try{ localStorage.setItem(SALE_DEDUPE_KEY, JSON.stringify(__saleDedupe)); }catch(_){}
+}
+
+function dedupeKeyFromEvent(data){
+  const t = String(data?.type || "");
+  const code  = String(data?.code || data?.id || "").trim();
+  const title = String(data?.title || data?.label || "").trim();
+  const last  = String(data?.lastSale || "").trim();
+  const amt   = (data?.amount != null) ? String(data.amount) : "";
+  // prefer stable identifiers; fall back to lastSale text
+  return `${t}|${code}|${title}|${last}|${amt}`.toLowerCase();
+}
+
+let __saleDedupe = loadSaleDedupe();
+
+function saleSeen(key){
+  const now = Date.now();
+
+  // cleanup old entries
+  for (const k of Object.keys(__saleDedupe)){
+    if ((now - (__saleDedupe[k] || 0)) > SALE_DEDUPE_TTL_MS) delete __saleDedupe[k];
+  }
+
+  if (__saleDedupe[key]) return true;
+
+  __saleDedupe[key] = now;
+  saveSaleDedupe();
+  return false;
+}
+
+// optional console helpers
+window.clearSaleDedupe = () => { __saleDedupe = {}; saveSaleDedupe(); console.log("✅ sale dedupe cleared"); };
+
+
+  /* =========================
+    DOM
+  ========================= */
+  const $ = (id) => document.getElementById(id);
+
+  const stageEl = $("stage");
+
+
+  const clientLogoImg = $("clientLogoImg");
+  const breakNoEl = $("breakNo");
+  const avgBidEl = $("avgBid");
+
+
+  const hdrSmallEl = $("hdrSmall");
+
+  const titleEl = $("hdrTitle");
+
+  const tickerEl = $("tickerText");
+
+  const pokeMarquee = $("pokeMarquee");
+
+
+  const cardStage = $("cardStage");
+  const cardImg = $("cardImg");
+
+  const cardLabel = $("cardLabel");
+
+
+  const admin = $("admin");
+  const adminToggle = $("adminToggle");
+
+  const breakInput = $("breakInput");
+
+  const hdrSmallInput = $("hdrSmallInput");
+  const titleInput = $("titleInput");
+  const boardModeHost = $("boardModeHost");
+  const envelopeCountInput = $("envelopeCountInput");
+  const envelopeImageInput = $("envelopeImageInput");
+  const spotsEditorList = $("spotsEditorList");
+  const cardsEditorList = $("cardsEditorList");
+  const cardImageFile = $("cardImageFile");
+  const envelopeArtFile = $("envelopeArtFile");
+  const storageHint = $("storageHint");
+  const tickerInput = $("tickerInput");
+
+
+  const applyBtn = $("applyBtn");
+  const resetAvgBtn = $("resetAvgBtn");
+  const resetBtn = $("resetBtn");
+
+  /* =========================
+    HELPERS: parse textareas
+  ========================= */
+  function parseLines(text){
+    return String(text || "")
+      .split("\n")
+      .map(s => s.trim())
+      .filter(Boolean)
+      .filter(s => !s.startsWith("#"));
+  }
+
+
+  function parseSpots(text){
+    const lines = parseLines(text);
+    const items = [];
+    for (const line of lines){
+      const [id,label] = line.split("|").map(s => (s||"").trim());
+      if (!id || !label) continue;
+      items.push({ id, label, sold: false });
+    }
+    return items;
+  }
+
+  function parseCards(text){
+    const lines = parseLines(text);
+    const items = [];
+    for (const line of lines){
+      const parts = line.split("|").map(s => (s||"").trim());
+      const id = parts[0];
+      const label = parts[1] || id;
+      const img = parts[2];
+      const spotId = parts[3] || "";
+      if (!id || !img) continue;
+      items.push({ id, label, img, sold:false, spotId });
+    }
+    return items;
+  }
+/* The preview element is gone; these are kept as guarded no-ops because the
+   sale pipeline still calls them and state.cards still syncs to the spots. */
+function applyMainCardVisibility(){
+  const show = !!state.showMainCard;
+  const mainPanel = document.querySelector(".panel.main");
+  if (mainPanel) mainPanel.style.display = show ? "" : "none";
+}
+
+function syncPokemonSoldClasses(){
+  // Update existing DOM cards (both halves) without rebuilding marquee
+  (state.pokemon || []).forEach(p => {
+    const name = String(p.buyer || "").trim();
+    document.querySelectorAll(`.poke-card[data-id="${CSS.escape(p.id)}"]`)
+      .forEach(el => {
+        el.classList.toggle("sold", !!p.sold);
+        const who = el.querySelector(".buyer");
+        if (who){
+          who.textContent = name;
+          who.classList.toggle("has-buyer", !!name && !!p.sold);
+        }
+        if (!p.sold) el.classList.remove("just-sold");
+      });
+  });
+}
+
+/* Play the one-shot pulse on every copy of a card that just sold. */
+function flashPokemonSold(pokeId){
+  if (!pokeId) return;
+  document.querySelectorAll(`.poke-card[data-id="${CSS.escape(pokeId)}"]`).forEach(el => {
+    el.classList.remove("just-sold");
+    void el.offsetWidth;            // restart the animation
+    el.classList.add("just-sold");
+  });
+}
+
+/* A sale lands on a SPOT. The scrolling cards are what the buyer actually bought from,
+   so carry the name onto every pokemon tied to that spot. Returns the ids it touched. */
+/* A sale lands on a SPOT. Route it to the scrolling card so the buyer name can
+   ride on the card they bought, in TWO ways, because requiring a manual link per
+   card meant the feature did nothing until every card was wired by hand:
+     1. EXPLICIT: the card's spotId, set in the drawer.
+     2. AUTO: the card's NAME matches the spot's label, or either contains the
+        other. Name a spot after the card and it just works.
+   Explicit always wins; auto only fills in for cards with no spotId set. */
+function nameKey(v){ return String(v || "").toLowerCase().replace(/[^a-z0-9]+/g, ""); }
+
+function applyBuyerToLinkedPokemon(spotId, buyer){
+  const name = String(buyer || "").trim();
+  if (!spotId) return [];
+  const hit = [];
+  const cards = state.pokemon || [];
+
+  cards.forEach(p => {
+    if (p.spotId === spotId){
+      if (name) p.buyer = name;
+      hit.push(p.id);
+    }
+  });
+  if (hit.length) return hit;
+
+  const spot = (state.spots || []).find(x => x.id === spotId);
+  const want = nameKey(spot && spot.label);
+  /* A bare default like "spot 7" is not a card name; matching on it would put a
+     buyer on an unrelated card. Only auto match once the spot has been renamed. */
+  if (!want || /^spot\d+$/.test(want) || /^env\d+$/.test(want)) return hit;
+
+  cards.forEach(p => {
+    if (p.spotId) return;                       // explicit link elsewhere, leave it
+    const have = nameKey(p.name);
+    if (!have) return;
+    if (have === want || have.includes(want) || want.includes(have)){
+      if (name) p.buyer = name;
+      /* Mark it sold as well. The explicit spotId path already gets this from the
+         tiedPokemon loop in setSoldById; without it here the badge is written but
+         stays hidden, because the badge only shows on a SOLD card. */
+      p.sold = true;
+      hit.push(p.id);
+    }
+  });
+  return hit;
+}
+
+
+
+  function textareaFromSpots(items){
+    return items.map(x => `${x.id}|${x.label}`).join("\n");
+  }
+  function textareaFromCards(items){
+    return items.map(x => `${x.id}|${x.label}|${x.img}${x.spotId ? `|${x.spotId}` : ""}`).join("\n");
+  }
+
+  /* =========================
+    RENDER
+  ========================= */
+ function renderHeader(){
+  const nextBreak = String(state.breakNo || 1);
+  if (nextBreak !== __lastBreakNo){
+    __lastBreakNo = nextBreak;
+    breakNoEl.textContent = nextBreak;
+  }
+
+  const nextHdrSmall = String(state.hdrSmall || "");
+  if (nextHdrSmall !== __lastHdrSmall){
+    __lastHdrSmall = nextHdrSmall;
+    hdrSmallEl.textContent = nextHdrSmall;
+  }
+
+  // Avg Bid display (cheap, but keep as-is)
+  const avg = (state.bidCount > 0) ? (state.bidSum / state.bidCount) : 0;
+  if (avgBidEl) avgBidEl.textContent = MONEY(avg);
+
+  // ---- LOGO: only update if changed. The set logo was removed from the header. ----
+  const nextClientLogo = pathFromInput(state.clientLogo);
+  if (nextClientLogo !== __lastClientLogoSrc){
+    __lastClientLogoSrc = nextClientLogo;
+    if (nextClientLogo) clientLogoImg.src = nextClientLogo;
+    else clientLogoImg.removeAttribute("src");
+  }
+
+  // Watermark uses client logo path, only update if changed
+  const nextWm = nextClientLogo ? `url("${nextClientLogo}")` : "";
+  if (nextWm !== __lastBrandWm){
+    __lastBrandWm = nextWm;
+    stageEl.style.setProperty("--brand-wm", nextWm);
+  }
+
+  // fallbacks if images missing
+  clientLogoImg.onerror = () => { clientLogoImg.removeAttribute("src"); clientLogoImg.alt = "Client Logo (missing)"; };
+}
+
+
+/* Header title. Kept the renderBrand name so every existing caller still works. */
+function renderBrand(){
+  const nextTitle = String(state.title || "");
+  if (nextTitle !== __lastTitle){
+    __lastTitle = nextTitle;
+    if (titleEl) titleEl.textContent = nextTitle;
+  }
+}
+let __lastBreakNo = null;
+let __lastHdrSmall = null;
+let __lastTitle = null;
+
+let __lastClientLogoSrc = null;
+let __lastBrandWm = null;
+
+let __lastTickerText = null; // ✅ ADD THIS
+
+
+
+function renderTicker(){
+  if (!tickerEl) return;
+
+  const next = (state.ticker || "").trim();
+
+  // If nothing changed, do NOTHING (prevents reset)
+  if (next === __lastTickerText) return;
+
+  __lastTickerText = next;
+  tickerEl.textContent = next;
+
+  // Only restart animation when the text changed
+  tickerEl.style.animation = "none";
+  void tickerEl.offsetHeight;
+  tickerEl.style.animation = "";
+}
+
+
+
+
+function buildPokemonMarquee(){
+  pokeMarquee.innerHTML = "";
+  const items = state.pokemon || [];
+
+  // duplicate list for seamless scroll
+  const doubled = items.concat(items);
+
+  doubled.forEach((p, i) => {
+    const card = document.createElement("div");
+    card.className = "poke-card" + (p.sold ? " sold" : "");
+    card.dataset.id = p.id;
+
+    const img = document.createElement("img");
+    img.src = cardImageSrc(p);
+    img.alt = p.name || p.id;
+
+    /* NON DESTRUCTIVE. The old handler rebuilt the card's innerHTML, which threw
+       away the buyer badge and the sold class along with the broken image, and
+       stamped "(missing img)" on stream. Drop the image only; the name tag and
+       the buyer slot underneath are already there and carry the tile fine. */
+    img.onerror = () => {
+      img.onerror = null;
+      img.remove();
+      card.classList.add("no-art");
+    };
+
+    const tag = document.createElement("div");
+    tag.className = "tag";
+    tag.textContent = p.name || p.id;
+
+    /* Buyer badge. Always in the DOM so a later sale only has to set text, which
+       keeps both halves of the doubled marquee in sync without a rebuild. */
+    const who = document.createElement("div");
+    who.className = "buyer";
+    const buyerName = String(p.buyer || "").trim();
+    who.textContent = buyerName;
+    if (buyerName) who.classList.add("has-buyer");
+
+    card.appendChild(img);
+    card.appendChild(tag);
+    card.appendChild(who);
+
+    /* Both halves of the doubled marquee are clickable: the seller clicks whatever
+       is passing in front of them, not whichever copy the code considers first. */
+    card.addEventListener("click", () => {
+      const live = (state.pokemon || []).find(x => x.id === p.id) || p;
+      askBuyer({
+        title: `${live.name || live.id} sold to`,
+        current: live.buyer || "",
+        sold: !!live.sold,
+        onSave: (name) => sellPokemon(live.id, true, name),
+        onUnsell: () => sellPokemon(live.id, false)
+      });
+    });
+
+    pokeMarquee.appendChild(card);
+  });
+}
+
+  
+
+
+
+function renderMainCard(){
+  /* The preview markup was removed 2026-08-26. showMainCard is pinned off so
+     this already returns, but the element guard is here so a future edit that
+     flips the flag cannot dereference nulls and kill the whole inline script. */
+  if (!cardStage || !cardImg) return;
+  // If main card panel is hidden, don't churn anything
+  if (!state.showMainCard) return;
+
+  // If we're hiding sold cards, make sure active is valid before rendering
+  ensureActiveCardValid();
+
+  const cards = state.cards || [];
+  const current = cards.find(c => c.id === state.activeCardId) || null;
+
+  // If no card (or no unsold cards), clear the stage
+  if (!current){
+    cardStage.classList.remove("sold");
+    cardImg.removeAttribute("src");
+    cardStage.onclick = null;
+    if (cardLabel){
+      cardLabel.classList.remove("show");
+      cardLabel.textContent = "";
+    }
+    return;
+  }
+
+  // If hideSoldCards is ON and current is sold, we should NOT show it at all.
+  // ensureActiveCardValid() should have moved us, but this is a safety net.
+  if (state.hideSoldCards && current.sold){
+    cardStage.classList.remove("sold");
+    cardImg.removeAttribute("src");
+    cardStage.onclick = null;
+    if (cardLabel){
+      cardLabel.classList.remove("show");
+      cardLabel.textContent = "";
+    }
+    return;
+  }
+
+  // Label: show only when we are actually showing a card
+  if (cardLabel){
+    const nextText = current.label || current.id;
+
+    // Only animate when label changes
+    if (cardLabel.textContent !== nextText){
+      cardLabel.classList.remove("show");
+      setTimeout(() => {
+        cardLabel.textContent = nextText;
+        cardLabel.classList.add("show");
+      }, 180);
+    } else {
+      cardLabel.classList.add("show");
+    }
+  }
+
+  // Image
+  cardImg.src = pathFromInput(current.img);
+  cardImg.alt = current.label || current.id;
+
+  cardImg.onerror = () => {
+    cardImg.removeAttribute("src");
+    if (cardLabel){
+      cardLabel.classList.remove("show");
+      setTimeout(() => {
+        cardLabel.textContent = `${current.label || current.id} (missing img)`;
+        cardLabel.classList.add("show");
+      }, 180);
+    }
+  };
+
+  // If hideSoldCards is ON, sold cards never render, so this will only be false.
+  // If hideSoldCards is OFF, show the sold styling.
+  cardStage.classList.toggle("sold", !!current.sold && !state.hideSoldCards);
+
+  // Click toggles sold for the current card
+  cardStage.onclick = () => toggleCardSold(current.id);
+
+  if (window.__mouseTiltCleanup) window.__mouseTiltCleanup();
+}
+
+
+
+function renderAdminFields(){
+  // ✅ prevent clobbering while user is typing in admin panel
+  if (admin && admin.classList.contains("open") && admin.contains(document.activeElement)) {
+    return;
+  }
+
+  breakInput.value = String(state.breakNo || 1);
+
+  hdrSmallInput.value = state.hdrSmall || "";
+  if (titleInput) titleInput.value = state.title || "";
+  if (boardModeHost){
+    boardModeHost.innerHTML = "";
+    boardModeHost.appendChild(makeDropdown([
+      { value: "spots",    label: "Character Breaks (spot tiles)" },
+      { value: "envelope", label: "Repacks (envelope board)" }
+    ], boardMode(), (v) => setBoardMode(v), { wide: true }));
+  }
+  if (envelopeCountInput) envelopeCountInput.value = String(state.envelopeCount || 60);
+  if (envelopeImageInput){
+    envelopeImageInput.value = String(state.envelopeImage || "").startsWith("store:")
+      ? "(uploaded)"
+      : (state.envelopeImage || "");
+  }
+  tickerInput.value = state.ticker || "";
+  renderSpotsEditor();
+  renderCardsEditor();
+  
+
+  }
+
+/* Rebuilt only when the spot LIST changes; a sale just toggles classes, because
+   rebuilding the grid on every event would restructure the board mid-show. */
+let __lastSpotsSig = "";
+/* ===== Board mode =====
+   state.spots is always the ACTIVE list. Switching parks the current list under
+   its own mode key and loads the other one, so neither board loses its labels,
+   sold state or buyers. */
+function boardMode(){ return state.boardMode === "envelope" ? "envelope" : "spots"; }
+
+/* One class on the stage drives the whole envelope row set. Kept as a class
+   rather than inline display toggles so the row list lives in ONE place in the
+   stylesheet and cannot drift out of sync with the mode. */
+function applyBoardModeClass(){
+  const st = document.getElementById("stage");
+  if (st) st.classList.toggle("mode-envelope", boardMode() === "envelope");
+}
+
+/* Both layouts default to SPOT n and both are renameable, per Mike 2026-08-26.
+   The envelope board used to seed ENV n, which meant a renamed board and a fresh
+   board disagreed on what a default even looked like. */
+function makeEnvelopeSpots(count){
+  const n = Math.max(1, Math.min(150, parseInt(count, 10) || 60));
+  return Array.from({length: n}, (_, i) => ({
+    id: `s${String(i + 1).padStart(2, "0")}`,
+    label: `SPOT ${i + 1}`,
+    sold: false
+  }));
+}
+
+function setBoardMode(mode){
+  const next = (mode === "envelope") ? "envelope" : "spots";
+  const prev = boardMode();
+  if (next === prev) return;
+
+  if (!state.spotsByMode || typeof state.spotsByMode !== "object") state.spotsByMode = {};
+  state.spotsByMode[prev] = state.spots || [];
+
+  let incoming = state.spotsByMode[next];
+  if (!Array.isArray(incoming) || !incoming.length){
+    incoming = (next === "envelope")
+      ? makeEnvelopeSpots(state.envelopeCount)
+      : makeEnvelopeSpots(20);
+  }
+  state.spots = incoming;
+  state.boardMode = next;
+
+  /* The active spot may not exist on the board we just switched to. */
+  if (!(state.spots || []).some(x => x.id === state.activeSpotId)){
+    state.activeSpotId = state.spots?.[0]?.id || "";
+  }
+
+  __lastSpotsSig = "";          // force a rebuild, the tile shape changed
+  applyBoardModeClass();
+  saveState();
+  saveSoldState();
+  buildSpotsGrid();
+  renderAll();
+}
+
+function envelopeImagePath(){
+  return pathFromInput(state.envelopeImage || "images/logos/energyvaulttcg-envelope.png");
+}
+function isChaseSpot(id){
+  return Array.isArray(state.envelopeChases) && state.envelopeChases.includes(id);
+}
+
+function makeEnvelopeTile(sp){
+  const t = document.createElement("div");
+  t.className = "env-tile" + (isChaseSpot(sp.id) ? " chase" : "");
+  t.dataset.spotId = sp.id;
+  t.onclick = () => {
+    askBuyer({
+      title: `${sp.label || sp.id} sold to`,
+      current: sp.buyer || "",
+      sold: !!sp.sold,
+      onSave: (name) => { setSoldById(state.spots, sp.id, true, name); saveSoldState(); renderAll(); },
+      onUnsell: () => { setSoldById(state.spots, sp.id, false); saveSoldState(); renderAll(); }
+    });
+  };
+
+  const img = document.createElement("img");
+  img.src = envelopeImagePath();
+  img.alt = sp.label || sp.id;
+  /* No art yet is not an error: drop the image and let the tile's own gradient
+     carry the number. Do NOT wipe the tile, the label and buyer live here too. */
+  img.onerror = () => { img.onerror = null; img.remove(); };
+  t.appendChild(img);
+
+  const label = document.createElement("div");
+  label.className = "env-label";
+  const title = document.createElement("div");
+  title.className = "env-title";
+  title.textContent = String(parseInt(String(sp.id).replace(/\D/g, ""), 10) || sp.id);
+  label.appendChild(title);
+  t.appendChild(label);
+
+  const buyer = document.createElement("div");
+  buyer.className = "env-buyer";
+  t.appendChild(buyer);
+
+  return t;
+}
+
+/* The envelope board owns the whole panel now, and the entry count is seller
+   configurable, so a fixed tile height either leaves dead space at 60 or
+   overflows at 150. Measure the space and size the tiles to fill it, clamped, and
+   let the scroller catch anything past the minimum. Same approach as the
+   coachs111 fitGrid fix: the CONTAINER height stays locked, the TILES flex. */
+const ENV_TILE_MIN = 26;
+const ENV_TILE_MAX = 84;
+function fitEnvelopeGrid(){
+  if (boardMode() !== "envelope") return;
+  const wrap   = document.querySelector(".env-board");
+  const scroll = document.querySelector(".env-scroll");
+  if (!wrap || !scroll) return;
+
+  const cols = parseInt(getComputedStyle(wrap).getPropertyValue("--envCols"), 10) || 14;
+  const tail = Math.max(0, (state.spots || []).length - 12);
+  const rows = Math.max(1, Math.ceil(tail / cols));
+
+  const gap = 6;
+  /* The panel is content-sized now, so measure the SPACE THE BOARD MAY OCCUPY,
+     not the scroller's current height, which would feed back on itself. */
+  const board = document.querySelector(".panel.spots-board");
+  const cap = parseFloat(getComputedStyle(board).maxHeight) || 0;
+  const chrome = wrap.getBoundingClientRect().height - scroll.getBoundingClientRect().height;
+  const pad = 20;
+  const avail = Math.max(0, cap - chrome - pad);
+  if (!avail) return;
+
+  const raw = Math.floor((avail - (rows - 1) * gap) / rows);
+  const h = Math.max(ENV_TILE_MIN, Math.min(ENV_TILE_MAX, raw));
+  wrap.style.setProperty("--envTileH", h + "px");
+}
+
+/* ===== ADMIN EDITORS =====
+   Two repeating lists: the board's spots (rename, and pick chases in envelope
+   mode) and the scrolling cards (rename plus browse for artwork). Both are
+   rebuilt from state whenever the drawer refreshes, and each control writes
+   straight back to state so there is no separate apply step to forget. */
+
+const DEFAULT_SPOT_LABEL = (id) => `SPOT ${parseInt(String(id).replace(/\D/g, ""), 10) || ""}`.trim();
+
+function toggleChaseSpot(id, on){
+  if (!Array.isArray(state.envelopeChases)) state.envelopeChases = [];
+  const has = state.envelopeChases.includes(id);
+  if (on && !has) state.envelopeChases.push(id);
+  if (!on && has) state.envelopeChases = state.envelopeChases.filter(x => x !== id);
+  __lastSpotsSig = "";
+  saveState();
+  buildSpotsGrid();
+}
+
+/* Build an in-page dropdown. options: [{value,label}]. onPick(value) fires on
+   choose. Returns the wrapper element. */
+/* ===== BUYER PROMPT =====
+   One entry point for every clickable thing on the board. Click a card, a spot or
+   an envelope: it sells and you type the buyer right there. Click a sold one to
+   correct the name or unsell it.
+   opts: { title, current, sold, onSave(name), onUnsell() } */
+let __buyerCtx = null;
+function askBuyer(opts){
+  const modal = document.getElementById("buyerModal");
+  const input = document.getElementById("buyerModalInput");
+  const title = document.getElementById("buyerModalTitle");
+  const unsell = document.getElementById("buyerModalUnsell");
+  if (!modal || !input) return;
+
+  __buyerCtx = opts || {};
+  title.textContent = opts.title || "Sold";
+  input.value = opts.current || "";
+  /* Unsell only makes sense on something already sold. */
+  unsell.style.display = opts.sold ? "" : "none";
+
+  modal.classList.add("open");
+  /* Focus after paint or the field is not ready to receive the first keystroke. */
+  requestAnimationFrame(() => { try{ input.focus(); input.select(); }catch(_){} });
+}
+function closeBuyer(){
+  const modal = document.getElementById("buyerModal");
+  if (modal) modal.classList.remove("open");
+  __buyerCtx = null;
+}
+
+function makeDropdown(options, value, onPick, opts){
+  const wrap = document.createElement("div");
+  wrap.className = "dd" + ((opts && opts.wide) ? " wide" : "");
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "dd-btn";
+  const cap = document.createElement("span");
+  cap.className = "cap";
+  btn.appendChild(cap);
+  wrap.appendChild(btn);
+
+  const menu = document.createElement("div");
+  menu.className = "dd-menu";
+  wrap.appendChild(menu);
+
+  let current = value;
+  const caption = () => {
+    const hit = options.find(o => o.value === current);
+    cap.textContent = hit ? hit.label : ((opts && opts.placeholder) || "");
+  };
+
+  options.forEach(o => {
+    const el = document.createElement("div");
+    el.className = "dd-opt" + (o.value === current ? " sel" : "");
+    el.textContent = o.label;
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      current = o.value;
+      [...menu.children].forEach(c => c.classList.remove("sel"));
+      el.classList.add("sel");
+      caption();
+      wrap.classList.remove("open");
+      onPick(o.value);
+    });
+    menu.appendChild(el);
+  });
+  caption();
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const wasOpen = wrap.classList.contains("open");
+    document.querySelectorAll(".dd.open").forEach(d => d.classList.remove("open"));
+    if (!wasOpen){
+      wrap.classList.add("open");
+      const sel = menu.querySelector(".dd-opt.sel");
+      if (sel) sel.scrollIntoView({ block: "nearest" });
+    }
+  });
+
+  return wrap;
+}
+document.addEventListener("click", () => {
+  document.querySelectorAll(".dd.open").forEach(d => d.classList.remove("open"));
+});
+
+function renderSpotsEditor(){
+  if (!spotsEditorList) return;
+  const env = boardMode() === "envelope";
+  const titleEl = document.getElementById("spotsEditorTitle");
+  if (titleEl) titleEl.textContent = env ? "Envelope Names + Chases" : "Spot Names";
+  const hintEl = document.getElementById("spotsEditorHint");
+  if (hintEl){
+    hintEl.textContent = env
+      ? "Rename any envelope, and tick CHASE to mark it. Blank name falls back to the default."
+      : "Rename any spot. Leave a name blank to fall back to its default.";
+  }
+
+  spotsEditorList.innerHTML = "";
+  (state.spots || []).forEach(sp => {
+    const row = document.createElement("div");
+    row.className = "ed-row";
+
+    const n = document.createElement("div");
+    n.className = "n";
+    n.textContent = String(parseInt(String(sp.id).replace(/\D/g, ""), 10) || sp.id);
+    row.appendChild(n);
+
+    const name = document.createElement("input");
+    name.type = "text";
+    name.value = sp.label || "";
+    name.placeholder = DEFAULT_SPOT_LABEL(sp.id);
+    name.addEventListener("input", () => {
+      sp.label = name.value.trim() || DEFAULT_SPOT_LABEL(sp.id);
+      __lastSpotsSig = "";
+      saveState();
+      buildSpotsGrid();
+    });
+    row.appendChild(name);
+
+    if (env){
+      const wrap = document.createElement("label");
+      wrap.className = "ed-chase";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = isChaseSpot(sp.id);
+      cb.addEventListener("change", () => toggleChaseSpot(sp.id, cb.checked));
+      wrap.appendChild(cb);
+      wrap.appendChild(document.createTextNode("Chase"));
+      row.appendChild(wrap);
+    }
+
+    spotsEditorList.appendChild(row);
+  });
+}
+
+/* Browse target. One hidden file input is reused for every card, so the row that
+   asked for it is remembered here rather than spawning an input per row. */
+let __cardImageTargetId = "";
+
+/* Downscale before storing. A raw phone photo as a data URL is megabytes and
+   would blow the localStorage quota for the whole overlay, taking the sold state
+   with it. The marquee tile is 140px, so 320px is generous. */
+/* Encode for STORAGE, not for print. A card scan re-encoded as PNG at 320px ran
+   200KB or more each, which is what filled the quota after a handful of uploads
+   on 2026-08-26. JPEG at 0.82 puts the same picture at roughly 15 to 25KB.
+   PNG is kept only when the source actually has transparency, since JPEG would
+   flatten it onto black. The marquee tile is 140px, so 280 covers a 2x display. */
+function fileToScaledDataUrl(file, max = 280){
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error("read failed"));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("decode failed"));
+      img.onload = () => {
+        const scale = Math.min(1, max / Math.max(img.width || 1, img.height || 1));
+        const w = Math.max(1, Math.round((img.width || max) * scale));
+        const h = Math.max(1, Math.round((img.height || max) * scale));
+        const cv = document.createElement("canvas");
+        cv.width = w; cv.height = h;
+        const ctx = cv.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+
+        let hasAlpha = false;
+        try{
+          const d = ctx.getImageData(0, 0, w, h).data;
+          for (let i = 3; i < d.length; i += 4){
+            if (d[i] < 250){ hasAlpha = true; break; }
+          }
+        }catch(_){ /* tainted canvas cannot happen for a local file, assume opaque */ }
+
+        try{
+          if (hasAlpha){
+            resolve(cv.toDataURL("image/png"));
+          } else {
+            /* Flatten onto the tile background so any stray edge reads dark,
+               not white, then encode as JPEG. */
+            const flat = document.createElement("canvas");
+            flat.width = w; flat.height = h;
+            const fx = flat.getContext("2d");
+            fx.fillStyle = "#0b0d12";
+            fx.fillRect(0, 0, w, h);
+            fx.drawImage(cv, 0, 0);
+            resolve(flat.toDataURL("image/jpeg", 0.82));
+          }
+        }catch(err){ reject(err); }
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+
+/* One ingest path for every source: the file picker, a drop, or a paste.
+   Returns a human reason on failure instead of failing silently, because
+   "nothing happens when I click Browse" is unfixable from a support ticket. */
+async function ingestImage(file, slot, max){
+  if (!file) return "no file";
+  if (!/^image\//.test(file.type || "")) return `not an image (${file.type || "unknown type"})`;
+  let dataUrl;
+  try{
+    dataUrl = await fileToScaledDataUrl(file, max);
+  }catch(err){
+    return `could not read that file (${(err && err.message) || "decode failed"})`;
+  }
+  if (!putStoredImage(slot, dataUrl)){
+    return `storage full at about ${Math.round(imageStoreBytes()/1024)} KB, remove an image first`;
+  }
+  return "";
+}
+
+function setEditorStatus(msg, bad){
+  if (!storageHint) return;
+  if (msg){
+    storageHint.textContent = msg;
+    storageHint.style.color = bad ? "rgba(255,140,110,0.95)" : "rgba(150,230,160,0.95)";
+    return;
+  }
+  storageHint.style.color = "";
+  renderStorageHint();
+}
+
+/* ===== CARD ARTWORK RESOLUTION =====
+   Two sources, in priority order:
+     1. An image the seller uploaded, held in the image store as store:<id>.
+     2. A file committed to the repo at images/pokemon/<card-name>.png.
+   Uploads are per browser profile, so they do NOT travel to another machine or
+   from Chrome into the OBS browser source. The repo path does, which is why it
+   is the fallback and why it matches the TSU asset-path standard: name the file
+   after the card and it resolves everywhere with nothing to configure.
+   Neither present is not an error, the tile falls back to its name. */
+function cardSlug(name){
+  return String(name || "").toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+function cardImageSrc(pk){
+  const raw = String(pk && pk.img || "").trim();
+  if (raw) return pathFromInput(raw);
+  const slug = cardSlug(pk && pk.name);
+  return slug ? pathFromInput(`images/pokemon/${slug}.png`) : "";
+}
+
+function renderCardsEditor(){
+  if (!cardsEditorList) return;
+  cardsEditorList.innerHTML = "";
+
+  (state.pokemon || []).forEach((pk, i) => {
+    const row = document.createElement("div");
+    row.className = "ed-row";
+
+    const n = document.createElement("div");
+    n.className = "n";
+    n.textContent = String(i + 1);
+    row.appendChild(n);
+
+    const thumb = document.createElement("div");
+    thumb.className = "ed-thumb";
+    {
+      const src = cardImageSrc(pk);
+      if (src){
+        const im = document.createElement("img");
+        im.src = src;
+        im.onerror = () => { im.onerror = null; im.remove(); };
+        thumb.appendChild(im);
+      }
+    }
+    row.appendChild(thumb);
+
+    const name = document.createElement("input");
+    name.type = "text";
+    name.value = pk.name || "";
+    name.placeholder = `Card ${i + 1}`;
+    name.addEventListener("input", () => {
+      pk.name = name.value;
+      saveState();
+      buildPokemonMarquee();
+      syncPokemonSoldClasses();
+    });
+    row.appendChild(name);
+
+    /* The SPOT link. Without it a card sale has nowhere to put the buyer name,
+       which is exactly what happened before 2026-08-26: the field existed in
+       state and nothing in the UI ever set it. */
+    const browse = document.createElement("button");
+    browse.type = "button";
+    browse.className = "ed-btn";
+    browse.textContent = "Browse";
+    browse.addEventListener("click", () => {
+      __cardImageTargetId = pk.id;
+      if (!cardImageFile){ setEditorStatus("file picker missing", true); return; }
+      cardImageFile.value = "";
+      cardImageFile.click();
+      /* No timeout warning here on purpose: a seller who takes a few seconds in
+         the dialog would trip it. The hint above the list always names the two
+         routes that work when a host refuses to open a dialog at all. */
+    });
+    row.appendChild(browse);
+
+    /* Drag and drop, and click-then-paste. Both work where a file dialog does
+       not, which matters inside an OBS browser source. */
+    const armPaste = () => { __cardImageTargetId = pk.id; row.classList.add("armed");
+      [...cardsEditorList.children].forEach(c => { if (c !== row) c.classList.remove("armed"); }); };
+    row.addEventListener("click", armPaste);
+    row.addEventListener("dragover", (e) => { e.preventDefault(); row.classList.add("drop"); });
+    row.addEventListener("dragleave", () => row.classList.remove("drop"));
+    row.addEventListener("drop", async (e) => {
+      e.preventDefault();
+      row.classList.remove("drop");
+      const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+      const why = await ingestImage(f, `card:${pk.id}`);
+      if (why){ setEditorStatus(`Not added: ${why}`, true); return; }
+      pk.img = `store:card:${pk.id}`;
+      saveState(); buildPokemonMarquee(); syncPokemonSoldClasses(); renderCardsEditor();
+      setEditorStatus("Image added.", false);
+    });
+
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "ed-btn danger";
+    del.textContent = "X";
+    del.title = "Remove this card";
+    del.addEventListener("click", () => {
+      state.pokemon = (state.pokemon || []).filter(x => x.id !== pk.id);
+      dropStoredImage(`card:${pk.id}`);
+      saveState();
+      buildPokemonMarquee();
+      syncPokemonSoldClasses();
+      renderCardsEditor();
+    });
+    row.appendChild(del);
+
+    cardsEditorList.appendChild(row);
+  });
+
+  /* Re-mark the row that is armed for paste; the rebuild above cleared it. */
+  if (__cardImageTargetId){
+    const idx = (state.pokemon || []).findIndex(x => x.id === __cardImageTargetId);
+    const el = idx >= 0 ? cardsEditorList.children[idx] : null;
+    if (el) el.classList.add("armed");
+  }
+
+  renderStorageHint();
+}
+
+/* The seller needs to SEE that storage is filling. The first version failed
+   silently and read as "it stopped accepting uploads". */
+function renderStorageHint(){
+  if (!storageHint) return;
+  const kb = Math.round(imageStoreBytes() / 1024);
+  const n = Object.keys(imageStore || {}).length;
+  storageHint.textContent = `${n} uploaded image${n === 1 ? "" : "s"}, about ${kb} KB used. If an upload is refused, remove an image and try again.`;
+}
+
+function addScrollingCard(){
+  const list = state.pokemon || (state.pokemon = []);
+  let i = list.length + 1;
+  while (list.some(x => x.id === `card${i}`)) i++;
+  list.push({ id: `card${i}`, name: `Card ${i}`, img: "", sold: false });
+  saveState();
+  buildPokemonMarquee();
+  syncPokemonSoldClasses();
+  renderCardsEditor();
+}
+
+function resetSpotNames(){
+  (state.spots || []).forEach(sp => { sp.label = DEFAULT_SPOT_LABEL(sp.id); });
+  __lastSpotsSig = "";
+  saveState();
+  buildSpotsGrid();
+  renderSpotsEditor();
+}
+
+function envStat(label, value, id){
+  const el = document.createElement("div");
+  el.className = "env-stat";
+  const v = document.createElement("div"); v.className = "value"; v.textContent = String(value);
+  if (id) v.id = id;
+  const l = document.createElement("div"); l.className = "label"; l.textContent = label;
+  el.appendChild(v); el.appendChild(l);
+  return el;
+}
+
+/* Envelope board: a 14 wide top row split by the logo slot, then the tail in a
+   fixed-height scroller, then the counters. */
+function buildEnvelopeBoard(grid){
+  const spots = state.spots || [];
+  grid.className = "env-host";      // never leave .spots-grid on, see .env-host
+  grid.innerHTML = "";
+
+  const wrap = document.createElement("div");
+  wrap.className = "env-board";
+
+  const top = document.createElement("div");
+  top.className = "env-top-row";
+  const head = spots.slice(0, 12);
+  head.slice(0, 6).forEach(sp => top.appendChild(makeEnvelopeTile(sp)));
+
+  const slot = document.createElement("div");
+  slot.className = "env-logo-slot";
+  const logo = document.createElement("img");
+  logo.src = pathFromInput(state.clientLogo);
+  logo.alt = "EnergyVaultTCG";
+  logo.onerror = () => { logo.onerror = null; logo.remove(); };
+  slot.appendChild(logo);
+  top.appendChild(slot);
+
+  head.slice(6, 12).forEach(sp => top.appendChild(makeEnvelopeTile(sp)));
+  wrap.appendChild(top);
+
+  const scroll = document.createElement("div");
+  scroll.className = "env-scroll";
+  const inner = document.createElement("div");
+  inner.className = "env-grid";
+  spots.slice(12).forEach(sp => inner.appendChild(makeEnvelopeTile(sp)));
+  scroll.appendChild(inner);
+  wrap.appendChild(scroll);
+
+  const stats = document.createElement("div");
+  stats.className = "env-stats";
+  stats.appendChild(envStat("Envelopes Sold", 0, "envSoldStat"));
+  stats.appendChild(envStat("Envelopes Left", spots.length, "envLeftStat"));
+  stats.appendChild(envStat("Chases Sold", 0, "envChaseSoldStat"));
+  stats.appendChild(envStat("Chases Left", 0, "envChaseLeftStat"));
+  wrap.appendChild(stats);
+
+  grid.appendChild(wrap);
+
+  /* Measure once the board is in the DOM, then again next frame so the scroller
+     has settled on its final height. */
+  fitEnvelopeGrid();
+  requestAnimationFrame(fitEnvelopeGrid);
+}
+
+function buildSpotsGrid(){
+  const grid = document.getElementById("spotsGrid");
+  if (!grid) return;
+  const spots = state.spots || [];
+  const sig = boardMode() + "|" + spots.map(s => `${s.id}:${s.label}`).join("|");
+  if (boardMode() === "envelope"){
+    if (sig !== __lastSpotsSig){
+      __lastSpotsSig = sig;
+      buildEnvelopeBoard(grid);
+    }
+    syncSpotTiles();
+    return;
+  }
+  grid.className = "spots-grid";
+  if (sig !== __lastSpotsSig){
+    __lastSpotsSig = sig;
+    grid.innerHTML = "";
+    spots.forEach(s => {
+      const t = document.createElement("div");
+      t.className = "spot-tile";
+      t.dataset.spotId = s.id;
+      t.onclick = () => {
+        askBuyer({
+          title: `${s.label || s.id} sold to`,
+          current: s.buyer || "",
+          sold: !!s.sold,
+          onSave: (name) => { setSoldById(state.spots, s.id, true, name); saveSoldState(); renderAll(); },
+          onUnsell: () => { setSoldById(state.spots, s.id, false); saveSoldState(); renderAll(); }
+        });
+      };
+
+      const num = document.createElement("div");
+      num.className = "spot-num";
+      num.textContent = String(parseInt(String(s.id).replace(/\D/g, ""), 10) || "");
+
+      const lab = document.createElement("div");
+      lab.className = "spot-label";
+      lab.textContent = s.label || s.id;
+
+      const buyer = document.createElement("div");
+      buyer.className = "spot-buyer";
+
+      t.appendChild(num); t.appendChild(lab); t.appendChild(buyer);
+      grid.appendChild(t);
+    });
+  }
+  syncSpotTiles();
+}
+
+function syncSpotTiles(){
+  const grid = document.getElementById("spotsGrid");
+  if (!grid) return;
+  const env = boardMode() === "envelope";
+  (state.spots || []).forEach(s => {
+    const t = grid.querySelector(`[data-spot-id="${String(s.id).replace(/"/g,'\\"')}"]`);
+    if (!t) return;
+    t.classList.toggle("sold", !!s.sold);
+    const b = t.querySelector(env ? ".env-buyer" : ".spot-buyer");
+    if (b) b.textContent = s.sold ? String(s.buyer || "").trim() : "";
+    if (!env){
+      const l = t.querySelector(".spot-label");
+      if (l) l.textContent = s.label || s.id;
+    }
+  });
+  if (env) syncEnvelopeStats();
+  renderRemaining();
+}
+
+function syncEnvelopeStats(){
+  const spots = state.spots || [];
+  const sold = spots.filter(x => x.sold).length;
+  const chases = spots.filter(x => isChaseSpot(x.id));
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
+  set("envSoldStat", sold);
+  set("envLeftStat", Math.max(0, spots.length - sold));
+  set("envChaseSoldStat", chases.filter(x => x.sold).length);
+  set("envChaseLeftStat", chases.filter(x => !x.sold).length);
+}
+
+function renderAll(){
+  applyBoardModeClass();   // must run before layout-dependent measuring below
+  renderHeader();
+  renderBrand();
+  renderTicker();
+
+  // Build the marquee ONCE. After that, we only toggle classes.
+  if (!pokeMarquee.dataset.built){
+    buildPokemonMarquee();
+    pokeMarquee.dataset.built = "1";
+  } else {
+    syncPokemonSoldClasses();
+  }
+
+  applyMainCardVisibility();
+  renderMainCard();
+  renderAdminFields();
+  buildSpotsGrid();
+  syncSoldTeams();
+}
+
+
+function getNextUnsoldCardId(){
+  const cards = state.cards || [];
+  const list = state.hideSoldCards ? cards.filter(c => !c.sold) : cards;
+  return list[0]?.id || "";
+}
+
+function ensureActiveCardValid(){
+  if (!state.hideSoldCards) return;
+
+  const active = (state.cards || []).find(c => c.id === state.activeCardId);
+  if (!active || active.sold){
+    state.activeCardId = getNextUnsoldCardId();
+  }
+}
+
+  /* =========================
+    SOLD TOGGLES
+  ========================= */
+ function togglePokemonSold(id){
+  const p = (state.pokemon || []).find(x => x.id === id);
+  if (!p) return;
+  sellPokemon(id, !p.sold, p.buyer);
+}
+
+/* Sell or release a scrolling card, with the buyer typed in at the click.
+   If the card is tied to a spot, keep that spot in step so the board and the
+   marquee never disagree about what is sold. */
+function sellPokemon(id, sold, buyer){
+  const p = (state.pokemon || []).find(x => x.id === id);
+  if (!p) return;
+
+  p.sold = !!sold;
+  if (sold){
+    const name = String(buyer || "").trim();
+    if (name) p.buyer = name; else delete p.buyer;
+  } else {
+    delete p.buyer;
+  }
+
+  if (p.spotId){
+    setSoldById(state.spots, p.spotId, !!sold, p.buyer);
+  }
+
+  saveState();
+  saveSoldState();
+  syncPokemonSoldClasses();
+  flashPokemonSold(sold ? id : "");
+  syncSpotTiles();
+}
+
+
+  function toggleSpotSold(id){
+    const s = (state.spots || []).find(x => x.id === id);
+    if (!s) return;
+    s.sold = !s.sold;
+    saveState();
+    // no UI strip to rebuild
+  }
+
+
+function toggleCardSold(id){
+  const c = (state.cards || []).find(x => x.id === id);
+  if (!c) return;
+  c.sold = !c.sold;
+
+  // if the card is tied to a spot, sell the spot too
+  if (c.spotId){
+    const s = (state.spots || []).find(x => x.id === c.spotId);
+    if (s) s.sold = c.sold;
+  }
+
+  ensureActiveCardValid();
+  saveState();
+
+  // Only update what needs updating (don’t rebuild marquee)
+  renderMainCard();
+}
+
+
+  /* =========================
+    APPLY + RESET
+  ========================= */
+  function applyFromAdmin(){
+    state.breakNo = Math.max(1, parseInt(breakInput.value || "1", 10) || 1);
+    state.hdrSmall = (hdrSmallInput.value || "").trim();
+    if (titleInput) state.title = (titleInput.value || "").trim() || "Character Breaks";
+
+    if (envelopeImageInput){
+      const v = (envelopeImageInput.value || "").trim();
+      /* "(uploaded)" is the placeholder shown for stored art; typing over it is
+         how you go back to a repo path, leaving it alone must not wipe it. */
+      if (v !== "(uploaded)"){
+        state.envelopeImage = v || "images/logos/energyvaulttcg-envelope.png";
+      }
+    }
+    /* Chase spots are ticked per row in the spots editor and written straight to
+       state, so there is nothing to read back here. */
+
+    /* Resizing the envelope board keeps the sold state and buyer of every spot
+       that survives the resize; only the tail is added or trimmed. */
+    if (envelopeCountInput){
+      const n = Math.max(1, Math.min(150, parseInt(envelopeCountInput.value, 10) || 60));
+      if (n !== state.envelopeCount){
+        state.envelopeCount = n;
+        const target = (boardMode() === "envelope")
+          ? "__active__"
+          : "envelope";
+        const current = (target === "__active__")
+          ? (state.spots || [])
+          : ((state.spotsByMode && state.spotsByMode.envelope) || []);
+        const resized = makeEnvelopeSpots(n).map(fresh => {
+          const prev = current.find(x => x.id === fresh.id);
+          return prev ? { ...fresh, label: prev.label, sold: prev.sold, buyer: prev.buyer } : fresh;
+        });
+        if (target === "__active__") state.spots = resized;
+        else { state.spotsByMode = state.spotsByMode || {}; state.spotsByMode.envelope = resized; }
+      }
+    }
+
+    /* Board mode switches the moment it is picked in the dropdown, so there is
+       nothing to read back here. */
+
+    __lastSpotsSig = "";
+
+    state.ticker = (tickerInput.value || "").trim();
+
+    // preserve sold states when reloading lists by id
+    const prevSpots = new Map((state.spots||[]).map(x => [x.id, x]));
+    const prevCards = new Map((state.cards||[]).map(x => [x.id, x]));
+
+
+
+    // fix active ids if they no longer exist
+    if (!(state.spots||[]).some(s => s.id === state.activeSpotId)){
+      state.activeSpotId = (state.spots?.[0]?.id) || "";
+    }
+    if (!(state.cards||[]).some(c => c.id === state.activeCardId)){
+      state.activeCardId = (state.cards?.[0]?.id) || "";
+    }
+
+    saveState();
+    renderAll();
+  }
+
+
+
+function resetSold(){
+  (state.pokemon||[]).forEach(x => x.sold = false);
+  (state.spots||[]).forEach(x => x.sold = false);
+  (state.cards||[]).forEach(x => x.sold = false);
+
+  ensureActiveCardValid();
+  saveState();
+
+  // Don’t rebuild marquee; just update sold classes
+  syncPokemonSoldClasses();
+  renderMainCard();
+  renderHeader();
+}
+
+
+  /* AUTOPLAY REMOVED 2026-08-26. It cycled the card preview, which is itself
+     removed as a seller setting. The no-op keeps the boot and SSE call sites
+     honest without leaving a live timer in an OBS source that never reloads. */
+  function startAutoplay(){}
+
+  /* =========================
+    ADMIN UI
+  ========================= */
+function toggleAdmin(){
+  admin.classList.toggle("open");
+  try{
+    localStorage.setItem(ADMIN_KEY, admin.classList.contains("open") ? "1" : "0");
+  }catch(_){}
+}
+
+  adminToggle.addEventListener("click", toggleAdmin);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "`") toggleAdmin();
+  });
+
+  applyBtn.addEventListener("click", () => {
+    try{
+      applyFromAdmin();
+      initMouseTilt();
+      startAutoplay();
+    }catch(e){
+      console.error("APPLY failed:", e);
+    }
+  });
+
+
+  /* ---- editor buttons ---- */
+  const cardAddBtn = $("cardAddBtn");
+  if (cardAddBtn) cardAddBtn.addEventListener("click", addScrollingCard);
+
+  const spotsResetNamesBtn = $("spotsResetNamesBtn");
+  if (spotsResetNamesBtn) spotsResetNamesBtn.addEventListener("click", resetSpotNames);
+
+  if (cardImageFile){
+    cardImageFile.addEventListener("change", async () => {
+      const file = cardImageFile.files && cardImageFile.files[0];
+      const id = __cardImageTargetId;
+      __cardImageTargetId = "";
+      cardImageFile.value = "";
+      if (!file || !id) return;
+
+      const pk = (state.pokemon || []).find(x => x.id === id);
+      if (!pk) return;
+
+      const slot = `card:${pk.id}`;
+      const why = await ingestImage(file, slot);
+      if (why){
+        renderCardsEditor();
+        setEditorStatus(`Not added: ${why}`, true);
+        return;
+      }
+      pk.img = `store:${slot}`;
+      saveState();
+      buildPokemonMarquee();
+      syncPokemonSoldClasses();
+      renderCardsEditor();
+      setEditorStatus("Image added.", false);
+    });
+  }
+
+  const envelopeArtBrowseBtn = $("envelopeArtBrowseBtn");
+  if (envelopeArtBrowseBtn) envelopeArtBrowseBtn.addEventListener("click", () => {
+    if (envelopeArtFile){ envelopeArtFile.value = ""; envelopeArtFile.click(); }
+  });
+
+  const envelopeArtClearBtn = $("envelopeArtClearBtn");
+  if (envelopeArtClearBtn) envelopeArtClearBtn.addEventListener("click", () => {
+    dropStoredImage("envelope");
+    state.envelopeImage = "images/logos/energyvaulttcg-envelope.png";
+    if (envelopeImageInput) envelopeImageInput.value = state.envelopeImage;
+    __lastSpotsSig = "";
+    saveState();
+    buildSpotsGrid();
+    renderStorageHint();
+  });
+
+  if (envelopeArtFile){
+    envelopeArtFile.addEventListener("change", async () => {
+      const file = envelopeArtFile.files && envelopeArtFile.files[0];
+      envelopeArtFile.value = "";
+      if (!file) return;
+      /* Envelope tiles run wider than a card, so give this one more pixels. */
+      {
+        const why = await ingestImage(file, "envelope", 420);
+        if (why){ setEditorStatus(`Envelope art not added: ${why}`, true); return; }
+        state.envelopeImage = "store:envelope";
+        if (envelopeImageInput) envelopeImageInput.value = "(uploaded)";
+        __lastSpotsSig = "";
+        saveState();
+        buildSpotsGrid();
+        setEditorStatus("Envelope art added.", false);
+      }
+    });
+  }
+
+  /* Paste an image straight in. This is the route that survives hosts which
+     refuse to open a file dialog. Click a card row to arm it, then Ctrl+V. */
+  document.addEventListener("paste", async (e) => {
+    if (!admin || !admin.classList.contains("open")) return;
+    const items = (e.clipboardData && e.clipboardData.items) || [];
+    let file = null;
+    for (const it of items){
+      if (it.kind === "file" && /^image\//.test(it.type || "")){ file = it.getAsFile(); break; }
+    }
+    if (!file) return;
+    e.preventDefault();
+
+    const id = __cardImageTargetId;
+    if (!id){
+      setEditorStatus("Click the card row you want first, then paste.", true);
+      return;
+    }
+    const pk = (state.pokemon || []).find(x => x.id === id);
+    if (!pk) return;
+
+    const slot = `card:${pk.id}`;
+    const why = await ingestImage(file, slot);
+    if (why){ setEditorStatus(`Not added: ${why}`, true); return; }
+    pk.img = `store:${slot}`;
+    saveState();
+    buildPokemonMarquee(); syncPokemonSoldClasses(); renderCardsEditor();
+    setEditorStatus("Image pasted.", false);
+  });
+
+  /* Accordion: opening one group closes the others, so the drawer never becomes
+     a wall again. The choice is remembered so a reload lands where you were. */
+  const GRP_KEY = `${LS_PREFIX}.admin.group.${SET}`;
+  const groups = [...document.querySelectorAll(".admin > details.grp")];
+  try{
+    const want = localStorage.getItem(GRP_KEY);
+    if (want) groups.forEach(g => { g.open = (g.dataset.grp === want); });
+  }catch(_){}
+  groups.forEach(g => {
+    g.addEventListener("toggle", () => {
+      if (!g.open) return;
+      groups.forEach(o => { if (o !== g) o.open = false; });
+      try{ localStorage.setItem(GRP_KEY, g.dataset.grp || ""); }catch(_){}
+    });
+  });
+
+  /* ---- buyer prompt wiring ---- */
+  {
+    const modal  = $("buyerModal");
+    const input  = $("buyerModalInput");
+    const commit = (name) => {
+      const ctx = __buyerCtx;
+      closeBuyer();
+      if (ctx && typeof ctx.onSave === "function") ctx.onSave(String(name || "").trim());
+    };
+    const btnSave   = $("buyerModalSave");
+    const btnSkip   = $("buyerModalSkip");
+    const btnUnsell = $("buyerModalUnsell");
+    const btnCancel = $("buyerModalCancel");
+
+    if (btnSave)   btnSave.addEventListener("click", () => commit(input.value));
+    if (btnSkip)   btnSkip.addEventListener("click", () => commit(""));
+    if (btnCancel) btnCancel.addEventListener("click", closeBuyer);
+    if (btnUnsell) btnUnsell.addEventListener("click", () => {
+      const ctx = __buyerCtx;
+      closeBuyer();
+      if (ctx && typeof ctx.onUnsell === "function") ctx.onUnsell();
+    });
+
+    if (input) input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter"){ e.preventDefault(); commit(input.value); }
+      if (e.key === "Escape"){ e.preventDefault(); closeBuyer(); }
+    });
+    /* Click the backdrop to dismiss, but not a click inside the box. */
+    if (modal) modal.addEventListener("click", (e) => { if (e.target === modal) closeBuyer(); });
+  }
+
+  resetBtn.addEventListener("click", resetSold);
+
+  resetAvgBtn.addEventListener("click", () => {
+  resetBids();     // clears bidSum + bidCount, saves, updates header
+});
+
+
+  /* =========================
+    SSE BRIDGE
+  ========================= */
+  let sse = null;
+
+  const sseStatus = $("sseStatus");
+  const sseText = $("sseText");
+
+  function setSSEStatus(state, msg){
+    sseStatus.classList.remove("connected","error");
+    if (state === "connected") sseStatus.classList.add("connected");
+    if (state === "error") sseStatus.classList.add("error");
+    sseText.textContent = msg || state || "SSE OFF";
+  }
+
+  function normalizeBridge(u){
+    return String(u || "").trim().replace(/\/+$/, "");
+  }
+
+
+  /* ===== Bridge identity (TSU Standard sec 8) =====
+     Hardcoded constants are the deployment method. ?bridge= and ?key= are TEST OVERRIDES
+     only; localStorage is never primary, because a stale key silently joins another
+     client's scope. There is ONE bridge for every client. */
+  const OVERLAY_ID         = "energyvaulttcg-overlay";
+  const BRIDGE_BASE        = "https://bridge.tradesecretsunlocked.com";
+  const SCORES_BRIDGE_BASE = "https://tsu-scores-bridge.onrender.com";
+  const BRIDGE_KEY_DEFAULT = "455fc6f7-cf10-4ee4-87c1-fbf23de6326f";   /* bridge_keys, active, provisioned 2026-08-22. SHARED with the repack board: isolation is by key, the two boards are told apart by overlayId */
+
+  const BRIDGE_URL = (new URLSearchParams(location.search).get('bridge') || BRIDGE_BASE).replace(/\/$/, '');
+  const BRIDGE_KEY = new URLSearchParams(location.search).get('key') || BRIDGE_KEY_DEFAULT;
+
+  /* Exactly two channels exist and they are the same two for every client: main for
+     sales, sports for scores. The scores channel is the bare string, never templated. */
+  function getChannel(){ return "main"; }
+  function getScoresChannel(){ return "sports"; }
+  function automationEnabled(){ return !!(BRIDGE_URL && BRIDGE_KEY); }
+
+  /* ===== TSU standard state surface =====
+     This layout family tracks sold-ness on state.spots/cards/pokemon rather than a
+     team board, so the standard structures are kept as a mirror of the spot list.
+     They are what the export, the remaining counter and reassignment read. */
+  const soldTeams = new Set();
+  let soldTeamsList = [];
+
+  /* saleId/id/listingId -> resolved spot id, so a reassigned purchase releases the old
+     spot instead of stranding it. Never key this on productId or listingId+buyerId:
+     a break is ONE listing won repeatedly, so that shape collapses a repeat buyer. */
+  const lastCodeByListingKey = new Map();
+
+  function computeBreakId(){
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    return `${yyyy}-${mm}-${dd}-pkm-${state && state.breakNo ? state.breakNo : 1}`;
+  }
+
+  /* Every overlay on a bridge key sees every event on that key. breakIdMatches stops a
+     stale board acting on the current break. It runs FIRST. */
+  function breakIdMatches(data){
+    if (!data || typeof data !== "object") return false;
+    const p = (data.data && typeof data.data === "object") ? data.data : data;
+    const incoming = String(p.breakId || data.breakId || "").trim();
+    if (!incoming) return true;          // unstamped events still pass
+    return incoming === computeBreakId();
+  }
+
+  function syncSoldTeams(){
+    soldTeams.clear();
+    soldTeamsList = [];
+    (state.spots || []).forEach(s => {
+      if (!s.sold) return;
+      const code = String(s.id || "").toUpperCase();
+      soldTeams.add(code);
+      soldTeamsList.push({ code, label: s.label || code, buyer: s.buyer || "" });
+    });
+    renderRemaining();
+    refreshSpotTiles();
+  }
+
+  function loadSoldState(){ syncSoldTeams(); }
+  function saveSoldState(){ saveState(); syncSoldTeams(); }
+
+  function buildExportTSV(){
+    const rows = [["spot","label","buyer"]];
+    (state.spots || []).forEach(s => {
+      if (s.sold) rows.push([s.id, s.label || "", s.buyer || ""]);
+    });
+    return rows.map(r => r.join("\t")).join("\n");
+  }
+
+  function refreshSpotTiles(){ if (typeof syncSpotTiles === "function") syncSpotTiles(); }
+
+  function renderRemaining(){
+    const total = (state.spots || []).length;
+    const sold  = (state.spots || []).filter(s => s.sold).length;
+    const left  = Math.max(0, total - sold);
+    const l = document.getElementById("spotsLeft");
+    const s = document.getElementById("spotsSold");
+    if (l) l.textContent = String(left);
+    if (s) s.textContent = String(sold);
+  }
+
+  /* The floating buyer lane was removed 2026-08-24. A sale now writes the buyer name
+     onto the scrolling card they bought from; see applyBuyerToLinkedPokemon and
+     syncPokemonSoldClasses. */
+
+  // --- WARMUP / HEALTH CHECK ---
+  // Prefer /health if you add it on the server. Falls back to /stream.
+  async function warmBridge(base){
+    const urls = [`${base}/health`, `${base}/stream`];
+
+    for (const url of urls){
+      try{
+        const res = await fetch(url, { method:"GET", cache:"no-store" });
+        // If /health doesn't exist you'll usually get 404; that's fine, try next.
+        if (res.ok) return true;
+      }catch(_){}
+    }
+    return false;
+  }
+
+
+  function connectSSE(url){
+    if (sse) { try { sse.close(); } catch(_){} }
+    setSSEStatus("error", "CONNECTING");
+
+    try{
+      sse = new EventSource(url);
+
+      sse.onopen = () => setSSEStatus("connected", "SSE ON");
+
+  sse.onmessage = (e) => {
+    try {
+      const data = JSON.parse(e.data);
+      console.log("[SSE IN]", data);      // <---- ADD THIS
+      handleSSEEvent(data);
+    } catch (err) {
+      console.warn("[SSE parse error]", err, e.data);
+    }
+  };
+
+
+      sse.onerror = () => {
+        setSSEStatus("error", "RETRY");
+        try { sse.close(); } catch(_) {}
+        sse = null;
+        setTimeout(() => connectSSE(url), 2500);
+      };
+    }catch(_){
+      setSSEStatus("error", "FAILED");
+    }
+  }
+
+  async function initSSE(){
+    if (!automationEnabled()){
+      setSSEStatus("error", "SSE OFF");
+      return;
+    }
+
+    const base = normalizeBridge(BRIDGE_URL);
+    /* The source subscribed to a bare `${base}/stream` with NO channel and NO key. The
+       bridge routes by key, so that connection could never receive a single event.
+       EventSource cannot send custom headers, so the key rides on the query string. */
+    const url = `${base}/stream?channel=${encodeURIComponent(getChannel())}&key=${encodeURIComponent(BRIDGE_KEY)}`;
+
+    setSSEStatus("error", "WARMING");
+    await warmBridge(base);
+
+    connectSSE(url);
+  }
+
+
+
+
+  function recordBid(amount){
+    const n = Number(amount);
+    if (!Number.isFinite(n) || n <= 0) return;
+
+    state.bidSum = Number(state.bidSum || 0) + n;
+    state.bidCount = Number(state.bidCount || 0) + 1;
+
+    saveState();
+    renderHeader();
+  }
+
+  // handy for testing in browser console:
+  // window.addBid(25) -> adds $25 bid
+  window.addBid = (amt) => recordBid(amt);
+
+  function resetBids(){
+    state.bidSum = 0;
+    state.bidCount = 0;
+    saveState();
+    renderHeader();
+  }
+  window.resetBids = () => resetBids();
+
+  function normLabel(s){
+    return String(s || "")
+      .toLowerCase()
+      .trim()
+      // remove bracketed S## codes if present, so labels still match
+      .replace(/\[(s\d{1,3})\]/g, "")
+      // normalize punctuation/spaces
+      .replace(/[’']/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+
+  function markCardSoldByLabel(label, sold=true){
+    const wantRaw = String(label || "").trim();
+    const want = normLabel(wantRaw);
+    if (!want) return;
+
+    const card = (state.cards || []).find(c => {
+      const lab = normLabel(c.label);
+      return lab === want || lab.includes(want) || want.includes(lab);
+    });
+
+    if (!card) return;
+
+    card.sold = !!sold;
+
+    
+
+    if (card.spotId){
+      // sell spot
+      const s = (state.spots||[]).find(x => x.id === card.spotId);
+      if (s) s.sold = !!sold;
+
+      // sell all pokemon tied to that spot
+      const tiedPokemon = (state.pokemon||[]).filter(p => p.spotId === card.spotId);
+      for (const p of tiedPokemon) p.sold = !!sold;
+
+      // sell all cards tied to that spot (covers duplicates)
+      const tiedCards = (state.cards||[]).filter(c => c.spotId === card.spotId);
+      for (const c of tiedCards) c.sold = !!sold;
+    }
+
+      ensureActiveCardValid();
+
+  }
+
+
+  function markSpotSoldByLabel(label, sold=true){
+    const wantRaw = String(label || "").trim();
+    const want = normLabel(wantRaw);
+    if (!want) return;
+
+    // 1) Try to match a SPOT label directly
+    const spot = (state.spots || []).find(s => {
+      const lab = normLabel(s.label);
+      return lab === want || lab.includes(want) || want.includes(lab);
+    });
+
+    if (spot){
+      setSoldById(state.spots, spot.id, !!sold);
+      return;
+    }
+
+
+
+    // 2) If listing title matches a CARD label, sell that card (which can sync to spotId)
+    const card = (state.cards || []).find(c => {
+      const lab = normLabel(c.label);
+      return lab === want || lab.includes(want) || want.includes(lab);
+    });
+
+    if (card){
+      setSoldById(state.cards, card.id, !!sold);
+      return;
+    }
+
+    // No match -> do nothing (safe)
+  }
+
+
+
+  /*
+    ===== Expected SSE payloads =====
+
+    // Global updates
+    { "type":"set_break", "value": 3 }
+    { "type":"set_header", "big":"POKÉMON BREAK", "small":"NOW FILLING" }
+    { "type":"set_set_logo", "path":"images/sets/black-bolt-white-flare.png" }
+    { "type":"set_banner", "line1":"...", "line2":"..." }
+    { "type":"set_ticker", "text":"WELCOME • ..." }
+
+    // Mark SOLD/UNSOLD (by id)
+    { "type":"pokemon_sold", "id":"pika" }
+    { "type":"pokemon_unsold", "id":"pika" }
+    { "type":"spot_sold", "id":"s1" }
+    { "type":"spot_unsold", "id":"s1" }
+    { "type":"card_sold", "id":"c1" }
+    { "type":"card_unsold", "id":"c1" }
+
+    // Set active card/spot
+    { "type":"set_active_spot", "id":"s2" }
+    { "type":"set_active_card", "id":"c2" }
+
+    // Reset sold
+    { "type":"reset_sold" }
+
+  */
+
+  function setPokemonOrSpotSoldSmart(id, sold){
+    const raw = String(id || "").trim();
+    if (!raw) return;
+
+    // 1) If it's an actual pokemon id, sell that pokemon (and let setSoldById sync spot/cards)
+    if ((state.pokemon || []).some(p => p.id === raw)) {
+      setSoldById(state.pokemon, raw, sold);
+      return;
+    }
+
+    // 2) If it's an actual spot id (s01, s02...), sell the spot (and sync pokemon/cards)
+    if ((state.spots || []).some(s => s.id === raw)) {
+      setSoldById(state.spots, raw, sold);
+      return;
+    }
+
+    // 3) If they send just "2" or "02" or "s2", normalize to s02
+    const m = raw.match(/^s?(\d{1,3})$/i);
+    if (m) {
+      const num = parseInt(m[1], 10);
+      if (Number.isFinite(num)) {
+        const sid = `s${String(num).padStart(2, "0")}`;
+        if ((state.spots || []).some(s => s.id === sid)) {
+          setSoldById(state.spots, sid, sold);
+          return;
+        }
+      }
+    }
+
+    console.warn("[SSE] pokemon_sold id didn't match pokemon or spot:", raw);
+  }
+
+
+  function handleSSEEvent(data){
+     if (!breakIdMatches(data)) return;
+     let restartAutoplay = false;
+    console.log("[SSE IN]", data);
+    switch(String(data.type||"")){
+      case "set_break":{
+        const n = parseInt(String(data.value||"1"), 10);
+        state.breakNo = Number.isFinite(n) && n > 0 ? n : 1;
+        break;
+      }
+      case "set_header":{
+        if (typeof data.small === "string") state.hdrSmall = data.small;
+        break;
+      }
+      /* The set logo and the two banner lines were removed 2026-08-24. set_title
+         replaces them; set_banner is still accepted so an older producer that sends
+         line1 does not go dark, it just lands on the title. */
+      /* Board mode over the bridge, so the seller can flip layouts from the
+         extension or a control page instead of the admin drawer. */
+      case "set_layout":
+      case "set_board_mode":{
+        const v = String(data.mode || data.value || data.layout || "").toLowerCase().trim();
+        if (v === "envelope" || v === "repack" || v === "repacks") setBoardMode("envelope");
+        else if (v === "spots" || v === "character" || v === "breaks") setBoardMode("spots");
+        break;
+      }
+      case "set_title":{
+        if (typeof data.text === "string" && data.text.trim()) state.title = data.text.trim();
+        break;
+      }
+      case "set_banner":{
+        if (typeof data.line1 === "string" && data.line1.trim()) state.title = data.line1.trim();
+        break;
+      }
+     case "set_ticker": {
+  if (typeof data.text === "string") {
+    const t = data.text.trim();
+    if (t.length) state.ticker = t; // ignore empty updates
+  }
+  break;
+}
+
+  case "set_currency": {
+    // payload example: { "type":"set_currency", "symbol":"£", "code":"USD" }
+    if (typeof data.symbol === "string" && data.symbol.trim()) state.currencySymbol = data.symbol.trim();
+    if (typeof data.code === "string" && data.code.trim()) state.currencyCode = data.code.trim();
+    break;
+  }
+
+          case "add_bid":{
+        // payload: { "type":"add_bid", "amount": 25.50 }
+        recordBid(normalizeIncomingAmount(data.amount));
+        // recordBid already saveState+renderHeader, so return early
+        return;
+      }
+
+      case "reset_bids":{
+        // payload: { "type":"reset_bids" }
+        resetBids();
+        return;
+      }
+
+      case "set_bids":{
+        // payload: { "type":"set_bids", "sum": 100, "count": 4 }
+        const sum = Number(data.sum);
+        const count = Number(data.count);
+        state.bidSum = Number.isFinite(sum) && sum >= 0 ? sum : 0;
+        state.bidCount = Number.isFinite(count) && count >= 0 ? count : 0;
+        break;
+      }
+
+  case "card_sold_by_label": markCardSoldByLabel(data.label, true); break;
+  case "card_unsold_by_label": markCardSoldByLabel(data.label, false); break;
+  case "spot_sold_by_label": markSpotSoldByLabel(data.label, true); break;
+  case "spot_unsold_by_label": markSpotSoldByLabel(data.label, false); break;
+
+  case "pokemon_sold": setPokemonOrSpotSoldSmart(data.id, true); break;
+  case "pokemon_unsold": setPokemonOrSpotSoldSmart(data.id, false); break;
+
+
+
+      
+
+      case "spot_sold": setSoldById(state.spots, data.id, true); break;
+      case "spot_unsold": setSoldById(state.spots, data.id, false); break;
+
+      case "card_sold": setSoldById(state.cards, data.id, true); break;
+      case "card_unsold": setSoldById(state.cards, data.id, false); break;
+
+      case "set_active_spot":{
+        if ((state.spots||[]).some(s => s.id === data.id)){
+          state.activeSpotId = data.id;
+          const tied = (state.cards||[]).find(c => c.spotId === data.id);
+          if (tied) state.activeCardId = tied.id;
+        }
+        break;
+      }
+      case "set_active_card":{
+        if ((state.cards||[]).some(c => c.id === data.id)){
+          state.activeCardId = data.id;
+        }
+        break;
+      }
+
+      case "reset_sold":{
+        (state.pokemon||[]).forEach(x => x.sold=false);
+        (state.spots||[]).forEach(x => x.sold=false);
+        (state.cards||[]).forEach(x => x.sold=false);
+        break;
+      }
+
+      // === Whatnot extension sale event (current content.js) ===
+case "team_sold": {
+  const k = dedupeKeyFromEvent(data);
+  if (saleSeen(k)) break;
+
+  if (data.amount != null) recordBid(normalizeIncomingAmount(data.amount));
+
+  const buyer = String(data.buyer || data.buyerName || data.winner || data.username || "").trim();
+  const title = String(data.title || data.itemTitle || data.listingTitle || "");
+
+  /* saleId first, then id, then listingId. Never productId. A reassigned purchase
+     releases the spot it previously held before taking the new one. */
+  const listingKey = String(
+    data.saleId || data.id || data.listingId ||
+    data.transactionId || data.orderId || data.purchaseId || ""
+  ).trim();
+
+  const spotId = spotIdFromTitle(title);
+  if (spotId){
+    if (listingKey){
+      const prev = lastCodeByListingKey.get(listingKey);
+      if (prev && prev !== spotId) setSoldById(state.spots, prev, false);
+      lastCodeByListingKey.set(listingKey, spotId);
+    }
+    setSoldById(state.spots, spotId, true, buyer);
+  }
+
+  if (data.code) setSoldById(state.pokemon, data.code, true);
+  if (title) markCardSoldByLabel(title, true);
+  syncSoldTeams();
+  break;
+}
+
+
+      // === Your manual/legacy test payload type ===
+    case "BreakSpotOptionEdge": {
+  const k = dedupeKeyFromEvent(data);
+  if (saleSeen(k)) break;
+
+  if (data.amount != null) recordBid(normalizeIncomingAmount(data.amount));
+  if (data.code) setSoldById(state.pokemon, data.code, true);
+  if (data.title) markCardSoldByLabel(data.title, true);
+  break;
+}
+
+
+  case "stream_stats": {
+  if (typeof data.lastSale === "string") {
+    const k = `stream_stats|lastSale|${String(data.lastSale).trim()}`.toLowerCase();
+    if (!saleSeen(k)) sellFromLastSaleText(data.lastSale);
+  }
+  break;
+}
+
+
+
+
+
+    }
+
+saveState();
+
+// Only refresh what changed (no ticker reset now anyway, but this is better)
+renderHeader();      // break # + avg bid + logos
+renderBrand();       // banner lines
+renderTicker();  
+syncPokemonSoldClasses();
+    // now safe: won’t reset unless text changed
+renderMainCard();    // current card view
+
+// Only restart autoplay if the autoplay setting changed
+// (simple approach: just call startAutoplay if you actually handled set_autoplay)
+if (restartAutoplay) startAutoplay();
+  }
+
+/* Pull a spot id out of a Whatnot listing title. Shared by the extension sale path and
+   the stream_stats fallback so both resolve spots the same way. */
+function spotIdFromTitle(title){
+  const t = String(title || "");
+  let m = t.match(/\[(s\d{1,3})\]/i);
+  if (m && m[1]){
+    const num = parseInt(m[1].slice(1), 10);
+    return Number.isFinite(num) ? `s${String(num).padStart(2,"0")}` : null;
+  }
+  m = t.match(/-\s*#\s*(\d{1,3})\b/i);
+  if (m && m[1]){
+    const num = parseInt(m[1], 10);
+    if (Number.isFinite(num)) return `s${String(num).padStart(2,"0")}`;
+  }
+  return null;
+}
+
+function sellFromLastSaleText(lastSaleText){
+  const t = String(lastSaleText || "");
+
+  // Prefer [S##] if present (best-case)
+  let m = t.match(/\[(s\d{1,3})\]/i);
+  if (m?.[1]) {
+    const raw = m[1].toLowerCase();       // s35
+    const num = parseInt(raw.slice(1),10);
+    const spotId = Number.isFinite(num) ? `s${String(num).padStart(2,"0")}` : raw;
+    setSoldById(state.spots, spotId, true);
+    return true;
+  }
+
+  // Fallback: "... - #5"  => spot 5
+  m = t.match(/-\s*#\s*(\d{1,3})\b/i);
+  if (m?.[1]) {
+    const num = parseInt(m[1], 10);
+    if (Number.isFinite(num)) {
+      const spotId = `s${String(num).padStart(2,"0")}`;
+      setSoldById(state.spots, spotId, true);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
+  function setSoldById(list, id, sold, buyer){
+    const item = (list||[]).find(x => x.id === id);
+    if (!item) return;
+    if (sold){
+      const nm = String(buyer || "").trim();
+      if (nm) item.buyer = nm;
+    } else {
+      /* Release clears the name too. Leaving it behind meant a re-sold spot
+         silently came back wearing the previous buyer. */
+      delete item.buyer;
+    }
+    item.sold = !!sold;
+
+    /* Carry the buyer onto the scrolling card display. A spot sale propagates to any
+       pokemon tied to that spot; a pokemon sale keeps its own buyer. */
+    let flashIds = [];
+    if (sold){
+      if (list === state.spots) flashIds = applyBuyerToLinkedPokemon(item.id, item.buyer);
+      else if (list === state.pokemon) flashIds = [item.id];
+    } else if (list === state.pokemon){
+      delete item.buyer;
+    }
+
+    // If a CARD is tied to a spot, keep the spot in sync
+    if (list === state.cards && item.spotId){
+      const s = (state.spots||[]).find(x => x.id === item.spotId);
+      if (s) s.sold = !!sold;
+    }
+
+    if (!sold && list === state.spots){
+      /* Clear whichever cards that spot had claimed, by either route. */
+      const spot = (state.spots || []).find(x => x.id === item.id);
+      const want = nameKey(spot && spot.label);
+      const named = want && !/^spot\d+$/.test(want) && !/^env\d+$/.test(want);
+      (state.pokemon || []).forEach(pk => {
+        if (pk.spotId === item.id){ delete pk.buyer; return; }
+        if (!pk.spotId && named){
+          const have = nameKey(pk.name);
+          if (have && (have === want || have.includes(want) || want.includes(have))){
+            delete pk.buyer;
+            pk.sold = false;
+          }
+        }
+      });
+    }
+
+    // If a POKEMON is tied to a spot, keep the spot + ALL linked cards in sync
+    if (list === state.pokemon && item.spotId){
+      const spotId = item.spotId;
+
+      // 1) sell the spot
+      const s = (state.spots||[]).find(x => x.id === spotId);
+      if (s) s.sold = !!sold;
+
+      // 2) sell ALL cards tied to that spot
+      const tiedCards = (state.cards || []).filter(c => c.spotId === spotId);
+      for (const c of tiedCards) c.sold = !!sold;
+
+      // 3) if active card is tied to that spot, force it too
+      const active = (state.cards || []).find(c => c.id === state.activeCardId);
+      if (active && active.spotId === spotId) active.sold = !!sold;
+    }
+
+
+    // ⭐ If a SPOT sells, also sell ALL linked cards (this is what makes it visible)
+    if (list === state.spots){
+      // Sell any cards tied to this spotId
+      const tiedCards = (state.cards || []).filter(c => c.spotId === item.id);
+      for (const c of tiedCards) c.sold = !!sold;
+
+      // If the currently active card is tied to this spot, force a rerender-visible change
+      const active = (state.cards || []).find(c => c.id === state.activeCardId);
+      if (active && active.spotId === item.id) active.sold = !!sold;
+
+      // (Optional) if you *actually* use pokemon.spotId in your show.json, keep this:
+      const tiedPokemon = (state.pokemon||[]).filter(x => x.spotId === item.id);
+      for (const p of tiedPokemon) p.sold = !!sold;
+
+      // If we're hiding sold cards, make sure the active card isn't sold
+      ensureActiveCardValid();
+    }
+
+    /* Push the buyer name and the sold state onto the scrolling cards, then pulse the
+       one that just sold. Runs last so every linked list above has settled. */
+    if (typeof syncPokemonSoldClasses === "function") syncPokemonSoldClasses();
+    if (sold && typeof flashPokemonSold === "function") flashPokemonSold(flashIds[0]);
+  }
+
+
+  /* =========================
+    MOUSE TILT (interactive)
+  ========================= */
+  let __tiltCleanup = null;
+
+  function initMouseTilt(){
+    if (!cardStage || !cardImg) return;
+
+    // If already initialized, clean it first (so toggling works)
+    if (__tiltCleanup) { __tiltCleanup(); __tiltCleanup = null; }
+
+    // If disabled, ensure we return to “normal” (CSS animation)
+    if (!state.mouseTilt){
+      cardStage.classList.remove("interactive");
+      cardStage.style.setProperty("--mx", `0px`);
+      cardStage.style.setProperty("--my", `0px`);
+      cardImg.style.transform = ""; // allow CSS animation
+      window.__mouseTiltCleanup = () => {};
+      return;
+    }
+
+    // tuning knobs
+    const MAX_RX = 18;
+    const MAX_RY = 26;
+    const Z = 70;
+    const SCALE = 1.03;
+    const EASE = 0.10;
+
+    let targetRX = 0, targetRY = 0;
+    let curRX = 0, curRY = 0;
+    let raf = null;
+    let hovering = false;
+
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+    function applyTransform(){
+      if (cardStage.classList.contains("sold")) {
+        stop();
+        return;
+      }
+
+      curRX += (targetRX - curRX) * EASE;
+      curRY += (targetRY - curRY) * EASE;
+
+      cardImg.style.transform =
+        `translate(-50%, -50%) translateZ(${Z}px) rotateX(${curRX}deg) rotateY(${curRY}deg) scale(${SCALE})`;
+
+      raf = requestAnimationFrame(applyTransform);
+    }
+
+    function start(){
+      if (raf) return;
+      raf = requestAnimationFrame(applyTransform);
+    }
+
+    function stop(){
+      if (raf) cancelAnimationFrame(raf);
+      raf = null;
+      curRX = 0; curRY = 0;
+      targetRX = 0; targetRY = 0;
+
+      cardStage.style.setProperty("--mx", `0px`);
+      cardStage.style.setProperty("--my", `0px`);
+
+      cardImg.style.transform = ""; // resumes CSS animation
+      cardStage.classList.remove("interactive");
+    }
+
+    function onEnter(){
+      if (cardStage.classList.contains("sold")) return;
+      hovering = true;
+      cardStage.classList.add("interactive");
+      start();
+    }
+
+    function onLeave(){
+      hovering = false;
+      stop();
+    }
+
+    function onMove(e){
+      if (!hovering) return;
+      if (cardStage.classList.contains("sold")) return;
+
+      const rect = cardStage.getBoundingClientRect();
+      const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+
+      const mx = nx * 60;
+      const my = ny * 60;
+      cardStage.style.setProperty("--mx", `${mx}px`);
+      cardStage.style.setProperty("--my", `${my}px`);
+
+      targetRY = clamp(nx, -1, 1) * MAX_RY;
+      targetRX = clamp(-ny, -1, 1) * MAX_RX;
+    }
+
+    cardStage.addEventListener("mouseenter", onEnter);
+    cardStage.addEventListener("mousemove", onMove);
+    cardStage.addEventListener("mouseleave", onLeave);
+
+    // Called after rerenders
+    window.__mouseTiltCleanup = () => {
+      if (!hovering) stop();
+    };
+
+    // Full cleanup for toggle/off
+    __tiltCleanup = () => {
+      try{
+        cardStage.removeEventListener("mouseenter", onEnter);
+        cardStage.removeEventListener("mousemove", onMove);
+        cardStage.removeEventListener("mouseleave", onLeave);
+      }catch(_){}
+      stop();
+    };
+  }
+
+
+  /* =========================
+    INIT
+  ========================= */
+  document.addEventListener("DOMContentLoaded", async () => {
+  
+
+    // default logo if missing
+    if (!state.clientLogo) state.clientLogo = "images/logos/energyvaulttcg-logo.png";
+
+    // Auto-load show.json (if present)
+    const cfg = await loadShowJson();
+    if (cfg) document.title = `✅ JSON LOADED (${SET.toUpperCase()})`;
+    else document.title = `❌ JSON MISSING (${SET.toUpperCase()})`;
+
+
+    if (cfg){
+      mergeShowConfig(cfg);
+      saveState();
+    }
+
+    renderAll();
+    initMouseTilt();
+    initSSE();
+    startAutoplay();
+
+    /* OBS can resize a browser source after load; re-fit the envelope tiles. */
+    window.addEventListener("resize", fitEnvelopeGrid);
+    setTimeout(fitEnvelopeGrid, 300);
+
+
+    try{
+  const open = localStorage.getItem(ADMIN_KEY) === "1";
+  if (open) admin.classList.add("open");
+}catch(_){}
+
+    // Keep bridge warm while overlay is open (helps prevent cold sleeps)
+    if (BRIDGE_URL){
+      const base = normalizeBridge(BRIDGE_URL);
+      setInterval(() => warmBridge(base), 60_000);
+    }
+
+  });
+
+  </script>
+  </body>
+  </html>
