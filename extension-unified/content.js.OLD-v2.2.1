@@ -1,30 +1,6 @@
 (() => {
-  // ══ v2.3 SINGLE-INSTANCE GUARD ═════════════════════════════════════════════
-  // Two copies of the TSU extension in one browser both inject here, both poll,
-  // and both POST the same sale. That is the duplicate team_sold source (observed
-  // 0.19s apart). First instance claims the page, later ones stand down.
-  if (window.__TSU_BRIDGE_ACTIVE__) {
-    console.warn("[TSU] another TSU content script already owns this page. Standing down.");
-    return;
-  }
-  window.__TSU_BRIDGE_ACTIVE__ = true;
-
   /**
-   * TSU Standard content.js — v2.3 (Multi-Tenant Bridge Edition)
-   * CANONICAL TEMPLATE. Bake per client: bridgeKey, sellerUsername, sport, overlayId.
-   *
-   * v2.3, 2026-08-11 data-integrity incident:
-   *  [CRITICAL] SELLER OWNERSHIP GATE. Previously liveId came from the URL with no
-   *             owner check, so ANY Whatnot live page open in the browser fed this
-   *             client's overlay and portal. An audit of one client found 89 of 112
-   *             shows belonged to other sellers, 4,613 foreign sales, $249k gross.
-   *             Now the show host must match DEFAULTS.sellerUsername or we abort.
-   *  [CRITICAL] TEAM ALIAS MATCHING is word-boundary based and aliases shorter than
-   *             3 characters are dropped. The Oakland alias "as" matched inside
-   *             "PLEASE" and "MASTER", so $0 giveaway items posted as OAK and
-   *             marked a real spot off the board.
-   *  [CRITICAL] SINGLE-INSTANCE GUARD above, plus a cross-tab poll lock, so one
-   *             show is only ever polled by one tab.
+   * TSU Standard content.js — v2.2 (Multi-Tenant Bridge Edition)
    * FIXED: localStorage persistence for dedup map to prevent event floods on reload
    *
    * BUGS FIXED vs v2.0/v2.1:
@@ -46,33 +22,26 @@
   // ═══════════════════════════════════════════════════════════════
 
   const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com";
-  const BUILD_VERSION = "2.3.4";
 
   // ⚠️ CANONICAL TEMPLATE — replace these three per client (see tsu-overlay-agent skill Step 7).
   //    bridgeKey: get from bridge_keys row created for this client
   //    sport:     "nfl" | "nba" | "mlb" | "nil" (multi-sport / infer from title)
   //    overlayId: {client-slug}-overlay (must match overlay HTML's overlayId in the warmup POST)
   const DEFAULTS = {
-    bridgeKey:    "REPLACE_WITH_CLIENT_UUID_FROM_SUPABASE",   // Wizards Trading Cards (WCB / Luis)
-    // REQUIRED as of v2.3. The client's Whatnot handle exactly as shown on their
-    // live page: lowercase, no @. Capture is DISABLED while this is unset, which
-    // is deliberate. An unbaked build must not hoover up strangers' shows.
-    // Confirmed by Mike 2026-08-30. NOTE THE UNDERSCORES: the handle is
-    // wizard_company_breakz, NOT wizardstradingcards. The gate lowercases the show
-    // host and compares it strictly, so this must stay lowercase and exact.
-    sellerUsername: "REPLACE_WITH_CLIENT_WHATNOT_HANDLE",
+    bridgeKey:    "REPLACE_WITH_CLIENT_UUID_FROM_SUPABASE",
     sport:        "nil",
     overlayId:    "REPLACE_WITH_CLIENT_SLUG-overlay",
-    // REQUIRED for this client. The Wonders of the First board is named orbital
-    // spots (Ignis, Silva, Aqua, Aer, Umbra, Petraia) matched on the LISTING TITLE,
-    // not on a team code. Every one of those titles resolves to no code, and the
-    // v2.3.1 template drops an unresolved title before it reaches the bridge, which
-    // kills automation completely and silently. Verified 2026-08-30 by running the
-    // real matcher: "Spot 1" and "#4" survive as CUSTOM_NNN, every named spot dies.
-    sendUnresolved: true,
     channel:      "main",
     pollMs:       3000,
-    summaryEvery: 5
+    summaryEvery: 5,
+    // OPT-IN (default false — team clients keep normal suppression). When true, a sale whose
+    // title doesn't map to a team code is still sent with code:"" so a custom / player-name
+    // overlay can match the spot by title (e.g. WNBA player boards like Collect 4 Good).
+    sendUnresolved: false,
+    // OPT-IN (default false). When true, skip team/slot code inference entirely and send raw
+    // titles (code:"") for the overlay to match. Use for player-name boards where the loose
+    // team-name substring match would false-hit player names (e.g. "Ashlee" -> OAK via "as").
+    titlePassthroughOnly: false
   };
 
   const MAX_PAGES = 12;
@@ -206,63 +175,14 @@
     { sport: "mlb", code: "TB",  names: ["tampa bay rays", "rays"] },
     { sport: "mlb", code: "TEX", names: ["texas rangers", "rangers"] },
     { sport: "mlb", code: "TOR", names: ["toronto blue jays", "blue jays"] },
-    { sport: "mlb", code: "WSH", names: ["washington nationals", "nationals"] },
-
-    // Codes mirror the overlay's NHL array exactly. Shared nicknames across leagues
-    // (panthers, rangers, kings, jets, giants) are disambiguated by the overlay, which
-    // re-infers against the sport actually on screen. See overlay handler comment.
-    { sport: "nhl", code: "ANA", names: ["anaheim ducks", "ducks"] },
-    { sport: "nhl", code: "BOS", names: ["boston bruins", "bruins"] },
-    { sport: "nhl", code: "BUF", names: ["buffalo sabres", "sabres"] },
-    { sport: "nhl", code: "CGY", names: ["calgary flames", "flames"] },
-    { sport: "nhl", code: "CAR", names: ["carolina hurricanes", "hurricanes", "canes"] },
-    { sport: "nhl", code: "CHI", names: ["chicago blackhawks", "blackhawks"] },
-    { sport: "nhl", code: "COL", names: ["colorado avalanche", "avalanche", "avs"] },
-    { sport: "nhl", code: "CBJ", names: ["columbus blue jackets", "blue jackets"] },
-    { sport: "nhl", code: "DAL", names: ["dallas stars", "stars"] },
-    { sport: "nhl", code: "DET", names: ["detroit red wings", "red wings", "redwings"] },
-    { sport: "nhl", code: "EDM", names: ["edmonton oilers", "oilers"] },
-    { sport: "nhl", code: "FLA", names: ["florida panthers"] },
-    { sport: "nhl", code: "LAK", names: ["los angeles kings", "la kings"] },
-    { sport: "nhl", code: "MIN", names: ["minnesota wild", "wild"] },
-    { sport: "nhl", code: "MTL", names: ["montreal canadiens", "canadiens", "habs"] },
-    { sport: "nhl", code: "NSH", names: ["nashville predators", "predators", "preds"] },
-    { sport: "nhl", code: "NJD", names: ["new jersey devils", "devils"] },
-    { sport: "nhl", code: "NYI", names: ["new york islanders", "ny islanders", "islanders"] },
-    { sport: "nhl", code: "NYR", names: ["new york rangers", "ny rangers"] },
-    { sport: "nhl", code: "OTT", names: ["ottawa senators", "senators", "sens"] },
-    { sport: "nhl", code: "PHI", names: ["philadelphia flyers", "flyers"] },
-    { sport: "nhl", code: "PIT", names: ["pittsburgh penguins", "penguins", "pens"] },
-    { sport: "nhl", code: "SJS", names: ["san jose sharks", "sharks"] },
-    { sport: "nhl", code: "SEA", names: ["seattle kraken", "kraken"] },
-    { sport: "nhl", code: "STL", names: ["st louis blues", "st. louis blues", "blues"] },
-    { sport: "nhl", code: "TBL", names: ["tampa bay lightning", "lightning", "bolts"] },
-    { sport: "nhl", code: "TOR", names: ["toronto maple leafs", "maple leafs", "leafs"] },
-    { sport: "nhl", code: "UTA", names: ["utah mammoth", "mammoth"] },
-    { sport: "nhl", code: "VAN", names: ["vancouver canucks", "canucks"] },
-    { sport: "nhl", code: "VGK", names: ["vegas golden knights", "golden knights"] },
-    { sport: "nhl", code: "WSH", names: ["washington capitals", "capitals", "caps"] },
-    { sport: "nhl", code: "WPG", names: ["winnipeg jets", "winnipeg"] }
+    { sport: "mlb", code: "WSH", names: ["washington nationals", "nationals"] }
   ];
-
-  // v2.3: aliases are matched on WORD BOUNDARIES, not raw substring, and anything
-  // shorter than 3 characters is discarded. The old code did s.includes("as") for
-  // Oakland, so "PLEASE FOLLOW+BOOKMARK" and "LUDACRIS/ Master P" both resolved to
-  // OAK and marked a spot sold. Keep this guard when adding new aliases.
-  const MIN_ALIAS_LEN = 3;
-
-  function aliasRegex(normalizedName) {
-    const escaped = normalizedName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp("(^|[^a-z0-9])" + escaped + "([^a-z0-9]|$)");
-  }
 
   const EXPANDED_RULES = (() => {
     const out = [];
     for (const rule of TEAM_TITLE_RULES) {
       for (const name of rule.names) {
-        const norm = normalizeTitle(name);
-        if (!norm || norm.replace(/\s/g, "").length < MIN_ALIAS_LEN) continue;
-        out.push({ sport: rule.sport, code: rule.code, name: norm, re: aliasRegex(norm) });
+        out.push({ sport: rule.sport, code: rule.code, name: normalizeTitle(name) });
       }
     }
     return out.sort((a, b) => b.name.length - a.name.length);
@@ -281,7 +201,7 @@
     const s = normalizeTitle(title);
     if (!s) return null;
     for (const rule of EXPANDED_RULES) {
-      if (rule.re.test(s)) return { sport: rule.sport, code: rule.code };
+      if (s.includes(rule.name)) return { sport: rule.sport, code: rule.code };
     }
     return null;
   }
@@ -331,12 +251,6 @@
     if (!raw) return true;
     const s = raw.toLowerCase();
     if (s === "sale" || s === "—") return true;
-    // REQUIRED (Standard sec 7). When listing.title is null on the first Whatnot
-    // GraphQL poll the API falls back to listing.subtitle, which Whatnot auto-fills
-    // with the SLOT INDEX ("#3", "#15"). Without this the extension treats that as a
-    // real title and emits code:"" events. Deliberately does NOT mark the item seen,
-    // so it retries on the next poll once the real title lands.
-    if (/^#?\d+$/.test(raw)) return true;
     const tail = stripPrefixTitle(raw);
     if (!tail || tail.toLowerCase() === "sale") return true;
     return false;
@@ -378,35 +292,10 @@
 
   function stableId(n) {
     if (n?.id) return String(n.id);
-
-    // FIX 2026-08-15. The fallback used to be `${listingId}_${buyerId}`, which is NOT
-    // unique in a break: one break is a SINGLE listing that the same buyer wins many
-    // times. Every spot that buyer took collapsed onto one id, so each new win looked
-    // like the previous item being re-resolved to a different team. The poll loop then
-    // fired its "code changed" branch and emitted team_unsold for the spot they had
-    // already won. Observed live on Breakz4Dayz: one buyer took CUSTOM_001, then HOU,
-    // then IND, and each new win released the one before it.
-    // The spot TITLE and the PRICE are what actually differ between spots, so they go
-    // into the composite. Titles are normalised the same way the dedup check does it,
-    // so this stays consistent with `seen`.
     const lid = n?.listing?.id || "";
     const bid = n?.buyer?.id || "";
-    const rawTitle =
-      n?.listing?.title ||
-      n?.listing?.subtitle ||
-      n?.listing?.description ||
-      n?.title ||
-      n?.product?.title ||
-      "";
-    const spot = stripPrefixTitle(rawTitle).trim().toLowerCase();
-    const price = parsePrice(n);
-    const cents = (price && price.cents != null) ? String(price.cents) : "";
-
-    const composite = [lid, bid, spot, cents].filter(Boolean).join("_");
-    // Require more than just listing+buyer, otherwise we are back to the old collapse.
-    if (composite && (spot || cents)) return composite;
-
-    console.warn("[TSU] item missing stable ID and has no title/price to disambiguate — using random (will not dedup)", n);
+    if (lid || bid) return `${lid}_${bid}`;
+    console.warn("[TSU] item missing stable ID — using random (will not dedup)", n);
     return `_unstable_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   }
 
@@ -576,30 +465,7 @@
           if (lsSummaryEvery) summaryEvery = clampInt(lsSummaryEvery, summaryEvery, 1, 50);
         } catch (_) {}
 
-        /* v2.3.4: the BAKED handle is primary, per TSU Standard sec 8.
-           Previously a value in chrome.storage.sync or in whatnot.com localStorage
-           silently outranked it, so a stale entry from an earlier build could
-           disable capture, or worse point this extension at another seller, with
-           nothing in the console but the fail-closed message. A stored value is
-           now only used when nothing is baked, and a shadow attempt is reported. */
-        const bakedSeller = String(DEFAULTS.sellerUsername || "")
-          .trim().toLowerCase().replace(/^@/, "");
-        const bakedIsReal = bakedSeller && bakedSeller !== "replace_with_client_whatnot_handle";
-        let storedSeller = "";
-        try {
-          storedSeller = String(cfg.sellerUsername || localStorage.getItem("tsu.sellerUsername") || "")
-            .trim().toLowerCase().replace(/^@/, "");
-        } catch (_) {}
-        let sellerUsername = bakedIsReal ? bakedSeller : storedSeller;
-        if (bakedIsReal && storedSeller && storedSeller !== bakedSeller) {
-          console.warn(
-            "[TSU] ignoring a stored sellerUsername (@" + storedSeller + "). " +
-            "The baked handle @" + bakedSeller + " wins. Clear it with: " +
-            "localStorage.removeItem('tsu.sellerUsername')"
-          );
-        }
-
-        resolve({ bridgeKey, sport, overlayId, channel, pollMs, summaryEvery, sellerUsername });
+        resolve({ bridgeKey, sport, overlayId, channel, pollMs, summaryEvery });
       });
     });
   }
@@ -659,15 +525,6 @@
     if (event.data?.type === "WHATNOT_SPY_INJECTED_READY") {
       injectedReady = true;
       console.log("[TSU] injected.js ready");
-      /* Print exactly what THIS build has baked. Two zips with the same name and
-         the same line count are otherwise indistinguishable in the console. */
-      console.log(
-        "[TSU] build " + BUILD_VERSION +
-        "  seller=@" + DEFAULTS.sellerUsername +
-        "  overlayId=" + DEFAULTS.overlayId +
-        "  key=" + String(DEFAULTS.bridgeKey).slice(0, 8) + "\u2026" +
-        "  sendUnresolved=" + DEFAULTS.sendUnresolved
-      );
     }
   });
 
@@ -686,74 +543,10 @@
 
     const cfg = await getConfig();
 
-    if (!cfg.bridgeKey || cfg.bridgeKey.startsWith("REPLACE_WITH")) {
+    if (!cfg.bridgeKey || cfg.bridgeKey === "REPLACE_WITH_CLIENT_KEY") {
       console.error("[TSU] bridgeKey not set! Update DEFAULTS.bridgeKey in content.js for this client.");
       return;
     }
-
-    // ══ v2.3 SELLER OWNERSHIP GATE ═══════════════════════════════════════════
-    // Fail CLOSED. Without a configured handle we cannot prove this show belongs
-    // to our client, and the old behaviour (capture anything) is exactly the bug.
-    if (!cfg.sellerUsername || cfg.sellerUsername === "replace_with_client_whatnot_handle") {
-      console.error(
-        "[TSU] sellerUsername not set. Capture is DISABLED.\n" +
-        "Set DEFAULTS.sellerUsername in content.js to the client's Whatnot handle " +
-        "(lowercase, no @), rebuild, and reload the extension."
-      );
-      return;
-    }
-
-    let showHost = null;
-    try {
-      const ctx = await requestInjected("WHATNOT_SPY_FETCH_LIVESTREAM", { liveId });
-      showHost = String(ctx?.user?.username || "").trim().toLowerCase();
-    } catch (err) {
-      console.error("[TSU] could not read the show host (" + (err?.message || err) + "). Capture aborted for safety.");
-      return;
-    }
-
-    if (!showHost) {
-      console.error("[TSU] show host came back empty. Capture aborted for safety.");
-      return;
-    }
-
-    if (showHost !== cfg.sellerUsername) {
-      console.log(
-        "[TSU] this show belongs to @" + showHost + ", not @" + cfg.sellerUsername +
-        ". Not capturing. You can watch other sellers freely, nothing is sent to your overlay."
-      );
-      return;
-    }
-
-    // ══ v2.3 CROSS-TAB POLL LOCK ═════════════════════════════════════════════
-    // Same show open in two tabs would double-post. One tab holds the lock and
-    // refreshes it; a stale lock (owner tab closed) is reclaimed after 15s.
-    const INSTANCE_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    const LOCK_KEY    = "tsu.pollLock." + liveId;
-    const LOCK_STALE_MS = 15000;
-
-    function readLock() {
-      try { return JSON.parse(localStorage.getItem(LOCK_KEY) || "null"); } catch (_) { return null; }
-    }
-    function claimLock() {
-      try {
-        const cur = readLock();
-        const now = Date.now();
-        if (cur && cur.owner !== INSTANCE_ID && (now - (cur.ts || 0)) < LOCK_STALE_MS) return false;
-        localStorage.setItem(LOCK_KEY, JSON.stringify({ owner: INSTANCE_ID, ts: now }));
-        return true;
-      } catch (_) { return true; }   // no localStorage: degrade to previous behaviour
-    }
-    function holdsLock() {
-      const cur = readLock();
-      return !cur || cur.owner === INSTANCE_ID;
-    }
-
-    if (!claimLock()) {
-      console.warn("[TSU] another tab is already polling this show. Standing down to avoid duplicate sales.");
-      return;
-    }
-    console.log("[TSU] host verified: @" + showHost + " — capture ON.");
 
     console.log("[TSU] ══════════════════════════════════");
     console.log("[TSU] Bridge:", BRIDGE_URL);
@@ -764,27 +557,9 @@
 
     await sendEvent(cfg, { type: "overlay_warmup", liveId, sport: cfg.sport || "" });
 
-    // Load persisted dedup state from localStorage (survives page reloads).
-    // NAMESPACED PER OVERLAY. whatnot.com is a single origin, so a client running two
-    // Whatnot accounts would otherwise share one 'tsu.seen' map between both extensions
-    // and each account's sales would look already-processed to the other one.
-    const SEEN_LS = 'tsu.seen:' + (cfg.overlayId || 'default');
-    let savedSeen = localStorage.getItem(SEEN_LS);
-    if (savedSeen == null) {
-      const legacySeen = localStorage.getItem('tsu.seen');
-      if (legacySeen != null) {
-        savedSeen = legacySeen;
-        try { localStorage.setItem(SEEN_LS, legacySeen); } catch (_) {}
-        console.log("[TSU] migrated dedup map to", SEEN_LS);
-      }
-    }
-    let seen;
-    try {
-      seen = new Map(savedSeen ? JSON.parse(savedSeen) : []);
-    } catch (e) {
-      console.warn("[TSU] dedup map unreadable, starting empty:", e?.message);
-      seen = new Map();
-    }
+    // Load persisted dedup state from localStorage (survives page reloads)
+    const savedSeen = localStorage.getItem('tsu.seen');
+    const seen = new Map(savedSeen ? JSON.parse(savedSeen) : []);
 
     const lastCodeByItem   = new Map();
     const buyerCounts      = new Map();
@@ -802,19 +577,13 @@
       }
       seen.set(key, value);
       try {
-        localStorage.setItem(SEEN_LS, JSON.stringify([...seen.entries()]));
+        localStorage.setItem('tsu.seen', JSON.stringify([...seen.entries()]));
       } catch (e) {
         console.warn("[TSU] localStorage persist failed:", e?.message);
       }
     }
 
     while (true) {
-      if (!holdsLock()) {
-        console.warn("[TSU] lost the poll lock for this show to another tab. Stopping.");
-        return;
-      }
-      claimLock();   // heartbeat
-
       try {
         const allEdges = await fetchAllSoldEdges(liveId, seen);
         const nodes = allEdges.map((e) => e?.node).filter(Boolean).reverse();
@@ -853,14 +622,14 @@
             ? configuredSport
             : inferredSport || "nil";
 
-          const code = inferCodeFromTitle(title, sport);
+          const code = DEFAULTS.titlePassthroughOnly ? "" : inferCodeFromTitle(title, sport);
 
           if (!code && !DEFAULTS.sendUnresolved) {
             console.warn("[TSU] unresolved title (will retry):", { id, title, sport, rawTitle });
             continue;
           }
-          // passthrough (sendUnresolved): no code resolved, but emit anyway with code:"" so the
-          // repack board can match the spot from the title.
+          // passthrough (sendUnresolved): no team code resolved, but emit anyway with code:"" so a
+          // custom/player-name overlay can match the spot from the title.
 
           const prevCode    = lastCodeByItem.get(id);
           const prevIsReal  = prevCode && !prevCode.startsWith("CUSTOM_");

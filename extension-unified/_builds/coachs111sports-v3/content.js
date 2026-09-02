@@ -46,29 +46,23 @@
   // ═══════════════════════════════════════════════════════════════
 
   const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com";
-  const BUILD_VERSION = "2.3.4";
 
   // ⚠️ CANONICAL TEMPLATE — replace these three per client (see tsu-overlay-agent skill Step 7).
   //    bridgeKey: get from bridge_keys row created for this client
   //    sport:     "nfl" | "nba" | "mlb" | "nil" (multi-sport / infer from title)
   //    overlayId: {client-slug}-overlay (must match overlay HTML's overlayId in the warmup POST)
   const DEFAULTS = {
-    bridgeKey:    "REPLACE_WITH_CLIENT_UUID_FROM_SUPABASE",   // Wizards Trading Cards (WCB / Luis)
+    bridgeKey:    "a8218ad2-cb0e-4919-abf3-0eba69df097f",
     // REQUIRED as of v2.3. The client's Whatnot handle exactly as shown on their
     // live page: lowercase, no @. Capture is DISABLED while this is unset, which
     // is deliberate. An unbaked build must not hoover up strangers' shows.
-    // Confirmed by Mike 2026-08-30. NOTE THE UNDERSCORES: the handle is
-    // wizard_company_breakz, NOT wizardstradingcards. The gate lowercases the show
-    // host and compares it strictly, so this must stay lowercase and exact.
-    sellerUsername: "REPLACE_WITH_CLIENT_WHATNOT_HANDLE",
+    sellerUsername: "coachs111sports",
     sport:        "nil",
-    overlayId:    "REPLACE_WITH_CLIENT_SLUG-overlay",
-    // REQUIRED for this client. The Wonders of the First board is named orbital
-    // spots (Ignis, Silva, Aqua, Aer, Umbra, Petraia) matched on the LISTING TITLE,
-    // not on a team code. Every one of those titles resolves to no code, and the
-    // v2.3.1 template drops an unresolved title before it reaches the bridge, which
-    // kills automation completely and silently. Verified 2026-08-30 by running the
-    // real matcher: "Spot 1" and "#4" survive as CUSTOM_NNN, every named spot dies.
+    overlayId:    "coachs111sports-overlay",
+    // Repack boards match on the LISTING TITLE, not a team code, so a sale titled
+    // "MULTI/DUAL" or "TWO TEAM BUNDLE" resolves to no code and the v2.3.1 template
+    // drops it before it ever reaches the bridge. That kills repack automation
+    // completely and silently. Ported back from the v2.2 lineage 2026-08-24.
     sendUnresolved: true,
     channel:      "main",
     pollMs:       3000,
@@ -576,28 +570,13 @@
           if (lsSummaryEvery) summaryEvery = clampInt(lsSummaryEvery, summaryEvery, 1, 50);
         } catch (_) {}
 
-        /* v2.3.4: the BAKED handle is primary, per TSU Standard sec 8.
-           Previously a value in chrome.storage.sync or in whatnot.com localStorage
-           silently outranked it, so a stale entry from an earlier build could
-           disable capture, or worse point this extension at another seller, with
-           nothing in the console but the fail-closed message. A stored value is
-           now only used when nothing is baked, and a shadow attempt is reported. */
-        const bakedSeller = String(DEFAULTS.sellerUsername || "")
+        let sellerUsername = String(cfg.sellerUsername || DEFAULTS.sellerUsername || "")
           .trim().toLowerCase().replace(/^@/, "");
-        const bakedIsReal = bakedSeller && bakedSeller !== "replace_with_client_whatnot_handle";
-        let storedSeller = "";
         try {
-          storedSeller = String(cfg.sellerUsername || localStorage.getItem("tsu.sellerUsername") || "")
+          const lsSeller = String(localStorage.getItem("tsu.sellerUsername") || "")
             .trim().toLowerCase().replace(/^@/, "");
+          if (lsSeller) sellerUsername = lsSeller;
         } catch (_) {}
-        let sellerUsername = bakedIsReal ? bakedSeller : storedSeller;
-        if (bakedIsReal && storedSeller && storedSeller !== bakedSeller) {
-          console.warn(
-            "[TSU] ignoring a stored sellerUsername (@" + storedSeller + "). " +
-            "The baked handle @" + bakedSeller + " wins. Clear it with: " +
-            "localStorage.removeItem('tsu.sellerUsername')"
-          );
-        }
 
         resolve({ bridgeKey, sport, overlayId, channel, pollMs, summaryEvery, sellerUsername });
       });
@@ -659,15 +638,6 @@
     if (event.data?.type === "WHATNOT_SPY_INJECTED_READY") {
       injectedReady = true;
       console.log("[TSU] injected.js ready");
-      /* Print exactly what THIS build has baked. Two zips with the same name and
-         the same line count are otherwise indistinguishable in the console. */
-      console.log(
-        "[TSU] build " + BUILD_VERSION +
-        "  seller=@" + DEFAULTS.sellerUsername +
-        "  overlayId=" + DEFAULTS.overlayId +
-        "  key=" + String(DEFAULTS.bridgeKey).slice(0, 8) + "\u2026" +
-        "  sendUnresolved=" + DEFAULTS.sendUnresolved
-      );
     }
   });
 

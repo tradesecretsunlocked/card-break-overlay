@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "TSU Bridge (Whatnot) - Coachs111 Breaks",
+  "version": "3.1.0",
+  "description": "TSU unified v3.1.0 - sales/overlay bridge v2.3.3 (seller-ownership gate, single-instance guard, word-boundary alias matching) PLUS the chat bot v1.3.1. The chat bot half stays dormant unless the client is provisioned in Supabase, so enabling it later needs no reinstall.",
+  "permissions": ["storage", "alarms"],
+  "host_permissions": [
+    "https://www.whatnot.com/*",
+    "https://*.whatnot.com/*",
+    "https://bridge.tradesecretsunlocked.com/*",
+    "https://*.supabase.co/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    { "matches": ["https://www.whatnot.com/*","https://*.whatnot.com/*"],
+      "js": ["content.js"], "run_at": "document_idle" },
+    { "matches": ["https://www.whatnot.com/live/*","https://www.whatnot.com/dashboard/live/*","https://www.whatnot.com/user/*"],
+      "js": ["bot-content.js"], "run_at": "document_idle" }
+  ],
+  "web_accessible_resources": [
+    { "resources": ["injected.js","bot-injected.js"],
+      "matches": ["https://www.whatnot.com/*","https://*.whatnot.com/*"] }
+  ],
+  "action": { "default_popup": "popup/popup.html", "default_title": "TSU Bridge + Bot" }
+}
