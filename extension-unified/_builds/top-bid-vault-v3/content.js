@@ -49,11 +49,11 @@
 
   // BAKED FOR: Top Bid Collectors (Supabase builds id 50, crm_contacts 106, Hayden Howard)
   // Baked 2026-08-27. All four identity values must match the overlay and Supabase:
-  //   bridge_keys.key = a615d74e-7891-4cf1-a8d9-150806b159b9, active = true
+  //   bridge_keys.key = e1fb8d70-9dca-4a3b-a79f-5bebada1855b, active = true
   //   overlay _drafts/top-bid-collectors/index.html BRIDGE_KEY_DEFAULT = same
   //   overlay OVERLAY_ID = top-bid-collectors-overlay = DEFAULTS.overlayId below
   const DEFAULTS = {
-    bridgeKey:    "a615d74e-7891-4cf1-a8d9-150806b159b9",
+    bridgeKey:    "e1fb8d70-9dca-4a3b-a79f-5bebada1855b",
     // REQUIRED as of v2.3. The client's Whatnot handle exactly as shown on their
     // live page: lowercase, no @. Capture is DISABLED while this is unset, which
     // is deliberate. An unbaked build must not hoover up strangers' shows.
@@ -62,12 +62,12 @@
     // MULTI-ACCOUNT (2026-09-03): comma-separated allowlist. This client runs several
     // Whatnot channels into ONE overlay. Still fail-closed — capture happens only for a
     // show hosted by one of these exact handles, never a stranger's.
-    sellerUsername: "topbidbreaks",
+    sellerUsername: "topbidvault",
     // "nil" = multi-sport: the league is inferred from each listing title. This board
     // carries NFL, NBA, MLB, MLS and a CUSTOM board, so a hardcoded league would stamp
     // every sale with the wrong sport (the Breakz4Dayz failure, 2026-08-26).
     sport:        "nil",
-    overlayId:    "top-bid-collectors-overlay",
+    overlayId:    "top-bid-vault-overlay",
     // Emit a sale even when the title resolves to NO team code, with code:"" so a board that
     // matches on the LISTING TITLE can still place it.
     //
