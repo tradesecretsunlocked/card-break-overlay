@@ -59,9 +59,9 @@
         radial-gradient(ellipse 500px 400px at 8% 30%, rgba(248,227,55,0.06), transparent 70%),
         radial-gradient(ellipse 500px 400px at 92% 30%, rgba(248,227,55,0.06), transparent 70%),
         linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 100%);
-      border: 4px solid var(--accentBorder);
+    
       border-radius: 12px;
-      padding: 6px;
+      padding: 1px;
       box-shadow: 0 0 22px rgba(0,0,0,0.75);
       display:flex;
       flex-direction:column;
@@ -307,13 +307,16 @@
     .team img{
       width:100%;
       height:100%;
-      object-fit: cover;
+      /* was cover, which CROPPED wide/tall logos. contain fits the whole badge
+         inside the tile with no clipping. */
+      object-fit: contain;
+      padding: 3px;
       border-radius: 4px;
       transform-origin: 50% 50%;
       will-change: transform;
     }
 
-    .team img.nfl-small{ object-fit: cover; }
+    .team img.nfl-small{ object-fit: contain; }
 
     .team .fallback-code{
       color:#fff;
@@ -363,6 +366,12 @@
       opacity: 0;
       filter: grayscale(100%) brightness(0.28);
     }
+    /* Sold tiles read as solid black with a gold X */
+    .team.sold{
+      background: #000000 !important;
+      border-color: rgba(248,227,55,0.55) !important;
+    }
+    .team.sold::before{ background: #000000 !important; opacity: 1 !important; }
 
     .team.flash{ animation: soldFlash 260ms ease; }
     @keyframes soldFlash{
@@ -375,7 +384,9 @@
       content:"X";
       position:absolute;
       font-size: 24px;
-      color: #ffffff;
+      color: var(--barnOrange);
+      text-shadow: 0 1px 3px #000;
+      font-weight: 900;
      
       z-index: 10;
       
@@ -606,6 +617,12 @@
       font-size: 26px;
       border: 2px solid var(--accentBorder);
       max-height: 70px;
+    }
+
+    /* Teams/Spots Left: flat black, no highlight gradient */
+    .stat-box.spots-left-box{
+      background: #000000 !important;
+      background-image: none !important;
     }
 
     .stat-label{
@@ -3261,11 +3278,26 @@ function makeSpotsLeftBox(){
   return box;
 }
 
+/* Seller toggle: show/hide the MISC spot on the board. When hidden the ticker
+   simply reclaims its 2 columns, so the row width never changes. */
+function miscSpotEnabled(){
+  try{ return localStorage.getItem("tbc.miscSpot") !== "0"; }catch(_){ return true; }
+}
+function setMiscSpotEnabled(on){
+  try{ localStorage.setItem("tbc.miscSpot", on ? "1" : "0"); }catch(_){ }
+  if (typeof buildLayout === "function") buildLayout();
+  if (typeof buildSpotSelector === "function") buildSpotSelector();
+}
+function toggleMiscSpot(){ setMiscSpotEnabled(!miscSpotEnabled()); }
+window.toggleMiscSpot = toggleMiscSpot;
+window.miscSpotEnabled = miscSpotEnabled;
+
 function makeTickerRow(totalCols){
   const row = document.createElement("div");
   row.className = "row-grid ticker-row";
-  const span = Math.max(2, totalCols - MISC_SPOT_SPAN - SPOTS_LEFT_SPAN);
-  row.appendChild(makeMiscSpot());
+  const showMisc = miscSpotEnabled();
+  const span = Math.max(2, totalCols - (showMisc ? MISC_SPOT_SPAN : 0) - SPOTS_LEFT_SPAN);
+  if (showMisc) row.appendChild(makeMiscSpot());
   row.appendChild(makeTickerSlot(span));
   row.appendChild(makeSpotsLeftBox());
   return row;
@@ -3379,6 +3411,20 @@ function buildSpotSelector(){
   const grid = document.getElementById("spotsGrid");
   if (!grid) return;
   grid.innerHTML = "";
+
+  // Show/hide the MISC spot on the board itself.
+  (function(){
+    const on = (typeof miscSpotEnabled === "function") ? miscSpotEnabled() : true;
+    const t = document.createElement("button");
+    t.className = "btn";
+    t.style.cssText = "grid-column:1/-1; padding:10px 8px; font-size:14px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;"
+      + (on ? "background:#6b5f14; color:#F8E337; border:2px solid #F8E337;" : "");
+    t.textContent = (on ? "\u2713 MISC SPOT ON BOARD: ON" : "MISC SPOT ON BOARD: OFF");
+    t.title = "Show or hide the MISC tile on the board. The ticker reclaims the space when it is off.";
+    t.onclick = () => { if (typeof toggleMiscSpot === "function") toggleMiscSpot(); };
+    grid.appendChild(t);
+  })();
+
   SPOTS.forEach(sp => {
     const on = selectedSpots.includes(sp.code);
     const btn = document.createElement("button");
@@ -3408,6 +3454,7 @@ function buildSpotSelector(){
     { code:'COLLEGE', name:'COLLEGE',         logo:'lh-college-logo.png'  },
     { code:'F1',      name:'F1',              logo:'lh-f1-logo.png'       },
     { code:'NHL',     name:'NHL',             logo:'lh-nhl-logo.png'      },
+    { code:'NIL',     name:'NIL',             logo:'lh-college-logo.png'  },
     { code:'MISC',    name:'MISC',            logo:'lh-misc-logo.png'     }
   ];
   let selectedSpots = [];
@@ -3417,7 +3464,14 @@ function buildSpotSelector(){
   // Active tile list = base sport teams + (for NFL) the selected custom spots. Used by sold-marking, stats, export, chase.
   function currentTileList(){
     const base = (breakTypes[currentBreakType] && breakTypes[currentBreakType].teams) ? breakTypes[currentBreakType].teams : [];
-    return (currentBreakType === "nfl") ? base.concat(getSelectedSpotObjs()) : base;
+    // 2026-09-03: custom spots (MISC/NIL/etc) used to be appended for NFL only, so a
+    // sale assigned to MISC could not be matched and silently dropped out of the sold /
+    // buyer-assignment panel on every other break type. They are always assignable now.
+    const spots = (typeof getSelectedSpotObjs === "function") ? getSelectedSpotObjs() : [];
+    const extra = spots.length ? spots : [{ code:"MISC", name:"MISC", logo:"lh-misc-logo.png",
+                                            image: BASE + "images/logos/lh-misc-logo.png" }];
+    const have = new Set(base.map(t => t && t.code));
+    return base.concat(extra.filter(sp => sp && !have.has(sp.code)));
   }
   function toggleSpot(code){
     const i = selectedSpots.indexOf(code);

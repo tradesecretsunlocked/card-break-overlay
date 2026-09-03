@@ -59,7 +59,7 @@
     /* Envelope board (layout 2). envScrollH caps the scrolling tail so the board
        height never changes with the entry count. */
     --envTileH: 34px;
-    --envCols: 8;    /* 14 until 2026-09-03; wide tiles carry a typed buyer name */
+    --envCols: 14;
     /* The spots board is locked per layout: layout 1 keeps 360px, and the
        envelope layout takes back the stats row and the card row it does not use
        (96 + 175 + two gaps). Locked either way, so nothing creeps mid-show. */
@@ -395,7 +395,7 @@
   }
   .env-top-row{
     display:grid;
-    grid-template-columns:repeat(var(--envCols, 8), minmax(0,1fr));
+    grid-template-columns:repeat(14, minmax(0,1fr));
     gap:6px;
     grid-auto-rows:var(--envTileH);
     min-width:0;
@@ -642,7 +642,7 @@
   }
 
   .poke-card img{
-    width:70%;
+    width:100%;
     height:100%;
     object-fit: cover;
     display:block;
@@ -973,12 +973,11 @@
         transition: transform 120ms ease, opacity 120ms ease, filter 120ms ease;
       }
       .poke-card img{
-        width:70%;
+        width:100%;
         height:100%;
         object-fit: cover;
         display:block;
         transition: filter 160ms ease;
-        border: inset #ba712b;
       }
       .poke-card.sold img{ filter: grayscale(80%) brightness(0.7); }
       .poke-card .tag{
@@ -2277,9 +2276,9 @@
   .spot-buyer::placeholder{ color:transparent; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
   .spot-tile:hover .spot-buyer::placeholder, .spot-buyer:focus::placeholder{ color:rgba(255,255,255,0.35); }
   .spot-label.dflt{ display:none; }
-  .spots-grid.dense .spot-buyer{ font-size:20px; padding:0 4px; }
+  .spots-grid.dense .spot-buyer{ font-size:16px; padding:0 4px; }
   .spot-buyer:focus{ border-color:var(--goldStroke); background:rgba(0,0,0,0.6); box-shadow:0 0 0 2px rgba(228,125,7,0.35); }
-  .spot-tile.sold .spot-buyer{ color:white; background:transparent; border-color:transparent; opacity:1; }
+  .spot-tile.sold .spot-buyer{ color:var(--primary); background:transparent; border-color:transparent; opacity:1; }
   .spot-tile.sold .spot-buyer::placeholder{ color:transparent; }
   .spot-tile.sold::after{ display:none; }   /* strike line ran through the input */
 
@@ -2302,24 +2301,6 @@
   }
   /* Keep the row still while a name is being typed, not only while hovered. */
   .poke:focus-within .marquee{ animation-play-state:paused; }
-
-  /* --- Envelope tile: number on top, buyer input along the bottom. --- */
-  .env-label{ inset:0 0 auto 0; height:36px; }
-  .env-title{ font-size:20px; }
-  .env-buyer{
-    position:absolute; left:4px; right:4px; bottom:3px; top:auto;
-    height:24px; opacity:1;
-    background:rgba(0,0,0,0.42); border:1px solid rgba(255,255,255,0.16); border-radius:6px;
-    color:#fff; font:inherit; font-size:13px; font-weight:900; text-align:center;
-    padding:0 4px; margin:0; outline:none; text-shadow:none;
-    z-index:5;
-  }
-  .env-buyer::placeholder{ color:transparent; text-transform:uppercase; letter-spacing:.4px; }
-  .env-tile:hover .env-buyer::placeholder, .env-buyer:focus::placeholder{ color:rgba(255,255,255,0.35); }
-  .env-buyer:focus{ border-color:var(--goldStroke); background:rgba(0,0,0,0.7); box-shadow:0 0 0 2px rgba(228,125,7,0.35); }
-  .env-tile.sold .env-buyer{ color:var(--primary); background:rgba(0,0,0,0.55); border-color:transparent; }
-  .env-tile.sold::after{ display:none; }
-  .env-logo-slot img{ max-height:calc(var(--envTileH) * 1.15); }
 
   /* --- TSU standard sold flash (apex / cowboy reference), brand primary. --- */
   .spot-tile.flash, .poke-card.flash, .env-tile.flash{ animation: soldFlash 260ms ease; }
@@ -3753,62 +3734,19 @@ function isChaseSpot(id){
   return Array.isArray(state.envelopeChases) && state.envelopeChases.includes(id);
 }
 
-/* ===== BUYER TYPED ON THE TILE (2026-09-03, no popup anywhere) =====
-   Shared by the spot tiles and the envelope tiles. The input IS the badge:
-   a name + Enter or blur sells the spot to that name, clearing it and
-   committing releases, Escape reverts, and a click on the tile body toggles
-   sold (a nameless sale drops the cursor into the input). The input stops
-   the click bubbling so typing never toggles the tile underneath. */
-function wireTileBuyer(t, input, spotId){
-  input.type = "text";
-  input.autocomplete = "off";
-  input.spellcheck = false;
-  input.maxLength = 24;
-  input.placeholder = "buyer";
-  input.addEventListener("click", (e) => e.stopPropagation());
-  input.addEventListener("mousedown", (e) => e.stopPropagation());
-  const live = () => (state.spots || []).find(x => x.id === spotId);
-  const commit = () => {
-    const sp = live();
-    if (!sp) return;
-    const name = String(input.value || "").trim();
-    if (name){
-      if (sp.sold && (sp.buyer || "") === name) return;   // nothing changed
-      setSoldById(state.spots, spotId, true, name);
-    } else if (sp.sold){
-      setSoldById(state.spots, spotId, false);
-    } else {
-      return;
-    }
-    saveSoldState(); renderAll();
-  };
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter"){ e.preventDefault(); commit(); input.blur(); }
-    else if (e.key === "Escape"){
-      const sp = live();
-      input.value = (sp && sp.sold) ? (sp.buyer || "") : "";
-      input.blur();
-    }
-  });
-  input.addEventListener("blur", commit);
-  t.onclick = () => {
-    const sp = live();
-    if (!sp) return;
-    if (sp.sold){
-      setSoldById(state.spots, spotId, false);
-      saveSoldState(); renderAll();
-    } else {
-      setSoldById(state.spots, spotId, true, String(input.value || "").trim());
-      saveSoldState(); renderAll();
-      if (!String(input.value || "").trim()) input.focus();
-    }
-  };
-}
-
 function makeEnvelopeTile(sp){
   const t = document.createElement("div");
   t.className = "env-tile" + (isChaseSpot(sp.id) ? " chase" : "");
   t.dataset.spotId = sp.id;
+  t.onclick = () => {
+    askBuyer({
+      title: `${sp.label || sp.id} sold to`,
+      current: sp.buyer || "",
+      sold: !!sp.sold,
+      onSave: (name) => { setSoldById(state.spots, sp.id, true, name); saveSoldState(); renderAll(); },
+      onUnsell: () => { setSoldById(state.spots, sp.id, false); saveSoldState(); renderAll(); }
+    });
+  };
 
   const img = document.createElement("img");
   img.src = envelopeImagePath();
@@ -3826,27 +3764,43 @@ function makeEnvelopeTile(sp){
   label.appendChild(title);
   t.appendChild(label);
 
-  const buyer = document.createElement("input");
+  const buyer = document.createElement("div");
   buyer.className = "env-buyer";
-  wireTileBuyer(t, buyer, sp.id);
   t.appendChild(buyer);
 
   return t;
 }
 
-/* 2026-09-03: envelope tiles are a FIXED size now, wide enough to type a name
-   on (8 across at ~126px, 68px tall). Six in the top row plus six rows of
-   eight in the scroller puts about 54 on screen; anything past that is
-   revealed by scrolling, per Mike. The panel stays content-sized up to its
-   cap, so a small board is short, a big board scrolls, and nothing below
-   the board moves either way. The old fit-to-space sizing (26..84px) went
-   too small to type on at 100+ entries. */
-const ENV_TILE_H = 68;
+/* The envelope board owns the whole panel now, and the entry count is seller
+   configurable, so a fixed tile height either leaves dead space at 60 or
+   overflows at 150. Measure the space and size the tiles to fill it, clamped, and
+   let the scroller catch anything past the minimum. Same approach as the
+   coachs111 fitGrid fix: the CONTAINER height stays locked, the TILES flex. */
+const ENV_TILE_MIN = 26;
+const ENV_TILE_MAX = 84;
 function fitEnvelopeGrid(){
   if (boardMode() !== "envelope") return;
-  const wrap = document.querySelector(".env-board");
-  if (!wrap) return;
-  wrap.style.setProperty("--envTileH", ENV_TILE_H + "px");
+  const wrap   = document.querySelector(".env-board");
+  const scroll = document.querySelector(".env-scroll");
+  if (!wrap || !scroll) return;
+
+  const cols = parseInt(getComputedStyle(wrap).getPropertyValue("--envCols"), 10) || 14;
+  const tail = Math.max(0, (state.spots || []).length - 12);
+  const rows = Math.max(1, Math.ceil(tail / cols));
+
+  const gap = 6;
+  /* The panel is content-sized now, so measure the SPACE THE BOARD MAY OCCUPY,
+     not the scroller's current height, which would feed back on itself. */
+  const board = document.querySelector(".panel.spots-board");
+  const cap = parseFloat(getComputedStyle(board).maxHeight) || 0;
+  const chrome = wrap.getBoundingClientRect().height - scroll.getBoundingClientRect().height;
+  const pad = 20;
+  const avail = Math.max(0, cap - chrome - pad);
+  if (!avail) return;
+
+  const raw = Math.floor((avail - (rows - 1) * gap) / rows);
+  const h = Math.max(ENV_TILE_MIN, Math.min(ENV_TILE_MAX, raw));
+  wrap.style.setProperty("--envTileH", h + "px");
 }
 
 /* ===== ADMIN EDITORS =====
@@ -4264,9 +4218,8 @@ function buildEnvelopeBoard(grid){
 
   const top = document.createElement("div");
   top.className = "env-top-row";
-  /* Top row: 3 tiles, the logo slot (2 columns), 3 tiles = 8 columns. */
-  const head = spots.slice(0, 6);
-  head.slice(0, 3).forEach(sp => top.appendChild(makeEnvelopeTile(sp)));
+  const head = spots.slice(0, 12);
+  head.slice(0, 6).forEach(sp => top.appendChild(makeEnvelopeTile(sp)));
 
   const slot = document.createElement("div");
   slot.className = "env-logo-slot";
@@ -4277,14 +4230,14 @@ function buildEnvelopeBoard(grid){
   slot.appendChild(logo);
   top.appendChild(slot);
 
-  head.slice(3, 6).forEach(sp => top.appendChild(makeEnvelopeTile(sp)));
+  head.slice(6, 12).forEach(sp => top.appendChild(makeEnvelopeTile(sp)));
   wrap.appendChild(top);
 
   const scroll = document.createElement("div");
   scroll.className = "env-scroll";
   const inner = document.createElement("div");
   inner.className = "env-grid";
-  spots.slice(6).forEach(sp => inner.appendChild(makeEnvelopeTile(sp)));
+  spots.slice(12).forEach(sp => inner.appendChild(makeEnvelopeTile(sp)));
   scroll.appendChild(inner);
   wrap.appendChild(scroll);
 
@@ -4346,10 +4299,54 @@ function buildSpotsGrid(){
       lab.className = "spot-label";
       lab.textContent = s.label || s.id;
 
-      /* Buyer typed on the tile; see wireTileBuyer. */
+      /* BUYER NAME TYPED ON THE TILE (2026-09-03, Mike: no popup). The input is
+         always there; a name + Enter/blur sells the spot to that name, clearing
+         it and committing releases. Clicking the tile body still toggles sold
+         so a nameless sale is one click; the input stops the click bubbling. */
       const buyer = document.createElement("input");
       buyer.className = "spot-buyer";
-      wireTileBuyer(t, buyer, s.id);
+      buyer.type = "text";
+      buyer.autocomplete = "off";
+      buyer.spellcheck = false;
+      buyer.maxLength = 24;
+      buyer.placeholder = "buyer";
+      buyer.addEventListener("click", (e) => e.stopPropagation());
+      buyer.addEventListener("mousedown", (e) => e.stopPropagation());
+      const commit = () => {
+        const live = (state.spots || []).find(x => x.id === s.id);
+        if (!live) return;
+        const name = String(buyer.value || "").trim();
+        if (name){
+          if (live.sold && (live.buyer || "") === name) return;   // nothing changed
+          setSoldById(state.spots, s.id, true, name);
+        } else if (live.sold){
+          setSoldById(state.spots, s.id, false);
+        } else {
+          return;
+        }
+        saveSoldState(); renderAll();
+      };
+      buyer.addEventListener("keydown", (e) => {
+        if (e.key === "Enter"){ e.preventDefault(); commit(); buyer.blur(); }
+        else if (e.key === "Escape"){
+          const live = (state.spots || []).find(x => x.id === s.id);
+          buyer.value = (live && live.sold) ? (live.buyer || "") : "";
+          buyer.blur();
+        }
+      });
+      buyer.addEventListener("blur", commit);
+      t.onclick = () => {
+        const live = (state.spots || []).find(x => x.id === s.id);
+        if (!live) return;
+        if (live.sold){
+          setSoldById(state.spots, s.id, false);
+          saveSoldState(); renderAll();
+        } else {
+          setSoldById(state.spots, s.id, true, String(buyer.value || "").trim());
+          saveSoldState(); renderAll();
+          if (!String(buyer.value || "").trim()) buyer.focus();
+        }
+      };
 
       t.appendChild(num); t.appendChild(lab); t.appendChild(buyer);
       grid.appendChild(t);
