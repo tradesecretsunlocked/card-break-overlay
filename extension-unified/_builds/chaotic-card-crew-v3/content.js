@@ -72,7 +72,11 @@
     // `if (!code) continue;` drops every named-spot sale before it reaches the bridge, with no
     // error and no bridge_events row, which reads as a capture failure rather than a filter.
     // Restored 2026-08-24. See known_issues bug 25.
-    sendUnresolved: false,
+    // 2026-09-04: TRUE for this client. Their board uses seller-named CUSTOM SPOTS
+    // ("CP 1", ...) which map to no team code, so the default suppression dropped every
+    // custom-spot sale ("unresolved title (will retry)"). With this on, the sale is sent
+    // with code:"" + the raw title and the overlay resolves it against its custom entries.
+    sendUnresolved: true,
     channel:      "main",
     pollMs:       3000,
     summaryEvery: 5

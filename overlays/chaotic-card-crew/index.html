@@ -3001,6 +3001,27 @@ function inferCodeFromTitle(title, sportHint){
   const t = norm(rawTitle);
   if (!t) return null;
 
+  /* 2026-09-04: SELLER CUSTOM SPOTS FIRST.
+     The extension cannot know the seller's custom spot names (e.g. "CP 1"), so it sends
+     those sales with code:"" and the raw title. This block resolves the title against the
+     seller's own custom entries BEFORE the team tables, which is what makes automation work
+     on a custom board. Longest name first so "CP 1" can never be shadowed by "CP".
+     Checked for the current board first, then any custom-capable board. */
+  try {
+    const boards = [currentBreakType].concat(
+      ["nba","nfl","mlb","custom"].filter(b => b !== currentBreakType)
+    );
+    for (const b of boards){
+      const entries = (typeof loadCustomEntries === "function") ? loadCustomEntries(b) : [];
+      const sorted = entries.slice().sort((a,z) => norm(z.name).length - norm(a.name).length);
+      for (const e of sorted){
+        const n = norm(e.name);
+        if (!n) continue;
+        if (t === n || t.includes(n)) return e.code;
+      }
+    }
+  } catch(_){}
+
 
 
   if (sportHint && breakTypes[sportHint]){
