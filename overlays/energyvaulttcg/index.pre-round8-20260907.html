@@ -44,14 +44,14 @@
     /* Trimmed 2026-09-02 per client: header 132>100, stats 96>72, ticker 70>56.
        The freed height went to the promo banner that now sits above the cards. */
     --hdrH: 85px;
-    --statsH: 65px;
-    --tickerH: 50px;
-    --promoH: 200px;
+    --statsH: 67px;
+    --tickerH: 45px;
+    --promoH: 70px;
     /* Scrolling card, +70% on 2026-08-27 (was 140px), nudged to 252 on 09-02.
        aspect-ratio locks the shape so the card scales as one piece. */
-    --pokeCardH: 252px;
-    --pokeH: 300px;
-    --pokeGap: 22px;
+    --pokeCardH: 254px;
+    --pokeH: 262px;
+    --pokeGap: 10px;
     /* Motion, all seller tunable in Admin > Show (seconds per full cycle). */
     --marqueeDur: 80s;
     --tickerDur: 25s;
@@ -59,14 +59,14 @@
     /* Envelope board (layout 2). envScrollH caps the scrolling tail so the board
        height never changes with the entry count. */
     --envTileH: 34px;
-    --envCols: 14;
+    --envCols: 8;    /* 14 until 2026-09-03; wide tiles carry a typed buyer name */
     /* The spots board is locked per layout: layout 1 keeps 360px, and the
        envelope layout takes back the stats row and the card row it does not use
        (96 + 175 + two gaps). Locked either way, so nothing creeps mid-show. */
     --boardH: 300px;     /* 360 until 2026-09-02, client wanted it tighter */
     --boardHEnv: 655px;
 
-    --gap: 10px;
+    --gap: 5px;
     --r: 18px;
 
     --shadow: 0 16px 40px rgba(0,0,0,0.55);
@@ -395,7 +395,7 @@
   }
   .env-top-row{
     display:grid;
-    grid-template-columns:repeat(14, minmax(0,1fr));
+    grid-template-columns:repeat(var(--envCols, 8), minmax(0,1fr));
     gap:6px;
     grid-auto-rows:var(--envTileH);
     min-width:0;
@@ -626,7 +626,7 @@
   /* remove “frame” look */
   .poke-card{
     height: var(--pokeCardH);
-    aspect-ratio: 1 / 1.2;
+    aspect-ratio: 1 / 1;
     width: auto;
     border-radius: 18px;
 
@@ -642,7 +642,7 @@
   }
 
   .poke-card img{
-    width:100%;
+    width:70%;
     height:100%;
     object-fit: cover;
     display:block;
@@ -892,7 +892,7 @@
       /* ===== POKEMON SLIDES BAR ===== */
       .poke{
         height: var(--pokeH);
-        padding: 14px 0;
+        padding: 2px 0;
         position:relative;
       }
 
@@ -973,17 +973,17 @@
         transition: transform 120ms ease, opacity 120ms ease, filter 120ms ease;
       }
       .poke-card img{
-        width:100%;
+        width:70%;
         height:100%;
         object-fit: cover;
         display:block;
         transition: filter 160ms ease;
+        border: inset #ba712b;
       }
       .poke-card.sold img{ filter: grayscale(80%) brightness(0.7); }
       .poke-card .tag{
         position:absolute;
-        left: 10px;
-        right: 10px;
+       
         bottom: 10px;
         padding: 6px 8px;
         border-radius: 12px;
@@ -1371,8 +1371,8 @@
       .grp > summary{
         list-style: none;
         cursor: pointer;
-        padding: 10px 12px;
-        font-size: 13px;
+        padding: 2px 4px;
+        font-size: 20px;
         font-weight: 900;
         letter-spacing: 1.2px;
         text-transform: uppercase;
@@ -1393,7 +1393,7 @@
         border-bottom: 1px solid rgba(255,255,255,0.12);
         color: #fff;
       }
-      .grp-body{ padding: 10px 12px 12px 12px; }
+      .grp-body{ padding: 5px 3px 6px 9px; }
       .grp.sub{ margin: 8px 0 0 0; background: transparent; }
       .grp.sub > summary{ padding: 6px 0; font-size: 11px; letter-spacing: 1px; }
       .grp.sub[open] > summary{ border-bottom: none; }
@@ -1413,7 +1413,7 @@
         color:rgba(255,255,255,0.78);
       }
       .ed-hint{
-        font-size:11px; color:rgba(255,255,255,0.52); margin:0 0 6px 0; line-height:1.35;
+        font-size:18px; color:rgba(255,255,255,0.52); margin:0 0 6px 0; line-height:1.35;
       }
       .ed-list{
         max-height: 240px;
@@ -1451,8 +1451,8 @@
       .dd-menu{
         display:none;
         position:absolute;
-        left:0; right:0; top:calc(100% + 4px);
-        max-height:240px;
+        left:0; right:0; bottom:10px;
+        max-height:280px;
         overflow-y:auto;
         z-index:80;
         border-radius:10px;
@@ -1490,11 +1490,11 @@
       .ed-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
       .ed-btn{
         flex:0 0 auto;
-        padding:6px 10px;
+        padding:4px 8px;
         border-radius:8px;
         border:1px solid rgba(245,200,75,0.55);
         background:rgba(0,0,0,0.45);
-        color:#fff; font-size:11px; font-weight:900; letter-spacing:0.6px;
+        color:#fff; font-size:18px; font-weight:900; letter-spacing:0.6px;
         text-transform:uppercase; cursor:pointer;
       }
       .ed-btn:hover{ border-color:rgba(255,223,122,0.95); }
@@ -1502,7 +1502,7 @@
       .ed-chase{
         flex:0 0 auto;
         display:flex; align-items:center; gap:4px;
-        font-size:10px; font-weight:900; letter-spacing:0.6px;
+        font-size:18px; font-weight:900; letter-spacing:0.6px;
         color:rgba(255,223,122,0.9); text-transform:uppercase;
         white-space:nowrap;
       }
@@ -1510,9 +1510,9 @@
 
       .admin{
         position:absolute;
-        top: 84px;
+        bottom:10px;
         right: 16px;
-        width: 650px;
+        width: 900px;
         max-height: calc(var(--H) - 110px);
         z-index: 50;
         border-radius: 18px;
@@ -1535,13 +1535,13 @@
       }
       .admin .row{
         display:flex;
-        gap: 20px;
-        margin-bottom: 10px;
+        gap: 8px;
+        margin-bottom: 5px;
         align-items:center;
       }
       .admin label{
         width: 135px;
-        font-size: 22px;
+        font-size: 20px;
         letter-spacing: 1px;
         color: rgba(255,255,255,0.80);
         text-transform: uppercase;
@@ -1549,7 +1549,7 @@
       }
       /* Inline tick boxes inside a row (metric toggles), not a row label. */
       .admin label.chk{
-        width:auto; font-size:14px; text-transform:none; letter-spacing:0;
+        width:auto; font-size:20px; text-transform:none; letter-spacing:0;
         display:inline-flex; align-items:center; gap:6px; cursor:pointer;
       }
       .admin input, .admin textarea, .admin select{
@@ -1560,8 +1560,8 @@
         color:#fff;
         font-weight: 800;
         outline:none;
-        padding: 10px 10px;
-        font-size: 22px;
+        padding: 2px 2px;
+        font-size: 20px;
       }
       .admin textarea{
         min-height: 130px;
@@ -2276,9 +2276,9 @@
   .spot-buyer::placeholder{ color:transparent; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
   .spot-tile:hover .spot-buyer::placeholder, .spot-buyer:focus::placeholder{ color:rgba(255,255,255,0.35); }
   .spot-label.dflt{ display:none; }
-  .spots-grid.dense .spot-buyer{ font-size:16px; padding:0 4px; }
+  .spots-grid.dense .spot-buyer{ font-size:20px; padding:0 4px; }
   .spot-buyer:focus{ border-color:var(--goldStroke); background:rgba(0,0,0,0.6); box-shadow:0 0 0 2px rgba(228,125,7,0.35); }
-  .spot-tile.sold .spot-buyer{ color:var(--primary); background:transparent; border-color:transparent; opacity:1; }
+  .spot-tile.sold .spot-buyer{ color:white; background:transparent; border-color:transparent; opacity:1; }
   .spot-tile.sold .spot-buyer::placeholder{ color:transparent; }
   .spot-tile.sold::after{ display:none; }   /* strike line ran through the input */
 
@@ -2301,6 +2301,224 @@
   }
   /* Keep the row still while a name is being typed, not only while hovered. */
   .poke:focus-within .marquee{ animation-play-state:paused; }
+
+  /* --- Envelope tile: number on top, buyer input along the bottom. --- */
+  .env-label{ inset:0 0 auto 0; height:36px; }
+  .env-title{ font-size:20px; }
+  .env-buyer{
+    position:absolute; left:4px; right:4px; bottom:3px; top:auto;
+    height:24px; opacity:1;
+    background:rgba(0,0,0,0.42); border:1px solid rgba(255,255,255,0.16); border-radius:6px;
+    color:#fff; font:inherit; font-size:13px; font-weight:900; text-align:center;
+    padding:0 4px; margin:0; outline:none; text-shadow:none;
+    z-index:5;
+  }
+  .env-buyer::placeholder{ color:transparent; text-transform:uppercase; letter-spacing:.4px; }
+  .env-tile:hover .env-buyer::placeholder, .env-buyer:focus::placeholder{ color:rgba(255,255,255,0.35); }
+  .env-buyer:focus{ border-color:var(--goldStroke); background:rgba(0,0,0,0.7); box-shadow:0 0 0 2px rgba(228,125,7,0.35); }
+  .env-tile.sold .env-buyer{ color:var(--primary); background:rgba(0,0,0,0.55); border-color:transparent; }
+  .env-tile.sold::after{ display:none; }
+  .env-logo-slot img{ max-height:calc(var(--envTileH) * 1.15); }
+
+  /* --- ROUND 4 (2026-09-07) ---
+     Card row: no frame at all. Three earlier restyle blocks each gave the
+     strip its own background/border with !important, which is why Mike could
+     not get rid of it; this block is last, so it wins. --- */
+  .panel.poke, .poke-inner{
+    background:transparent !important;
+    border:none !important;
+    box-shadow:none !important;
+    backdrop-filter:none !important;
+  }
+  .panel.poke::before, .panel.poke::after, .poke::after{ display:none !important; }
+
+  /* Background video: dimmed, behind every panel, clipped to the same edge as
+     the solid backdrop so the transparent area below the board stays clean.
+     The element fades in when a clip plays and out between clips. */
+  .bgvid{
+    position:absolute; left:0; top:0;
+    width:100%; height:var(--contentH, 1150px);
+    object-fit:cover;
+    z-index:0;
+    opacity:0;
+    filter:brightness(0.62) saturate(1.1);
+    transition:opacity 900ms ease;
+    pointer-events:none;
+    border-bottom-left-radius:26px; border-bottom-right-radius:26px;
+  }
+  .bgvid.on{ opacity:0.98; }
+
+  /* Promo banner: ev-promo-banner.png is the panel's own art, always shown.
+     Seller uploads (Admin > Promo Banner) crossfade on top of it. */
+  .panel.promo{
+    background:url("ev-promo-banner.png") center / cover no-repeat, rgba(0,0,0,0.35);
+  }
+
+  /* --- ROUND 5 (2026-09-07): detached horizontal control bar --- */
+  .admin{
+    left:30px; top:1120px; right:auto; bottom:auto;
+    width:1040px; max-height:760px;
+    padding:0; overflow:hidden;
+    display:none; flex-direction:column;
+  }
+  .admin.open{ display:flex; }
+  .admin.dragging{ opacity:.92; }
+  .ctl-bar{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 10px;
+    background:linear-gradient(90deg, rgba(228,125,7,0.28), rgba(0,0,0,0.5) 40%, rgba(112,54,124,0.34));
+    border-bottom:1px solid rgba(255,255,255,0.12);
+    flex:0 0 auto;
+  }
+  .ctl-grip{
+    flex:0 0 auto; cursor:grab; user-select:none; touch-action:none;
+    padding:6px 10px; border-radius:10px;
+    background:rgba(0,0,0,0.45); border:1px solid rgba(245,200,75,0.5);
+    color:#fff; font-size:16px; font-weight:1000; letter-spacing:1px; white-space:nowrap;
+  }
+  .admin.dragging .ctl-grip{ cursor:grabbing; }
+  .ctl-tabs{ display:flex; gap:4px; flex:1 1 auto; min-width:0; overflow-x:auto; }
+  .ctl-tab{
+    flex:0 0 auto; padding:7px 12px; border-radius:10px;
+    border:1px solid rgba(255,255,255,0.14); background:rgba(0,0,0,0.35);
+    color:rgba(255,255,255,0.8); font-size:16px; font-weight:900; letter-spacing:.8px; text-transform:uppercase;
+    cursor:pointer; white-space:nowrap;
+  }
+  .ctl-tab.on{ background:var(--primary); border-color:var(--primary); color:#fff; box-shadow:0 0 12px rgba(228,125,7,0.45); }
+  .ctl-actions{ display:flex; align-items:center; gap:6px; flex:0 0 auto; }
+  .ctl-actions .btn{ width:auto; margin:0; padding:7px 8px; font-size:13px; white-space:nowrap; letter-spacing:.3px; }
+  .ctl-tab{ font-size:13px; padding:7px 8px; letter-spacing:.5px; }
+  .ctl-grip{ font-size:13px; padding:6px 7px; }
+  .ctl-actions .sse{ font-size:11px; }
+  .ctl-bar{ gap:5px; padding:7px 8px; }
+  .ctl-actions{ gap:4px; }
+  .ctl-body .row > label{ width:120px; font-size:16px; line-height:1.05; }
+  .ctl-actions .sse{ margin:0 4px; }
+  .ctl-close{
+    width:34px; height:34px; border-radius:10px; border:1px solid rgba(255,255,255,0.2);
+    background:rgba(0,0,0,0.45); color:#fff; font-size:22px; font-weight:900; cursor:pointer; line-height:1;
+  }
+  .ctl-body{ flex:1 1 auto; min-height:0; overflow:auto; padding:10px 14px 12px; }
+  .ctl-body.empty{ display:none; }
+  .ctl-body > details.grp > summary{ display:none; }
+  .ctl-body > details.grp{ margin:0; border:none; background:transparent; }
+  .ctl-body > details.grp:not([open]){ display:none; }
+
+  /* Promo banner text (2026-09-07): seller text over the banner art. */
+  .promo-text{
+    position:absolute; left:16px; right:16px; top:50%; transform:translateY(-50%);
+    text-align:center; z-index:3; pointer-events:none;
+    color:#fff; font-weight:1000; font-size:var(--promoTextPx, 44px); line-height:1.05; letter-spacing:.5px;
+    text-shadow:0 3px 14px rgba(0,0,0,0.95), 0 0 24px rgba(0,0,0,0.7), var(--glowGold);
+    -webkit-text-stroke:1px rgba(0,0,0,0.55); paint-order:stroke fill;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .promo-text:empty{ display:none; }
+
+  /* Chase FX (2026-09-07): mewtwo-zard-animation plays over the stage when a
+     scrolling card (chaser) sells. Landscape clip on a portrait stage, so it
+     sits centred over the card row / board area at full width. */
+  .chasefx{
+    position:absolute; left:0; width:100%;
+    top:calc(var(--contentH, 1150px) * 0.75); transform:translateY(-50%);
+    height:auto; aspect-ratio:16 / 9;
+    object-fit:contain; z-index:40; pointer-events:none;
+    opacity:0; transition:opacity 200ms ease;
+  }
+  .chasefx.on{ opacity:1; }
+
+  /* --- ROUND 6 (2026-09-07) --- */
+  /* Name chips in the Spots tab. */
+  .ed-chips{ display:flex; flex-wrap:wrap; gap:6px; max-height:260px; }
+  .chip{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:3px 6px 3px 4px; border-radius:8px;
+    border:1px solid rgba(255,255,255,0.16); background:rgba(0,0,0,0.35);
+    font-size:15px; font-weight:800; color:#fff; line-height:1.2;
+  }
+  .chip.dflt{ opacity:.55; }
+  .chip.chase{ border-color:rgba(255,223,122,0.9); box-shadow:0 0 8px rgba(245,200,75,0.35); }
+  .chip-n{ min-width:26px; text-align:center; padding:1px 4px; border-radius:6px; background:rgba(228,125,7,0.35); font-size:13px; font-weight:1000; }
+  .chip-t{ cursor:pointer; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chip input[type="checkbox"]{ width:16px; height:16px; margin:0; }
+  .chip-x{ border:none; background:transparent; color:rgba(255,255,255,0.6); font-size:18px; line-height:1; cursor:pointer; padding:0 2px; }
+  .chip-x:hover{ color:#fff; }
+  .ctl-body textarea{ flex:1 1 auto; min-height:64px; font-size:16px; padding:6px; }
+
+  /* Buyer input only once the spot is SOLD (Mike, 2026-09-07). Clicking an
+     open tile sells it and drops the cursor into the box that appears. */
+  .spot-tile:not(.sold) .spot-buyer,
+  .env-tile:not(.sold) .env-buyer,
+  .poke-card:not(.sold) .buyer{ display:none; }
+  .poke-card.sold .buyer{ opacity:1; }
+  .spot-tile.sold .spot-buyer, .env-tile.sold .env-buyer{
+    background:rgba(0,0,0,0.5); border-color:rgba(255,255,255,0.2);
+  }
+  /* A sold tile carries number + name + buyer in ~65px: shrink the first two. */
+  .spot-tile.sold .spot-num{ font-size:14px !important; opacity:.8; }
+  .spot-tile.sold .spot-label{ font-size:10px !important; opacity:.8; -webkit-line-clamp:1; }
+  .spot-tile.sold .spot-buyer{ font-size:16px; padding:0 4px; line-height:1.15; }
+  /* Unsold envelope: number sits centred over the whole tile, no empty strip. */
+  .env-tile:not(.sold) .env-label{ inset:0; height:auto; }
+  .spot-tile.sold .spot-buyer::placeholder, .env-tile.sold .env-buyer::placeholder, .poke-card.sold .buyer::placeholder{ color:rgba(255,255,255,0.4); }
+
+  /* Per-tile art (Board tab: Tile art / Envelope art). A dark wash keeps the
+     number and name readable over any picture. */
+  .spot-tile.has-art{ background-size:cover; background-position:center; }
+  .spot-tile.has-art::before{
+    content:""; position:absolute; inset:0; border-radius:inherit;
+    background:linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.55));
+    pointer-events:none;
+  }
+  .spot-tile > *{ position:relative; }
+
+  /* Page background per layout, behind everything, clipped like the backdrop. */
+  .pagebg{
+    position:absolute; left:0; top:0; width:100%; height:var(--contentH, 1150px);
+    background-size:cover; background-position:center; background-repeat:no-repeat;
+    z-index:0; pointer-events:none;
+    border-bottom-left-radius:26px; border-bottom-right-radius:26px;
+    display:none;
+  }
+  .pagebg.on{ display:block; }
+
+  /* Envelope layout display-only image row, same look as the card row. */
+  .panel.envpoke{ display:none; }
+  .mode-envelope .panel.envpoke{ display:block; }
+  .panel.envpoke, .envpoke-inner{ background:transparent !important; border:none !important; box-shadow:none !important; }
+  .envpoke{ height:var(--pokeH); padding:2px 0; position:relative; }
+  .envpoke-inner{ position:relative; z-index:2; height:100%; display:flex; align-items:center; overflow:hidden; padding:0 14px; }
+  .envpoke .marquee{ display:flex; align-items:center; gap:var(--pokeGap, 12px); will-change:transform; animation:pokeMarquee var(--marqueeDur, 80s) linear infinite; }
+  .envpoke .poke-card{ cursor:default; }
+
+  /* Layout toggle button in the bar. */
+  .ctl-actions .btn.layout{ background:linear-gradient(180deg, rgba(112,54,124,0.9), rgba(70,30,80,0.9)); }
+
+  /* --- ROUND 7 (2026-09-07): both layouts end at the SAME height. ---
+     Layout 2 has no metrics row, so its board takes exactly that row plus one
+     gap on top of the layout 1 board height, and is FIXED, not content sized.
+     To keep ~48 envelopes on screen inside that box the tiles go 10 across at
+     46px with the number and the buyer box side by side. */
+  .mode-envelope .panel.spots-board{
+    height: calc(var(--boardH) + var(--statsH) + var(--gap)) !important;
+    max-height: none !important;
+  }
+  .env-board{ height:100%; }
+  .env-scroll{ flex:1 1 auto; }
+  .env-stats{ flex:0 0 auto; }
+  .env-stat{ padding:2px 6px; }
+  .env-stat .value{ font-size:18px; }
+  .env-stat .label{ font-size:9px; }
+  .stage{ --envCols: 10; }
+  .env-top-row{ grid-template-columns:repeat(10, minmax(0,1fr)); }
+  .env-logo-slot{ grid-column: span 2; }
+  .env-logo-slot img{ max-height:calc(var(--envTileH) * 1.4); }
+  .env-tile{ height:var(--envTileH); border-width:1px; border-radius:7px; }
+  .env-label{ inset:0 auto 0 0; width:38%; height:auto; background:linear-gradient(90deg, rgba(0,0,0,0.05), rgba(0,0,0,0.30)); }
+  .env-title{ font-size:17px; }
+  .env-tile.sold .env-label{ width:30%; }
+  .env-buyer{ left:auto; right:3px; bottom:auto; top:50%; transform:translateY(-50%); width:66%; height:22px; font-size:12px; padding:0 3px; }
+  .env-tile.sold .env-buyer{ width:66%; }
 
   /* --- TSU standard sold flash (apex / cowboy reference), brand primary. --- */
   .spot-tile.flash, .poke-card.flash, .env-tile.flash{ animation: soldFlash 260ms ease; }
@@ -2325,6 +2543,15 @@
         <div class="ambient-arc arc2"></div>
         <div class="ambient-arc arc3"></div>
       </div>
+
+      <!-- BACKGROUND VIDEO (2026-09-07). Two alpha WebM clips in this folder
+           alternate with a random 12-20s gap: see runBgVideo(). The .mov
+           originals are QuickTime Animation, which Chromium cannot decode. -->
+      <!-- PAGE BACKGROUND per layout (Board tab), under the video. -->
+      <div class="pagebg" id="pageBg"></div>
+      <video class="bgvid" id="bgVid" muted playsinline preload="auto"></video>
+      <!-- CHASE FX: plays once when a scrolling-card (chaser) spot sells. -->
+      <video class="chasefx" id="chaseFx" muted playsinline preload="auto" src="mewtwo-zard-animation.webm"></video>
 
       <div class="grid">
 
@@ -2380,9 +2607,10 @@
         <!-- PROMO BANNER (2026-09-02). Seller-uploaded images crossfading on a timer
              set in Admin > Promo Banner. Hidden entirely when there are no images so
              the row does not sit empty on stream. -->
-        <div class="panel promo" id="promoPanel" hidden>
+        <div class="panel promo" id="promoPanel">
           <img class="promo-img a" id="promoImgA" alt="" />
           <img class="promo-img b" id="promoImgB" alt="" />
+          <div class="promo-text" id="promoText"></div>
         </div>
 
         <!-- SCROLLING CARD DISPLAY: this is what buyers purchase from, so a sold card
@@ -2391,6 +2619,15 @@
         <div class="panel poke">
           <div class="poke-inner">
             <div class="marquee" id="pokeMarquee"></div>
+          </div>
+        </div>
+
+        <!-- ENVELOPE LAYOUT IMAGE ROW (2026-09-07): display only, not tied to any
+             spot or sale. Shown in envelope mode only; fed from Cards > Envelope
+             layout images. -->
+        <div class="panel envpoke">
+          <div class="envpoke-inner">
+            <div class="marquee" id="envMarquee"></div>
           </div>
         </div>
 
@@ -2434,7 +2671,23 @@
       <!-- ADMIN -->
       <button class="admin-toggle" id="adminToggle" type="button" title="Toggle Admin">⚙</button>
       <div class="admin" id="admin">
-        <h3>Overlay Controls</h3>
+        <!-- CONTROL BAR (2026-09-07). Detached, draggable by the grip, tabs along
+             the top, one tab body open at a time. The tab strip is built by JS
+             from the details.grp sections below so the sections themselves did
+             not have to move. -->
+        <div class="ctl-bar" id="ctlBar">
+          <div class="ctl-grip" id="ctlGrip" title="Drag to move">⋮⋮ <span>EV</span></div>
+          <div class="ctl-tabs" id="ctlTabs"></div>
+          <div class="ctl-actions">
+            <button class="btn layout" id="layoutToggleBtn" type="button" title="Switch layout">SPOTS ⇄</button>
+            <button class="btn" id="applyBtn" type="button">APPLY</button>
+            <button class="btn ghost" id="resetBtn" type="button" title="Release every sold spot and card">RESET</button>
+            <button class="btn warn" id="resetAvgBtn" type="button" title="Clear the average bid">AVG ↺</button>
+            <div class="sse" id="sseStatus"><span class="dot"></span><span id="sseText">SSE OFF</span></div>
+            <button class="ctl-close" id="ctlClose" type="button" title="Hide (⚙ or backtick)">×</button>
+          </div>
+        </div>
+        <div class="ctl-body" id="ctlBody">
 
         <!-- Grouped into collapsible sections 2026-08-27. One flat list of a dozen
              rows plus two long editors read as a wall; only one section is open at
@@ -2457,6 +2710,8 @@
               <label>Metrics</label>
               <label class="chk"><input id="showAvgBidChk" type="checkbox" /> Avg Bid</label>
               <label class="chk"><input id="showChasePctChk" type="checkbox" /> Chase %</label>
+              <label class="chk"><input id="bgVideoChk" type="checkbox" /> BG video</label>
+              <label class="chk"><input id="chaseFxChk" type="checkbox" /> Chase FX</label>
             </div>
             <div class="row">
               <label>Card scroll</label>
@@ -2474,10 +2729,8 @@
         <details class="grp" data-grp="board">
           <summary>Board</summary>
           <div class="grp-body">
-            <div class="row">
-              <label>Layout</label>
-              <div id="boardModeHost" style="flex:1 1 auto; min-width:0;"></div>
-            </div>
+            <!-- Layout switch is the SPOTS/REPACKS button in the bar (2026-09-07). -->
+            <div id="boardModeHost" style="display:none"></div>
             <div class="row">
               <label>Spots</label>
               <input id="spotCountInput" type="number" min="1" max="40" placeholder="20" />
@@ -2493,17 +2746,39 @@
               <button class="ed-btn" id="envelopeArtBrowseBtn" type="button">Browse</button>
               <button class="ed-btn danger" id="envelopeArtClearBtn" type="button">Clear</button>
             </div>
-            <!-- Board backgrounds (2026-09-02): one image behind the tile grid, a
-                 separate one behind the envelope board. Same image store as the
-                 card art, so the same upload rules apply. -->
+            <!-- Backgrounds (2026-09-07), three levels per layout:
+                 PAGE  = the whole backdrop behind every panel
+                 BOARD = behind the tile grid / envelope board only
+                 ART   = each tile (spot tile art) / each envelope (Envelope Art above)
+                 All through the same image store as the card art. -->
+            <p class="ed-hint" style="margin:6px 0 2px;">CHARACTER BREAKS layout</p>
             <div class="row">
-              <label>Grid BG</label>
+              <label>Page BG</label>
+              <span class="ed-hint" id="pageBgSpotsHint" style="flex:1 1 auto;">none</span>
+              <button class="ed-btn" id="pageBgSpotsBrowseBtn" type="button">Browse</button>
+              <button class="ed-btn danger" id="pageBgSpotsClearBtn" type="button">Clear</button>
+            </div>
+            <div class="row">
+              <label>Board BG</label>
               <span class="ed-hint" id="gridBgHint" style="flex:1 1 auto;">none</span>
               <button class="ed-btn" id="gridBgBrowseBtn" type="button">Browse</button>
               <button class="ed-btn danger" id="gridBgClearBtn" type="button">Clear</button>
             </div>
             <div class="row">
-              <label>Envelope BG</label>
+              <label>Tile art</label>
+              <span class="ed-hint" id="tileArtHint" style="flex:1 1 auto;">none</span>
+              <button class="ed-btn" id="tileArtBrowseBtn" type="button">Browse</button>
+              <button class="ed-btn danger" id="tileArtClearBtn" type="button">Clear</button>
+            </div>
+            <p class="ed-hint" style="margin:10px 0 2px;">REPACKS (envelope) layout</p>
+            <div class="row">
+              <label>Page BG</label>
+              <span class="ed-hint" id="pageBgEnvHint" style="flex:1 1 auto;">none</span>
+              <button class="ed-btn" id="pageBgEnvBrowseBtn" type="button">Browse</button>
+              <button class="ed-btn danger" id="pageBgEnvClearBtn" type="button">Clear</button>
+            </div>
+            <div class="row">
+              <label>Board BG</label>
               <span class="ed-hint" id="envBgHint" style="flex:1 1 auto;">none</span>
               <button class="ed-btn" id="envBgBrowseBtn" type="button">Browse</button>
               <button class="ed-btn danger" id="envBgClearBtn" type="button">Clear</button>
@@ -2516,12 +2791,23 @@
           <summary>Promo Banner</summary>
           <div class="grp-body">
             <div class="ed-head">
-              <span class="ed-hint">Images rotate in the banner under the metrics row. No images = no banner.</span>
+              <span class="ed-hint">Banner art is ev-promo-banner.png. Any images added here rotate on top of it.</span>
               <button class="ed-btn" id="promoAddBtn" type="button">+ Add Image</button>
             </div>
+            <!-- Banner MESSAGES (2026-09-07): several texts rotate over the one
+                 banner art. Add one at a time; X removes. -->
             <div class="row">
-              <label>Seconds each</label>
-              <input id="promoSecInput" type="number" min="2" max="120" step="1" placeholder="8" />
+              <label>Message</label>
+              <input id="promoTextInput" type="text" maxlength="60" placeholder="Type a message and press Enter / Add" />
+              <button class="ed-btn" id="promoTextAddBtn" type="button">Add</button>
+            </div>
+            <div class="ed-list ed-chips" id="promoTextList"></div>
+            <div class="row">
+              <label>Text size</label>
+              <input id="promoTextPxInput" type="number" min="16" max="90" step="2" placeholder="44" style="flex:0 0 90px;" title="Text size px" />
+              <label style="width:auto;">Seconds each</label>
+              <input id="promoSecInput" type="number" min="2" max="120" step="1" placeholder="8" style="flex:0 0 90px;" />
+              <span class="ed-hint">applies to messages and images</span>
             </div>
             <div class="ed-list" id="promoList"></div>
             <input id="promoFile" type="file" accept="image/*" style="display:none" />
@@ -2554,11 +2840,27 @@
         <details class="grp" data-grp="spots">
           <summary><span id="spotsEditorTitle">Spot Names</span></summary>
           <div class="grp-body">
+            <!-- NAMES (2026-09-07). No wall of empty inputs: type names one at a
+                 time (Enter fills the next unnamed spot), paste a whole list, or
+                 import a CSV. The compact list below shows what landed where. -->
             <div class="ed-head">
-              <span class="ed-hint" id="spotsEditorHint">Rename any spot. Blank falls back to the default.</span>
+              <span class="ed-hint" id="spotsEditorHint">Type a name and press Enter to fill the next spot.</span>
+              <button class="ed-btn" id="spotsCsvBtn" type="button">Import CSV</button>
               <button class="ed-btn" id="spotsResetNamesBtn" type="button">Reset Names</button>
             </div>
-            <div class="ed-list" id="spotsEditorList"></div>
+            <div class="row">
+              <label>Add name</label>
+              <input id="spotNameOne" type="text" maxlength="40" placeholder="Next unnamed spot gets this (Enter)" />
+              <input id="spotNameAt" type="number" min="1" placeholder="#" style="flex:0 0 80px;" title="Spot number (blank = next unnamed)" />
+              <button class="ed-btn" id="spotNameAddBtn" type="button">Add</button>
+            </div>
+            <div class="row" style="align-items:flex-start;">
+              <label>Paste list</label>
+              <textarea id="spotNamesPaste" rows="3" placeholder="One per line, or comma separated. Fills spots 1, 2, 3... in order. A line like '7, Charizard' or '7 Charizard' targets spot 7."></textarea>
+              <button class="ed-btn" id="spotNamesPasteBtn" type="button">Apply list</button>
+            </div>
+            <div class="ed-list ed-chips" id="spotsEditorList"></div>
+            <input id="spotsCsvFile" type="file" accept=".csv,text/csv,text/plain" style="display:none" />
           </div>
         </details>
 
@@ -2573,6 +2875,12 @@
               <button class="ed-btn" id="cardAddBtn" type="button">+ Add Card</button>
             </div>
             <div class="ed-list" id="cardsEditorList"></div>
+            <div class="ed-head" style="margin-top:10px;">
+              <span class="ed-hint">ENVELOPE layout images: a display-only scroll row above the envelope board. Not tied to spots or sales.</span>
+              <button class="ed-btn" id="envImgAddBtn" type="button">+ Add Image</button>
+            </div>
+            <div class="ed-list" id="envImgList"></div>
+            <input id="envImgFile" type="file" accept="image/*" style="display:none" />
             <p class="ed-hint" id="storageHint"></p>
             <details class="grp sub">
               <summary>How the buyer name and artwork work</summary>
@@ -2594,19 +2902,7 @@
             <input id="envelopeArtFile" type="file" accept="image/*" style="display:none" />
           </div>
         </details>
-
-      <button class="btn" id="applyBtn" type="button">APPLY + SAVE</button>
-      <button class="btn warn" id="resetAvgBtn" type="button">RESET AVG BID</button>
-  <button class="btn ghost" id="resetBtn" type="button">RESET SOLD (Pokemon/Spots/Cards)</button>
-
-        <div class="row" style="justify-content:space-between; margin-top:6px;">
-          <div class="sse" id="sseStatus"><span class="dot"></span><span id="sseText">SSE OFF</span></div>
-        </div>
-
-        <div style="margin-top:10px; font-size:12px; color:rgba(255,255,255,0.72); line-height:1.3;">
-          Click Pokemon / Spot / Main card to toggle SOLD.<br/>
-          Admin panel toggles with ⚙ or press <b>`</b> (backtick).
-        </div>
+        </div><!-- /ctl-body -->
       </div>
     </div>
 
@@ -2851,6 +3147,15 @@ const ADMIN_KEY = `${LS_PREFIX}.overlay.adminOpen.${SET}`;
     /* Client feedback 2, 2026-09-02 */
     showAvgBid: true,      /* metrics row toggles */
     showChasePct: true,
+    bgVideo: true,         /* dimmed background clips, 2026-09-07 */
+    chaseFx: true,         /* mewtwo-zard clip on a chaser sale, 2026-09-07 */
+    promoText: "",         /* legacy single text, migrated into promoTexts */
+    promoTexts: [],        /* banner messages, rotate on promoSec (2026-09-07) */
+    promoTextPx: 44,
+    envImages: [],         /* envelope layout display-only scroll row, store:envimg:<n> */
+    pageBgSpots: "",       /* whole-backdrop image per layout */
+    pageBgEnv: "",
+    tileArt: "",           /* picture on every spot tile, store:tileart */
     scrollSec: 80,         /* card marquee, seconds per loop */
     tickerSec: 25,         /* ticker, seconds per pass */
     promoSec: 8,           /* promo banner, seconds per image */
@@ -3175,6 +3480,33 @@ function flashPokemonSold(pokeId){
     el.classList.add("just-sold");
     flashTile(el);
   });
+  /* A scrolling card with no grid spot behind it is a CHASER (same rule as
+     breakTally), and a chaser sale gets the big clip. */
+  const pk = (state.pokemon || []).find(x => x.id === pokeId);
+  if (pk && !pk.spotId) playChaseFx();
+}
+
+/* ===== CHASE FX (2026-09-07) =====
+   mewtwo-zard-animation.webm (alpha VP9 transcode of the .mov) plays once,
+   full width, over the stage. A second chaser sale mid-clip restarts it. */
+let __chaseFxTimer = null;
+function playChaseFx(){
+  if (state.chaseFx === false) return;
+  const v = document.getElementById("chaseFx");
+  if (!v) return;
+  if (!v.dataset.wired){
+    v.dataset.wired = "1";
+    const off = () => { v.classList.remove("on"); };
+    v.addEventListener("ended", off);
+    v.addEventListener("error", off);
+  }
+  try{ v.pause(); v.currentTime = 0; }catch(_){}
+  v.classList.add("on");
+  const p = v.play();
+  if (p && p.catch) p.catch(() => v.classList.remove("on"));
+  /* Belt and braces: never leave the layer up if 'ended' does not fire. */
+  if (__chaseFxTimer) clearTimeout(__chaseFxTimer);
+  __chaseFxTimer = setTimeout(() => v.classList.remove("on"), 8000);
 }
 
 /* TSU standard sold flash: .flash for 280ms, keyframe soldFlash. Fires for a
@@ -3286,6 +3618,8 @@ function applyBuyerToLinkedPokemon(spotId, buyer){
   applyMotionVars();
   applyBoardBg();
   renderPromo();
+  runBgVideo();
+  buildEnvMarquee();
 
   // ---- LOGO: only update if changed. The set logo was removed from the header. ----
   const nextClientLogo = pathFromInput(state.clientLogo);
@@ -3534,6 +3868,17 @@ function renderAdminFields(){
     const chk = (id, v) => { const el = document.getElementById(id); if (el) el.checked = !!v; };
     chk("showAvgBidChk", state.showAvgBid !== false);
     chk("showChasePctChk", state.showChasePct !== false);
+    chk("bgVideoChk", state.bgVideo !== false);
+    chk("chaseFxChk", state.chaseFx !== false);
+    set("promoTextPxInput", state.promoTextPx || 44);
+    const hintFor = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ? (String(v).startsWith("store:") ? "(uploaded)" : v) : "none"; };
+    hintFor("pageBgSpotsHint", state.pageBgSpots);
+    hintFor("pageBgEnvHint", state.pageBgEnv);
+    hintFor("tileArtHint", state.tileArt);
+    const lt = document.getElementById("layoutToggleBtn");
+    if (lt) lt.textContent = boardMode() === "envelope" ? "REPACKS ⇄" : "SPOTS ⇄";
+    renderPromoTextList();
+    renderEnvImgEditor();
     set("scrollSecInput", state.scrollSec || 80);
     set("tickerSecInput", state.tickerSec || 25);
     set("promoSecInput",  state.promoSec  || 8);
@@ -3576,17 +3921,136 @@ function applyMotionVars(){
   if (st.style.getPropertyValue("--tickerDur")  !== `${t}s`) st.style.setProperty("--tickerDur",  `${t}s`);
 }
 
-/* ===== BOARD BACKGROUNDS (2026-09-02) ===== */
+/* ===== BACKGROUND VIDEO (2026-09-07) =====
+   Mike: play purple-electric-1, wait 12-20 s, play fire-bg-1, repeat. The
+   clips are alpha WebM transcodes of the .mov originals, sitting in this
+   folder. One <video>, one clip at a time; between clips it fades out and a
+   random timer arms the next one. A missing or undecodable clip is skipped
+   after the same gap, so a bad file can never wedge the loop. Seller can
+   switch it off in Admin > Show. */
+const BG_CLIPS = ["purple-electric-1.webm", "fire-bg-1.webm"];
+const BG_GAP_MIN = 12000, BG_GAP_MAX = 20000;
+let __bgIdx = -1;
+let __bgTimer = null;
+let __bgRunning = false;
+function bgGap(){ return BG_GAP_MIN + Math.floor(Math.random() * (BG_GAP_MAX - BG_GAP_MIN + 1)); }
+function bgArmNext(){
+  if (__bgTimer) clearTimeout(__bgTimer);
+  __bgTimer = setTimeout(bgPlayNext, bgGap());
+}
+function bgPlayNext(){
+  const v = document.getElementById("bgVid");
+  if (!v || !__bgRunning) return;
+  __bgIdx = (__bgIdx + 1) % BG_CLIPS.length;
+  v.src = BG_CLIPS[__bgIdx];
+  v.currentTime = 0;
+  const p = v.play();
+  if (p && p.catch) p.catch(() => { v.classList.remove("on"); bgArmNext(); });
+}
+function runBgVideo(){
+  const v = document.getElementById("bgVid");
+  if (!v) return;
+  const want = state.bgVideo !== false;
+  if (!want){
+    if (__bgRunning){
+      __bgRunning = false;
+      if (__bgTimer) clearTimeout(__bgTimer);
+      __bgTimer = null;
+      v.classList.remove("on");
+      try{ v.pause(); v.removeAttribute("src"); v.load(); }catch(_){}
+    }
+    return;
+  }
+  if (__bgRunning) return;
+  __bgRunning = true;
+  if (!v.dataset.wired){
+    v.dataset.wired = "1";
+    v.addEventListener("playing", () => v.classList.add("on"));
+    v.addEventListener("ended", () => { v.classList.remove("on"); bgArmNext(); });
+    v.addEventListener("error", () => { v.classList.remove("on"); bgArmNext(); });
+  }
+  bgPlayNext();
+}
+
+/* ===== BOARD BACKGROUNDS (2026-09-02, three levels since 2026-09-07) =====
+   PAGE (whole backdrop) and BOARD (behind the grid / envelope board) are per
+   layout; TILE ART goes on every spot tile and is applied in syncSpotTiles. */
 let __lastBoardBg = null;
+let __lastPageBg = null;
 function applyBoardBg(){
+  const env = boardMode() === "envelope";
   const panel = document.querySelector(".panel.spots-board");
-  if (!panel) return;
-  const raw = (boardMode() === "envelope") ? (state.envBg || "") : (state.gridBg || "");
-  const src = raw ? pathFromInput(raw) : "";
-  if (src === __lastBoardBg) return;
-  __lastBoardBg = src;
-  panel.classList.toggle("has-bg", !!src);
-  panel.style.backgroundImage = src ? `url("${src}")` : "";
+  if (panel){
+    const raw = env ? (state.envBg || "") : (state.gridBg || "");
+    const src = raw ? pathFromInput(raw) : "";
+    if (src !== __lastBoardBg){
+      __lastBoardBg = src;
+      panel.classList.toggle("has-bg", !!src);
+      panel.style.backgroundImage = src ? `url("${src}")` : "";
+    }
+  }
+  const page = document.getElementById("pageBg");
+  if (page){
+    const raw = env ? (state.pageBgEnv || "") : (state.pageBgSpots || "");
+    const src = raw ? pathFromInput(raw) : "";
+    if (src !== __lastPageBg){
+      __lastPageBg = src;
+      page.classList.toggle("on", !!src);
+      page.style.backgroundImage = src ? `url("${src}")` : "";
+    }
+  }
+}
+function tileArtSrc(){
+  return state.tileArt ? pathFromInput(state.tileArt) : "";
+}
+
+/* ===== ENVELOPE LAYOUT IMAGE ROW (2026-09-07) =====
+   Display only. Same doubled-marquee trick as the card row, no sold state,
+   no click handler, not part of the break. Rebuilt only when the list changes. */
+let __envMarqueeSig = "";
+function buildEnvMarquee(){
+  const host = document.getElementById("envMarquee");
+  if (!host) return;
+  const list = (Array.isArray(state.envImages) ? state.envImages : []).map(pathFromInput).filter(Boolean);
+  const sig = list.join("|");
+  if (sig === __envMarqueeSig) return;
+  __envMarqueeSig = sig;
+  host.innerHTML = "";
+  list.concat(list).forEach(src => {
+    const card = document.createElement("div");
+    card.className = "poke-card";
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = "";
+    img.onerror = () => { img.onerror = null; img.remove(); card.classList.add("no-art"); };
+    card.appendChild(img);
+    host.appendChild(card);
+  });
+}
+function renderEnvImgEditor(){
+  const host = document.getElementById("envImgList");
+  if (!host) return;
+  host.innerHTML = "";
+  const list = Array.isArray(state.envImages) ? state.envImages : (state.envImages = []);
+  list.forEach((mk, i) => {
+    const row = document.createElement("div");
+    row.className = "ed-row";
+    const th = document.createElement("img");
+    th.src = pathFromInput(mk) || "";
+    th.style.cssText = "width:48px;height:48px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,0.2);";
+    const cap = document.createElement("span");
+    cap.className = "ed-hint"; cap.style.flex = "1 1 auto";
+    cap.textContent = `Image ${i + 1}`;
+    const del = document.createElement("button");
+    del.type = "button"; del.className = "ed-btn danger"; del.textContent = "X";
+    del.addEventListener("click", () => {
+      if (String(mk).startsWith("store:")) dropStoredImage(String(mk).slice(6));
+      list.splice(i, 1);
+      saveState(); renderEnvImgEditor(); buildEnvMarquee(); renderStorageHint();
+    });
+    row.appendChild(th); row.appendChild(cap); row.appendChild(del);
+    host.appendChild(row);
+  });
 }
 
 /* ===== PROMO BANNER (2026-09-02) =====
@@ -3618,14 +4082,81 @@ function renderPromo(force){
   if (!panel) return;
   const srcs = promoSources();
   const sec = Math.max(2, Math.min(120, parseInt(state.promoSec, 10) || 8));
-  const sig = srcs.join("|") + "#" + sec;
-  panel.hidden = !srcs.length;
+  const texts = promoTexts();
+  const sig = srcs.join("|") + "#" + sec + "#" + texts.join("|");
+  /* Panel always shows since 2026-09-07: ev-promo-banner.png is its art. */
+  panel.hidden = false;
+  {
+    /* Messages rotate on the same clock as the images (promoSec). One legacy
+       single text is folded into the list the first time it is seen. */
+    if (state.promoText && !(Array.isArray(state.promoTexts) && state.promoTexts.length)){
+      state.promoTexts = [String(state.promoText)];
+      state.promoText = "";
+      saveState();
+    }
+    const px = `${Math.max(16, Math.min(90, parseInt(state.promoTextPx, 10) || 44))}px`;
+    if (panel.style.getPropertyValue("--promoTextPx") !== px) panel.style.setProperty("--promoTextPx", px);
+    promoShowText(__promoTextIdx);
+  }
   if (sig === __promoSig && !force) return;
   __promoSig = sig;
   if (__promoTimer){ clearInterval(__promoTimer); __promoTimer = null; }
-  if (!srcs.length) return;
-  promoShow(Math.min(__promoIdx, srcs.length - 1));
-  if (srcs.length > 1) __promoTimer = setInterval(() => promoShow(__promoIdx + 1), sec * 1000);
+  if (srcs.length) promoShow(Math.min(__promoIdx, srcs.length - 1));
+  else {
+    const a = document.getElementById("promoImgA"), b = document.getElementById("promoImgB");
+    if (a) a.classList.remove("show");
+    if (b) b.classList.remove("show");
+  }
+  promoShowText(Math.min(__promoTextIdx, Math.max(0, texts.length - 1)));
+  if (srcs.length > 1 || texts.length > 1){
+    __promoTimer = setInterval(() => {
+      if (srcs.length > 1) promoShow(__promoIdx + 1);
+      if (texts.length > 1) promoShowText(__promoTextIdx + 1);
+    }, sec * 1000);
+  }
+}
+function promoTexts(){
+  return (Array.isArray(state.promoTexts) ? state.promoTexts : []).map(t => String(t || "").trim()).filter(Boolean);
+}
+let __promoTextIdx = 0;
+function promoShowText(i){
+  const t = document.getElementById("promoText");
+  if (!t) return;
+  const texts = promoTexts();
+  if (!texts.length){ if (t.textContent) t.textContent = ""; return; }
+  __promoTextIdx = ((i % texts.length) + texts.length) % texts.length;
+  const next = texts[__promoTextIdx];
+  if (t.textContent === next) return;
+  /* Quick fade so a change reads as a change, not a glitch. */
+  t.style.transition = "opacity 250ms ease";
+  t.style.opacity = "0";
+  setTimeout(() => { t.textContent = next; t.style.opacity = "1"; }, 260);
+}
+function renderPromoTextList(){
+  const host = document.getElementById("promoTextList");
+  if (!host) return;
+  host.innerHTML = "";
+  const list = Array.isArray(state.promoTexts) ? state.promoTexts : (state.promoTexts = []);
+  list.forEach((txt, i) => {
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    const n = document.createElement("span"); n.className = "chip-n"; n.textContent = String(i + 1);
+    const t = document.createElement("span"); t.className = "chip-t"; t.style.maxWidth = "420px"; t.textContent = txt;
+    const x = document.createElement("button"); x.type = "button"; x.className = "chip-x"; x.textContent = "×";
+    x.addEventListener("click", () => { list.splice(i, 1); saveState(); renderPromoTextList(); renderPromo(true); });
+    chip.appendChild(n); chip.appendChild(t); chip.appendChild(x);
+    host.appendChild(chip);
+  });
+}
+function addPromoText(){
+  const el = document.getElementById("promoTextInput");
+  if (!el) return;
+  const v = String(el.value || "").trim().slice(0, 60);
+  if (!v) return;
+  (Array.isArray(state.promoTexts) ? state.promoTexts : (state.promoTexts = [])).push(v);
+  el.value = "";
+  saveState(); renderPromoTextList(); renderPromo(true);
+  el.focus();
 }
 function renderPromoEditor(){
   const host = document.getElementById("promoList");
@@ -3668,6 +4199,10 @@ function boardMode(){ return state.boardMode === "envelope" ? "envelope" : "spot
 function applyBoardModeClass(){
   const st = document.getElementById("stage");
   if (st) st.classList.toggle("mode-envelope", boardMode() === "envelope");
+  /* Bar button caption lives here, not in renderAdminFields, because that one
+     skips while the drawer has focus and the button itself takes focus. */
+  const lt = document.getElementById("layoutToggleBtn");
+  if (lt){ const cap = boardMode() === "envelope" ? "REPACKS ⇄" : "SPOTS ⇄"; if (lt.textContent !== cap) lt.textContent = cap; }
 }
 
 /* Both layouts default to SPOT n and both are renameable, per Mike 2026-08-26.
@@ -3734,19 +4269,62 @@ function isChaseSpot(id){
   return Array.isArray(state.envelopeChases) && state.envelopeChases.includes(id);
 }
 
+/* ===== BUYER TYPED ON THE TILE (2026-09-03, no popup anywhere) =====
+   Shared by the spot tiles and the envelope tiles. The input IS the badge:
+   a name + Enter or blur sells the spot to that name, clearing it and
+   committing releases, Escape reverts, and a click on the tile body toggles
+   sold (a nameless sale drops the cursor into the input). The input stops
+   the click bubbling so typing never toggles the tile underneath. */
+function wireTileBuyer(t, input, spotId){
+  input.type = "text";
+  input.autocomplete = "off";
+  input.spellcheck = false;
+  input.maxLength = 24;
+  input.placeholder = "buyer";
+  input.addEventListener("click", (e) => e.stopPropagation());
+  input.addEventListener("mousedown", (e) => e.stopPropagation());
+  const live = () => (state.spots || []).find(x => x.id === spotId);
+  const commit = () => {
+    const sp = live();
+    if (!sp) return;
+    const name = String(input.value || "").trim();
+    if (name){
+      if (sp.sold && (sp.buyer || "") === name) return;   // nothing changed
+      setSoldById(state.spots, spotId, true, name);
+    } else if (sp.sold){
+      setSoldById(state.spots, spotId, false);
+    } else {
+      return;
+    }
+    saveSoldState(); renderAll();
+  };
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter"){ e.preventDefault(); commit(); input.blur(); }
+    else if (e.key === "Escape"){
+      const sp = live();
+      input.value = (sp && sp.sold) ? (sp.buyer || "") : "";
+      input.blur();
+    }
+  });
+  input.addEventListener("blur", commit);
+  t.onclick = () => {
+    const sp = live();
+    if (!sp) return;
+    if (sp.sold){
+      setSoldById(state.spots, spotId, false);
+      saveSoldState(); renderAll();
+    } else {
+      setSoldById(state.spots, spotId, true, String(input.value || "").trim());
+      saveSoldState(); renderAll();
+      if (!String(input.value || "").trim()) input.focus();
+    }
+  };
+}
+
 function makeEnvelopeTile(sp){
   const t = document.createElement("div");
   t.className = "env-tile" + (isChaseSpot(sp.id) ? " chase" : "");
   t.dataset.spotId = sp.id;
-  t.onclick = () => {
-    askBuyer({
-      title: `${sp.label || sp.id} sold to`,
-      current: sp.buyer || "",
-      sold: !!sp.sold,
-      onSave: (name) => { setSoldById(state.spots, sp.id, true, name); saveSoldState(); renderAll(); },
-      onUnsell: () => { setSoldById(state.spots, sp.id, false); saveSoldState(); renderAll(); }
-    });
-  };
 
   const img = document.createElement("img");
   img.src = envelopeImagePath();
@@ -3764,43 +4342,27 @@ function makeEnvelopeTile(sp){
   label.appendChild(title);
   t.appendChild(label);
 
-  const buyer = document.createElement("div");
+  const buyer = document.createElement("input");
   buyer.className = "env-buyer";
+  wireTileBuyer(t, buyer, sp.id);
   t.appendChild(buyer);
 
   return t;
 }
 
-/* The envelope board owns the whole panel now, and the entry count is seller
-   configurable, so a fixed tile height either leaves dead space at 60 or
-   overflows at 150. Measure the space and size the tiles to fill it, clamped, and
-   let the scroller catch anything past the minimum. Same approach as the
-   coachs111 fitGrid fix: the CONTAINER height stays locked, the TILES flex. */
-const ENV_TILE_MIN = 26;
-const ENV_TILE_MAX = 84;
+/* 2026-09-03: envelope tiles are a FIXED size now, wide enough to type a name
+   on (8 across at ~126px, 68px tall). Six in the top row plus six rows of
+   eight in the scroller puts about 54 on screen; anything past that is
+   revealed by scrolling, per Mike. The panel stays content-sized up to its
+   cap, so a small board is short, a big board scrolls, and nothing below
+   the board moves either way. The old fit-to-space sizing (26..84px) went
+   too small to type on at 100+ entries. */
+const ENV_TILE_H = 46;   /* 68 until 2026-09-07, dropped so layout 2 matches layout 1 height */
 function fitEnvelopeGrid(){
   if (boardMode() !== "envelope") return;
-  const wrap   = document.querySelector(".env-board");
-  const scroll = document.querySelector(".env-scroll");
-  if (!wrap || !scroll) return;
-
-  const cols = parseInt(getComputedStyle(wrap).getPropertyValue("--envCols"), 10) || 14;
-  const tail = Math.max(0, (state.spots || []).length - 12);
-  const rows = Math.max(1, Math.ceil(tail / cols));
-
-  const gap = 6;
-  /* The panel is content-sized now, so measure the SPACE THE BOARD MAY OCCUPY,
-     not the scroller's current height, which would feed back on itself. */
-  const board = document.querySelector(".panel.spots-board");
-  const cap = parseFloat(getComputedStyle(board).maxHeight) || 0;
-  const chrome = wrap.getBoundingClientRect().height - scroll.getBoundingClientRect().height;
-  const pad = 20;
-  const avail = Math.max(0, cap - chrome - pad);
-  if (!avail) return;
-
-  const raw = Math.floor((avail - (rows - 1) * gap) / rows);
-  const h = Math.max(ENV_TILE_MIN, Math.min(ENV_TILE_MAX, raw));
-  wrap.style.setProperty("--envTileH", h + "px");
+  const wrap = document.querySelector(".env-board");
+  if (!wrap) return;
+  wrap.style.setProperty("--envTileH", ENV_TILE_H + "px");
 }
 
 /* ===== ADMIN EDITORS =====
@@ -3920,42 +4482,129 @@ function renderSpotsEditor(){
       : "Rename any spot. Leave a name blank to fall back to its default.";
   }
 
+  /* Compact chip per spot: number, name (default shown dim), X clears the
+     name, and in envelope mode a CHASE tick. Click the chip to load it into
+     the Add name box for a quick edit. */
   spotsEditorList.innerHTML = "";
   (state.spots || []).forEach(sp => {
-    const row = document.createElement("div");
-    row.className = "ed-row";
-
-    const n = document.createElement("div");
-    n.className = "n";
-    n.textContent = String(parseInt(String(sp.id).replace(/\D/g, ""), 10) || sp.id);
-    row.appendChild(n);
-
-    const name = document.createElement("input");
-    name.type = "text";
-    name.value = sp.label || "";
-    name.placeholder = DEFAULT_SPOT_LABEL(sp.id);
-    name.addEventListener("input", () => {
-      sp.label = name.value.trim() || DEFAULT_SPOT_LABEL(sp.id);
-      __lastSpotsSig = "";
-      saveState();
-      buildSpotsGrid();
+    const n = parseInt(String(sp.id).replace(/\D/g, ""), 10) || 0;
+    const isDefault = !sp.label || sp.label === DEFAULT_SPOT_LABEL(sp.id);
+    const chip = document.createElement("div");
+    chip.className = "chip" + (isDefault ? " dflt" : "") + (env && isChaseSpot(sp.id) ? " chase" : "");
+    const num = document.createElement("span");
+    num.className = "chip-n";
+    num.textContent = String(n);
+    const txt = document.createElement("span");
+    txt.className = "chip-t";
+    txt.textContent = isDefault ? "—" : sp.label;
+    txt.title = "Click to edit";
+    txt.addEventListener("click", () => {
+      const one = document.getElementById("spotNameOne");
+      const at = document.getElementById("spotNameAt");
+      if (one){ one.value = isDefault ? "" : sp.label; one.focus(); }
+      if (at) at.value = String(n);
     });
-    row.appendChild(name);
-
+    chip.appendChild(num); chip.appendChild(txt);
     if (env){
-      const wrap = document.createElement("label");
-      wrap.className = "ed-chase";
       const cb = document.createElement("input");
       cb.type = "checkbox";
+      cb.title = "Chase";
       cb.checked = isChaseSpot(sp.id);
       cb.addEventListener("change", () => toggleChaseSpot(sp.id, cb.checked));
-      wrap.appendChild(cb);
-      wrap.appendChild(document.createTextNode("Chase"));
-      row.appendChild(wrap);
+      chip.appendChild(cb);
     }
-
-    spotsEditorList.appendChild(row);
+    if (!isDefault){
+      const x = document.createElement("button");
+      x.type = "button";
+      x.className = "chip-x";
+      x.textContent = "×";
+      x.title = "Clear name";
+      x.addEventListener("click", () => setSpotName(sp.id, ""));
+      chip.appendChild(x);
+    }
+    spotsEditorList.appendChild(chip);
   });
+}
+
+/* ===== NAME ENTRY (2026-09-07) ===== */
+function spotsStatus(msg, bad){
+  const h = document.getElementById("spotsEditorHint");
+  if (!h) return;
+  h.textContent = msg;
+  h.style.color = bad ? "rgba(255,140,110,0.95)" : "rgba(150,230,160,0.95)";
+  clearTimeout(spotsStatus.__t);
+  spotsStatus.__t = setTimeout(() => { h.style.color = ""; h.textContent = "Type a name and press Enter to fill the next spot."; }, 4000);
+}
+function setSpotName(id, name){
+  const sp = (state.spots || []).find(x => x.id === id);
+  if (!sp) return false;
+  sp.label = String(name || "").trim() || DEFAULT_SPOT_LABEL(sp.id);
+  __lastSpotsSig = "";
+  return true;
+}
+function spotIdForNumber(n){
+  const id = `s${String(n).padStart(2, "0")}`;
+  return (state.spots || []).some(x => x.id === id) ? id : "";
+}
+function nextUnnamedSpotId(){
+  const sp = (state.spots || []).find(x => !x.label || x.label === DEFAULT_SPOT_LABEL(x.id));
+  return sp ? sp.id : "";
+}
+function commitNames(){
+  saveState();
+  buildSpotsGrid();
+  renderSpotsEditor();
+}
+/* One name: into spot #N when given, else the next unnamed spot. */
+function addOneName(){
+  const one = document.getElementById("spotNameOne");
+  const at  = document.getElementById("spotNameAt");
+  if (!one) return;
+  const name = String(one.value || "").trim();
+  if (!name) return;
+  const n = at ? parseInt(at.value, 10) : NaN;
+  const id = Number.isFinite(n) && n > 0 ? spotIdForNumber(n) : nextUnnamedSpotId();
+  if (!id){ spotsStatus(Number.isFinite(n) ? `No spot #${n} on this board.` : "Every spot already has a name.", true); return; }
+  setSpotName(id, name);
+  one.value = ""; if (at) at.value = "";
+  commitNames();
+  one.focus();
+}
+/* A pasted list or a CSV. Each entry is either "name" (fills spots in order,
+   skipping none) or "N, name" / "N name" / "N: name" (targets spot N). A CSV
+   header row of spot/name/label/number is ignored. */
+function parseNameList(text){
+  const out = [];
+  const lines = String(text || "").split(/\r?\n/);
+  const rows = (lines.length > 1) ? lines : String(text || "").split(/[,;]/);
+  rows.forEach(raw => {
+    let line = raw.trim();
+    if (!line) return;
+    /* CSV row: take number + name from the first two cells when the first is numeric. */
+    const cells = line.split(/\t|,|;/).map(c => c.trim().replace(/^"|"$/g, ""));
+    if (cells.length > 1 && /^\d+$/.test(cells[0])) { out.push({ n: parseInt(cells[0], 10), name: cells.slice(1).join(" ").trim() }); return; }
+    if (cells.length > 1 && /^(spot|#|no\.?|number|name|label|buyer)$/i.test(cells[0])) return;   // header
+    const m = /^(\d+)\s*[:.\-)]?\s+(.+)$/.exec(line);
+    if (m) out.push({ n: parseInt(m[1], 10), name: m[2].trim() });
+    else out.push({ n: 0, name: cells.length > 1 ? cells[0] : line });
+  });
+  return out.filter(e => e.name);
+}
+function applyNameList(text){
+  const entries = parseNameList(text);
+  if (!entries.length){ spotsStatus("Nothing to apply.", true); return; }
+  let cursor = 1, placed = 0, missed = 0;
+  entries.forEach(e => {
+    let id = "";
+    if (e.n > 0){ id = spotIdForNumber(e.n); }
+    else {
+      while (cursor <= SPOT_MAX * 4 && !(id = spotIdForNumber(cursor))) cursor++;
+      cursor++;
+    }
+    if (id && setSpotName(id, e.name)) placed++; else missed++;
+  });
+  commitNames();
+  spotsStatus(`${placed} name${placed === 1 ? "" : "s"} applied${missed ? `, ${missed} skipped (no such spot)` : ""}.`, !!missed);
 }
 
 /* Browse target. One hidden file input is reused for every card, so the row that
@@ -4218,8 +4867,9 @@ function buildEnvelopeBoard(grid){
 
   const top = document.createElement("div");
   top.className = "env-top-row";
-  const head = spots.slice(0, 12);
-  head.slice(0, 6).forEach(sp => top.appendChild(makeEnvelopeTile(sp)));
+  /* Top row: 3 tiles, the logo slot (2 columns), 3 tiles = 8 columns. */
+  const head = spots.slice(0, 6);
+  head.slice(0, 3).forEach(sp => top.appendChild(makeEnvelopeTile(sp)));
 
   const slot = document.createElement("div");
   slot.className = "env-logo-slot";
@@ -4230,14 +4880,14 @@ function buildEnvelopeBoard(grid){
   slot.appendChild(logo);
   top.appendChild(slot);
 
-  head.slice(6, 12).forEach(sp => top.appendChild(makeEnvelopeTile(sp)));
+  head.slice(3, 6).forEach(sp => top.appendChild(makeEnvelopeTile(sp)));
   wrap.appendChild(top);
 
   const scroll = document.createElement("div");
   scroll.className = "env-scroll";
   const inner = document.createElement("div");
   inner.className = "env-grid";
-  spots.slice(12).forEach(sp => inner.appendChild(makeEnvelopeTile(sp)));
+  spots.slice(6).forEach(sp => inner.appendChild(makeEnvelopeTile(sp)));
   scroll.appendChild(inner);
   wrap.appendChild(scroll);
 
@@ -4299,54 +4949,10 @@ function buildSpotsGrid(){
       lab.className = "spot-label";
       lab.textContent = s.label || s.id;
 
-      /* BUYER NAME TYPED ON THE TILE (2026-09-03, Mike: no popup). The input is
-         always there; a name + Enter/blur sells the spot to that name, clearing
-         it and committing releases. Clicking the tile body still toggles sold
-         so a nameless sale is one click; the input stops the click bubbling. */
+      /* Buyer typed on the tile; see wireTileBuyer. */
       const buyer = document.createElement("input");
       buyer.className = "spot-buyer";
-      buyer.type = "text";
-      buyer.autocomplete = "off";
-      buyer.spellcheck = false;
-      buyer.maxLength = 24;
-      buyer.placeholder = "buyer";
-      buyer.addEventListener("click", (e) => e.stopPropagation());
-      buyer.addEventListener("mousedown", (e) => e.stopPropagation());
-      const commit = () => {
-        const live = (state.spots || []).find(x => x.id === s.id);
-        if (!live) return;
-        const name = String(buyer.value || "").trim();
-        if (name){
-          if (live.sold && (live.buyer || "") === name) return;   // nothing changed
-          setSoldById(state.spots, s.id, true, name);
-        } else if (live.sold){
-          setSoldById(state.spots, s.id, false);
-        } else {
-          return;
-        }
-        saveSoldState(); renderAll();
-      };
-      buyer.addEventListener("keydown", (e) => {
-        if (e.key === "Enter"){ e.preventDefault(); commit(); buyer.blur(); }
-        else if (e.key === "Escape"){
-          const live = (state.spots || []).find(x => x.id === s.id);
-          buyer.value = (live && live.sold) ? (live.buyer || "") : "";
-          buyer.blur();
-        }
-      });
-      buyer.addEventListener("blur", commit);
-      t.onclick = () => {
-        const live = (state.spots || []).find(x => x.id === s.id);
-        if (!live) return;
-        if (live.sold){
-          setSoldById(state.spots, s.id, false);
-          saveSoldState(); renderAll();
-        } else {
-          setSoldById(state.spots, s.id, true, String(buyer.value || "").trim());
-          saveSoldState(); renderAll();
-          if (!String(buyer.value || "").trim()) buyer.focus();
-        }
-      };
+      wireTileBuyer(t, buyer, s.id);
 
       t.appendChild(num); t.appendChild(lab); t.appendChild(buyer);
       grid.appendChild(t);
@@ -4363,6 +4969,12 @@ function syncSpotTiles(){
     const t = grid.querySelector(`[data-spot-id="${String(s.id).replace(/"/g,'\\"')}"]`);
     if (!t) return;
     t.classList.toggle("sold", !!s.sold);
+    if (!env){
+      const art = tileArtSrc();
+      const want = art ? `url("${art}")` : "";
+      if (t.style.backgroundImage !== want){ t.style.backgroundImage = want; }
+      t.classList.toggle("has-art", !!art);
+    }
     const b = t.querySelector(env ? ".env-buyer" : ".spot-buyer");
     const want = s.sold ? String(s.buyer || "").trim() : "";
     if (b){
@@ -4509,6 +5121,9 @@ function toggleCardSold(id){
       const chk = (id, dflt) => { const el = document.getElementById(id); return el ? !!el.checked : dflt; };
       state.showAvgBid   = chk("showAvgBidChk", true);
       state.showChasePct = chk("showChasePctChk", true);
+      state.bgVideo      = chk("bgVideoChk", true);
+      state.chaseFx      = chk("chaseFxChk", true);
+      state.promoTextPx = num("promoTextPxInput", 16, 90, 44);
       state.scrollSec = num("scrollSecInput", 10, 600, 80);
       state.tickerSec = num("tickerSecInput", 5, 300, 25);
       state.promoSec  = num("promoSecInput", 2, 120, 8);
@@ -4643,6 +5258,20 @@ function toggleAdmin(){
 
   const spotsResetNamesBtn = $("spotsResetNamesBtn");
   if (spotsResetNamesBtn) spotsResetNamesBtn.addEventListener("click", resetSpotNames);
+  /* Name entry (2026-09-07): one at a time, pasted list, CSV. */
+  { const b = $("spotNameAddBtn"); if (b) b.addEventListener("click", addOneName); }
+  { const i = $("spotNameOne"); if (i) i.addEventListener("keydown", (e) => { if (e.key === "Enter"){ e.preventDefault(); addOneName(); } }); }
+  { const i = $("spotNameAt");  if (i) i.addEventListener("keydown", (e) => { if (e.key === "Enter"){ e.preventDefault(); addOneName(); } }); }
+  { const b = $("spotNamesPasteBtn"); if (b) b.addEventListener("click", () => { const t = $("spotNamesPaste"); if (t){ applyNameList(t.value); t.value = ""; } }); }
+  { const b = $("spotsCsvBtn"); const f = $("spotsCsvFile"); if (b && f) b.addEventListener("click", () => { f.value = ""; f.click(); }); }
+  { const f = $("spotsCsvFile"); if (f) f.addEventListener("change", () => {
+      const file = f.files && f.files[0]; f.value = "";
+      if (!file) return;
+      const fr = new FileReader();
+      fr.onload = () => applyNameList(String(fr.result || ""));
+      fr.onerror = () => spotsStatus("Could not read that file.", true);
+      fr.readAsText(file);
+    }); }
 
   if (cardImageFile){
     cardImageFile.addEventListener("change", async () => {
@@ -4712,28 +5341,55 @@ function toggleAdmin(){
   let __bgTarget = "";
   const boardBgFile = $("boardBgFile");
   const bgBrowse = (slot) => () => { __bgTarget = slot; if (boardBgFile){ boardBgFile.value = ""; boardBgFile.click(); } };
+  /* slot id -> state field. Tile art is small (a tile is ~200px), the rest
+     are full stage width. */
+  const BG_SLOTS = { gridbg:"gridBg", envbg:"envBg", pagebgspots:"pageBgSpots", pagebgenv:"pageBgEnv", tileart:"tileArt" };
+  const bgAfter = () => { saveState(); renderAdminFields(); applyBoardBg(); __lastSpotsSig = ""; buildSpotsGrid(); renderStorageHint(); };
   const bgClear = (slot) => () => {
     dropStoredImage(slot);
-    if (slot === "gridbg") state.gridBg = ""; else state.envBg = "";
-    saveState(); renderAdminFields(); applyBoardBg(); renderStorageHint();
+    state[BG_SLOTS[slot]] = "";
+    bgAfter();
   };
-  { const b = $("gridBgBrowseBtn"); if (b) b.addEventListener("click", bgBrowse("gridbg")); }
-  { const b = $("envBgBrowseBtn");  if (b) b.addEventListener("click", bgBrowse("envbg")); }
-  { const b = $("gridBgClearBtn");  if (b) b.addEventListener("click", bgClear("gridbg")); }
-  { const b = $("envBgClearBtn");   if (b) b.addEventListener("click", bgClear("envbg")); }
+  [["gridBg","gridbg"],["envBg","envbg"],["pageBgSpots","pagebgspots"],["pageBgEnv","pagebgenv"],["tileArt","tileart"]].forEach(([pre, slot]) => {
+    const b = $(`${pre}BrowseBtn`); if (b) b.addEventListener("click", bgBrowse(slot));
+    const c = $(`${pre}ClearBtn`);  if (c) c.addEventListener("click", bgClear(slot));
+  });
   if (boardBgFile){
     boardBgFile.addEventListener("change", async () => {
       const file = boardBgFile.files && boardBgFile.files[0];
       boardBgFile.value = "";
       const slot = __bgTarget; __bgTarget = "";
-      if (!file || !slot) return;
-      const why = await ingestImage(file, slot, 1080);
+      if (!file || !slot || !BG_SLOTS[slot]) return;
+      const why = await ingestImage(file, slot, slot === "tileart" ? 420 : 1080);
       if (why){ setEditorStatus(`Background not added: ${why}`, true); return; }
-      if (slot === "gridbg") state.gridBg = "store:gridbg"; else state.envBg = "store:envbg";
-      saveState(); renderAdminFields(); applyBoardBg();
+      state[BG_SLOTS[slot]] = `store:${slot}`;
+      bgAfter();
       setEditorStatus("Background added.", false);
     });
   }
+
+  /* Envelope layout image row (2026-09-07). */
+  const envImgFile = $("envImgFile");
+  { const b = $("envImgAddBtn"); if (b) b.addEventListener("click", () => { if (envImgFile){ envImgFile.value = ""; envImgFile.click(); } }); }
+  if (envImgFile){
+    envImgFile.addEventListener("change", async () => {
+      const file = envImgFile.files && envImgFile.files[0];
+      envImgFile.value = "";
+      if (!file) return;
+      const list = Array.isArray(state.envImages) ? state.envImages : (state.envImages = []);
+      let n = 1; while (list.includes(`store:envimg:${n}`) || storedImage(`envimg:${n}`)) n++;
+      const why = await ingestImage(file, `envimg:${n}`, 280);
+      if (why){ setEditorStatus(`Image not added: ${why}`, true); return; }
+      list.push(`store:envimg:${n}`);
+      saveState(); renderEnvImgEditor(); buildEnvMarquee(); renderStorageHint();
+      setEditorStatus("Image added.", false);
+    });
+  }
+
+  /* Banner messages + layout toggle (2026-09-07). */
+  { const b = $("promoTextAddBtn"); if (b) b.addEventListener("click", addPromoText); }
+  { const i = $("promoTextInput"); if (i) i.addEventListener("keydown", (e) => { if (e.key === "Enter"){ e.preventDefault(); addPromoText(); } }); }
+  { const b = $("layoutToggleBtn"); if (b) b.addEventListener("click", () => setBoardMode(boardMode() === "envelope" ? "spots" : "envelope")); }
 
   /* ===== PROMO BANNER (2026-09-02) ===== */
   const promoFile = $("promoFile");
@@ -4786,18 +5442,97 @@ function toggleAdmin(){
   /* Accordion: opening one group closes the others, so the drawer never becomes
      a wall again. The choice is remembered so a reload lands where you were. */
   const GRP_KEY = `${LS_PREFIX}.admin.group.${SET}`;
-  const groups = [...document.querySelectorAll(".admin > details.grp")];
-  try{
-    const want = localStorage.getItem(GRP_KEY);
-    if (want) groups.forEach(g => { g.open = (g.dataset.grp === want); });
-  }catch(_){}
-  groups.forEach(g => {
-    g.addEventListener("toggle", () => {
-      if (!g.open) return;
-      groups.forEach(o => { if (o !== g) o.open = false; });
-      try{ localStorage.setItem(GRP_KEY, g.dataset.grp || ""); }catch(_){}
+  const groups = [...document.querySelectorAll(".admin .ctl-body > details.grp")];
+
+  /* ===== CONTROL BAR TABS (2026-09-07) =====
+     One button per section along the bar. Clicking a tab opens that section
+     under the bar and closes the rest; clicking the active tab collapses the
+     panel to the bar alone. The choice is remembered across reloads. */
+  const ctlTabs = document.getElementById("ctlTabs");
+  const TAB_CAPTIONS = { show:"Show", board:"Board", promo:"Promo", rounds:"Rounds", spots:"Spots", cards:"Cards" };
+  function openGroup(name){
+    groups.forEach(g => { g.open = (g.dataset.grp === name); });
+    if (ctlTabs) [...ctlTabs.children].forEach(b => b.classList.toggle("on", b.dataset.grp === name));
+    const body = document.getElementById("ctlBody");
+    if (body) body.classList.toggle("empty", !name);
+    try{ localStorage.setItem(GRP_KEY, name || ""); }catch(_){}
+  }
+  if (ctlTabs){
+    groups.forEach(g => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "ctl-tab";
+      b.dataset.grp = g.dataset.grp || "";
+      const sum = g.querySelector(":scope > summary");
+      b.textContent = TAB_CAPTIONS[g.dataset.grp] || (sum ? sum.textContent : g.dataset.grp).replace(/\s*\(.*\)\s*$/, "").trim();
+      b.addEventListener("click", () => openGroup(g.open ? "" : g.dataset.grp));
+      ctlTabs.appendChild(b);
     });
-  });
+    /* A section title can change (Rounds shows the round number); keep the
+       tab caption in step without rebuilding the strip. */
+    const syncTabCaptions = () => {
+      groups.forEach(g => {
+        const b = ctlTabs.querySelector(`[data-grp="${g.dataset.grp}"]`);
+        const sum = g.querySelector(":scope > summary");
+        if (b && sum){
+          const m = /\((.*)\)\s*$/.exec(sum.textContent);
+          const rn = m ? parseInt(m[1].replace(/\D/g, ""), 10) : 1;
+          const cap = (TAB_CAPTIONS[g.dataset.grp] || sum.textContent.replace(/\s*\(.*\)\s*$/, "").trim()) + (m && rn > 1 ? ` R${rn}` : "");
+          if (b.textContent !== cap) b.textContent = cap;
+        }
+      });
+    };
+    setInterval(syncTabCaptions, 1500);
+  }
+  {
+    let want = "show";
+    try{ want = localStorage.getItem(GRP_KEY) ?? "show"; }catch(_){}
+    openGroup(want);
+  }
+  { const c = document.getElementById("ctlClose"); if (c) c.addEventListener("click", () => admin.classList.remove("open")); }
+
+  /* ===== DRAG (2026-09-07) =====
+     The bar's grip drags the whole panel anywhere on the stage; the spot is
+     remembered per browser. Pointer events so it works with a touch screen. */
+  {
+    const POS_KEY = `${LS_PREFIX}.admin.pos.${SET}`;
+    const grip = document.getElementById("ctlGrip");
+    const place = (x, y) => {
+      const W = stageEl.clientWidth, H = stageEl.clientHeight;
+      const w = admin.offsetWidth || 1000, h = Math.min(admin.offsetHeight || 80, 80);
+      x = Math.max(0, Math.min(W - w, x));
+      y = Math.max(0, Math.min(H - h, y));
+      admin.style.left = `${Math.round(x)}px`;
+      admin.style.top = `${Math.round(y)}px`;
+      admin.style.right = "auto";
+      admin.style.bottom = "auto";
+    };
+    try{
+      const saved = JSON.parse(localStorage.getItem(POS_KEY) || "null");
+      if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) place(saved.x, saved.y);
+    }catch(_){}
+    if (grip){
+      let drag = null;
+      grip.addEventListener("pointerdown", (e) => {
+        drag = { dx: e.clientX - admin.offsetLeft, dy: e.clientY - admin.offsetTop };
+        grip.setPointerCapture(e.pointerId);
+        admin.classList.add("dragging");
+        e.preventDefault();
+      });
+      grip.addEventListener("pointermove", (e) => {
+        if (!drag) return;
+        place(e.clientX - drag.dx, e.clientY - drag.dy);
+      });
+      const done = () => {
+        if (!drag) return;
+        drag = null;
+        admin.classList.remove("dragging");
+        try{ localStorage.setItem(POS_KEY, JSON.stringify({ x: admin.offsetLeft, y: admin.offsetTop })); }catch(_){}
+      };
+      grip.addEventListener("pointerup", done);
+      grip.addEventListener("pointercancel", done);
+    }
+  }
 
   /* ---- buyer prompt wiring ---- */
   {

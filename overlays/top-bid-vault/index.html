@@ -903,6 +903,38 @@
       overflow: auto;
     }
 
+    /* ══ DETACHED PANEL (2026-09-04) ═══════════════════════════════════════
+       Admin controls + sold list float free of the board so the seller can park
+       them anywhere. Default spawn is the top of the bottom third (66.7vh). The
+       board, header and ticker stay pinned at the top of the overlay. */
+    .sold-list-container.detached{
+      position: fixed !important;
+      left: var(--panelX, 50%);
+      top:  var(--panelY, 74vh);
+      transform: translateX(var(--panelCenter, -50%));
+      width: min(96%, 980px);
+      margin: 0 !important;
+      z-index: 99995;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.75);
+    }
+    .sold-list-container.detached.dragging{
+      opacity: .92;
+      cursor: grabbing;
+      box-shadow: 0 14px 36px rgba(0,0,0,0.9), 0 0 0 2px rgba(248,227,55,0.9);
+    }
+    /* The title row is the drag handle */
+    .sold-list-container.detached .sold-top-row{ cursor: grab; }
+    .sold-list-container.detached .sold-top-row:active{ cursor: grabbing; }
+    .panel-grip{
+      display:inline-flex; align-items:center; gap:4px;
+      margin-right:6px; padding:2px 7px; border-radius:6px;
+      font-size:13px; font-weight:900; letter-spacing:1px; color:#000;
+      background: linear-gradient(180deg,#fff2a8,#F8E337);
+      border:1px solid rgba(255,255,255,.6);
+      cursor:grab; user-select:none;
+    }
+    .panel-grip:active{ cursor:grabbing; }
+
     .sold-list-container{
       margin: 8px auto 0 auto;
       width: 100%;
@@ -1161,35 +1193,80 @@
 }
 .team.chase{
   position: relative;
-  border: 3px solid #F8E337;
-  /* 2026-08-30: glow pulled back roughly 55 percent at client request. The gold border
-     still marks the chaser, but the halo no longer washes out the tile artwork. */
-  box-shadow:
-    0 0 0 1px rgba(248,227,55,0.26) inset,
-    0 0 8px rgba(248,227,55,0.40),
-    0 0 17px rgba(226,178,20,0.22);
-  animation:
-    chasePulse 1.9s ease-in-out infinite,
-    chaseRaiseGlitch 2.6s steps(1) infinite;   /* raised + shudder on the zap beat */
+  /* 2026-09-04 (client, vault): NO constant glow. The bouncing gold wick border below
+     is the only chaser marker. A hairline gold edge keeps the tile readable at the
+     moment the wick is at the far end of its travel. */
+  border: 2px solid rgba(248,227,55,0.85);   /* bolder chaser edge */
+  box-shadow: none;
+  /* 2026-09-04 (client, vault layout): no flashing, no lightning. The chaser sits
+     slightly RAISED and steady; the only motion is the wick border below, which
+     runs forward then backward. */
+  transform: translateY(-4px) scale(1.03);
+  animation: none;
 }
+/* The standard TSU wick border, scoped to the chaser tile. Same gradient + mask
+   trick as .teams-wrapper::after, but `alternate` makes the run travel forward
+   and then back instead of resetting. */
 .team.chase::before{
   content:"";
   position:absolute;
   inset:0;
   pointer-events:none;
-  border-radius:4px;
+  border-radius: inherit;
+  /* TWO travelling layers: a wide gold body plus a tight hot-white core, so the
+     wick reads as a live filament rather than a soft gradient. */
   background:
-    linear-gradient(120deg,
+    linear-gradient(130deg,
       transparent 0%,
-      rgba(255,255,255,0.00) 35%,
-      rgba(255,247,200,0.22) 50%,
-      rgba(248,227,55,0.38) 58%,
-      rgba(255,255,255,0.00) 72%,
+      rgba(248,227,55,0.00) 30%,
+      rgba(255,255,255,0.98) 46%,
+      rgba(255,243,120,1.00) 50%,
+      rgba(248,227,55,0.95) 56%,
+      rgba(196,176,36,0.50) 63%,
+      rgba(248,227,55,0.00) 74%,
+      transparent 100%),
+    linear-gradient(130deg,
+      transparent 0%,
+      rgba(248,227,55,0.00) 34%,
+      rgba(248,227,55,0.85) 52%,
+      rgba(248,227,55,0.00) 70%,
       transparent 100%);
-  transform: translateX(-140%) skewX(-18deg);
-  animation: chaseSweep 2.8s linear infinite;
+  background-size: 260% 260%, 420% 420%;
+  background-repeat: no-repeat, no-repeat;
+  animation:
+    chaseWickRun     2.4s ease-in-out infinite alternate,
+    chaseWickTrail   2.4s ease-in-out infinite alternate;
+
+  /* .team::before is the hover shimmer: it ships opacity:0 and a translateX(-140%)
+     skew. Without resetting BOTH, this wick renders invisible and off-tile. */
+  opacity: 1;
+  transform: none;
+  transition: none;
+
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+
+  padding: 4px;               /* fat gold rail — the chaser must be unmissable */
+  filter:
+    blur(0.6px)
+    drop-shadow(0 0 5px rgba(248,227,55,0.95))
+    drop-shadow(0 0 12px rgba(255,213,0,0.55));   /* light travels WITH the wick */
   mix-blend-mode: screen;
-  z-index: 2;
+  z-index: 3;
+}
+@keyframes chaseWickRun{
+  0%   { background-position:   0% 50%,  100% 50%; }
+  100% { background-position: 100% 50%,    0% 50%; }
+}
+@keyframes chaseWickTrail{
+  0%,100% { filter: blur(0.6px) drop-shadow(0 0 5px rgba(248,227,55,0.95)) drop-shadow(0 0 12px rgba(255,213,0,0.55)); }
+  50%     { filter: blur(0.6px) drop-shadow(0 0 9px rgba(255,243,120,1.00)) drop-shadow(0 0 20px rgba(255,213,0,0.75)); }
 }
 .chase-chip{
   display:none;
@@ -1525,10 +1602,11 @@
    Tile drops back flat, stops pulsing/glitching, keeps its normal sold look. */
 .team.chase.chase-retired{
   animation: none;
-  transform: none;
+  transform: none;          /* drops back flat once sold */
   overflow: hidden;
   z-index: auto;
 }
+.team.chase.chase-retired::before{ display: none; }   /* wick stops when sold */
 .team.chase.chase-retired .chase-bolt,
 .team.chase.chase-retired .chase-glitch{
   display: none;
@@ -1694,9 +1772,11 @@
 }
 
 /* the tile itself convulses, then settles back into its raised chase pose */
-.team.chase.chase-shock{
-  animation: chaseShockJolt 520ms steps(1) 1;
-}
+/* 2026-09-04: shock jolt disabled on this layout (no flashing per client). */
+.team.chase.chase-shock{ animation: none; }
+/* lightning bolt + glitch layers hidden — the wick border is the only chase motion */
+.team.chase .chase-bolt,
+.team.chase .chase-glitch{ display: none !important; }
 @keyframes chaseShockJolt{
   0%   { transform: translateY(-4px) scale(1.045); filter: brightness(1);    }
   5%   { transform: translate(-3px, -8px) scale(1.10); filter: brightness(2.2); }
@@ -1812,12 +1892,12 @@
 
   <div class="sold-list-container">
     <div class="sold-top-row">
+      <div class="panel-grip" id="panelGrip" title="Drag to move this panel">⠿ MOVE</div>
       <div class="sold-list-title">SOLD TEAMS</div>
       <div id="nextPickChip" class="next-pick-chip" style="display:none" title="Click to skip this winner" onclick="skipPendingBuyer()"></div>
 
       <div class="sold-controls">
         <!-- ✅ rearranged: New Break, Break#, Sport ... Copy Sold List LAST -->
-        <button class="btn secondary" id="boardViewBtn" style="padding:2px 2px; font-size:14px;" onclick="toggleBoardView()">☰ SHOW SOLD</button>
         <button class="btn secondary" style="padding:2px 2px; font: size 14px;" onclick="newBreak()">🧾 NEW BREAK</button>
         <button class="btn ghost" style="padding:2px 2px; font: size 14px;" onclick="cycleSport()">⚙ SPORT</button>
 <button class="btn ghost" style="padding:2px 2px; font: size 16px;" onclick="setSport('custom')">🧩 CUSTOM</button>
@@ -3348,30 +3428,93 @@ function makeTickerSlot(spanCols){
 
 // ===== CHASE TEAMS =====
 let soldControlsVisible = true;
-/* 2026-09-03 (client request, pack-rip scene): the sold list now occupies the SAME
-   space as the team grid instead of sitting under it. One button swaps the two. The
-   slim admin control bar stays put, otherwise NEW BREAK / SPORT would vanish with it. */
+/* ══ DETACHED, DRAGGABLE ADMIN + SOLD PANEL (2026-09-04, vault) ════════════
+   The panel is lifted out of document flow and can be dragged anywhere by its
+   MOVE grip. Position persists per client. Default spawn: top of the bottom
+   third of the screen, horizontally centred. The board stays at the top. */
+const PANEL_LS = "tbv.panelPos";
+let panelDrag = null;
+
+function panelEl(){ return document.querySelector(".sold-list-container"); }
+
+function applyPanelPos(pos){
+  const el = panelEl(); if (!el) return;
+  el.classList.add("detached");
+  if (pos && Number.isFinite(pos.x) && Number.isFinite(pos.y)){
+    el.style.setProperty("--panelX", pos.x + "px");
+    el.style.setProperty("--panelY", pos.y + "px");
+    el.style.setProperty("--panelCenter", "0px");    // dragged = absolute, no centring
+  } else {
+    el.style.setProperty("--panelX", "50%");
+    el.style.setProperty("--panelY", "74vh");       // lower in the bottom third
+    el.style.setProperty("--panelCenter", "-50%");
+  }
+}
+function savePanelPos(pos){
+  try { localStorage.setItem(PANEL_LS, pos ? JSON.stringify(pos) : ""); } catch(_){}
+}
+function loadPanelPos(){
+  try { const r = localStorage.getItem(PANEL_LS); return r ? JSON.parse(r) : null; } catch(_){ return null; }
+}
+function resetPanelPos(){ savePanelPos(null); applyPanelPos(null); }
+window.resetPanelPos = resetPanelPos;
+
+let _panelInit = false;
+function initDetachedPanel(){
+  const el = panelEl(); if (!el) return;
+  applyPanelPos(loadPanelPos());
+  if (_panelInit) return;        // listeners attach once, never stack
+  _panelInit = true;
+
+  const grip = document.getElementById("panelGrip");
+  const handles = [grip, el.querySelector(".sold-top-row")].filter(Boolean);
+
+  handles.forEach(h => {
+    h.addEventListener("pointerdown", (e) => {
+      // never start a drag from a button/input inside the header
+      if (e.target.closest("button, input, textarea, select")) return;
+      const r = el.getBoundingClientRect();
+      panelDrag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+      el.classList.add("dragging");
+      try { h.setPointerCapture(e.pointerId); } catch(_){}
+      e.preventDefault();
+    });
+    h.addEventListener("pointermove", (e) => {
+      if (!panelDrag) return;
+      const el2 = panelEl(); if (!el2) return;
+      const w = el2.offsetWidth, hh = el2.offsetHeight;
+      // keep it on screen
+      const x = Math.max(0, Math.min(window.innerWidth  - w,  e.clientX - panelDrag.dx));
+      const y = Math.max(0, Math.min(window.innerHeight - hh, e.clientY - panelDrag.dy));
+      el2.style.setProperty("--panelX", x + "px");
+      el2.style.setProperty("--panelY", y + "px");
+      el2.style.setProperty("--panelCenter", "0px");
+    });
+    const end = (e) => {
+      if (!panelDrag) return;
+      panelDrag = null;
+      const el2 = panelEl(); if (el2){
+        el2.classList.remove("dragging");
+        const r = el2.getBoundingClientRect();
+        savePanelPos({ x: Math.round(r.left), y: Math.round(r.top) });
+      }
+      try { h.releasePointerCapture(e.pointerId); } catch(_){}
+    };
+    h.addEventListener("pointerup", end);
+    h.addEventListener("pointercancel", end);
+  });
+}
+window.initDetachedPanel = initDetachedPanel;
+
+/* superseded by the detached panel above — kept as no-ops so older callers are safe */
 let boardView = "teams";
 try { boardView = localStorage.getItem("tbv.boardView") === "sold" ? "sold" : "teams"; } catch(_){}
 
 function initBoardSwap(){
-  const shell = document.getElementById("boardShell");
-  const grid  = document.getElementById("soldList");
-  if (shell && grid && grid.parentElement !== shell){
-    grid.classList.add("sold-in-board");
-    shell.appendChild(grid);            // relocate the LIST into the board area
-  }
-  applyBoardView();
+  /* no-op on this layout: the sold list lives in the detached panel now */
+  initDetachedPanel();
 }
-function applyBoardView(){
-  const tw   = document.getElementById("teamsWrapper");
-  const grid = document.getElementById("soldList");
-  const sold = (boardView === "sold");
-  if (tw)   tw.style.display   = sold ? "none" : "";
-  if (grid) grid.style.display = sold ? "" : "none";
-  const b = document.getElementById("boardViewBtn");
-  if (b) b.textContent = sold ? "\u25A6 SHOW BOARD" : "\u2630 SHOW SOLD";
-}
+function applyBoardView(){ /* no-op: board stays visible, panel floats */ }
 function toggleBoardView(){
   boardView = (boardView === "sold") ? "teams" : "sold";
   try { localStorage.setItem("tbv.boardView", boardView); } catch(_){}
@@ -3404,7 +3547,6 @@ function toggleSoldPanel(){
   soldPanelHidden = !soldPanelHidden;
   try { localStorage.setItem(LS.SOLD_PANEL_HIDDEN, soldPanelHidden ? "1" : "0"); } catch(_){}
   applySoldPanelVisibility();
-  if (typeof initBoardSwap === "function") initBoardSwap();   // board <-> sold swap
 }
 
 function openChaseModal(){
@@ -4728,6 +4870,7 @@ setBreakNumber(loadBreakNumber());
     toggleSoldPanel();
   });
   applySoldPanelVisibility();
+  if (typeof initDetachedPanel === "function") initDetachedPanel();   // float + drag the admin/sold panel
 })();
 
     if (automationEnabled()) startSSE();
