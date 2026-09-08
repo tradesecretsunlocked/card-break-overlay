@@ -43,9 +43,9 @@
     /* Sections */
     /* Trimmed 2026-09-02 per client: header 132>100, stats 96>72, ticker 70>56.
        The freed height went to the promo banner that now sits above the cards. */
-    --hdrH: 85px;
-    --statsH: 67px;
-    --tickerH: 45px;
+    --hdrH: 78px;
+    --statsH: 58px;
+    --tickerH: 80px;
     --promoH: 70px;
     /* Scrolling card, +70% on 2026-08-27 (was 140px), nudged to 252 on 09-02.
        aspect-ratio locks the shape so the card scales as one piece. */
@@ -63,7 +63,7 @@
     /* The spots board is locked per layout: layout 1 keeps 360px, and the
        envelope layout takes back the stats row and the card row it does not use
        (96 + 175 + two gaps). Locked either way, so nothing creeps mid-show. */
-    --boardH: 300px;     /* 360 until 2026-09-02, client wanted it tighter */
+    --boardH: 328px;     /* 360 until 2026-09-02, client wanted it tighter */
     --boardHEnv: 655px;
 
     --gap: 5px;
@@ -269,6 +269,7 @@
     position:absolute; inset:0; width:100%; height:100%;
     object-fit:cover; display:block;
     opacity:0; transition:opacity 900ms ease;
+    filter: brightness(0.75);
   }
   .promo-img.show{ opacity:1; }
 
@@ -288,7 +289,7 @@
      walking everything below it down the OBS scene. The envelope scroller
      absorbs the difference instead. */
   .panel.spots-board{
-    padding:10px;
+    padding:3px;
     height: var(--boardH);
     overflow: hidden;
   }
@@ -300,13 +301,13 @@
     display:grid;
     grid-template-columns:repeat(var(--spotCols, 5), 1fr);
     grid-template-rows:repeat(var(--spotRows, 4), minmax(0, 1fr));
-    gap:8px;
+    gap:6px;
     height:100%;
   }
   .spots-grid.dense{ gap:6px; }
-  .spots-grid.dense .spot-tile{ min-height:0; padding:3px 4px 2px; gap:0; border-radius:9px; }
-  .spots-grid.dense .spot-num{ font-size:22px; -webkit-text-stroke:1.5px rgba(0,0,0,0.8); }
-  .spots-grid.dense .spot-label{ font-size:12px; -webkit-line-clamp:1; }
+  .spots-grid.dense .spot-tile{ min-height:0; padding:2px 2px 2px; gap:0; border-radius:9px; }
+  .spots-grid.dense .spot-num{ font-size:28px; -webkit-text-stroke:1.5px rgba(0,0,0,0.8); }
+  .spots-grid.dense .spot-label{ font-size:20px; -webkit-line-clamp:1; }
   .spots-grid.dense .spot-buyer{ font-size:20px; }
   .spots-grid.dense .spot-tile.sold::after{ height:2px; }
   .ed-btn:disabled{ opacity:.4; cursor:not-allowed; }
@@ -388,7 +389,7 @@
   .env-board{
     display:flex;
     flex-direction:column;
-    gap:6px;
+    gap:1px;
     width:100%;
     height:100%;
     min-height:0;
@@ -408,7 +409,7 @@
     min-height:0;
     overflow-y:auto;
     overflow-x:hidden;
-    padding-right:2px;
+    padding-right:0px;
     overscroll-behavior:contain;
   }
   .env-scroll::-webkit-scrollbar{ width:6px; }
@@ -419,7 +420,7 @@
   .env-grid{
     display:grid;
     grid-template-columns:repeat(var(--envCols, 14), minmax(0,1fr));
-    gap:6px;
+    gap:5px;
     grid-auto-rows:var(--envTileH);
     min-width:0;
   }
@@ -431,8 +432,7 @@
     overflow:hidden;
     border:2px solid var(--goldStroke);
     background:
-      linear-gradient(180deg, rgba(228,125,7,0.20), rgba(112,54,124,0.26)),
-      rgba(0,0,0,0.45);
+      linear-gradient(180deg, rgb(60 58 55 / 67%), rgb(138 26 161 / 62%)), rgb(0 0 0 / 0%);
     box-shadow:inset 0 0 0 1px rgba(255,255,255,0.05), 0 3px 10px rgba(0,0,0,0.35);
     cursor:pointer;
     min-width:0;
@@ -685,7 +685,7 @@
         
         /* Fire on the left, psychic on the right: the client's two brand colours
            and the Charizard/Mewtwo brief in one bar. */
-        background:linear-gradient(90deg, #7a3f02 0%, var(--primary) 26%, #2a1030 58%, var(--secondary) 84%, #3a1a42 100%);
+        background:linear-gradient(90deg, #7a3f02 0%, var(--primary) 26%, #2a1030 50%, #d753f4 84%, #3a1a42 100%);
         border: solid 2px rgba(255,255,255,0.34); 
             
       }
@@ -696,6 +696,11 @@
         gap: 10px;
         min-width:0;
         flex: 1 1 auto;
+        /* ROUND 11 (2026-09-08): the logo is now position:fixed (see .client-logo)
+           so it can paint above chase FX / bg video, which removes it from this
+           flex row's flow. This padding reserves the same space it used to take
+           (260px box + 10px gap) so the title doesn't jump left. */
+        padding-left: 270px;
       }
 
 
@@ -800,28 +805,53 @@
         white-space:nowrap;
       }
 
-      /* Client logo now sits IN the header. It is contained, not absolutely
-         positioned: the old rule escaped its own box and overlapped the brand row. */
-      .client-logo{
+      /* ROUND 11 (2026-09-08), corrected ROUND 12 (2026-09-08): logo must sit in
+         front of everything, including the promo banner.
+         Round 11 used position:fixed and left the element nested inside
+         .panel.header. That worked for the chase-FX test only by geometric luck:
+         .panel has backdrop-filter, and per the CSS Position spec, an element
+         with backdrop-filter (like filter/transform) establishes the containing
+         block for its position:fixed/absolute descendants. So the logo's fixed
+         position was actually TRAPPED relative to .header, and its z-index:900
+         only ever competed inside that local, header-scoped stacking context —
+         it could still be covered by anything painted after the header in the
+         DOM, which is exactly what happened once Mike moved the promo banner to
+         sit right after the header (confirmed by forcing overlap in a headless
+         test: the promo panel painted on top of an enlarged logo box every time).
+         Fixed for real this round by moving the .client-logo DOM node itself out
+         of .panel.header entirely, to be a direct child of .stage (see the body
+         markup) — .stage has no backdrop-filter/filter/transform, so it is a
+         genuine containing block, and position:absolute here is relative to IT
+         (not the viewport, which also sidesteps any mismatch between the page's
+         declared --W/--H and the real OBS browser-source size that position:fixed
+         would have been exposed to). top:0/left:0 still lines up with the header's
+         logo slot; .hdr-left keeps its 270px padding-left spacer so the title
+         doesn't shift. */
+        .client-logo{
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 260px;
-        height: calc(var(--hdrH) - 24px);
-        top:10px;
+        height: var(--hdrH);
+        z-index: 900;
 
         display:flex;
         align-items:center;
         justify-content:center;
         overflow:visible;
-        flex: 0 0 auto;
+        pointer-events:none;
       }
       .client-logo img{
 
-        width:185px; height:auto;
+        width:235px; height:auto;
         object-fit: cover;
         display:block;
         position:relative;
-        top:9px;
+        top:34px;
+        right:35px;
+        z-index: 999;
 
-        filter: drop-shadow(0 2px 10px rgba(0,0,0,0.65));
+        filter: drop-shadow(0 4px 10px rgba(0,0,0,0.75));
       }
 
 
@@ -833,14 +863,14 @@
         overflow:hidden;
         padding: 0 18px;
           background: linear-gradient(90deg, rgba(0,0,0,0.30), rgba(228,125,7,0.12), rgba(112,54,124,0.07), rgba(0,0,0,0.30));
-    border-color: rgba(228,125,7,0.28)
+    border-color: rgba(250, 250, 250, 0.913)
       }
       .ticker span{
         display:inline-block;
         white-space: nowrap;
         padding-left: 100%;
         animation: tickerScroll var(--tickerDur, 25s) linear infinite;
-        font-size: 28px;
+        font-size: 30px;
         letter-spacing: 1px;
         font-weight: 900;
         color:#fff;
@@ -1395,7 +1425,7 @@
       }
       .grp-body{ padding: 5px 3px 6px 9px; }
       .grp.sub{ margin: 8px 0 0 0; background: transparent; }
-      .grp.sub > summary{ padding: 6px 0; font-size: 11px; letter-spacing: 1px; }
+      .grp.sub > summary{ padding: 6px 0; font-size: 18px; letter-spacing: 1px; }
       .grp.sub[open] > summary{ border-bottom: none; }
       .grp.sub .grp-body{ padding: 0; }
 
@@ -1413,14 +1443,14 @@
         color:rgba(255,255,255,0.78);
       }
       .ed-hint{
-        font-size:18px; color:rgba(255,255,255,0.52); margin:0 0 6px 0; line-height:1.35;
+        font-size:19px; color:rgba(255,255,255,0.52); margin:0 0 4px 0; line-height:1.35;
       }
       .ed-list{
         max-height: 240px;
         overflow-y:auto;
         overflow-x:hidden;
         padding-right:4px;
-        display:flex; flex-direction:column; gap:6px;
+        display:grid; grid-template-columns: repeat(2,1fr); gap:6px;
       }
       .ed-list::-webkit-scrollbar{ width:6px; }
       .ed-list::-webkit-scrollbar-thumb{ background:rgba(228,125,7,0.45); border-radius:999px; }
@@ -1442,7 +1472,7 @@
         border-radius:10px;
         border:1px solid rgba(255,255,255,0.22);
         background:rgba(0,0,0,0.45);
-        color:#fff; font-size:13px; font-weight:700;
+        color:#fff; font-size:20px; font-weight:700;
         cursor:pointer; text-align:left;
       }
       .dd-btn .cap{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -1536,7 +1566,7 @@
       .admin .row{
         display:flex;
         gap: 8px;
-        margin-bottom: 5px;
+        margin-bottom: 20px;
         align-items:center;
       }
       .admin label{
@@ -1555,13 +1585,14 @@
       .admin input, .admin textarea, .admin select{
         flex: 1 1 auto;
         border-radius: 12px;
-        border: 2px solid rgba(245,200,75,0.30);
+        border: 2px solid rgba(245, 200, 75, 0.753);
         background: rgba(0,0,0,0.35);
         color:#fff;
         font-weight: 800;
         outline:none;
         padding: 2px 2px;
         font-size: 20px;
+        width:90%;
       }
       .admin textarea{
         min-height: 130px;
@@ -2357,7 +2388,7 @@
   /* --- ROUND 5 (2026-09-07): detached horizontal control bar --- */
   .admin{
     left:30px; top:1120px; right:auto; bottom:auto;
-    width:1040px; max-height:760px;
+    width:1050px; max-height:760px;
     padding:0; overflow:hidden;
     display:none; flex-direction:column;
   }
@@ -2377,22 +2408,22 @@
     color:#fff; font-size:16px; font-weight:1000; letter-spacing:1px; white-space:nowrap;
   }
   .admin.dragging .ctl-grip{ cursor:grabbing; }
-  .ctl-tabs{ display:flex; gap:4px; flex:1 1 auto; min-width:0; overflow-x:auto; }
+  .ctl-tabs{ display:flex; gap:3px; flex:1 1 auto; min-width:0; overflow-x:auto; }
   .ctl-tab{
-    flex:0 0 auto; padding:7px 12px; border-radius:10px;
+    flex:0 0 auto; padding:4px 2px; border-radius:10px;
     border:1px solid rgba(255,255,255,0.14); background:rgba(0,0,0,0.35);
-    color:rgba(255,255,255,0.8); font-size:16px; font-weight:900; letter-spacing:.8px; text-transform:uppercase;
+    color:rgba(255,255,255,0.8); font-size:19px; font-weight:900; letter-spacing:.8px; text-transform:uppercase;
     cursor:pointer; white-space:nowrap;
   }
   .ctl-tab.on{ background:var(--primary); border-color:var(--primary); color:#fff; box-shadow:0 0 12px rgba(228,125,7,0.45); }
   .ctl-actions{ display:flex; align-items:center; gap:6px; flex:0 0 auto; }
-  .ctl-actions .btn{ width:auto; margin:0; padding:7px 8px; font-size:13px; white-space:nowrap; letter-spacing:.3px; }
-  .ctl-tab{ font-size:13px; padding:7px 8px; letter-spacing:.5px; }
-  .ctl-grip{ font-size:13px; padding:6px 7px; }
+  .ctl-actions .btn{ width:auto; margin:0; padding:2px 1px; font-size:19px; white-space:nowrap; letter-spacing:.3px; }
+  .ctl-tab{ font-size:19px; padding:3px 1px; letter-spacing:.5px; }
+  .ctl-grip{ font-size:12px; padding:4px 2px; }
   .ctl-actions .sse{ font-size:11px; }
-  .ctl-bar{ gap:5px; padding:7px 8px; }
+  .ctl-bar{ gap:4px; padding:7px 5px; }
   .ctl-actions{ gap:4px; }
-  .ctl-body .row > label{ width:120px; font-size:16px; line-height:1.05; }
+  .ctl-body .row > label{ width:129px; font-size:19px; line-height:1.05; }
   .ctl-actions .sse{ margin:0 4px; }
   .ctl-close{
     width:34px; height:34px; border-radius:10px; border:1px solid rgba(255,255,255,0.2);
@@ -2406,9 +2437,9 @@
 
   /* Promo banner text (2026-09-07): seller text over the banner art. */
   .promo-text{
-    position:absolute; left:16px; right:16px; top:50%; transform:translateY(-50%);
+    position:absolute; left:165px; right:16px; top:50%; transform:translateY(-50%);
     text-align:center; z-index:3; pointer-events:none;
-    color:#fff; font-weight:1000; font-size:var(--promoTextPx, 44px); line-height:1.05; letter-spacing:.5px;
+    color:#fff; font-weight:900; font-size:var(--promoTextPx, 44px); line-height:1.05; letter-spacing:.5px;
     text-shadow:0 3px 14px rgba(0,0,0,0.95), 0 0 24px rgba(0,0,0,0.7), var(--glowGold);
     -webkit-text-stroke:1px rgba(0,0,0,0.55); paint-order:stroke fill;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
@@ -2434,7 +2465,7 @@
     display:inline-flex; align-items:center; gap:6px;
     padding:3px 6px 3px 4px; border-radius:8px;
     border:1px solid rgba(255,255,255,0.16); background:rgba(0,0,0,0.35);
-    font-size:15px; font-weight:800; color:#fff; line-height:1.2;
+    font-size:20px; font-weight:800; color:#fff; line-height:1.2;
   }
   .chip.dflt{ opacity:.55; }
   .chip.chase{ border-color:rgba(255,223,122,0.9); box-shadow:0 0 8px rgba(245,200,75,0.35); }
@@ -2455,9 +2486,9 @@
     background:rgba(0,0,0,0.5); border-color:rgba(255,255,255,0.2);
   }
   /* A sold tile carries number + name + buyer in ~65px: shrink the first two. */
-  .spot-tile.sold .spot-num{ font-size:14px !important; opacity:.8; }
-  .spot-tile.sold .spot-label{ font-size:10px !important; opacity:.8; -webkit-line-clamp:1; }
-  .spot-tile.sold .spot-buyer{ font-size:16px; padding:0 4px; line-height:1.15; }
+  .spot-tile.sold .spot-num{ font-size:16px !important; opacity:.8; }
+  .spot-tile.sold .spot-label{ font-size:12px !important; opacity:.8; -webkit-line-clamp:1; }
+  .spot-tile.sold .spot-buyer{ font-size:22px; padding:0 2px; line-height:1.15; }
   /* Unsold envelope: number sits centred over the whole tile, no empty strip. */
   .env-tile:not(.sold) .env-label{ inset:0; height:auto; }
   .spot-tile.sold .spot-buyer::placeholder, .env-tile.sold .env-buyer::placeholder, .poke-card.sold .buyer::placeholder{ color:rgba(255,255,255,0.4); }
@@ -2491,6 +2522,20 @@
   .envpoke .marquee{ display:flex; align-items:center; gap:var(--pokeGap, 12px); will-change:transform; animation:pokeMarquee var(--marqueeDur, 80s) linear infinite; }
   .envpoke .poke-card{ cursor:default; }
 
+  /* --- ROUND 11 (2026-09-08): short caption bar at the bottom of the envelope
+     layout's image row, in front of the marquee. --- */
+  .env-marquee-caption{
+    position:absolute; left:8px; right:8px; bottom:3px;
+    z-index:5; pointer-events:none;
+    text-align:center;
+    background:rgba(0,0,0,0.5);
+    color:#fff; font-weight:900; font-size:14px; letter-spacing:.4px;
+    padding:3px 10px; border-radius:6px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    text-shadow:0 2px 6px rgba(0,0,0,0.7);
+  }
+  .env-marquee-caption:empty{ display:none; }
+
   /* Layout toggle button in the bar. */
   .ctl-actions .btn.layout{ background:linear-gradient(180deg, rgba(112,54,124,0.9), rgba(70,30,80,0.9)); }
 
@@ -2509,8 +2554,8 @@
   .env-stat{ padding:2px 6px; }
   .env-stat .value{ font-size:18px; }
   .env-stat .label{ font-size:9px; }
-  .stage{ --envCols: 10; }
-  .env-top-row{ grid-template-columns:repeat(10, minmax(0,1fr)); }
+  .stage{ --envCols: 9; }
+  .env-top-row{ grid-template-columns:repeat(9, minmax(0,1fr)); }
   .env-logo-slot{ grid-column: span 2; }
   .env-logo-slot img{ max-height:calc(var(--envTileH) * 1.4); }
   .env-tile{ height:var(--envTileH); border-width:1px; border-radius:7px; }
@@ -2533,7 +2578,7 @@
   }
   .env-title{ font-size:24px; }
   .env-name{
-    font-size:11px; font-weight:900; letter-spacing:.3px; line-height:1.05;
+    font-size:18px; font-weight:900; letter-spacing:.3px; line-height:1.05;
     color:rgba(255,255,255,0.85); text-shadow:0 1px 6px rgba(0,0,0,0.9);
     max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     padding:0 2px; text-align:center;
@@ -2542,7 +2587,7 @@
   .env-label{ flex-direction:column; gap:1px; width:40%; }
   .env-buyer{ width:66%; height:30px; font-size:15px; }
   /* Sold: the buyer owns the tile. Number shrinks to a corner, name line goes. */
-  .env-tile.sold .env-buyer{ width:68%; right:3px; }
+  .env-tile.sold .env-buyer{ width:68%; right:-4px; }
   .env-tile.sold .env-label{ width:30%; }
   .env-tile.sold .env-title{ opacity:.7; font-size:16px; }
   .env-tile.sold .env-name{ display:none; }
@@ -2591,6 +2636,69 @@
   .poke-card .tag{ left:8px; right:8px; }
   .poke-card .buyer{ left:8px; right:8px; }
 
+  /* --- ROUND 10 (2026-09-08): envelope board rework ---
+     Tile = number + name CENTRED; when sold they dim and the buyer box sits
+     over them, layout 1 style, bigger type. Counters and the two data spots
+     take the ticker row; the ticker text runs along the foot of the board. */
+  .env-tile{ display:flex; align-items:center; justify-content:center; }
+  .env-label{
+    position:absolute; inset:0; width:auto; height:auto;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    background:linear-gradient(180deg, rgba(0,0,0,0.08), rgba(0,0,0,0.32));
+    transition:opacity 160ms ease;
+  }
+  .env-title{ font-size:26px; }
+  .env-name{ font-size:12px; max-width:92%; }
+  .env-big .env-title{ font-size:34px; }
+  .env-big .env-name{ font-size:14px; }
+  .env-tile.sold .env-label{ opacity:.32; width:auto; }
+  .env-tile.sold .env-title{ font-size:26px; opacity:1; }
+  .env-big.env-board .env-tile.sold .env-title{ font-size:34px; }
+  .env-tile.sold .env-name{ display:block; }
+  .env-buyer{
+    position:absolute; left:6px; right:6px; top:50%; transform:translateY(-50%);
+    width:auto; height:32px; font-size:19px; z-index:6;
+    background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.22);
+  }
+  .env-tile.sold .env-buyer{ width:auto; right:-4px; color:#fff; background:rgba(0,0,0,0.55); border-color:rgba(255,255,255,0.22); }
+  .env-big .env-buyer{ height:38px; font-size:22px; }
+  .env-tile.sold .env-buyer:focus{ background:rgba(0,0,0,0.75); }
+
+  /* Stats row in the ticker slot, envelope mode only. */
+  .panel.envstats{ display:none; }
+  .mode-envelope .panel.envstats{
+    display:flex; align-items:center; justify-content:center; gap:5px;
+    height:var(--tickerH); padding:2px 2px;
+  }
+  .mode-envelope .panel.ticker{ display:none !important; }
+  .panel.envstats .env-stat{
+    flex:1 1 0; min-width:0; height:100%; padding:0 4px; border:none; background:transparent;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0; line-height:1;
+  }
+  .panel.envstats .env-stat .value{ font-size:30px; }
+  .panel.envstats .env-stat .label{ font-size:14px; letter-spacing:1px; }
+  .panel.envstats .env-stat + .env-stat{ border-left:1px solid rgba(255,255,255,0.09); }
+  .panel.envstats .env-data{
+    flex:1.9 1 0; height:calc(100% - 2px); padding:1px 1px; gap:1px;
+    border-radius:8px;
+  }
+  .panel.envstats .env-data-label{ font-size:15px; }
+  .panel.envstats .env-data-in{ height:29px; font-size:24px; }
+
+  /* Ticker along the foot of the board. */
+  .env-ticker{
+    flex:0 0 auto; height:34px; margin-top:6px;
+    display:flex; align-items:center; overflow:hidden;
+    border-top:1px solid rgba(255,255,255,0.10);
+  }
+  .env-ticker span{
+    display:inline-block; white-space:nowrap; padding-left:100%;
+    animation: tickerScroll var(--tickerDur, 25s) linear infinite;
+    font-size:27px; font-weight:900; letter-spacing:1px; color:#fff;
+    text-shadow:0 2px 14px rgba(0,0,0,0.85), var(--glowGold);
+  }
+  .env-scroll{ flex:1 1 auto; min-height:0; }
+
   /* --- TSU standard sold flash (apex / cowboy reference), brand primary. --- */
   .spot-tile.flash, .poke-card.flash, .env-tile.flash{ animation: soldFlash 260ms ease; }
   @keyframes soldFlash{
@@ -2598,6 +2706,61 @@
     50%{ box-shadow: 0 0 18px rgba(228,125,7,0.65); }
     100%{ box-shadow: 0 0 0 rgba(228,125,7,0.0); }
   }
+
+  /* --- ROUND 12 (2026-09-08): "add a sold animation to any tile sold on either
+     layout" — the TSU standard soldFlash above is a subtle 260ms glow and easy
+     to miss on stream. .sold-pop layers a brief scale punch + brighter glow on
+     top of it. Both classes are added together by flashTile(), the one helper
+     every sale path funnels through (spot tiles and envelope tiles via
+     flashSpotTile, marquee cards via flashPokemonSold), so this covers every
+     tile type on both layouts from a single place. --- */
+  .spot-tile.sold-pop, .poke-card.sold-pop, .env-tile.sold-pop{ animation: soldPop 420ms cubic-bezier(.2,1.6,.4,1); }
+  @keyframes soldPop{
+    0%{ transform:scale(1); box-shadow:0 0 0 rgba(228,125,7,0.0); }
+    35%{ transform:scale(1.07); box-shadow:0 0 30px rgba(228,125,7,0.85); }
+    100%{ transform:scale(1); box-shadow:0 0 0 rgba(228,125,7,0.0); }
+  }
+
+  /* ROUND 12 (2026-09-08): small SOLD stamp on the scrolling marquee cards
+     (layout 1's card row and layout 2's display-only row share this markup).
+     Sits in front of the art, the buyer box and everything else on the card. */
+  .poke-card .sold-stamp{
+    position:absolute; top:6px; right:6px;
+    z-index:8;
+    padding:2px 9px;
+    border-radius:5px;
+    background:var(--primary);
+    color:#fff;
+    font-size:11px; font-weight:900; letter-spacing:1.4px;
+    text-transform:uppercase;
+    box-shadow:0 2px 8px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.35);
+    transform:rotate(8deg);
+    opacity:0; pointer-events:none;
+    transition:opacity 120ms ease;
+  }
+  .poke-card.sold .sold-stamp{ opacity:1; }
+
+  /* ROUND 13 (2026-09-08): when a spot/tile has a custom NAME (not the default
+     "SPOT n"), show only the name, not the number, on either layout. Toggled by
+     the ".named" class in buildSpotsGrid/syncSpotTiles (layout 1) and
+     makeEnvelopeTile/syncSpotTiles (layout 2) — same "label !== DEFAULT_SPOT_LABEL"
+     test already used to decide whether a name shows at all. This is purely a
+     DOM/CSS display choice: the live Whatnot automation (team_sold, current
+     content.js) never reads this tile or its number at all. It matches by
+     parsing a [S07] or "- #07" pattern out of the Whatnot LISTING TITLE text via
+     spotIdFromTitle() — completely independent of what's rendered here. Hiding
+     the number on-screen does not change what the automation is matching on. */
+  .spot-tile.named .spot-num{ display:none; }
+  .spot-tile.named .spot-label{ display:block; font-size:16px; -webkit-line-clamp:3; }
+  .spots-grid.dense .spot-tile.named .spot-label{ font-size:22px; }
+  .spot-tile.sold.named .spot-label{ font-size:16px !important; opacity:.8; }
+  .spots-grid.dense .spot-tile.sold.named .spot-label{ font-size:22px !important; }
+
+  .env-tile.named .env-title{ display:none; }
+  .env-tile.named .env-name{ display:block; font-size:26px; }
+  .env-big .env-tile.named .env-name{ font-size:34px; }
+  .env-tile.sold.named .env-name{ display:block; font-size:26px; opacity:1; }
+  .env-big .env-tile.sold.named .env-name{ font-size:34px; }
     </style>
   </head>
 
@@ -2624,23 +2787,40 @@
       <!-- CHASE FX: plays once when a scrolling-card (chaser) spot sells. -->
       <video class="chasefx" id="chaseFx" muted playsinline preload="auto" src="mewtwo-zard-animation.webm"></video>
 
-      <div class="grid">
-
-  <!-- HEADER: client logo + the show title. The Pokemon SET logo was removed 2026-08-24;
-       this client wanted their own mark in the header. Break number, avg bid and the
-       left/sold counters all moved down to the stats row. -->
-  <div class="panel header">
-    <div class="hdr-left">
+      <!-- CLIENT LOGO (2026-09-08, round 12): moved here, as a direct child of .stage,
+           because .panel has backdrop-filter, and per spec an element with backdrop-filter
+           establishes the containing block for its position:fixed/absolute descendants.
+           With the logo still nested inside .panel.header, its z-index only ever competed
+           INSIDE that trapped local context, so anything painted after the header in the
+           DOM (the promo banner, chase FX, etc.) could still cover it even at z-index:900.
+           Living here, .stage (no backdrop-filter/filter/transform) is the real containing
+           block, so position:absolute + z-index genuinely wins over every panel. Position
+           is pinned to the same spot the header's logo slot always occupied. -->
       <div class="client-logo">
         <img id="clientLogoImg" alt="Client Logo" />
       </div>
 
+      <div class="grid">
+
+  <!-- HEADER: client logo (now rendered at .stage level, see above) + the show title.
+       The Pokemon SET logo was removed 2026-08-24; this client wanted their own mark in
+       the header. Break number, avg bid and the left/sold counters all moved down to the
+       stats row. -->
+  <div class="panel header">
+    <div class="hdr-left">
       <div class="hdr-title">
         <div class="big" id="hdrTitle">Character Breaks</div>
       </div>
     </div>
   </div>
-
+        <!-- PROMO BANNER (2026-09-02). Seller-uploaded images crossfading on a timer
+             set in Admin > Promo Banner. Hidden entirely when there are no images so
+             the row does not sit empty on stream. -->
+        <div class="panel promo" id="promoPanel">
+          <img class="promo-img a" id="promoImgA" alt="" />
+          <img class="promo-img b" id="promoImgB" alt="" />
+          <div class="promo-text" id="promoText"></div>
+        </div>
 
         <!-- STATS ROW: break number, average bid, and the left/sold counters. All three
              were split across the header and the old buyer lane before 2026-08-24. -->
@@ -2675,14 +2855,7 @@
           <div class="round-badge" id="roundPill">R<span id="roundNo">1</span></div>
         </div>
 
-        <!-- PROMO BANNER (2026-09-02). Seller-uploaded images crossfading on a timer
-             set in Admin > Promo Banner. Hidden entirely when there are no images so
-             the row does not sit empty on stream. -->
-        <div class="panel promo" id="promoPanel">
-          <img class="promo-img a" id="promoImgA" alt="" />
-          <img class="promo-img b" id="promoImgB" alt="" />
-          <div class="promo-text" id="promoText"></div>
-        </div>
+
 
         <!-- SCROLLING CARD DISPLAY: this is what buyers purchase from, so a sold card
              carries the BUYER NAME across its face. This replaced the separate floating
@@ -2700,7 +2873,16 @@
           <div class="envpoke-inner">
             <div class="marquee" id="envMarquee"></div>
           </div>
+          <!-- ROUND 11 (2026-09-08): short caption over a dark bar, bottom of this
+               row, in front of the marquee. Text set in Cards > Envelope caption. -->
+          <div class="env-marquee-caption" id="envMarqueeCaption"></div>
         </div>
+
+        <!-- ENVELOPE STATS ROW (2026-09-08): in envelope mode this takes the
+             ticker's row. Env Sold / Env Left / DATA 1 / DATA 2 / Chases Sold /
+             Chases Left, built by buildEnvelopeBoard. The ticker text moves to
+             the foot of the board. -->
+        <div class="panel envstats" id="envStatsRow"></div>
 
         <!-- TICKER -->
         <div class="panel ticker">
@@ -2881,7 +3063,7 @@
             <div class="ed-list ed-chips" id="promoTextList"></div>
             <div class="row">
               <label>Text size</label>
-              <input id="promoTextPxInput" type="number" min="16" max="90" step="2" placeholder="44" style="flex:0 0 90px;" title="Text size px" />
+              <input id="promoTextPxInput" type="number" min="16" max="90" step="2" placeholder="46" style="flex:0 0 90px;" title="Text size px" />
               <label style="width:auto;">Seconds each</label>
               <input id="promoSecInput" type="number" min="2" max="120" step="1" placeholder="8" style="flex:0 0 90px;" />
               <span class="ed-hint">applies to messages and images</span>
@@ -2958,6 +3140,10 @@
             </div>
             <div class="ed-list" id="envImgList"></div>
             <input id="envImgFile" type="file" accept="image/*" style="display:none" />
+            <div class="ed-head" style="margin-top:10px;">
+              <span class="ed-hint">ENVELOPE caption: short line over a dark bar at the bottom of the image row above.</span>
+            </div>
+            <input id="envMarqueeCaptionInput" type="text" maxlength="140" placeholder="Images represent potential pulls and do not represent the actual contents available" />
             <p class="ed-hint" id="storageHint"></p>
             <details class="grp sub">
               <summary>How the buyer name and artwork work</summary>
@@ -3230,6 +3416,7 @@ const ADMIN_KEY = `${LS_PREFIX}.overlay.adminOpen.${SET}`;
     promoTexts: [],        /* banner messages, rotate on promoSec (2026-09-07) */
     promoTextPx: 44,
     envImages: [],         /* envelope layout display-only scroll row, store:envimg:<n> */
+    envMarqueeCaption: "", /* short caption bar at the bottom of the envelope image row, 2026-09-08 */
     pageBgSpots: "",       /* whole-backdrop image per layout */
     pageBgEnv: "",
     tileArt: "",           /* picture on every spot tile, store:tileart */
@@ -3588,13 +3775,17 @@ function playChaseFx(){
 }
 
 /* TSU standard sold flash: .flash for 280ms, keyframe soldFlash. Fires for a
-   click and for a bridge sale alike because setSoldById calls it. */
+   click and for a bridge sale alike because setSoldById calls it.
+   ROUND 12 (2026-09-08): also adds .sold-pop (soldPop keyframe, a bigger scale
+   + glow punch) so every tile type on both layouts gets a clearly visible sold
+   animation, not just the subtle standard glow. Single place, every sale path
+   (spot tile, envelope tile, marquee card) already funnels through this. */
 function flashTile(el){
   if (!el) return;
-  el.classList.remove("flash");
+  el.classList.remove("flash", "sold-pop");
   void el.offsetWidth;
-  el.classList.add("flash");
-  setTimeout(() => el.classList.remove("flash"), 280);
+  el.classList.add("flash", "sold-pop");
+  setTimeout(() => el.classList.remove("flash", "sold-pop"), 440);
 }
 function flashSpotTile(spotId){
   const grid = document.getElementById("spotsGrid");
@@ -3747,12 +3938,25 @@ function renderTicker(){
   if (next === __lastTickerText) return;
 
   __lastTickerText = next;
+  /* Envelope board foot carries the same text (2026-09-08). */
+  const et = document.querySelector(".env-ticker span");
+  if (et && et.textContent !== next) et.textContent = next;
   tickerEl.textContent = next;
 
   // Only restart animation when the text changed
   tickerEl.style.animation = "none";
   void tickerEl.offsetHeight;
   tickerEl.style.animation = "";
+}
+
+
+/* ROUND 11 (2026-09-08): caption bar at the bottom of the envelope layout's
+   image row. Independent of the ticker text/animation above. */
+function renderEnvMarqueeCaption(){
+  const el = document.getElementById("envMarqueeCaption");
+  if (!el) return;
+  const next = (state.envMarqueeCaption || "").trim();
+  if (el.textContent !== next) el.textContent = next;
 }
 
 
@@ -3827,9 +4031,16 @@ function buildPokemonMarquee(){
     });
     who.addEventListener("blur", commit);
 
+    /* ROUND 12 (2026-09-08): small SOLD stamp, shown only via .poke-card.sold
+       (CSS opacity toggle) so nothing here has to track sold state itself. */
+    const stamp = document.createElement("div");
+    stamp.className = "sold-stamp";
+    stamp.textContent = "Sold";
+
     card.appendChild(img);
     card.appendChild(tag);
     card.appendChild(who);
+    card.appendChild(stamp);
 
     /* Both halves of the doubled marquee are clickable: the seller clicks whatever
        is passing in front of them, not whichever copy the code considers first. */
@@ -3949,6 +4160,7 @@ function renderAdminFields(){
     chk("bgVideoChk", state.bgVideo !== false);
     chk("chaseFxChk", state.chaseFx !== false);
     set("promoTextPxInput", state.promoTextPx || 44);
+    set("envMarqueeCaptionInput", state.envMarqueeCaption || "");
     const hintFor = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ? (String(v).startsWith("store:") ? "(uploaded)" : v) : "none"; };
     hintFor("pageBgSpotsHint", state.pageBgSpots);
     hintFor("pageBgEnvHint", state.pageBgEnv);
@@ -4455,6 +4667,9 @@ function makeEnvelopeTile(sp){
   const t = document.createElement("div");
   t.className = "env-tile" + (isChaseSpot(sp.id) ? " chase" : "");
   t.dataset.spotId = sp.id;
+  /* ROUND 13: a custom name replaces the number on the tile (CSS hides
+     .env-title via .named); automation is unaffected, see the CSS note. */
+  t.classList.toggle("named", !!(sp.label && sp.label !== DEFAULT_SPOT_LABEL(sp.id)));
 
   const img = document.createElement("img");
   img.src = envelopeImagePath();
@@ -4492,12 +4707,30 @@ function makeEnvelopeTile(sp){
    cap, so a small board is short, a big board scrolls, and nothing below
    the board moves either way. The old fit-to-space sizing (26..84px) went
    too small to type on at 100+ entries. */
-const ENV_TILE_H = 60;   /* 68 > 46 > 60 across 2026-09-07; the image row shrank to pay for it */
+/* 2026-09-08: DYNAMIC again, like layout 1. Columns follow the entry count
+   (6 up to 24, 8 up to 40, 10 beyond), and the tiles grow to FILL the fixed
+   board when the whole list fits at 60px or taller; past that they hold at
+   60px and the scroller reveals the rest. The board height itself never
+   changes, so nothing below it moves. */
+const ENV_TILE_MIN = 60, ENV_TILE_MAX = 110;
 function fitEnvelopeGrid(){
   if (boardMode() !== "envelope") return;
   const wrap = document.querySelector(".env-board");
-  if (!wrap) return;
-  wrap.style.setProperty("--envTileH", ENV_TILE_H + "px");
+  const scroll = document.querySelector(".env-scroll");
+  if (!wrap || !scroll) return;
+  const n = (state.spots || []).length;
+  const cols = n <= 20 ? 5 : (n <= 30 ? 6 : (n <= 48 ? 8 : 10));
+  const rows = Math.max(1, Math.ceil(n / cols));
+  const gap = 6;
+  const avail = scroll.clientHeight || 0;
+  let h = ENV_TILE_MIN;
+  if (avail > 0){
+    const fill = Math.floor((avail - gap * (rows - 1)) / rows);
+    h = Math.max(ENV_TILE_MIN, Math.min(ENV_TILE_MAX, fill));
+  }
+  wrap.style.setProperty("--envCols", String(cols));
+  wrap.style.setProperty("--envTileH", h + "px");
+  wrap.classList.toggle("env-big", h >= 84);
 }
 
 /* ===== ADMIN EDITORS =====
@@ -5000,35 +5233,38 @@ function buildEnvelopeBoard(grid){
   const wrap = document.createElement("div");
   wrap.className = "env-board";
 
-  const top = document.createElement("div");
-  top.className = "env-top-row";
-  /* Top row (2026-09-07): 4 tiles, TWO DATA SPOTS centred, 4 tiles = 10
-     columns. The logo slot is gone, the header already carries the logo. A
-     data spot is a labelled value box the seller types into; labels are
-     placeholders until the client says what they are (Board tab). */
-  const head = spots.slice(0, 8);
-  head.slice(0, 4).forEach(sp => top.appendChild(makeEnvelopeTile(sp)));
-  [0, 1].forEach(i => top.appendChild(makeEnvDataSpot(i)));
-  head.slice(4, 8).forEach(sp => top.appendChild(makeEnvelopeTile(sp)));
-  wrap.appendChild(top);
-
+  /* 2026-09-08: ONE grid in the scroller, no special top row. The counters
+     and the two data spots moved up into the ticker row (see #envStatsRow),
+     and the ticker text runs along the foot of the board instead. Columns and
+     tile height follow the entry count, see fitEnvelopeGrid. */
   const scroll = document.createElement("div");
   scroll.className = "env-scroll";
   const inner = document.createElement("div");
   inner.className = "env-grid";
-  spots.slice(8).forEach(sp => inner.appendChild(makeEnvelopeTile(sp)));
+  spots.forEach(sp => inner.appendChild(makeEnvelopeTile(sp)));
   scroll.appendChild(inner);
   wrap.appendChild(scroll);
 
-  const stats = document.createElement("div");
-  stats.className = "env-stats";
-  stats.appendChild(envStat("Envelopes Sold", 0, "envSoldStat"));
-  stats.appendChild(envStat("Envelopes Left", spots.length, "envLeftStat"));
-  stats.appendChild(envStat("Chases Sold", 0, "envChaseSoldStat"));
-  stats.appendChild(envStat("Chases Left", 0, "envChaseLeftStat"));
-  wrap.appendChild(stats);
+  const tick = document.createElement("div");
+  tick.className = "env-ticker";
+  const span = document.createElement("span");
+  span.textContent = (state.ticker || "").trim();
+  tick.appendChild(span);
+  wrap.appendChild(tick);
 
   grid.appendChild(wrap);
+
+  /* Counters + data spots in the row where the ticker sits in layout 1. */
+  const row = document.getElementById("envStatsRow");
+  if (row){
+    row.innerHTML = "";
+    row.appendChild(envStat("Env Sold", 0, "envSoldStat"));
+    row.appendChild(envStat("Env Left", spots.length, "envLeftStat"));
+    row.appendChild(makeEnvDataSpot(0));
+    row.appendChild(makeEnvDataSpot(1));
+    row.appendChild(envStat("Chases Sold", 0, "envChaseSoldStat"));
+    row.appendChild(envStat("Chases Left", 0, "envChaseLeftStat"));
+  }
 
   /* Measure once the board is in the DOM, then again next frame so the scroller
      has settled on its final height. */
@@ -5069,6 +5305,9 @@ function buildSpotsGrid(){
       const t = document.createElement("div");
       t.className = "spot-tile";
       t.dataset.spotId = s.id;
+      /* ROUND 13: a custom name replaces the number on the tile (CSS hides
+         .spot-num via .named); automation is unaffected, see the CSS note. */
+      t.classList.toggle("named", !!(s.label && s.label !== DEFAULT_SPOT_LABEL(s.id)));
 
       const num = document.createElement("div");
       num.className = "spot-num";
@@ -5111,6 +5350,10 @@ function syncSpotTiles(){
       if (b.tagName === "INPUT"){ if (document.activeElement !== b) b.value = want; }
       else b.textContent = want;
     }
+    /* ROUND 13: keep .named in sync too (buildSpotsGrid/makeEnvelopeTile already
+       set it at creation; the spots-grid rebuild sig includes the label so this
+       is mostly redundant, but cheap and keeps sync authoritative on its own). */
+    t.classList.toggle("named", !!(s.label && s.label !== DEFAULT_SPOT_LABEL(s.id)));
     if (!env){
       const l = t.querySelector(".spot-label");
       if (l){
@@ -5144,6 +5387,7 @@ function renderAll(){
   renderHeader();
   renderBrand();
   renderTicker();
+  renderEnvMarqueeCaption();
 
   // Build the marquee ONCE. After that, we only toggle classes.
   if (!pokeMarquee.dataset.built){
@@ -5194,6 +5438,11 @@ function sellPokemon(id, sold, buyer){
   const p = (state.pokemon || []).find(x => x.id === id);
   if (!p) return;
 
+  /* ROUND 12 (2026-09-08): only the false->true transition is a new sale.
+     Typing/committing the buyer name afterward (Enter on the input) calls this
+     again with sold:true while it's already sold, which used to re-flash and
+     replay the chase FX clip a second time. Flash only on the real transition. */
+  const wasSold = !!p.sold;
   p.sold = !!sold;
   if (sold){
     const name = String(buyer || "").trim();
@@ -5209,7 +5458,7 @@ function sellPokemon(id, sold, buyer){
   saveState();
   saveSoldState();
   syncPokemonSoldClasses();
-  flashPokemonSold(sold ? id : "");
+  if (sold && !wasSold) flashPokemonSold(id);
   syncSpotTiles();
 }
 
@@ -5249,6 +5498,7 @@ function toggleCardSold(id){
     if (breakInput) state.breakNo = Math.max(1, parseInt(breakInput.value || "1", 10) || 1);
     if (hdrSmallInput) state.hdrSmall = (hdrSmallInput.value || "").trim();
     if (titleInput) state.title = (titleInput.value || "").trim() || "Character Breaks";
+    { const el = document.getElementById("envMarqueeCaptionInput"); if (el) state.envMarqueeCaption = (el.value || "").trim().slice(0, 70); }
     {
       const num = (id, lo, hi, dflt) => { const el = document.getElementById(id); const v = el ? parseInt(el.value, 10) : NaN; return Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : dflt; };
       const chk = (id, dflt) => { const el = document.getElementById(id); return el ? !!el.checked : dflt; };
@@ -6016,7 +6266,7 @@ function toggleAdmin(){
     try{
       sse = new EventSource(url);
 
-      sse.onopen = () => setSSEStatus("connected", "SSE ON");
+      sse.onopen = () => setSSEStatus("connected", ".");
 
   sse.onmessage = (e) => {
     try {
@@ -6355,7 +6605,10 @@ case "team_sold": {
     data.transactionId || data.orderId || data.purchaseId || ""
   ).trim();
 
-  const spotId = spotIdFromTitle(title);
+  /* Prefer the title-parsed spot id ([S07]/"- #07"), fall back to the extension's
+     resolved slot code (CUSTOM_0NN) — that's the format content.js actually sends
+     today, so this fallback is what makes live spot-tile automation work. Round 14. */
+  const spotId = spotIdFromTitle(title) || spotIdFromCode(data.code);
   if (spotId){
     if (listingKey){
       const prev = lastCodeByListingKey.get(listingKey);
@@ -6430,6 +6683,20 @@ function spotIdFromTitle(title){
   return null;
 }
 
+/* Pull a spot id out of the extension's resolved slot code. The deployed/canonical
+   content.js never emits [S07]/"- #07" title formats — it emits CUSTOM_0NN (e.g.
+   "CUSTOM_004" for "Spot 4") via inferCodeFromTitle()'s bare-slot regex. Added round 14
+   so grid/envelope automation actually matches what the extension really sends. */
+function spotIdFromCode(code){
+  const c = String(code || "");
+  const m = c.match(/^CUSTOM_0*(\d{1,3})$/i);
+  if (m && m[1]){
+    const num = parseInt(m[1], 10);
+    return Number.isFinite(num) ? `s${String(num).padStart(2,"0")}` : null;
+  }
+  return null;
+}
+
 function sellFromLastSaleText(lastSaleText){
   const t = String(lastSaleText || "");
 
@@ -6461,6 +6728,11 @@ function sellFromLastSaleText(lastSaleText){
   function setSoldById(list, id, sold, buyer){
     const item = (list||[]).find(x => x.id === id);
     if (!item) return;
+    /* ROUND 12 (2026-09-08): only a false->true transition is a new sale. Typing
+       the buyer name and hitting Enter after the initial click calls this again
+       with sold:true while already sold, which used to replay the flash/chase
+       FX a second time. Flash only fires below when this is a real transition. */
+    const wasSold = !!item.sold;
     if (sold){
       const nm = String(buyer || "").trim();
       if (nm) item.buyer = nm;
@@ -6543,8 +6815,8 @@ function sellFromLastSaleText(lastSaleText){
     /* Push the buyer name and the sold state onto the scrolling cards, then pulse the
        one that just sold. Runs last so every linked list above has settled. */
     if (typeof syncPokemonSoldClasses === "function") syncPokemonSoldClasses();
-    if (sold && typeof flashPokemonSold === "function") flashPokemonSold(flashIds[0]);
-    if (sold && list === state.spots && typeof flashSpotTile === "function") flashSpotTile(item.id);
+    if (sold && !wasSold && typeof flashPokemonSold === "function") flashPokemonSold(flashIds[0]);
+    if (sold && !wasSold && list === state.spots && typeof flashSpotTile === "function") flashSpotTile(item.id);
   }
 
 
