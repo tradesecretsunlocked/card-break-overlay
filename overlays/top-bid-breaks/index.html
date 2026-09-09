@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=920, initial-scale=1.0"/>
-  <title>Top Bid Collectors – Multi-Sport Box Break Overlay</title>
+  <title>Top Bid Breaks – Multi-Sport Box Break Overlay</title>
 
   <style>
     :root{
@@ -33,7 +33,7 @@
       --gap: 5px;
       --cols: 16;
 
-      /* TSU brand aliases -> Top Bid Collectors (#000000 / #F8E337).
+      /* TSU brand aliases -> Top Bid Breaks (shared Top Bid brand) (#000000 / #F8E337).
          These are ALIASES onto this layout family's own accent/background vars.
          Set the alias values; never rename --barnOrange / --bg0 and never rewire
          the rules that consume them. */
@@ -1836,7 +1836,7 @@
          buttons were removed with it. -->
     <div class="header" id="header" hidden style="display:none">
       <div class="header-left">
-        <div class="header-icon"><img id="headerLogo" alt="Top Bid Collectors" /></div>
+        <div class="header-icon"><img id="headerLogo" alt="Top Bid Breaks" /></div>
         <div class="header-text" id="headerText">NFL BOX BREAK</div>
       </div>
 
@@ -1937,31 +1937,31 @@
   const imgPathSOC = (f) => `${BASE}images/soccer/${f}`;
 
  const LS = {
-  TICKER: "tbc.tickerLines",
-  TICKER_SPEED: "tbc.tickerSpeed",
-  BREAK: "tbc.breakNumber",
-  TITLE: "tbc.title",
+  TICKER: "tbb.tickerLines",
+  TICKER_SPEED: "tbb.tickerSpeed",
+  BREAK: "tbb.breakNumber",
+  TITLE: "tbb.title",
   BRIDGE: "tsu.bridge",
   KEY: "tsu.key",
-  PROMOS: "tbc.promos",
-  PROMO_ARTS: "tbc.promoArts",
-  PROMO_TEXT_ON: "tbc.promoTextOn",
-  PROMO_BG: "tbc.promoBg",
-  TICKER_SCROLL: "tbc.tickerScroll",
+  PROMOS: "tbb.promos",
+  PROMO_ARTS: "tbb.promoArts",
+  PROMO_TEXT_ON: "tbb.promoTextOn",
+  PROMO_BG: "tbb.promoBg",
+  TICKER_SCROLL: "tbb.tickerScroll",
   OVERLAY: "tsu.overlayId",
   CHANNEL: "tsu.channel",
-  CUSTOM_ENTRIES: "tbc.customEntries",
-  CUSTOM_TITLE: "tbc.customTitle",
+  CUSTOM_ENTRIES: "tbb.customEntries",
+  CUSTOM_TITLE: "tbb.customTitle",
   URL_LEGACY: "tsu.bridgeUrl",
   KEY_LEGACY: "tsu.bridgeKey",
-  STATE: "tbc.overlayState.v1",
+  STATE: "tbb.overlayState.v1",
   
-  TEAM_STYLE: "tbc.teamStyle.v1",
-  SOLD_PANEL_HIDDEN: "tbc.soldPanelHidden"
+  TEAM_STYLE: "tbb.teamStyle.v1",
+  SOLD_PANEL_HIDDEN: "tbb.soldPanelHidden"
 };
 
   const DEFAULT_TICKER_LINES = [
-    "TOP BID COLLECTORS",
+    "TOP BID BREAKS",
     "$1 AUCTION BREAKS • 24 HOURS A DAY • 7 DAYS A WEEK"
   ];
   const DEFAULT_TICKER_SPEED = 90;
@@ -3268,7 +3268,7 @@ custom: {
 
     const img = document.createElement("img");
     img.src = LOGO_PRIMARY;
-    img.alt = "Top Bid Collectors Logo";
+    img.alt = "Top Bid Breaks Logo";
     slot.appendChild(img);
     return slot;
   }
@@ -3385,10 +3385,10 @@ function makeSpotsLeftBox(){
 /* Seller toggle: show/hide the MISC spot on the board. When hidden the ticker
    simply reclaims its 2 columns, so the row width never changes. */
 function miscSpotEnabled(){
-  try{ return localStorage.getItem("tbc.miscSpot") !== "0"; }catch(_){ return true; }
+  try{ return localStorage.getItem("tbb.miscSpot") !== "0"; }catch(_){ return true; }
 }
 function setMiscSpotEnabled(on){
-  try{ localStorage.setItem("tbc.miscSpot", on ? "1" : "0"); }catch(_){ }
+  try{ localStorage.setItem("tbb.miscSpot", on ? "1" : "0"); }catch(_){ }
   if (typeof buildLayout === "function") buildLayout();
   if (typeof buildSpotSelector === "function") buildSpotSelector();
 }
@@ -3431,7 +3431,7 @@ let soldControlsVisible = true;
    The panel is lifted out of document flow and can be dragged anywhere by its
    MOVE grip. Position persists per client. Default spawn: top of the bottom
    third of the screen, horizontally centred. The board stays at the top. */
-const PANEL_LS = "tbc.panelPos";
+const PANEL_LS = "tbb.panelPos";
 let panelDrag = null;
 
 function panelEl(){ return document.querySelector(".sold-list-container"); }
@@ -3507,7 +3507,7 @@ window.initDetachedPanel = initDetachedPanel;
 
 /* superseded by the detached panel above — kept as no-ops so older callers are safe */
 let boardView = "teams";
-try { boardView = localStorage.getItem("tbc.boardView") === "sold" ? "sold" : "teams"; } catch(_){}
+try { boardView = localStorage.getItem("tbb.boardView") === "sold" ? "sold" : "teams"; } catch(_){}
 
 function initBoardSwap(){
   /* no-op: sold list lives in the detached panel now */
@@ -3516,7 +3516,7 @@ function initBoardSwap(){
 function applyBoardView(){ /* no-op: board stays visible, panel floats */ }
 function toggleBoardView(){
   boardView = (boardView === "sold") ? "teams" : "sold";
-  try { localStorage.setItem("tbc.boardView", boardView); } catch(_){}
+  try { localStorage.setItem("tbb.boardView", boardView); } catch(_){}
   applyBoardView();
 }
 window.toggleBoardView = toggleBoardView;
@@ -3656,8 +3656,8 @@ function buildSpotSelector(){
     { code:'MISC',    name:'MISC',            logo:'lh-misc-logo.png'     }
   ];
   let selectedSpots = [];
-  try { const _r = localStorage.getItem("tbc.spots"); if (_r) selectedSpots = JSON.parse(_r) || []; } catch(e){ selectedSpots = []; }
-  function saveSelectedSpots(){ try { localStorage.setItem("tbc.spots", JSON.stringify(selectedSpots)); } catch(e){} }
+  try { const _r = localStorage.getItem("tbb.spots"); if (_r) selectedSpots = JSON.parse(_r) || []; } catch(e){ selectedSpots = []; }
+  function saveSelectedSpots(){ try { localStorage.setItem("tbb.spots", JSON.stringify(selectedSpots)); } catch(e){} }
   function getSelectedSpotObjs(){ return selectedSpots.map(c => SPOTS.find(s => s.code === c)).filter(Boolean).map(sp => ({ code: sp.code, name: sp.name, logo: sp.logo, image: BASE + "images/logos/" + sp.logo })); }
   // Active tile list = base sport teams + (for NFL) the selected custom spots. Used by sold-marking, stats, export, chase.
   function currentTileList(){
@@ -4159,10 +4159,10 @@ function inferCodeFromTitle(title, sportHint){
      2. this key baked here
      3. the same key baked into the extension
      4. OVERLAY_ID identical here and in the extension */
-const OVERLAY_ID          = "top-bid-collectors-overlay";
+const OVERLAY_ID          = "top-bid-breaks-overlay";
 const BRIDGE_BASE         = "https://bridge.tradesecretsunlocked.com";
 const SCORES_BRIDGE_BASE  = "https://tsu-scores-bridge.onrender.com";
-const BRIDGE_KEY_DEFAULT  = "a615d74e-7891-4cf1-a8d9-150806b159b9";
+const BRIDGE_KEY_DEFAULT  = "d68e05bf-fa20-4cf5-b14a-291ea3b6a182";
 
 const BRIDGE_URL = (new URLSearchParams(location.search).get("bridge") || BRIDGE_BASE).replace(/\/$/, "");
 const BRIDGE_KEY = new URLSearchParams(location.search).get("key") || BRIDGE_KEY_DEFAULT;

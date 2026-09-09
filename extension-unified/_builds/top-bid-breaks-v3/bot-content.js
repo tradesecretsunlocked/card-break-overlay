@@ -29,12 +29,12 @@
 
   // CHANGE PER CLIENT — bake into extension before packaging for that client
   const DEFAULTS = {
-    bridgeKey:        "a615d74e-7891-4cf1-a8d9-150806b159b9",  // per-client — set in popup or bake per build
+    bridgeKey:        "d68e05bf-fa20-4cf5-b14a-291ea3b6a182",  // per-client — set in popup or bake per build
     // REQUIRED as of v1.3. The client's Whatnot handle, lowercase, no @.
     // The bot refuses to post on any show not hosted by this handle. Without it,
     // a trigger fired while the seller is watching someone else's stream would
     // post THEIR promo into SOMEONE ELSE'S chat.
-    sellerUsername:   "topbidcollectors",
+    sellerUsername:   "topbidbreaks",
     supabaseUrl:      "https://znyryhgjghjsobkzyfbx.supabase.co",
     supabaseAnonKey:  "sb_publishable_5uKQd3y05-EkgaMZJhxpSg_14SIZC5e",  // public — safe to embed
     channel:          "main",

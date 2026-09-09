@@ -47,26 +47,26 @@
 
   const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com";
 
-  // BAKED FOR: Top Bid Vault (Supabase builds id 58, crm_contacts 106, Hayden Howard)
+  // BAKED FOR: Top Bid Breaks (Supabase builds id 57, crm_contacts 106, Hayden Howard)
   // Baked 2026-09-08. ONE channel = ONE key = ONE overlay = ONE extension.
   // All four identity values must match the overlay and Supabase:
-  //   bridge_keys.key = e1fb8d70-9dca-4a3b-a79f-5bebada1855b, active = true, whatnot_handle = topbidvault
-  //   overlay overlays/top-bid-vault/index.html BRIDGE_KEY_DEFAULT = same
-  //   overlay OVERLAY_ID = top-bid-vault-overlay = DEFAULTS.overlayId below
-  //   client_extension_config.key = same, seller_username = topbidvault, overlay_id = top-bid-vault-overlay
+  //   bridge_keys.key = d68e05bf-fa20-4cf5-b14a-291ea3b6a182, active = true, whatnot_handle = topbidbreaks
+  //   overlay overlays/top-bid-breaks/index.html BRIDGE_KEY_DEFAULT = same
+  //   overlay OVERLAY_ID = top-bid-breaks-overlay = DEFAULTS.overlayId below
+  //   client_extension_config.key = same, seller_username = topbidbreaks, overlay_id = top-bid-breaks-overlay
   const DEFAULTS = {
-    bridgeKey:    "e1fb8d70-9dca-4a3b-a79f-5bebada1855b",
+    bridgeKey:    "d68e05bf-fa20-4cf5-b14a-291ea3b6a182",
     // REQUIRED as of v2.3. The client's Whatnot handle exactly as shown on their
     // live page: lowercase, no @. Capture is DISABLED while this is unset, which
     // is deliberate. An unbaked build must not hoover up strangers' shows.
     // From crm_contacts.business_name for this client, which is stored already
     // normalised to the Whatnot handle form: lowercase, no spaces, no @.
-    sellerUsername: "topbidvault",
+    sellerUsername: "topbidbreaks",
     // "nil" = multi-sport: the league is inferred from each listing title. This board
     // carries NFL, NBA, MLB, MLS and a CUSTOM board, so a hardcoded league would stamp
     // every sale with the wrong sport (the Breakz4Dayz failure, 2026-08-26).
     sport:        "nil",
-    overlayId:    "top-bid-vault-overlay",
+    overlayId:    "top-bid-breaks-overlay",
     // Emit a sale even when the title resolves to NO team code, with code:"" so a board that
     // matches on the LISTING TITLE can still place it.
     //
