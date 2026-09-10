@@ -3181,18 +3181,16 @@
               </span>
               <button class="ed-btn" id="cardAddBtn" type="button">+ Add Card</button>
             </div>
-            <!-- NAME IMPORT (2026-09-10, REPLACE behavior 2026-09-11). Apply list
-                 REPLACES the current card list (and its artwork) with the pasted
-                 one - it does not merge into what's already there. Reset just
-                 clears the list outright, for swapping in a different set. -->
+            <!-- NAME IMPORT (2026-09-10). Same idea as the Spot Names paste-list:
+                 name every card in one paste before assigning any artwork below,
+                 instead of typing each row one at a time. -->
             <div class="row" style="align-items:flex-start;">
               <label>Paste list</label>
-              <textarea id="cardNamesPaste" rows="3" placeholder="One name per line, or comma separated. REPLACES the current card list with this one. A line like '7, Charizard' or '7 Charizard' targets card 7. Add names first, then assign each card's image below."></textarea>
-              <button class="ed-btn" id="cardNamesPasteBtn" type="button">Apply list (replaces current)</button>
+              <textarea id="cardNamesPaste" rows="3" placeholder="One name per line, or comma separated. Fills cards 1, 2, 3... in order, adding new cards if the list is longer than the current list. A line like '7, Charizard' or '7 Charizard' targets card 7. Add names first, then assign each card's image below."></textarea>
+              <button class="ed-btn" id="cardNamesPasteBtn" type="button">Apply list</button>
             </div>
             <div class="row">
-              <button class="ed-btn" id="cardsCsvBtn" type="button">Import CSV (replaces current)</button>
-              <button class="ed-btn danger" id="cardsResetBtn" type="button">Reset (clear all cards)</button>
+              <button class="ed-btn" id="cardsCsvBtn" type="button">Import CSV</button>
             </div>
             <input id="cardsCsvFile" type="file" accept=".csv,text/csv,text/plain" style="display:none" />
             <div class="ed-list" id="cardsEditorList"></div>
@@ -5292,22 +5290,13 @@ function addScrollingCard(){
   renderCardsEditor();
 }
 
-/* ===== CARD NAME IMPORT (2026-09-10, REPLACE behavior added 2026-09-11) =====
+/* ===== CARD NAME IMPORT (2026-09-10) =====
    Before this, "Scrolling Cards" only supported typing a name into each row's
    own text input, one at a time - fine for a handful of cards, tedious for a
    real set. Same paste-list idea as the Spot Names editor above (and reuses its
    generic parseNameList() as-is): one pasted block names every card in order,
-   or "7, Charizard" targets card 7 directly.
-
-   ROUND 16 (2026-09-11): Mike wanted Apply list to REPLACE the current card list,
-   not fill gaps in it - he swaps in a whole different set for a different break
-   and doesn't want the old set's leftover cards still sitting there. Apply list
-   now wipes state.pokemon and rebuilds it fresh from the pasted list every time;
-   a separate Reset button (below) also clears it outright, for when he wants an
-   empty list without pasting a replacement yet. Old stored artwork is purged by
-   id on both paths, so a reused id like card1/card2 can never silently inherit a
-   PREVIOUS list's image. Names go in FIRST; artwork is still assigned per row
-   afterward via Browse/drag/paste, unchanged. */
+   or "7, Charizard" targets card 7 directly. Names go in FIRST; artwork is still
+   assigned per row afterward via Browse/drag/paste, unchanged. */
 function cardsStatus(msg, bad){
   const h = document.getElementById("cardsEditorHint");
   if (!h) return;
@@ -5317,45 +5306,50 @@ function cardsStatus(msg, bad){
   clearTimeout(cardsStatus.__t);
   cardsStatus.__t = setTimeout(() => { h.style.color = ""; h.textContent = h.dataset.default; }, 4000);
 }
-function purgeAllCardArt(){
-  (state.pokemon || []).forEach(pk => dropStoredImage(`card:${pk.id}`));
+function defaultCardName(idxZeroBased){ return `Card ${idxZeroBased + 1}`; }
+function isDefaultCardName(pk, idxZeroBased){ return !pk.name || pk.name === defaultCardName(idxZeroBased); }
+function nextUnnamedCardIndex(){
+  const list = state.pokemon || [];
+  for (let i = 0; i < list.length; i++){ if (isDefaultCardName(list[i], i)) return i; }
+  return -1;
 }
-function resetScrollingCards(){
-  purgeAllCardArt();
-  state.pokemon = [];
-  __cardImageTargetId = "";
-  saveState();
-  buildPokemonMarquee();
-  syncPokemonSoldClasses();
-  renderCardsEditor();
-  cardsStatus("Card list cleared.", false);
+/* Grows state.pokemon up to idxZeroBased (inclusive), same id/defaults as
+   addScrollingCard, so a pasted list longer than today's card count creates the
+   extra cards instead of silently dropping the extra names. */
+function ensureCardAt(idxZeroBased){
+  const list = state.pokemon || (state.pokemon = []);
+  while (list.length <= idxZeroBased){
+    let i = list.length + 1;
+    while (list.some(x => x.id === `card${i}`)) i++;
+    list.push({ id: `card${i}`, name: `Card ${i}`, img: "", sold: false });
+  }
+  return list[idxZeroBased];
+}
+function setCardName(idxZeroBased, name){
+  const pk = ensureCardAt(idxZeroBased);
+  pk.name = String(name || "").trim() || defaultCardName(idxZeroBased);
+  return true;
 }
 function applyCardNameList(text){
   const entries = parseNameList(text);
   if (!entries.length){ cardsStatus("Nothing to apply.", true); return; }
-
-  /* REPLACE, not merge: build the new list fresh, sized to fit every entry
-     (a targeted "12, Charizard" grows the list to at least 12), then drop
-     whatever was there before - including its stored artwork, so a reused
-     card id never shows the OLD list's image under the NEW list's name. */
-  const maxTargeted = entries.reduce((m, e) => (e.n > 0 ? Math.max(m, e.n) : m), 0);
-  const size = Math.max(entries.length, maxTargeted);
-  const fresh = Array.from({ length: size }, (_, i) => ({ id: `card${i + 1}`, name: `Card ${i + 1}`, img: "", sold: false }));
-
-  let cursor = 0;
+  let placed = 0;
   entries.forEach(e => {
-    const idx = e.n > 0 ? (e.n - 1) : cursor++;
-    if (fresh[idx]) fresh[idx].name = String(e.name || "").trim() || fresh[idx].name;
+    let idx;
+    if (e.n > 0){
+      idx = e.n - 1;                          // targeted: "7, Charizard"
+    } else {
+      idx = nextUnnamedCardIndex();
+      if (idx === -1) idx = (state.pokemon || []).length;   // every slot named: append
+    }
+    setCardName(idx, e.name);
+    placed++;
   });
-
-  purgeAllCardArt();
-  state.pokemon = fresh;
-  __cardImageTargetId = "";
   saveState();
   buildPokemonMarquee();
   syncPokemonSoldClasses();
   renderCardsEditor();
-  cardsStatus(`Replaced with ${fresh.length} card${fresh.length === 1 ? "" : "s"}.`, false);
+  cardsStatus(`${placed} name${placed === 1 ? "" : "s"} applied.`, false);
 }
 
 function resetSpotNames(){
@@ -5811,10 +5805,6 @@ function toggleAdmin(){
       fr.onerror = () => cardsStatus("Could not read that file.", true);
       fr.readAsText(file);
     }); }
-  /* No confirm() - OBS-safe rule (native dialogs block the browser source
-     thread). Same pattern as Reset Rounds / Reset Names: immediate action,
-     the red "danger" styling is the only warning. */
-  { const b = $("cardsResetBtn"); if (b) b.addEventListener("click", resetScrollingCards); }
 
   const spotsResetNamesBtn = $("spotsResetNamesBtn");
   if (spotsResetNamesBtn) spotsResetNamesBtn.addEventListener("click", resetSpotNames);
