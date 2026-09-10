@@ -65,10 +65,6 @@
        (96 + 175 + two gaps). Locked either way, so nothing creeps mid-show. */
     --boardH: 328px;     /* 360 until 2026-09-02, client wanted it tighter */
     --boardHEnv: 655px;
-    /* Seller font-size adjuster (2026-09-10), one knob per layout, multiplier
-       applied on top of the tile text sizes below. 1 = unchanged. */
-    --l1TextScale: 1;
-    --l2TextScale: 1;
 
     --gap: 5px;
     --r: 18px;
@@ -310,22 +306,6 @@
   }
   .spots-grid.dense{ gap:6px; }
   .spots-grid.dense .spot-tile{ min-height:0; padding:2px 2px 2px; gap:0; border-radius:9px; }
-  /* ROUND 15 (2026-09-10): boards over the old 40-spot ceiling stop shrinking
-     tiles further (they'd become unreadable slivers under the fixed board
-     height) and scroll instead, same idea as the envelope board's own
-     scroller. Only ever applied above 40 spots - see buildSpotsGrid(). */
-  .spots-grid.scrolling{
-    grid-template-rows:none;
-    grid-auto-rows:56px;
-    overflow-y:auto;
-    overflow-x:hidden;
-    overscroll-behavior:contain;
-  }
-  .spots-grid.scrolling::-webkit-scrollbar{ width:6px; }
-  .spots-grid.scrolling::-webkit-scrollbar-thumb{
-    background:rgba(228,125,7,0.45);
-    border-radius:999px;
-  }
   .spots-grid.dense .spot-num{ font-size:28px; -webkit-text-stroke:1.5px rgba(0,0,0,0.8); }
   .spots-grid.dense .spot-label{ font-size:20px; -webkit-line-clamp:1; }
   .spots-grid.dense .spot-buyer{ font-size:20px; }
@@ -2781,27 +2761,6 @@
   .env-big .env-tile.named .env-name{ font-size:34px; }
   .env-tile.sold.named .env-name{ display:block; font-size:26px; opacity:1; }
   .env-big .env-tile.sold.named .env-name{ font-size:34px; }
-
-  /* ROUND 15 (2026-09-10): FONT SIZE ADJUSTER, final override block (last block
-     wins, same pattern this file already uses for the marquee frame / chase FX /
-     logo). Multiplies the CURRENT effective tile-text sizes above by the
-     seller's per-layout percent (--l1TextScale / --l2TextScale, set by
-     applyTextScale() in JS) without touching or reordering any of Mike's tuned
-     values. Deliberately scoped to the number/label/name a viewer actually reads
-     on an unsold tile - NOT the sold-state sizes (spot-tile.sold / env-tile.sold,
-     unnamed or named), which stay exactly as tuned: they already shrink/dim on
-     purpose to recede once a tile sells, independent of this readability knob. */
-  .spot-num{ font-size:calc(22px * var(--l1TextScale, 1)); }
-  .spots-grid.dense .spot-num{ font-size:calc(28px * var(--l1TextScale, 1)); }
-  .spot-label{ font-size:calc(10px * var(--l1TextScale, 1)); }
-  .spots-grid.dense .spot-label{ font-size:calc(20px * var(--l1TextScale, 1)); }
-  .spot-tile.named .spot-label{ font-size:calc(16px * var(--l1TextScale, 1)); }
-  .spots-grid.dense .spot-tile.named .spot-label{ font-size:calc(22px * var(--l1TextScale, 1)); }
-
-  .env-title{ font-size:calc(26px * var(--l2TextScale, 1)); }
-  .env-big .env-title{ font-size:calc(34px * var(--l2TextScale, 1)); }
-  .env-tile.named .env-name{ font-size:calc(26px * var(--l2TextScale, 1)); }
-  .env-big .env-tile.named .env-name{ font-size:calc(34px * var(--l2TextScale, 1)); }
     </style>
   </head>
 
@@ -3027,19 +2986,12 @@
             <div id="boardModeHost" style="display:none"></div>
             <div class="row">
               <label>Spots</label>
-              <input id="spotCountInput" type="number" min="1" max="300" placeholder="20" />
-              <span class="ed-hint" style="flex:1 1 auto;">Grid spots. Scrolling cards are chasers on top. Boards over 40 scroll instead of shrinking further.</span>
+              <input id="spotCountInput" type="number" min="1" max="40" placeholder="20" />
+              <span class="ed-hint" style="flex:1 1 auto;">Grid spots (max 40). Scrolling cards are chasers on top.</span>
             </div>
             <div class="row">
               <label>Envelopes</label>
-              <input id="envelopeCountInput" type="number" min="1" max="300" placeholder="60" />
-            </div>
-            <div class="row">
-              <label>Text Size</label>
-              <input id="l1TextScaleInput" type="number" min="50" max="200" step="5" placeholder="100" style="flex:0 0 90px;" title="Layout 1 (Character Breaks) tile text, percent" />
-              <span class="ed-hint" style="flex:0 0 auto;">% Character Breaks tile text</span>
-              <input id="l2TextScaleInput" type="number" min="50" max="200" step="5" placeholder="100" style="flex:0 0 90px;" title="Layout 2 (Repacks) tile text, percent" />
-              <span class="ed-hint" style="flex:1 1 auto;">% Repacks tile text</span>
+              <input id="envelopeCountInput" type="number" min="1" max="150" placeholder="60" />
             </div>
             <div class="row">
               <label>Envelope Art</label>
@@ -3175,24 +3127,12 @@
           <summary>Scrolling Cards</summary>
           <div class="grp-body">
             <div class="ed-head">
-              <span class="ed-hint" id="cardsEditorHint">
+              <span class="ed-hint">
                 Click a card on the overlay to sell it and type the buyer.
                 Artwork: Browse, drag an image onto a row, or click a row and press Ctrl+V.
               </span>
               <button class="ed-btn" id="cardAddBtn" type="button">+ Add Card</button>
             </div>
-            <!-- NAME IMPORT (2026-09-10). Same idea as the Spot Names paste-list:
-                 name every card in one paste before assigning any artwork below,
-                 instead of typing each row one at a time. -->
-            <div class="row" style="align-items:flex-start;">
-              <label>Paste list</label>
-              <textarea id="cardNamesPaste" rows="3" placeholder="One name per line, or comma separated. Fills cards 1, 2, 3... in order, adding new cards if the list is longer than the current list. A line like '7, Charizard' or '7 Charizard' targets card 7. Add names first, then assign each card's image below."></textarea>
-              <button class="ed-btn" id="cardNamesPasteBtn" type="button">Apply list</button>
-            </div>
-            <div class="row">
-              <button class="ed-btn" id="cardsCsvBtn" type="button">Import CSV</button>
-            </div>
-            <input id="cardsCsvFile" type="file" accept=".csv,text/csv,text/plain" style="display:none" />
             <div class="ed-list" id="cardsEditorList"></div>
             <div class="ed-head" style="margin-top:10px;">
               <span class="ed-hint">ENVELOPE layout images: a display-only scroll row above the envelope board. Not tied to spots or sales.</span>
@@ -3475,8 +3415,6 @@ const ADMIN_KEY = `${LS_PREFIX}.overlay.adminOpen.${SET}`;
     promoText: "",         /* legacy single text, migrated into promoTexts */
     promoTexts: [],        /* banner messages, rotate on promoSec (2026-09-07) */
     promoTextPx: 44,
-    l1TextScale: 100,     /* seller font-size adjuster, percent, per layout (2026-09-10) */
-    l2TextScale: 100,
     envImages: [],         /* envelope layout display-only scroll row, store:envimg:<n> */
     envMarqueeCaption: "", /* short caption bar at the bottom of the envelope image row, 2026-09-08 */
     pageBgSpots: "",       /* whole-backdrop image per layout */
@@ -3867,22 +3805,6 @@ function sizeBackdrop(){
 }
 window.addEventListener("resize", sizeBackdrop);
 
-/* ROUND 15 (2026-09-10): FONT SIZE ADJUSTER. Two seller-controlled percent knobs,
-   one per layout, set as CSS vars on #stage (a genuine ancestor of both boards) so
-   they cascade. The CSS side (final override block, see .spot-num/.env-title near
-   the end of <style>) multiplies each tile-text rule by these vars - it never
-   touches the numbers Mike already tuned, it just scales on top of them. Sold-tile
-   text is deliberately left OUT of the scale; it already shrinks/dims by design to
-   recede once a tile sells, independent of the seller's readability preference. */
-function applyTextScale(){
-  const st = document.getElementById("stage");
-  if (!st) return;
-  const l1 = Math.max(50, Math.min(200, parseInt(state.l1TextScale, 10) || 100)) / 100;
-  const l2 = Math.max(50, Math.min(200, parseInt(state.l2TextScale, 10) || 100)) / 100;
-  st.style.setProperty("--l1TextScale", String(l1));
-  st.style.setProperty("--l2TextScale", String(l2));
-}
-
 /* A sale lands on a SPOT. The scrolling cards are what the buyer actually bought from,
    so carry the name onto every pokemon tied to that spot. Returns the ids it touched. */
 /* A sale lands on a SPOT. Route it to the scrolling card so the buyer name can
@@ -4238,8 +4160,6 @@ function renderAdminFields(){
     chk("bgVideoChk", state.bgVideo !== false);
     chk("chaseFxChk", state.chaseFx !== false);
     set("promoTextPxInput", state.promoTextPx || 44);
-    set("l1TextScaleInput", state.l1TextScale || 100);
-    set("l2TextScaleInput", state.l2TextScale || 100);
     set("envMarqueeCaptionInput", state.envMarqueeCaption || "");
     const hintFor = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v ? (String(v).startsWith("store:") ? "(uploaded)" : v) : "none"; };
     hintFor("pageBgSpotsHint", state.pageBgSpots);
@@ -4580,13 +4500,8 @@ function applyBoardModeClass(){
 /* Both layouts default to SPOT n and both are renameable, per Mike 2026-08-26.
    The envelope board used to seed ENV n, which meant a renamed board and a fresh
    board disagreed on what a default even looked like. */
-/* ROUND 15 (2026-09-10): "remove the max tile limitations" - the old hard caps
-   (40 grid spots, 150 envelopes) are gone. A generous safety ceiling stays so a
-   typo (an extra zero) can't hand the browser source an unbounded DOM build;
-   raise/remove ENVELOPE_MAX/SPOT_MAX below if a client ever needs more than 300. */
-const ENVELOPE_MAX = 300;
 function makeEnvelopeSpots(count){
-  const n = Math.max(1, Math.min(ENVELOPE_MAX, parseInt(count, 10) || 60));
+  const n = Math.max(1, Math.min(150, parseInt(count, 10) || 60));
   return Array.from({length: n}, (_, i) => ({
     id: `s${String(i + 1).padStart(2, "0")}`,
     label: `SPOT ${i + 1}`,
@@ -4594,9 +4509,9 @@ function makeEnvelopeSpots(count){
   }));
 }
 
-/* Layout 1 grid list. Same id scheme; any spot retired as a round winner is left
-   OUT so a resize cannot resurrect it. */
-const SPOT_MAX = 300;
+/* Layout 1 grid list. Same id scheme, capped at 40, and any spot retired as a
+   round winner is left OUT so a resize cannot resurrect it. */
+const SPOT_MAX = 40;
 function spotCount(){
   return Math.max(1, Math.min(SPOT_MAX, parseInt(state.spotCount, 10) || 20));
 }
@@ -5290,68 +5205,6 @@ function addScrollingCard(){
   renderCardsEditor();
 }
 
-/* ===== CARD NAME IMPORT (2026-09-10) =====
-   Before this, "Scrolling Cards" only supported typing a name into each row's
-   own text input, one at a time - fine for a handful of cards, tedious for a
-   real set. Same paste-list idea as the Spot Names editor above (and reuses its
-   generic parseNameList() as-is): one pasted block names every card in order,
-   or "7, Charizard" targets card 7 directly. Names go in FIRST; artwork is still
-   assigned per row afterward via Browse/drag/paste, unchanged. */
-function cardsStatus(msg, bad){
-  const h = document.getElementById("cardsEditorHint");
-  if (!h) return;
-  h.dataset.default = h.dataset.default || h.textContent;
-  h.textContent = msg;
-  h.style.color = bad ? "rgba(255,140,110,0.95)" : "rgba(150,230,160,0.95)";
-  clearTimeout(cardsStatus.__t);
-  cardsStatus.__t = setTimeout(() => { h.style.color = ""; h.textContent = h.dataset.default; }, 4000);
-}
-function defaultCardName(idxZeroBased){ return `Card ${idxZeroBased + 1}`; }
-function isDefaultCardName(pk, idxZeroBased){ return !pk.name || pk.name === defaultCardName(idxZeroBased); }
-function nextUnnamedCardIndex(){
-  const list = state.pokemon || [];
-  for (let i = 0; i < list.length; i++){ if (isDefaultCardName(list[i], i)) return i; }
-  return -1;
-}
-/* Grows state.pokemon up to idxZeroBased (inclusive), same id/defaults as
-   addScrollingCard, so a pasted list longer than today's card count creates the
-   extra cards instead of silently dropping the extra names. */
-function ensureCardAt(idxZeroBased){
-  const list = state.pokemon || (state.pokemon = []);
-  while (list.length <= idxZeroBased){
-    let i = list.length + 1;
-    while (list.some(x => x.id === `card${i}`)) i++;
-    list.push({ id: `card${i}`, name: `Card ${i}`, img: "", sold: false });
-  }
-  return list[idxZeroBased];
-}
-function setCardName(idxZeroBased, name){
-  const pk = ensureCardAt(idxZeroBased);
-  pk.name = String(name || "").trim() || defaultCardName(idxZeroBased);
-  return true;
-}
-function applyCardNameList(text){
-  const entries = parseNameList(text);
-  if (!entries.length){ cardsStatus("Nothing to apply.", true); return; }
-  let placed = 0;
-  entries.forEach(e => {
-    let idx;
-    if (e.n > 0){
-      idx = e.n - 1;                          // targeted: "7, Charizard"
-    } else {
-      idx = nextUnnamedCardIndex();
-      if (idx === -1) idx = (state.pokemon || []).length;   // every slot named: append
-    }
-    setCardName(idx, e.name);
-    placed++;
-  });
-  saveState();
-  buildPokemonMarquee();
-  syncPokemonSoldClasses();
-  renderCardsEditor();
-  cardsStatus(`${placed} name${placed === 1 ? "" : "s"} applied.`, false);
-}
-
 function resetSpotNames(){
   (state.spots || []).forEach(sp => { sp.label = DEFAULT_SPOT_LABEL(sp.id); });
   __lastSpotsSig = "";
@@ -5441,15 +5294,10 @@ function buildSpotsGrid(){
   /* Dense tile whenever a row gets under ~70px, measured against the panel the
      grid actually sits in (300px board minus padding since 2026-09-02). */
   const inner = Math.max(100, grid.parentElement ? grid.parentElement.clientHeight - 20 : 280);
-  /* ROUND 15 (2026-09-10): the spot cap was removed. At or under the old ceiling
-     of 40 this is byte-identical to before - same cols/rows/tileH math, no
-     scrolling. Only above 40 does the grid stop shrinking tiles and scroll
-     instead (see .spots-grid.scrolling above). */
-  const willScroll = n > 40;
-  const tileH = willScroll ? 56 : (inner - 6 * (rows - 1)) / rows;
-  grid.className = "spots-grid" + (tileH < 70 ? " dense" : "") + (willScroll ? " scrolling" : "");
+  const tileH = (inner - 6 * (rows - 1)) / rows;
+  grid.className = "spots-grid" + (tileH < 70 ? " dense" : "");
   grid.style.setProperty("--spotCols", String(cols));
-  grid.style.setProperty("--spotRows", willScroll ? "auto" : String(rows));
+  grid.style.setProperty("--spotRows", String(rows));
   if (sig !== __lastSpotsSig){
     __lastSpotsSig = sig;
     grid.innerHTML = "";
@@ -5554,7 +5402,6 @@ function renderAll(){
   renderAdminFields();
   buildSpotsGrid();
   syncSoldTeams();
-  applyTextScale();
   sizeBackdrop();
   requestAnimationFrame(sizeBackdrop);
 }
@@ -5660,8 +5507,6 @@ function toggleCardSold(id){
       state.bgVideo      = chk("bgVideoChk", true);
       state.chaseFx      = chk("chaseFxChk", true);
       state.promoTextPx = num("promoTextPxInput", 16, 90, 44);
-      state.l1TextScale = num("l1TextScaleInput", 50, 200, 100);
-      state.l2TextScale = num("l2TextScaleInput", 50, 200, 100);
       [0, 1].forEach(i => { const el = document.getElementById(`envDataLabel${i}`); if (el) envData(i).label = String(el.value || "").trim().slice(0, 16); });
       state.scrollSec = num("scrollSecInput", 10, 600, 80);
       state.tickerSec = num("tickerSecInput", 5, 300, 25);
@@ -5700,7 +5545,7 @@ function toggleCardSold(id){
     /* Resizing the envelope board keeps the sold state and buyer of every spot
        that survives the resize; only the tail is added or trimmed. */
     if (envelopeCountInput){
-      const n = Math.max(1, Math.min(ENVELOPE_MAX, parseInt(envelopeCountInput.value, 10) || 60));
+      const n = Math.max(1, Math.min(150, parseInt(envelopeCountInput.value, 10) || 60));
       if (n !== state.envelopeCount){
         state.envelopeCount = n;
         const target = (boardMode() === "envelope")
@@ -5794,17 +5639,6 @@ function toggleAdmin(){
   /* ---- editor buttons ---- */
   const cardAddBtn = $("cardAddBtn");
   if (cardAddBtn) cardAddBtn.addEventListener("click", addScrollingCard);
-  /* Card name import (2026-09-10): pasted list, CSV - same pattern as Spot Names. */
-  { const b = $("cardNamesPasteBtn"); if (b) b.addEventListener("click", () => { const t = $("cardNamesPaste"); if (t){ applyCardNameList(t.value); t.value = ""; } }); }
-  { const b = $("cardsCsvBtn"); const f = $("cardsCsvFile"); if (b && f) b.addEventListener("click", () => { f.value = ""; f.click(); }); }
-  { const f = $("cardsCsvFile"); if (f) f.addEventListener("change", () => {
-      const file = f.files && f.files[0]; f.value = "";
-      if (!file) return;
-      const fr = new FileReader();
-      fr.onload = () => applyCardNameList(String(fr.result || ""));
-      fr.onerror = () => cardsStatus("Could not read that file.", true);
-      fr.readAsText(file);
-    }); }
 
   const spotsResetNamesBtn = $("spotsResetNamesBtn");
   if (spotsResetNamesBtn) spotsResetNamesBtn.addEventListener("click", resetSpotNames);
