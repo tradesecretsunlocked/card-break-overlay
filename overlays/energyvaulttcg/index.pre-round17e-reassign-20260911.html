@@ -6179,26 +6179,10 @@ function toggleAdmin(){
   const soldTeams = new Set();
   let soldTeamsList = [];
 
-  /* saleId/id/listingId -> resolved {kind:'spot'|'pokemon', id}, so a reassigned
-     purchase releases whatever it PREVIOUSLY held instead of stranding it - regardless
-     of whether the old and new match land on a grid spot or a standalone chaser card.
-     Never key this on productId or listingId+buyerId: a break is ONE listing won
-     repeatedly, so that shape collapses a repeat buyer.
-     Round 17 continued (2026-09-11): originally spot-id-only (lastCodeByListingKey) -
-     Mike found that a retitle landing on a chaser after previously holding a grid spot
-     (or vice versa) never released the old one, because the old map only ever tracked
-     spot ids and only the two spot-matching paths ever wrote to it. Renamed to
-     lastAssignmentByListingKey and widened to record BOTH kinds via releasePrevAssignment(). */
-  const lastAssignmentByListingKey = new Map();
-
-  function releasePrevAssignment(listingKey, kind, id){
-    if (!listingKey || !id) return;
-    const prev = lastAssignmentByListingKey.get(listingKey);
-    if (prev && (prev.kind !== kind || prev.id !== id)){
-      setSoldById(prev.kind === "spot" ? state.spots : state.pokemon, prev.id, false);
-    }
-    lastAssignmentByListingKey.set(listingKey, { kind, id });
-  }
+  /* saleId/id/listingId -> resolved spot id, so a reassigned purchase releases the old
+     spot instead of stranding it. Never key this on productId or listingId+buyerId:
+     a break is ONE listing won repeatedly, so that shape collapses a repeat buyer. */
+  const lastCodeByListingKey = new Map();
 
   function computeBreakId(){
     const d = new Date();
@@ -6829,7 +6813,11 @@ case "team_sold": {
      today, so this fallback is what makes live spot-tile automation work. Round 14. */
   const spotId = spotIdFromTitle(title) || spotIdFromCode(data.code);
   if (spotId){
-    if (listingKey) releasePrevAssignment(listingKey, "spot", spotId);
+    if (listingKey){
+      const prev = lastCodeByListingKey.get(listingKey);
+      if (prev && prev !== spotId) setSoldById(state.spots, prev, false);
+      lastCodeByListingKey.set(listingKey, spotId);
+    }
     setSoldById(state.spots, spotId, true, buyer);
   } else if (title) {
     /* THIRD fallback (round 17, 2026-09-11): Whatnot "Character Break" listing titles
@@ -6843,23 +6831,21 @@ case "team_sold": {
        which is the format content.js actually sends. Requires the seller to have named
        the grid spots to match the break's possible pulls (confirmed true for this client). */
     const matchedSpotId = markSpotSoldByLabel(extractTrailingLabel(title), true, buyer);
-    if (matchedSpotId && listingKey) releasePrevAssignment(listingKey, "spot", matchedSpotId);
+    if (matchedSpotId && listingKey){
+      const prev = lastCodeByListingKey.get(listingKey);
+      if (prev && prev !== matchedSpotId) setSoldById(state.spots, prev, false);
+      lastCodeByListingKey.set(listingKey, matchedSpotId);
+    }
 
     /* FOURTH fallback (round 17 continued, 2026-09-11): the trailing pull name didn't
        match any grid spot's label - try matching it against a standalone "chaser" card
        on the scrolling marquee instead. Chasers have no spot number of their own, so
        spotIdFromTitle/spotIdFromCode/markSpotSoldByLabel all correctly return nothing
        for them; this is the same title-matching approach, just aimed at state.pokemon
-       (name field) instead of state.spots (label field).
-       Round 17 continued, part 2 (2026-09-11): this path now ALSO goes through
-       releasePrevAssignment, same as the spot paths - a reassignment that flips between
-       a grid spot and a chaser (either direction) needs the previous one released, not
-       just a reassignment between two spots. Mike found the original chaser fix never
-       released a prior grid-spot hold (or vice versa) because only the two spot-matching
-       paths ever wrote to the reassignment tracker. */
+       (name field) instead of state.spots (label field). No listingKey/reassignment
+       tracking here - chasers aren't reassigned between spots the way numbered spots are. */
     if (!matchedSpotId){
-      const matchedPokemonId = markPokemonSoldByLabel(extractTrailingLabel(title), true, buyer);
-      if (matchedPokemonId && listingKey) releasePrevAssignment(listingKey, "pokemon", matchedPokemonId);
+      markPokemonSoldByLabel(extractTrailingLabel(title), true, buyer);
     }
   }
 
