@@ -6559,7 +6559,7 @@ function toggleAdmin(){
   }
 
 
-  function markSpotSoldByLabel(label, sold=true){
+  function markSpotSoldByLabel(label, sold=true, buyer){
     const wantRaw = String(label || "").trim();
     const want = normLabel(wantRaw);
     if (!want) return null;
@@ -6571,7 +6571,7 @@ function toggleAdmin(){
     });
 
     if (spot){
-      setSoldById(state.spots, spot.id, !!sold);
+      setSoldById(state.spots, spot.id, !!sold, buyer);
       return spot.id;
     }
 
@@ -6804,7 +6804,7 @@ case "team_sold": {
        spot_sold_by_label event type but was never wired into this live team_sold path,
        which is the format content.js actually sends. Requires the seller to have named
        the grid spots to match the break's possible pulls (confirmed true for this client). */
-    const matchedSpotId = markSpotSoldByLabel(extractTrailingLabel(title), true);
+    const matchedSpotId = markSpotSoldByLabel(extractTrailingLabel(title), true, buyer);
     if (matchedSpotId && listingKey){
       const prev = lastCodeByListingKey.get(listingKey);
       if (prev && prev !== matchedSpotId) setSoldById(state.spots, prev, false);
