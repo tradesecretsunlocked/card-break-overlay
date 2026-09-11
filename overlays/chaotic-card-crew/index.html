@@ -2996,6 +2996,20 @@ function renderBreakTypeButtons(){
       .replace(/[^a-z0-9]+/g,' ')
       .trim();
   }
+
+  /* 2026-09-10: team codes are 2 to 3 characters, so the old bare substring test matched
+     INSIDE ordinary words. Two live cases on this board, both proven against real Whatnot
+     titles: "Golden State Warriors" resolved to DEN because gol-DEN contains it, and
+     "CHAOTIC PACK 2" resolved to CHA (Charlotte) whenever the seller's spot name did not
+     match exactly. Codes must now match as WHOLE WORDS, and a team-name substring needs at
+     least 4 characters. Same defect class as the OAK/"as" and MISCELLANEOUS/NE incidents. */
+  function hasWord(hay, needle){
+    const nd = String(needle || '').trim();
+    if (!nd) return false;
+    const esc = nd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp('(^|[^a-z0-9])' + esc + '([^a-z0-9]|$)').test(String(hay || ''));
+  }
+  const MIN_NAME_SUB = 3;
 function inferCodeFromTitle(title, sportHint){
   const rawTitle = String(title || "").trim();
   const t = norm(rawTitle);
@@ -3007,20 +3021,68 @@ function inferCodeFromTitle(title, sportHint){
      seller's own custom entries BEFORE the team tables, which is what makes automation work
      on a custom board. Longest name first so "CP 1" can never be shadowed by "CP".
      Checked for the current board first, then any custom-capable board. */
+  /* 2026-09-10 ROUND 2: the old test was exact-or-title-contains-name only, so the seller's
+     typed spot name had to be a literal substring of the Whatnot title. A spot typed
+     "CHAOTIC 2" against a listing titled "CHAOTIC PACK 2" missed completely and silently.
+     Matching is now tried in decreasing strictness, longest spot name first so a longer
+     name can never be shadowed by a shorter one:
+       1. exact
+       2. the title contains the whole spot name
+       3. the spot name contains the whole title (seller typed the longer version)
+       4. EVERY token of the spot name appears as a whole word in the title
+     Step 4 is what rescues "CHAOTIC 2" vs "CHAOTIC PACK 2" while still keeping
+     "CHAOTIC 1" and "CHAOTIC 2" distinct, because the number token must be present. */
   try {
     const boards = [currentBreakType].concat(
       ["nba","nfl","mlb","custom"].filter(b => b !== currentBreakType)
     );
+
+    const pool = [];
     for (const b of boards){
       const entries = (typeof loadCustomEntries === "function") ? loadCustomEntries(b) : [];
-      const sorted = entries.slice().sort((a,z) => norm(z.name).length - norm(a.name).length);
-      for (const e of sorted){
+      for (const e of entries){
         const n = norm(e.name);
-        if (!n) continue;
-        if (t === n || t.includes(n)) return e.code;
+        if (n) pool.push({ code: e.code, name: e.name, n: n });
       }
     }
-  } catch(_){}
+    pool.sort((a, z) => z.n.length - a.n.length);
+
+    /* Strict rules first, longest spot name first, first match wins. Whole-word
+       containment rather than raw substring, so a spot named "PACK 2" cannot swallow a
+       listing titled "PACK 22". */
+    for (const e of pool) if (t === e.n) return e.code;
+    for (const e of pool) if (hasWord(t, e.n)) return e.code;
+    for (const e of pool) if (hasWord(e.n, t)) return e.code;
+
+    /* Fuzzy token rules, for when the seller's typed name and the Whatnot title differ by
+       a filler word ("CHAOTIC 2" vs "CHAOTIC PACK 2"). Run in BOTH directions, and only
+       when EXACTLY ONE spot qualifies: an ambiguous fuzzy match is worse than no match,
+       because it sells the wrong tile and the seller has to spot it and undo it live. */
+    const toks  = str => String(str || '').split(' ').filter(Boolean);
+    const allIn = (hay, list) => list.length > 0 && list.every(tok => hasWord(hay, tok));
+
+    for (const rule of [ e => allIn(t, toks(e.n)), e => allIn(e.n, toks(t)) ]){
+      const hits = pool.filter(rule);
+      if (hits.length === 1) return hits[0].code;
+      if (hits.length > 1){
+        console.warn('[TSU] title', JSON.stringify(rawTitle),
+                     'fuzzy-matched', hits.length, 'spots, refusing to guess:',
+                     hits.map(e => e.name));
+      }
+    }
+
+    /* A code-less sale that matched NOTHING used to vanish with no trace, which is
+       indistinguishable from the extension never sending it. Say so once, with the
+       candidates, so the next miss is diagnosable straight from the OBS console. */
+    if (pool.length){
+      console.warn('[TSU] no spot matched title', JSON.stringify(rawTitle),
+                   '| normalised', JSON.stringify(t),
+                   '| spots on file:', pool.map(e => e.name));
+    } else {
+      console.warn('[TSU] no spot matched title', JSON.stringify(rawTitle),
+                   '- NO custom spots are saved on any board. Add them in the SPOTS editor.');
+    }
+  } catch(err){ console.warn('[TSU] custom spot match failed:', err && err.message); }
 
 
 
@@ -3029,8 +3091,11 @@ function inferCodeFromTitle(title, sportHint){
     for (const tm of list){
       const code = String(tm.code || '').toUpperCase().trim();
       if (!code) continue;
-      if (t.includes(norm(code))) return code;
-      if (tm.name && t.includes(norm(tm.name))) return code;
+      if (hasWord(t, norm(code))) return code;
+      const nm = tm.name ? norm(tm.name) : '';
+      /* Names match as whole words too: "hornets" contains "nets", so a plain substring
+         test resolved Charlotte to Brooklyn. */
+      if (nm && nm.length >= MIN_NAME_SUB && hasWord(t, nm)) return code;
     }
   }
 
@@ -3039,8 +3104,11 @@ function inferCodeFromTitle(title, sportHint){
     for (const tm of list){
       const code = String(tm.code || '').toUpperCase().trim();
       if (!code) continue;
-      if (t.includes(norm(code))) return code;
-      if (tm.name && t.includes(norm(tm.name))) return code;
+      if (hasWord(t, norm(code))) return code;
+      const nm = tm.name ? norm(tm.name) : '';
+      /* Names match as whole words too: "hornets" contains "nets", so a plain substring
+         test resolved Charlotte to Brooklyn. */
+      if (nm && nm.length >= MIN_NAME_SUB && hasWord(t, nm)) return code;
     }
   }
 
@@ -3515,7 +3583,15 @@ function toggleSoldPanel(){
 function sseMarkSold(code, buyer=""){
   if (!code) return;
 
-  const currentTeams = breakTypes[currentBreakType].teams;
+  /* 2026-09-10: was breakTypes[currentBreakType].teams, the RAW sport table, which never
+     contains the seller's custom spots. inferCodeFromTitle resolved "CHAOTIC 2" to
+     CUSTOM_NBA_2 correctly and the tile was on the board, but this gate rejected the code
+     and returned with no log, so every automated custom-spot sale vanished while team
+     sales worked. On the CUSTOM board breakTypes.custom.teams is [] by design, so nothing
+     there could ever automate. currentEntries() is the file's own canonical accessor:
+     sport teams PLUS that board's custom spots. Manual clicks never hit this because
+     toggleTeam() works off the DOM tile. */
+  const currentTeams = currentEntries();
 
   const exists = currentTeams.some(t => t.code === code);
   if (!exists) return;
@@ -3545,7 +3621,9 @@ function sseMarkSold(code, buyer=""){
 }
 
 function playSoldAnimation(code){
-  const team = breakTypes[currentBreakType].teams.find(t => t.code === code);
+  /* 2026-09-10: same raw-table read as the sold gate. A custom spot resolved to no entry
+     here, so it would have sold silently with no card animation even once the gate passed. */
+  const team = currentEntries().find(t => t.code === code);
   if (!team) return;
 
   const fxLayer = document.getElementById("soldFxLayer");
@@ -3681,7 +3759,9 @@ function exportSoldListTSV(){
   const lines = [];
   lines.push(["Spot", "Buyer", "Break #", "Date"].join("\t"));
 
-  const currentTeams = breakTypes[currentBreakType].teams;
+  /* 2026-09-10: same raw-table read. A sold custom spot exported as CUSTOM_NBA_2 instead
+     of the name the seller typed, because the lookup could not find it. */
+  const currentTeams = currentEntries();
 
   soldTeamsList.forEach(e => {
     if (!e || !e.code) return;
