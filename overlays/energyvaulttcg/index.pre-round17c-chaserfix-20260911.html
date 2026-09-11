@@ -6593,32 +6593,6 @@ function toggleAdmin(){
   }
 
 
-  /* Fuzzy-match a Character-Break trailing pull name against a standalone "chaser" card
-     on the scrolling marquee (state.pokemon entries with NO spotId - pokemon WITH a
-     spotId already sync automatically off their linked spot via setSoldById/syncSoldTeams,
-     so this is specifically for chasers that have no grid spot of their own). Mirrors
-     markSpotSoldByLabel's normLabel fuzzy-substring approach, but matches p.name instead
-     of a .label field. Round 17 continued, 2026-09-11. */
-  function markPokemonSoldByLabel(label, sold=true, buyer){
-    const wantRaw = String(label || "").trim();
-    const want = normLabel(wantRaw);
-    if (!want) return null;
-
-    const pk = (state.pokemon || []).find(p => {
-      if (p.spotId) return false; // linked chasers sync off their spot already
-      const nm = normLabel(p.name);
-      return nm && (nm === want || nm.includes(want) || want.includes(nm));
-    });
-
-    if (pk){
-      setSoldById(state.pokemon, pk.id, !!sold, buyer);
-      return pk.id;
-    }
-
-    return null;
-  }
-
-
 
   /*
     ===== Expected SSE payloads =====
@@ -6835,17 +6809,6 @@ case "team_sold": {
       const prev = lastCodeByListingKey.get(listingKey);
       if (prev && prev !== matchedSpotId) setSoldById(state.spots, prev, false);
       lastCodeByListingKey.set(listingKey, matchedSpotId);
-    }
-
-    /* FOURTH fallback (round 17 continued, 2026-09-11): the trailing pull name didn't
-       match any grid spot's label - try matching it against a standalone "chaser" card
-       on the scrolling marquee instead. Chasers have no spot number of their own, so
-       spotIdFromTitle/spotIdFromCode/markSpotSoldByLabel all correctly return nothing
-       for them; this is the same title-matching approach, just aimed at state.pokemon
-       (name field) instead of state.spots (label field). No listingKey/reassignment
-       tracking here - chasers aren't reassigned between spots the way numbered spots are. */
-    if (!matchedSpotId){
-      markPokemonSoldByLabel(extractTrailingLabel(title), true, buyer);
     }
   }
 
