@@ -316,6 +316,13 @@
       font-size: 14px;
       letter-spacing: 1px;
       opacity: 0.9;
+      /* now carries "BOX 12" rather than "B12" — keep it on one line and let it
+         shrink into narrow tiles instead of wrapping or spilling */
+      white-space: nowrap;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 2px;
     }
 .custom-team{
   background:
@@ -742,8 +749,102 @@
     }
     .giveaway-timer.on{ display:flex; }
     .giveaway-timer .gt-num{ font-size:19px; color:var(--barnOrange); font-variant-numeric:tabular-nums; letter-spacing:2px; }
-    .giveaway-timer.urgent{ border-color:#ef4444; animation: giveawayPulse .8s ease-in-out infinite; }
+    /* NOTE: the urgent pulse has to carry the centering translate with it —
+       a bare scale() would drop translateX(-50%) and jerk the pill half a width
+       to the right the moment the last 30 seconds hit. */
+    .giveaway-timer.urgent{ border-color:#ef4444; animation: giveawayPulseCentered .8s ease-in-out infinite; }
     .giveaway-timer.urgent .gt-num{ color:#ef4444; }
+    @keyframes giveawayPulseCentered{
+      0%,100%{ transform: translateX(-50%) scale(1); }
+      50%    { transform: translateX(-50%) scale(1.045); }
+    }
+
+    /* 2026-09-12: the pill is drag-to-place. Until it is moved it keeps the
+       auto-measured spot under the promo banner (the .moved branch below only
+       kicks in once a saved position exists), so nothing changes for a seller
+       who never touches it. */
+    .giveaway-timer{ cursor:grab; user-select:none; touch-action:none; }
+    .giveaway-timer.moved{
+      top:var(--gtY, 14px); left:var(--gtX, 50%); transform:none;
+    }
+    /* once it is drag-placed there is no centering to preserve, so the plain
+       scale-only pulse is the correct one */
+    .giveaway-timer.urgent.moved{ animation-name: giveawayPulse; }
+    .giveaway-timer.dragging{ cursor:grabbing; box-shadow:0 0 26px rgba(109,187,101,0.85); }
+
+    /* ===== CASE HIT TRACKER — detached draggable panel =====
+       Laid out HORIZONTALLY: each rarity is its own card and the cards flow
+       left-to-right, wrapping to a second line only once the bar is full. Type
+       sizes here are deliberately larger than the admin pills — this gets read
+       mid-break at a glance, not studied. */
+    .hit-panel{
+      position:fixed; z-index:99996;
+      left:var(--hpX, 24px); top:var(--hpY, 62vh);
+      width:min(1180px, 96vw); max-height:44vh; display:none; flex-direction:column;
+      background:linear-gradient(160deg,#0b1a0a,#000);
+      border:2px solid var(--accentBorder); border-radius:12px;
+      box-shadow:0 10px 34px rgba(0,0,0,0.72), 0 0 18px rgba(109,187,101,0.28);
+      font-size:15px; color:#fff; overflow:hidden;
+    }
+    .hit-panel.open{ display:flex; }
+    .hit-panel-head{
+      display:flex; align-items:center; gap:9px;
+      padding:9px 12px; border-bottom:1px solid var(--accentBorderSoft);
+      background:rgba(109,187,101,0.12);
+    }
+    .hit-grip{
+      cursor:grab; user-select:none; touch-action:none;
+      font-size:16px; letter-spacing:1px; font-weight:900; color:var(--hay);
+      padding:5px 10px; border:1px solid var(--accentBorderSoft); border-radius:7px;
+      white-space:nowrap;
+    }
+    .hit-panel.dragging .hit-grip{ cursor:grabbing; }
+    .hit-panel-title{ flex:1; font-weight:900; letter-spacing:1.5px; font-size:17px; white-space:nowrap; }
+
+    /* Single row, always. Cards never wrap — if the seller adds more rarities than
+       fit, the strip scrolls sideways rather than growing a second line and
+       doubling the panel's height over the board. */
+    .hit-rows{
+      overflow-x:auto; overflow-y:hidden; padding:10px;
+      display:flex; flex-direction:row; flex-wrap:nowrap; align-items:flex-start; gap:8px;
+    }
+    .hit-rows::-webkit-scrollbar{ height:8px; }
+    .hit-rows::-webkit-scrollbar-thumb{ background:var(--accentBorderSoft); border-radius:4px; }
+    .hit-rows::-webkit-scrollbar-track{ background:transparent; }
+    /* one card per rarity: label across the top, controls underneath */
+    .hit-row{
+      flex:0 0 auto; width:178px;
+      display:grid; grid-template-columns: 36px 1fr 10px 1fr 28px;
+      grid-template-rows:auto auto; align-items:center; gap:6px 4px;
+      padding:8px; border:1px solid var(--accentBorderSoft); border-radius:10px;
+      background:rgba(0,0,0,0.45);
+    }
+    .hit-row > :first-child{ grid-column:1 / -1; }   /* the name input spans the card */
+    .hit-row input{
+      background:#061405; color:#fff; border:1px solid var(--accentBorderSoft);
+      border-radius:7px; padding:7px 8px; font-size:15px; font-weight:800;
+      font-family:inherit; min-width:0; width:100%;
+    }
+    .hit-row input.hit-num{ text-align:center; font-size:19px; font-variant-numeric:tabular-nums; padding:5px 2px; }
+    /* kill the spinner arrows — they eat half the field at this size */
+    .hit-row input.hit-num::-webkit-outer-spin-button,
+    .hit-row input.hit-num::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+    .hit-row input.hit-num{ -moz-appearance:textfield; }
+    .hit-row input::placeholder{ color:rgba(168,224,160,0.55); font-weight:700; }
+    .hit-row input:focus{ outline:none; border-color:var(--accentBorder); }
+    .hit-row .hit-slash{ text-align:center; color:var(--hay); font-weight:900; font-size:19px; }
+    .hit-mini{
+      background:transparent; color:#fff; border:1px solid var(--accentBorderSoft);
+      border-radius:7px; padding:7px 0; font-size:18px; font-weight:900;
+      cursor:pointer; font-family:inherit; line-height:1;
+    }
+    .hit-mini:hover{ background:rgba(109,187,101,0.2); }
+    .hit-mini.danger{ color:#ef4444; border-color:rgba(239,68,68,0.45); }
+    .hit-panel-foot{
+      padding:8px 12px; border-top:1px solid var(--accentBorderSoft);
+      color:var(--hay); font-size:13px; letter-spacing:.4px;
+    }
+    .hit-empty{ padding:16px 8px; text-align:center; color:var(--hay); font-size:15px; width:100%; }
 
     /* ===== GIVEAWAY ===== */
     .giveaway-layer{
@@ -914,6 +1015,21 @@
       border-radius: 4px;
       border: 1px solid rgba(109,187,101,0.85);
       background:#000;
+      flex: 0 0 auto;
+    }
+
+    /* The label of the spot that sold — "BOX 4", "SPOT 4", or a custom entry name.
+       Sized to sit beside the 22px buyer field without crowding it. */
+    .sold-team-name{
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: .5px;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+      flex: 0 1 auto;
     }
 
  
@@ -925,6 +1041,10 @@
       font-weight: 800;
       padding: 0px 4px;
       width: 100%;
+      /* the spot label now sits to its left — the buyer field takes what is left
+         over and shrinks rather than pushing the label out of the row */
+      flex: 1 1 0;
+      min-width: 0;
       background: rgba(0,0,0,0.35);
       color:#f9fafb;
       outline:none;
@@ -1690,10 +1810,11 @@
 
         
           <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openPromoEditor()">🎁 PROMO</button>
-        <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openBoxCountModal()">📦 BOXES</button>
+        <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openBoxCountModal()" title="How many spots, and what you call them">📦 SPOTS</button>
         <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="startGiveaway()" id="giveawayBtn">🎁 GIVEAWAY</button>
         <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openBgModal()">🖼 BG</button>
         <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openChaseModal()">⭐ CHASE</button>
+        <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="toggleHitPanel()" title="Track guaranteed case hits and knock them down live">🎯 HITS</button>
       </div>
       <div class="sse" id="sseStatus">
           SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
@@ -1739,8 +1860,14 @@
   URL_LEGACY: "tsu.bridgeUrl",
   KEY_LEGACY: "tsu.bridgeKey",
   STATE: "melon.overlayState.v1",
-  
-  TEAM_STYLE: "melon.teamStyle.v1"
+
+  TEAM_STYLE: "melon.teamStyle.v1",
+
+  /* 2026-09-12 */
+  SPOT_WORD:  "melon.spotWord",           // what the seller calls a spot: BOX / SPOT / TILE…
+  GT_POS:     "melon.giveawayTimerPos",   // {x,y} once the seller drags the countdown
+  HIT_SLOTS:  "melon.hitSlots.v1",        // [{id,name,total,remaining}] case-hit tracker
+  HIT_PANEL:  "melon.hitPanel.v1"         // {open,x,y} for the detached tracker panel
 };
 
   const DEFAULT_TICKER_LINES = [
@@ -1798,17 +1925,30 @@ function getCustomTickerText(){
 }
 
 function getScoresTickerText(){
+  /* LIVE_SCORES_ENABLED is declared further down the file; the try/catch keeps
+     this safe if the marquee paints before that line is evaluated. Default off. */
+  let allowed = false;
+  try{ allowed = !!LIVE_SCORES_ENABLED; }catch(_){}
+  if (!allowed) return "";
   const lines = normalizeTickerArray(SCORE_LINES);
   return lines.length ? lines.join("   •   ") : "";
 }
 
-function buildTickerLine(){
-  const customText = getCustomTickerText();
-  const scoresText = getScoresTickerText();
+/* Case-hit tracker text — moved here from the promo banner 2026-09-12. */
+function getHitsTickerText(){
+  try{ return hitSlotsActive() ? hitSlideText() : ""; }catch(_){ return ""; }
+}
 
-  return scoresText
-    ? `${customText}   •   LIVE SCORES   •   ${scoresText}`
-    : customText;
+function buildTickerLine(){
+  const parts = [getCustomTickerText()];
+
+  const hitsText = getHitsTickerText();
+  if (hitsText) parts.push("CASE HITS", hitsText);
+
+  const scoresText = getScoresTickerText();
+  if (scoresText) parts.push("LIVE SCORES", scoresText);
+
+  return parts.filter(Boolean).join("   •   ");
 }
 
 function updateTickerMarquee(){
@@ -1922,20 +2062,51 @@ function savePromos(arr){
 let PROMO_LINES = loadPromos();
 let promoIndex = 0;
 
+/* 2026-09-12: the case-hit tracker moved OUT of the promo banner and into the
+   ticker (see buildTickerLine). The banner is back to plain rotating promo lines.
+   HIT_SLIDE is retained only so the dead-sentinel line below still parses. */
+const HIT_SLIDE = "~~TSU_HIT_SLIDE~~";
+/* ⚠ HOUSEKEEPING — DELETE THE SINGLE LINE DIRECTLY BELOW THIS COMMENT.
+   It is inert (a line comment, nothing references it) but it contains one stray
+   NUL byte, which makes git and ripgrep treat this entire file as binary. My
+   editing tools cannot emit a NUL, so I cannot delete it from here. */
+// dead sentinel: " TSU_HIT_SLIDE";
+
+function promoSlides(){
+  const arr = PROMO_LINES.slice();
+  return arr.length ? arr : DEFAULT_PROMOS.slice();
+}
+
 function rotatePromo(){
   const el = document.getElementById("promoText");
   if(!el) return;
 
+  const slides = promoSlides();
   promoIndex++;
-  if(promoIndex >= PROMO_LINES.length) promoIndex = 0;
+  if(promoIndex >= slides.length) promoIndex = 0;
 
   el.style.opacity = 0;
 
   setTimeout(()=>{
-    el.textContent = PROMO_LINES[promoIndex];
+    el.textContent = slides[promoIndex];
     el.style.opacity = 1;
   },300);
 }
+
+/* The tracker now lives in the ticker, so any count change rebuilds the marquee
+   text. Name kept — six call sites in the tracker reference it.
+   DEBOUNCED on purpose: updateTickerMarquee() re-measures and restarts the
+   scroll from zero, so firing it on every keystroke of a rarity name (or on a
+   fast run of −1 taps) would make the ticker stutter back to the start over and
+   over on stream. One rebuild per burst instead. */
+let _hitTickerTimer = null;
+function refreshHitSlide(){
+  clearTimeout(_hitTickerTimer);
+  _hitTickerTimer = setTimeout(() => {
+    try{ updateTickerMarquee(); }catch(_){}
+  }, 400);
+}
+window.refreshHitSlide = refreshHitSlide;
 
 setInterval(rotatePromo, 5000);
 
@@ -2380,11 +2551,37 @@ function clearOverlayState(){
     return Math.max(2, Math.min(BOX_COLS_MAX, Math.ceil(n / 2)));
   }
 
+  /* ===== WHAT THE SELLER CALLS A SPOT =====
+     Some houses sell "BOX 1", some sell "SPOT 1", some "TILE 1". This is purely
+     cosmetic — the tile CODE stays B1…Bn no matter what, so renaming never
+     invalidates saved sold marks, chase picks, per-tile styles or overlay state.
+     Aliases keep every common wording matchable, so automation still resolves a
+     Whatnot listing titled "Spot 4" onto a board the seller labelled "BOX 4". */
+  const SPOT_WORD_DEFAULT = "BOX";
+  const SPOT_WORD_SYNONYMS = ["BOX", "SPOT", "TILE", "SLOT", "PACK", "TEAM"];
+
+  function loadSpotWord(){
+    try{
+      const w = String(localStorage.getItem(LS.SPOT_WORD) || "").trim();
+      if (w) return w.toUpperCase();
+    }catch(_){}
+    return SPOT_WORD_DEFAULT;
+  }
+  function saveSpotWord(w){
+    const clean = String(w || "").trim().toUpperCase().slice(0, 12);
+    try{ localStorage.setItem(LS.SPOT_WORD, clean || SPOT_WORD_DEFAULT); }catch(_){}
+    return clean || SPOT_WORD_DEFAULT;
+  }
+  window.loadSpotWord = loadSpotWord;
+
   function makeBoxTiles(n){
+    const word = loadSpotWord();
     const out = [];
     for (let i = 1; i <= n; i++){
-      const label = `BOX ${i}`;
-      out.push({ code: `B${i}`, name: label, label, aliases: [label, String(i)] });
+      const label = `${word} ${i}`;
+      const aliases = [label, String(i)];
+      SPOT_WORD_SYNONYMS.forEach(s => { if (s !== word) aliases.push(`${s} ${i}`); });
+      out.push({ code: `B${i}`, name: label, label, aliases });
     }
     return out;
   }
@@ -2419,6 +2616,14 @@ function clearOverlayState(){
     document.documentElement.style.setProperty("--tileH", "var(--tileHTeam)");
   }
 
+  /* What a tile shows on its face. Box boards carry a label ("BOX 4"), so the tile
+     reads the same words as the sold list instead of the raw code B4. Custom
+     entries have no label, so they keep showing their code exactly as before. */
+  function tileFaceText(team){
+    const raw = String((team && (team.label || team.code)) || "?");
+    return raw.replace(/[<>&]/g, "");
+  }
+
   function makeTeamDiv(team){
     const d = document.createElement("div");
     d.className = "team";
@@ -2431,10 +2636,10 @@ function clearOverlayState(){
       img.alt = team.name || team.code || "";
 
 
-      img.onerror = () => { d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`; };
+      img.onerror = () => { d.innerHTML = `<div class="fallback-code">${tileFaceText(team)}</div>`; };
       d.appendChild(img);
     } else {
-      d.innerHTML = `<div class="fallback-code">${team.code || "?"}</div>`;
+      d.innerHTML = `<div class="fallback-code">${tileFaceText(team)}</div>`;
     }
 
     if (soldTeams.has(team.code)) d.classList.add("sold");
@@ -2716,18 +2921,45 @@ function applyChaseTeams(){
 // ===== END CHASE TEAMS =====
 /* ===== BOX COUNT ===== */
 function openBoxCountModal(){
-  if (currentBreakType === "custom"){
-    tsuToast("The CUSTOM board is driven by the CUSTOM LIST, not the box count.");
-    return;
-  }
   const modal = document.getElementById("boxCountModal");
   const inp   = document.getElementById("boxCountInput");
   const lab   = document.getElementById("boxCountProduct");
   if (!modal || !inp) return;
-  inp.value = String(getBoxCount(currentBreakType));
-  if (lab) lab.textContent = (TCG_PRODUCTS[currentBreakType]?.name || currentBreakType).toUpperCase();
+
+  /* The CUSTOM board gets its spots from the CUSTOM LIST, so the count half is
+     meaningless there — but the spot word is global, so they can still set it
+     from here rather than having to switch layouts first. */
+  const isCustom = (currentBreakType === "custom");
+  inp.disabled = isCustom;
+  inp.style.opacity = isCustom ? "0.4" : "";
+  inp.value = isCustom ? "" : String(getBoxCount(currentBreakType));
+  if (lab) lab.textContent = isCustom
+    ? "CUSTOM — COUNT COMES FROM THE CUSTOM LIST"
+    : (TCG_PRODUCTS[currentBreakType]?.name || currentBreakType).toUpperCase();
+
+  const word = document.getElementById("spotWordInput");
+  if (word){
+    word.value = loadSpotWord();
+    word.oninput = syncSpotWordPreview;
+  }
+  syncSpotWordPreview();
+
   modal.classList.add("open");
 }
+/* live preview so they can see "SPOT 1" before committing */
+function syncSpotWordPreview(){
+  const word = document.getElementById("spotWordInput");
+  const prev = document.getElementById("spotWordPreview");
+  if (!prev) return;
+  const w = String(word?.value || "").trim().toUpperCase() || SPOT_WORD_DEFAULT;
+  prev.textContent = `${w} 1`;
+}
+function presetSpotWord(w){
+  const inp = document.getElementById("spotWordInput");
+  if (inp) inp.value = w;
+  syncSpotWordPreview();
+}
+window.presetSpotWord = presetSpotWord;
 function closeBoxCountModal(){
   document.getElementById("boxCountModal")?.classList.remove("open");
 }
@@ -2744,21 +2976,42 @@ function presetBoxCount(n){
 function applyBoxCountFromModal(){
   const inp = document.getElementById("boxCountInput");
   if (!inp) return;
-  const before = getBoxCount(currentBreakType);
-  const after  = setBoxCount(currentBreakType, inp.value);
 
-  /* Box identity is positional, so a resized case cannot keep its old sold marks:
+  /* Spot word first — it is cosmetic and must NOT trigger the sold-mark clear
+     below. Saving it before refreshBoxTiles() runs means the rebuilt tiles come
+     back already carrying the new label. */
+  const wordBefore = loadSpotWord();
+  const wordAfter  = saveSpotWord(document.getElementById("spotWordInput")?.value || wordBefore);
+  const wordChanged = wordAfter !== wordBefore;
+
+  /* On the CUSTOM board the count field is disabled and empty. Running it through
+     setBoxCount would parse "" to 1, read as a resize, and wipe the seller's sold
+     marks mid-break. Skip the count half entirely there. */
+  const isCustom = (currentBreakType === "custom");
+  const before = isCustom ? null : getBoxCount(currentBreakType);
+  const after  = isCustom ? null : setBoxCount(currentBreakType, inp.value);
+
+  /* Spot identity is positional, so a resized case cannot keep its old sold marks:
      BOX 12 on a 12-box case is not BOX 12 on a 16-box case. Clear rather than
-     silently carry a wrong buyer across. */
-  if (after !== before){
+     silently carry a wrong buyer across. Renaming the word is NOT a resize — the
+     codes are untouched, so sold marks, chase picks and tile styles all survive. */
+  if (!isCustom && after !== before){
     soldTeams = new Set();
     soldTeamsList = [];
     saveOverlayState();
   }
 
+  if (wordChanged) refreshBoxTiles();   // relabel every product, not just this one
+
   buildLayout();
+  updateSoldList();
   closeBoxCountModal();
-  tsuToast(`${TCG_PRODUCTS[currentBreakType]?.name || "Board"} set to ${after} boxes.`);
+
+  const product = TCG_PRODUCTS[currentBreakType]?.name || "Board";
+  if (isCustom && wordChanged)  tsuToast(`Spots are now called "${wordAfter}".`);
+  else if (isCustom)            tsuToast("Nothing to change — the CUSTOM board is driven by the CUSTOM LIST.");
+  else if (wordChanged)         tsuToast(`${product}: ${after} spots, now called "${wordAfter}".`);
+  else                          tsuToast(`${product} set to ${after} ${wordAfter.toLowerCase()}s.`);
 }
 
 /* ===== HITS THIS CASE ===== */
@@ -2845,13 +3098,365 @@ function stopGiveaway(announce){
    show and on resize, so it tracks the banner instead of guessing a fixed offset. */
 function positionGiveawayTimer(){
   const t = document.getElementById("giveawayTimer");
+  if (!t) return;
+  /* Once the seller has dragged it, their spot wins — never re-park it. */
+  if (t.classList.contains("moved")) return;
   const promo = document.getElementById("promoFlipSlot") || document.querySelector(".promo-box");
-  if (!t || !promo) return;
+  if (!promo) return;
   const r = promo.getBoundingClientRect();
   t.style.setProperty("--gtTop", Math.round(r.bottom + 10) + "px");
 }
 window.positionGiveawayTimer = positionGiveawayTimer;
 window.addEventListener("resize", positionGiveawayTimer);
+
+/* ===== GIVEAWAY COUNTDOWN — DRAG TO PLACE =====
+   Drag the pill anywhere. The position is stored as plain top-left pixels and
+   applied through --gtX/--gtY on the .moved branch, which also drops the
+   translateX(-50%) centering so the saved coords mean what they say. */
+function loadGtPos(){
+  try{
+    const o = JSON.parse(localStorage.getItem(LS.GT_POS) || "null");
+    if (o && Number.isFinite(o.x) && Number.isFinite(o.y)) return o;
+  }catch(_){}
+  return null;
+}
+function saveGtPos(x, y){
+  try{ localStorage.setItem(LS.GT_POS, JSON.stringify({ x: Math.round(x), y: Math.round(y) })); }catch(_){}
+}
+function applyGtPos(pos){
+  const t = document.getElementById("giveawayTimer");
+  if (!t || !pos) return;
+  t.style.setProperty("--gtX", pos.x + "px");
+  t.style.setProperty("--gtY", pos.y + "px");
+  t.classList.add("moved");
+}
+function clampGtPos(x, y, el){
+  const w = el.offsetWidth  || 180;
+  const h = el.offsetHeight || 32;
+  return {
+    x: Math.max(4, Math.min(x, window.innerWidth  - w - 4)),
+    y: Math.max(4, Math.min(y, window.innerHeight - h - 4))
+  };
+}
+function resetGiveawayTimerPos(){
+  const t = document.getElementById("giveawayTimer");
+  if (!t) return;
+  try{ localStorage.removeItem(LS.GT_POS); }catch(_){}
+  t.classList.remove("moved");
+  t.style.removeProperty("--gtX");
+  t.style.removeProperty("--gtY");
+  positionGiveawayTimer();
+}
+window.resetGiveawayTimerPos = resetGiveawayTimerPos;
+
+function initGiveawayTimerDrag(){
+  /* NOTE: #giveawayTimer is authored AFTER this script block in the document,
+     so this must not run at parse time. It is called from the boot hook at the
+     bottom of the file (and guards itself against a double call). */
+  const t = document.getElementById("giveawayTimer");
+  if (!t || t.dataset.dragReady === "1") return;
+  t.dataset.dragReady = "1";
+
+  applyGtPos(loadGtPos());
+
+  let dx = 0, dy = 0, active = false;
+
+  t.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    const r = t.getBoundingClientRect();
+    dx = e.clientX - r.left;
+    dy = e.clientY - r.top;
+    active = true;
+    t.classList.add("dragging");
+    /* lock in the current visual spot before the centering transform drops */
+    const p = clampGtPos(r.left, r.top, t);
+    t.style.setProperty("--gtX", p.x + "px");
+    t.style.setProperty("--gtY", p.y + "px");
+    t.classList.add("moved");
+    try{ t.setPointerCapture(e.pointerId); }catch(_){}
+    e.preventDefault();
+  });
+
+  t.addEventListener("pointermove", (e) => {
+    if (!active) return;
+    const p = clampGtPos(e.clientX - dx, e.clientY - dy, t);
+    t.style.setProperty("--gtX", p.x + "px");
+    t.style.setProperty("--gtY", p.y + "px");
+  });
+
+  const end = (e) => {
+    if (!active) return;
+    active = false;
+    t.classList.remove("dragging");
+    try{ t.releasePointerCapture(e.pointerId); }catch(_){}
+    const r = t.getBoundingClientRect();
+    const p = clampGtPos(r.left, r.top, t);
+    t.style.setProperty("--gtX", p.x + "px");
+    t.style.setProperty("--gtY", p.y + "px");
+    saveGtPos(p.x, p.y);
+  };
+  t.addEventListener("pointerup", end);
+  t.addEventListener("pointercancel", end);
+
+  /* keep it on screen if OBS resizes the canvas */
+  window.addEventListener("resize", () => {
+    if (!t.classList.contains("moved")) return;
+    const r = t.getBoundingClientRect();
+    const p = clampGtPos(r.left, r.top, t);
+    t.style.setProperty("--gtX", p.x + "px");
+    t.style.setProperty("--gtY", p.y + "px");
+    saveGtPos(p.x, p.y);
+  });
+}
+window.initGiveawayTimerDrag = initGiveawayTimerDrag;
+
+/* =========================================================================
+   CASE HIT TRACKER  (added 2026-09-12)
+   Sellers declare what a sealed case guarantees — "CASE HIT 1", "ALT ART SR 10",
+   "SECRET RARE 20", "SSR 5" — and knock the remaining count down as each one is
+   pulled on stream. The live numbers ride in the promo banner as ONE combined
+   slide pinned to the end of the rotation, so adding rarities never crowds the
+   seller's own promo lines out. Controlled from a detached draggable panel.
+   ========================================================================= */
+function loadHitSlots(){
+  try{
+    const arr = JSON.parse(localStorage.getItem(LS.HIT_SLOTS) || "null");
+    if (Array.isArray(arr)) {
+      return arr.map(s => ({
+        id: String(s && s.id || ("h" + Math.random().toString(36).slice(2, 8))),
+        name: String(s && s.name || ""),
+        total: Math.max(0, parseInt(s && s.total, 10) || 0),
+        remaining: Math.max(0, parseInt(s && s.remaining, 10) || 0)
+      }));
+    }
+  }catch(_){}
+  return [];
+}
+function saveHitSlots(){
+  try{ localStorage.setItem(LS.HIT_SLOTS, JSON.stringify(HIT_SLOTS)); }catch(_){}
+}
+let HIT_SLOTS = loadHitSlots();
+
+function hitSlotById(id){ return HIT_SLOTS.find(s => s.id === id) || null; }
+/* a slot only counts once it has a label — half-typed rows stay off the banner */
+function hitSlotsActive(){ return HIT_SLOTS.some(s => String(s.name).trim()); }
+function hitSlideText(){
+  return HIT_SLOTS
+    .filter(s => String(s.name).trim())
+    .map(s => `${String(s.name).trim().toUpperCase()} ${s.remaining}/${s.total}`)
+    .join("   •   ");
+}
+
+function addHitSlot(){
+  HIT_SLOTS.push({ id: "h" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: "", total: 1, remaining: 1 });
+  saveHitSlots();
+  renderHitPanel();
+}
+function removeHitSlot(id){
+  HIT_SLOTS = HIT_SLOTS.filter(s => s.id !== id);
+  saveHitSlots();
+  renderHitPanel();
+  refreshHitSlide();
+}
+function setHitName(id, v){
+  const s = hitSlotById(id); if (!s) return;
+  s.name = String(v || "");
+  saveHitSlots();
+  refreshHitSlide();
+}
+function setHitTotal(id, v){
+  const s = hitSlotById(id); if (!s) return;
+  s.total = Math.max(0, parseInt(v, 10) || 0);
+  if (s.remaining > s.total) s.remaining = s.total;
+  saveHitSlots();
+  renderHitPanel();
+  refreshHitSlide();
+}
+function setHitRemaining(id, v){
+  const s = hitSlotById(id); if (!s) return;
+  s.remaining = Math.max(0, Math.min(parseInt(v, 10) || 0, s.total));
+  saveHitSlots();
+  renderHitPanel();
+  refreshHitSlide();
+}
+/* the one-tap path during a live break */
+function nudgeHit(id, delta){
+  const s = hitSlotById(id); if (!s) return;
+  s.remaining = Math.max(0, Math.min(s.remaining + delta, s.total));
+  saveHitSlots();
+  renderHitPanel();
+  refreshHitSlide();
+}
+function resetHitSlots(){
+  HIT_SLOTS.forEach(s => { s.remaining = s.total; });
+  saveHitSlots();
+  renderHitPanel();
+  refreshHitSlide();
+}
+window.addHitSlot = addHitSlot;
+window.resetHitSlots = resetHitSlots;
+
+function renderHitPanel(){
+  const wrap = document.getElementById("hitRows");
+  if (!wrap) return;
+  wrap.textContent = "";
+
+  if (!HIT_SLOTS.length){
+    const empty = document.createElement("div");
+    empty.className = "hit-empty";
+    empty.textContent = "No rarities yet — hit + ADD to create one.";
+    wrap.appendChild(empty);
+    return;
+  }
+
+  HIT_SLOTS.forEach(s => {
+    const row = document.createElement("div");
+    row.className = "hit-row";
+
+    const name = document.createElement("input");
+    name.type = "text";
+    name.placeholder = "RARITY NAME";
+    name.title = "What this card / rarity is called on the banner";
+    name.value = s.name;
+    name.addEventListener("input", () => setHitName(s.id, name.value));
+    row.appendChild(name);
+
+    const minus = document.createElement("button");
+    minus.className = "hit-mini";
+    minus.textContent = "−";
+    minus.title = "One pulled — drop remaining by 1";
+    minus.addEventListener("click", () => nudgeHit(s.id, -1));
+    row.appendChild(minus);
+
+    const rem = document.createElement("input");
+    rem.type = "number"; rem.min = "0"; rem.className = "hit-num";
+    rem.value = String(s.remaining);
+    rem.title = "Remaining";
+    rem.addEventListener("change", () => setHitRemaining(s.id, rem.value));
+    row.appendChild(rem);
+
+    const slash = document.createElement("div");
+    slash.className = "hit-slash";
+    slash.textContent = "/";
+    row.appendChild(slash);
+
+    const tot = document.createElement("input");
+    tot.type = "number"; tot.min = "0"; tot.className = "hit-num";
+    tot.value = String(s.total);
+    tot.title = "Guaranteed per case";
+    tot.addEventListener("change", () => setHitTotal(s.id, tot.value));
+    row.appendChild(tot);
+
+    const del = document.createElement("button");
+    del.className = "hit-mini danger";
+    del.textContent = "✕";
+    del.title = "Remove this rarity";
+    del.addEventListener("click", () => removeHitSlot(s.id));
+    row.appendChild(del);
+
+    wrap.appendChild(row);
+  });
+}
+
+/* ---- panel open/close + drag ---- */
+function loadHitPanelState(){
+  try{
+    const o = JSON.parse(localStorage.getItem(LS.HIT_PANEL) || "null");
+    if (o && typeof o === "object") return o;
+  }catch(_){}
+  return { open:false, x:null, y:null };
+}
+function saveHitPanelState(patch){
+  const cur = loadHitPanelState();
+  try{ localStorage.setItem(LS.HIT_PANEL, JSON.stringify(Object.assign(cur, patch || {}))); }catch(_){}
+}
+function openHitPanel(){
+  const p = document.getElementById("hitPanel");
+  if (!p) return;
+  p.classList.add("open");
+  saveHitPanelState({ open:true });
+  renderHitPanel();
+}
+function closeHitPanel(){
+  const p = document.getElementById("hitPanel");
+  if (!p) return;
+  p.classList.remove("open");
+  saveHitPanelState({ open:false });
+}
+function toggleHitPanel(){
+  const p = document.getElementById("hitPanel");
+  if (!p) return;
+  if (p.classList.contains("open")) closeHitPanel(); else openHitPanel();
+}
+window.openHitPanel = openHitPanel;
+window.closeHitPanel = closeHitPanel;
+window.toggleHitPanel = toggleHitPanel;
+
+function initHitPanel(){
+  const p = document.getElementById("hitPanel");
+  if (!p || p.dataset.ready === "1") return;
+  p.dataset.ready = "1";
+
+  const st = loadHitPanelState();
+  if (Number.isFinite(st.x) && Number.isFinite(st.y)){
+    p.style.setProperty("--hpX", st.x + "px");
+    p.style.setProperty("--hpY", st.y + "px");
+  }
+  renderHitPanel();
+  if (st.open) p.classList.add("open");
+
+  const grip = p.querySelector(".hit-grip");
+  if (!grip) return;
+  let dx = 0, dy = 0, active = false;
+
+  const clamp = (x, y) => ({
+    x: Math.max(4, Math.min(x, window.innerWidth  - p.offsetWidth  - 4)),
+    y: Math.max(4, Math.min(y, window.innerHeight - p.offsetHeight - 4))
+  });
+
+  grip.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    const r = p.getBoundingClientRect();
+    dx = e.clientX - r.left; dy = e.clientY - r.top;
+    active = true;
+    p.classList.add("dragging");
+    try{ grip.setPointerCapture(e.pointerId); }catch(_){}
+    e.preventDefault();
+  });
+  grip.addEventListener("pointermove", (e) => {
+    if (!active) return;
+    const c = clamp(e.clientX - dx, e.clientY - dy);
+    p.style.setProperty("--hpX", c.x + "px");
+    p.style.setProperty("--hpY", c.y + "px");
+  });
+  const end = (e) => {
+    if (!active) return;
+    active = false;
+    p.classList.remove("dragging");
+    try{ grip.releasePointerCapture(e.pointerId); }catch(_){}
+    const r = p.getBoundingClientRect();
+    const c = clamp(r.left, r.top);
+    saveHitPanelState({ x: Math.round(c.x), y: Math.round(c.y) });
+  };
+  grip.addEventListener("pointerup", end);
+  grip.addEventListener("pointercancel", end);
+
+  /* The panel got a lot wider when it went horizontal, so a position saved from
+     the old narrow build could now hang off the right edge. Pull it back once,
+     on boot and on canvas resize. */
+  const keepOnScreen = () => {
+    if (!p.classList.contains("open")) return;
+    const r = p.getBoundingClientRect();
+    const c = clamp(r.left, r.top);
+    if (Math.round(c.x) === Math.round(r.left) && Math.round(c.y) === Math.round(r.top)) return;
+    p.style.setProperty("--hpX", c.x + "px");
+    p.style.setProperty("--hpY", c.y + "px");
+    saveHitPanelState({ x: Math.round(c.x), y: Math.round(c.y) });
+  };
+  keepOnScreen();
+  window.addEventListener("resize", keepOnScreen);
+}
+window.initHitPanel = initHitPanel;
 
 function runGiveawayTimer(){
   const pill = document.getElementById("giveawayTimer");
@@ -2873,8 +3478,15 @@ function runGiveawayTimer(){
   paint();
   giveawayTick = setInterval(paint, 250);
 }
-/* resume a countdown that was running before a reload */
-if (parseInt(localStorage.getItem(LS_GIVEAWAY_END) || "0", 10) > Date.now()) runGiveawayTimer();
+/* Resume a countdown that was running before a reload.
+   2026-09-12: this used to run inline here, but #giveawayTimer is authored below
+   this script block, so at parse time runGiveawayTimer() found no pill and bailed
+   — an OBS source refresh mid-giveaway silently lost the countdown while the end
+   time sat in localStorage. It is now driven from the boot hook at the bottom. */
+function resumeGiveawayTimerIfRunning(){
+  if (parseInt(localStorage.getItem(LS_GIVEAWAY_END) || "0", 10) > Date.now()) runGiveawayTimer();
+}
+window.resumeGiveawayTimerIfRunning = resumeGiveawayTimerIfRunning;
 
 /* ===== PER-LAYOUT BOARD BACKGROUND ===== */
 const LS_BG_PREFIX = "melon.bg.";
@@ -3325,20 +3937,27 @@ if (team.image){
   img.className = "sold-team-img";
   row.appendChild(img);
 } else {
+  /* No artwork on a TCG box board, so the chip carries the spot number and the
+     span next to it carries the full label. */
   const spacer = document.createElement("div");
   spacer.className = "sold-team-img";
   spacer.style.display = "flex";
   spacer.style.alignItems = "center";
   spacer.style.justifyContent = "center";
   spacer.style.color = "#fff";
-  spacer.style.fontSize = "10px";
-  spacer.textContent = "#";
+  spacer.style.fontSize = "12px";
+  spacer.style.fontWeight = "900";
+  const num = String(team.code || "").replace(/\D+/g, "");
+  spacer.textContent = num || "#";
   row.appendChild(spacer);
 }
 
+      /* 2026-09-12 BUGFIX: this span was appended empty, so every sold row showed
+         nothing but the "#" chip. Label first, then name, then code — a custom
+         entry may carry only one of the three. */
       const name = document.createElement("span");
       name.className = "sold-team-name";
-     
+      name.textContent = team.label || team.name || team.code || "";
       row.appendChild(name);
 
       const input = document.createElement("input");
@@ -3507,6 +4126,14 @@ const BRIDGE_KEY_DEFAULT  = "7e1a9c42-3b5d-4f8e-a2c6-9d0b4e7f1a35";   /* key iss
 const BRIDGE_URL = (new URLSearchParams(location.search).get("bridge") || BRIDGE_BASE).replace(/\/$/, "");
 const BRIDGE_KEY = new URLSearchParams(location.search).get("key") || BRIDGE_KEY_DEFAULT;
 const SCORES_URL = (new URLSearchParams(location.search).get("scoresBridge") || SCORES_BRIDGE_BASE).replace(/\/$/, "");
+
+/* LIVE SCORES: OFF for this client (2026-09-12).
+   Melon is an EU TCG house — One Piece / Weiss Schwarz / Union Arena. They never
+   run a sports break, so a US sports-score feed is pure noise in their ticker and
+   a pointless second SSE connection. The plumbing stays in the file so it is a
+   one-word flip if that ever changes; the `scores` row in client_services is set
+   entitled = true, enabled = false to match. Override for a test with ?scores=1. */
+const LIVE_SCORES_ENABLED = (new URLSearchParams(location.search).get("scores") === "1");
 
 /* The scores channel is the bare string "sports" for every client, on every build.
    Never build it from a namespace: a templated channel name fails silently. */
@@ -3729,7 +4356,7 @@ function startSSE(){
   /* Sales on the main bridge, scores on the scores bridge. Right channel + wrong
      host connects, never errors, never delivers a score. */
   connectSSE(normalizeBridge(BRIDGE_URL));
-  connectScoresSSE(normalizeBridge(SCORES_URL));
+  if (LIVE_SCORES_ENABLED) connectScoresSSE(normalizeBridge(SCORES_URL));
 }
 
   async function warmupPing(){
@@ -4319,7 +4946,7 @@ if (e.target === m){
 <div class="modal-backdrop" id="boxCountModal">
   <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Box Count">
     <div class="modal-head">
-      <div class="modal-title">Boxes in this case</div>
+      <div class="modal-title">Board spots</div>
       <div class="modal-actions">
         <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyBoxCountFromModal()">APPLY</button>
         <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeBoxCountModal()">CLOSE</button>
@@ -4342,13 +4969,34 @@ if (e.target === m){
         <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetBoxCount(20)">20</button>
         <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetBoxCount(24)">24</button>
       </div>
+
+      <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--accentBorderSoft);">
+        <div class="btn ghost" style="padding:8px 10px; font-size:13px; cursor:default; align-self:flex-start; display:inline-block;">WHAT DO YOU CALL A SPOT?</div>
+
+        <div style="display:flex; align-items:center; gap:10px; margin-top:12px;">
+          <input id="spotWordInput" type="text" maxlength="12" placeholder="BOX"
+                 style="flex:1; text-align:center; font-size:24px; font-weight:900; letter-spacing:2px; text-transform:uppercase; padding:8px; border-radius:8px; border:2px solid var(--accentBorder); background:#061405; color:#fff;">
+          <div id="spotWordPreview" class="btn ghost" style="padding:10px 14px; font-size:16px; font-weight:900; cursor:default; white-space:nowrap;">BOX 1</div>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+          <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetSpotWord('BOX')">BOX</button>
+          <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetSpotWord('SPOT')">SPOT</button>
+          <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetSpotWord('TILE')">TILE</button>
+          <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetSpotWord('SLOT')">SLOT</button>
+          <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetSpotWord('PACK')">PACK</button>
+        </div>
+      </div>
     </div>
 
     <div class="ticker-hint">
-      Sets how many box spots this product's board shows. One Piece and Weiss Schwarz
+      <b>Count</b> sets how many spots this product's board shows. One Piece and Weiss Schwarz
       run 12 to a case, Union Arena runs 16. The count is saved per product, so each
       one keeps its own size. Changing it rebuilds the board and clears sold marks for
-      that product.
+      that product.<br><br>
+      <b>Spot word</b> is just what the tiles and the sold list call each spot — BOX 1, SPOT 1,
+      TILE 1. It applies to every board, changes nothing underneath, and keeps all your sold
+      marks. Automation still matches a listing titled "Spot 4" either way.
     </div>
   </div>
 </div>
@@ -4369,7 +5017,22 @@ if (e.target === m){
   </div>
 </div>
 
-<div class="giveaway-timer" id="giveawayTimer"><span>GIVEAWAY ENDS IN</span><span class="gt-num" id="giveawayTimerNum">5:00</span></div>
+<div class="giveaway-timer" id="giveawayTimer" title="Drag to move"><span>GIVEAWAY ENDS IN</span><span class="gt-num" id="giveawayTimerNum">5:00</span></div>
+
+<!-- ===== CASE HIT TRACKER — detached draggable panel ===== -->
+<div class="hit-panel" id="hitPanel" role="dialog" aria-label="Case Hit Tracker">
+  <div class="hit-panel-head">
+    <div class="hit-grip" title="Drag to move this panel">⠿ MOVE</div>
+    <div class="hit-panel-title">🎯 CASE HITS</div>
+    <button class="hit-mini" style="padding:7px 14px; font-size:16px;" title="Add a rarity to track" onclick="addHitSlot()">+ ADD</button>
+    <button class="hit-mini" style="padding:7px 14px; font-size:16px;" title="Reset every count back to full (new case)" onclick="resetHitSlots()">↺ RESET</button>
+    <button class="hit-mini" style="padding:7px 14px; font-size:16px;" title="Hide this panel" onclick="closeHitPanel()">✕</button>
+  </div>
+  <div class="hit-rows" id="hitRows"></div>
+  <div class="hit-panel-foot">
+    Each card: rarity name on top, then &minus;1 &nbsp;·&nbsp; remaining &nbsp;/&nbsp; guaranteed per case. Live counts run in the bottom ticker.
+  </div>
+</div>
 
 <div class="modal-backdrop" id="spotsModal">
   <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Custom Spots" style="width:560px;">
@@ -4385,6 +5048,20 @@ if (e.target === m){
     </div>
   </div>
 </div>
+
+<script>
+  /* Boot hook for elements authored below the main script block. Both inits are
+     idempotent, so running this again after a late DOM change is harmless. */
+  (function bootLateWidgets(){
+    const go = () => {
+      try{ if (typeof initGiveawayTimerDrag === "function") initGiveawayTimerDrag(); }catch(e){ console.warn("[melon] giveaway drag init failed", e); }
+      try{ if (typeof initHitPanel === "function") initHitPanel(); }catch(e){ console.warn("[melon] hit panel init failed", e); }
+      try{ if (typeof resumeGiveawayTimerIfRunning === "function") resumeGiveawayTimerIfRunning(); }catch(e){ console.warn("[melon] giveaway resume failed", e); }
+    };
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go);
+    else go();
+  })();
+</script>
 
 </body>
 </html>
