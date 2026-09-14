@@ -3639,21 +3639,7 @@ const ADMIN_KEY = `${LS_PREFIX}.overlay.adminOpen.${SET}`;
   Paste right after: let state = loadState();
 ========================= */
 const SALE_DEDUPE_KEY = `${KEY}.saleDedupe`;
-/* ROUND 20 (2026-09-14): was 6h. Ryan (EnergyVaultTCG's seller) reported that
-   reassigning a "See 3 Pick 1"/"See 2 Pick 1" spin back to an option already
-   rolled earlier in the same multi-spin sequence (same title+amount+code as
-   the earlier event) silently did nothing - confirmed via direct replay
-   through handleSSEEvent: the identical dedupe key from the FIRST roll was
-   still cached, so the legitimate reassignment event was dropped before ever
-   reaching markSpotSoldByLabel/markPokemonSoldByLabel/releasePrevAssignment.
-   A short TTL still catches the real target of this cache (the same poll
-   cycle re-delivering an unchanged sale, or two back-to-back polls landing
-   within a second or two of each other) while letting a human reassignment
-   seconds later through. Does not touch/conflict with the fleet's
-   sale-reassignment-flip-incident protections - those live entirely on the
-   extension's CODE-based resolution path (prevCode !== code) and never
-   engage for this client's title-only Character-Break matching. */
-const SALE_DEDUPE_TTL_MS = 15 * 1000; // 15s (was 6h)
+const SALE_DEDUPE_TTL_MS = 6 * 60 * 60 * 1000; // 6h
 
 function loadSaleDedupe(){
   try{
@@ -3676,15 +3662,8 @@ function dedupeKeyFromEvent(data){
   const title = String(data?.title || data?.label || "").trim();
   const last  = String(data?.lastSale || "").trim();
   const amt   = (data?.amount != null) ? String(data.amount) : "";
-  /* ROUND 20 (2026-09-14): include the sale's own identifier (same field
-     preference as the team_sold reassignment tracker's listingKey) when the
-     event carries one, so two genuinely DIFFERENT sales that happen to share
-     an identical title+amount+code (e.g. two buyers, same-priced pull) don't
-     falsely dedupe against each other. Sales/events with no such id fall back
-     to the prior content-only key, unchanged. */
-  const saleId = String(data?.saleId || data?.id || data?.listingId || "").trim();
   // prefer stable identifiers; fall back to lastSale text
-  return `${t}|${code}|${title}|${last}|${amt}|${saleId}`.toLowerCase();
+  return `${t}|${code}|${title}|${last}|${amt}`.toLowerCase();
 }
 
 let __saleDedupe = loadSaleDedupe();

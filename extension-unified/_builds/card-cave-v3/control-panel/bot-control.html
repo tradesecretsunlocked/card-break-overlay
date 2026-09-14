@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TSU Bot Control Panel</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0b0d10;
+      color: #f1f5f9;
+      font-family: 'Segoe UI', Arial Black, Arial, sans-serif;
+      padding: 14px;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #f1f5f9;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      color: #4b5563;
+      margin-bottom: 16px;
+    }
+
+    /* ── Config bar ── */
+    .config-bar {
+      background: #111827;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 10px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .config-bar label {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: #6b7280;
+      letter-spacing: .5px;
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .config-bar input {
+      width: 100%;
+      background: #1f2937;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 6px;
+      color: #f1f5f9;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-family: monospace;
+    }
+
+    .config-bar input:focus { outline: none; border-color: #3b82f6; }
+
+    .save-config-btn {
+      grid-column: 1 / -1;
+      padding: 8px;
+      background: #1f2937;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      color: #9ca3af;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .save-config-btn:hover { background: #374151; }
+
+    /* ── Status ── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      padding: 8px 12px;
+      background: #111827;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #374151;
+      flex-shrink: 0;
+    }
+    .status-dot.ok  { background: #22c55e; box-shadow: 0 0 6px #22c55e80; }
+    .status-dot.err { background: #ef4444; }
+    .status-text { font-size: 11px; color: #6b7280; }
+
+    /* ── Section ── */
+    .section-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: #4b5563;
+      letter-spacing: .8px;
+      margin-bottom: 8px;
+    }
+
+    /* ── Trigger grid ── */
+    .trigger-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .trigger-btn {
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.1);
+      background: #1f2937;
+      color: #f1f5f9;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 3px;
+      transition: background .15s, border-color .15s, transform .1s;
+    }
+    .trigger-btn .icon { font-size: 18px; line-height: 1; }
+    .trigger-btn .label { font-size: 11px; font-weight: 700; }
+    .trigger-btn .desc { font-size: 10px; color: #6b7280; font-weight: 400; }
+    .trigger-btn:hover { background: #374151; border-color: rgba(255,255,255,.2); }
+    .trigger-btn:active { transform: scale(.97); }
+    .trigger-btn.fired  { border-color: #22c55e60; background: #14532d40; }
+    .trigger-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    /* ── Custom message ── */
+    .custom-section {
+      margin-bottom: 16px;
+    }
+    .custom-row {
+      display: flex;
+      gap: 8px;
+    }
+    .custom-row input {
+      flex: 1;
+      background: #1f2937;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      color: #f1f5f9;
+      padding: 8px 12px;
+      font-size: 12px;
+    }
+    .custom-row input::placeholder { color: #374151; }
+    .custom-row input:focus { outline: none; border-color: #3b82f6; }
+    .send-btn {
+      background: #2563eb;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .send-btn:hover { background: #1d4ed8; }
+    .send-btn:active { background: #1e3a8a; }
+
+    /* ── Log ── */
+    .log {
+      background: #050607;
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 8px;
+      padding: 8px 10px;
+      max-height: 100px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 10px;
+      color: #4b5563;
+    }
+    .log .entry { margin-bottom: 2px; }
+    .log .entry.ok  { color: #22c55e; }
+    .log .entry.err { color: #ef4444; }
+  </style>
+</head>
+<body>
+
+<h1>🤖 TSU Bot Control</h1>
+<p class="subtitle">Fire chat bot triggers directly from OBS</p>
+
+<!-- Config -->
+<div class="config-bar" id="config-bar">
+  <div>
+    <label>Bridge Key</label>
+    <input type="text" id="bridge-key" placeholder="xxxxxxxx-xxxx-…" />
+  </div>
+  <div>
+    <label>Bridge URL</label>
+    <input type="text" id="bridge-url" value="https://bridge.tradesecretsunlocked.com" />
+  </div>
+  <button class="save-config-btn" id="save-config-btn">💾 Save Config</button>
+</div>
+
+<!-- Status -->
+<div class="status-bar">
+  <div class="status-dot" id="status-dot"></div>
+  <span class="status-text" id="status-text">Configure bridge key above</span>
+</div>
+
+<!-- Preset triggers -->
+<div class="section-label">Quick Triggers</div>
+<div class="trigger-grid">
+  <button class="trigger-btn" data-preset="giveaway_started">
+    <span class="icon">🎁</span>
+    <span class="label">Giveaway Started</span>
+    <span class="desc">Posts join-the-giveaway message</span>
+  </button>
+  <button class="trigger-btn" data-preset="giveaway_ended">
+    <span class="icon">🏆</span>
+    <span class="label">Giveaway Ended</span>
+    <span class="desc">Posts giveaway-closed message</span>
+  </button>
+  <button class="trigger-btn" data-preset="break_starting">
+    <span class="icon">⏰</span>
+    <span class="label">Break Starting</span>
+    <span class="desc">Posts next-break-soon reminder</span>
+  </button>
+  <button class="trigger-btn" data-preset="break_live">
+    <span class="icon">🔴</span>
+    <span class="label">We Are Live</span>
+    <span class="desc">Posts live announcement</span>
+  </button>
+  <button class="trigger-btn" data-preset="custom_1">
+    <span class="icon">⚡</span>
+    <span class="label">Custom 1</span>
+    <span class="desc">Client's custom preset 1</span>
+  </button>
+  <button class="trigger-btn" data-preset="custom_2">
+    <span class="icon">⚡</span>
+    <span class="label">Custom 2</span>
+    <span class="desc">Client's custom preset 2</span>
+  </button>
+</div>
+
+<!-- Custom message -->
+<div class="custom-section">
+  <div class="section-label">Send Direct Message</div>
+  <div class="custom-row">
+    <input type="text" id="custom-text" placeholder="Type any message to post to chat…" maxlength="500" />
+    <button class="send-btn" id="send-direct">Send</button>
+  </div>
+</div>
+
+<!-- Event log -->
+<div class="section-label">Event Log</div>
+<div class="log" id="log"></div>
+
+<script>
+  // ── Persistence ─────────────────────────────────────────────────────────────
+  function saveLocal(k, v) { try { localStorage.setItem("tsu_bot_" + k, v); } catch (_) {} }
+  function loadLocal(k, def) { try { return localStorage.getItem("tsu_bot_" + k) || def; } catch (_) { return def; } }
+
+  document.getElementById("bridge-key").value = loadLocal("bridgeKey", "");
+  document.getElementById("bridge-url").value = loadLocal("bridgeUrl", "https://bridge.tradesecretsunlocked.com");
+
+  document.getElementById("save-config-btn").addEventListener("click", () => {
+    saveLocal("bridgeKey", document.getElementById("bridge-key").value.trim());
+    saveLocal("bridgeUrl", document.getElementById("bridge-url").value.trim());
+    setStatus("ok", "Config saved");
+  });
+
+  // ── Status ───────────────────────────────────────────────────────────────────
+  function setStatus(state, msg) {
+    document.getElementById("status-dot").className = "status-dot " + (state === "ok" ? "ok" : "err");
+    document.getElementById("status-text").textContent = msg;
+  }
+
+  // ── Log ──────────────────────────────────────────────────────────────────────
+  function addLog(msg, isError = false) {
+    const log = document.getElementById("log");
+    const entry = document.createElement("div");
+    entry.className = "entry " + (isError ? "err" : "ok");
+    entry.textContent = new Date().toLocaleTimeString() + " · " + msg;
+    log.prepend(entry);
+    // Keep last 20 entries
+    while (log.children.length > 20) log.removeChild(log.lastChild);
+  }
+
+  // ── Fire event to bridge ─────────────────────────────────────────────────────
+  async function fireTrigger(preset, customText = null) {
+    const bridgeKey = document.getElementById("bridge-key").value.trim();
+    const bridgeUrl = document.getElementById("bridge-url").value.trim();
+
+    if (!bridgeKey) {
+      setStatus("err", "Enter bridge key above first");
+      addLog("Missing bridge key", true);
+      return;
+    }
+
+    const body = {
+      channel: "main",
+      type:    "bot_trigger",
+      preset,
+      ...(customText ? { text: customText } : {}),
+      ts: Date.now(),
+    };
+
+    try {
+      const res = await fetch(`${bridgeUrl}/events`, {
+        method:  "POST",
+        headers: {
+          "Content-Type":  "application/json",
+          "x-bridge-key":  bridgeKey,
+          "x-api-key":     bridgeKey,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`Bridge ${res.status}: ${txt.slice(0, 80)}`);
+      }
+
+      const json = await res.json();
+      setStatus("ok", `Fired: ${preset} · ${json.listeners || 0} listener(s)`);
+      addLog(`✓ ${preset} → ${json.listeners || 0} listener(s)`);
+
+    } catch (err) {
+      setStatus("err", err.message);
+      addLog("✗ " + err.message, true);
+    }
+  }
+
+  // ── Preset button handlers ───────────────────────────────────────────────────
+  document.querySelectorAll(".trigger-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      await fireTrigger(btn.dataset.preset);
+      btn.classList.add("fired");
+      setTimeout(() => { btn.classList.remove("fired"); btn.disabled = false; }, 2000);
+    });
+  });
+
+  // ── Direct message ───────────────────────────────────────────────────────────
+  document.getElementById("send-direct").addEventListener("click", async () => {
+    const text = document.getElementById("custom-text").value.trim();
+    if (!text) return;
+    document.getElementById("send-direct").disabled = true;
+    await fireTrigger("custom_direct", text);
+    document.getElementById("send-direct").disabled = false;
+    document.getElementById("custom-text").value = "";
+  });
+
+  document.getElementById("custom-text").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") document.getElementById("send-direct").click();
+  });
+
+  // ── Initial status ───────────────────────────────────────────────────────────
+  const existingKey = loadLocal("bridgeKey", "");
+  if (existingKey) {
+    setStatus("ok", "Ready · key: " + existingKey.slice(0, 8) + "…");
+  }
+</script>
+</body>
+</html>

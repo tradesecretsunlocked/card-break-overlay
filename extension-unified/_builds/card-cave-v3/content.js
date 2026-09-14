@@ -48,28 +48,30 @@
   const BRIDGE_URL = "https://bridge.tradesecretsunlocked.com";
   const BUILD_VERSION = "2.3.5";   // 2.3.5, 2026-09-14: MLS (30 clubs) added to TEAM_TITLE_RULES
 
-  // ⚠️ CANONICAL TEMPLATE — replace these three per client (see tsu-overlay-agent skill Step 7).
-  //    bridgeKey: get from bridge_keys row created for this client
-  //    sport:     "nfl" | "nba" | "mlb" | "nil" (multi-sport / infer from title)
-  //    overlayId: {client-slug}-overlay (must match overlay HTML's overlayId in the warmup POST)
+  // BAKED FOR: Card Cave (Supabase builds id 49, juan5staremb@gmail.com)
+  // Baked 2026-09-14 from extension-unified content.js v2.3.5. ONE key = ONE overlay = ONE extension.
+  // All four identity values verified against Supabase and the overlay file:
+  //   bridge_keys.key       = c4d2e8b1-7a5f-4c3e-9b6d-2f8a1e5c7d93, whatnot_handle = cardcave956
+  //   overlay _drafts/card-cave/index.html BRIDGE_KEY_DEFAULT = same key
+  //   overlay OVERLAY_ID    = card-cave-overlay = DEFAULTS.overlayId below
+  // SUPERSEDES card-cave-extension-2026-09-05.zip, which baked sellerUsername "cardcave".
+  // The gate is a strict !== after lowercasing, so that build NEVER captured: the real
+  // handle is cardcave956. Do not reinstall the 09-05 zip.
   const DEFAULTS = {
-    bridgeKey:    "REPLACE_WITH_CLIENT_UUID_FROM_SUPABASE",   // Wizards Trading Cards (WCB / Luis)
+    bridgeKey:    "c4d2e8b1-7a5f-4c3e-9b6d-2f8a1e5c7d93",
     // REQUIRED as of v2.3. The client's Whatnot handle exactly as shown on their
     // live page: lowercase, no @. Capture is DISABLED while this is unset, which
     // is deliberate. An unbaked build must not hoover up strangers' shows.
-    // Confirmed by Mike 2026-08-30. NOTE THE UNDERSCORES: the handle is
-    // wizard_company_breakz, NOT wizardstradingcards. The gate lowercases the show
-    // host and compares it strictly, so this must stay lowercase and exact.
-    sellerUsername: "REPLACE_WITH_CLIENT_WHATNOT_HANDLE",
-    sport:        "nil",
-    overlayId:    "REPLACE_WITH_CLIENT_SLUG-overlay",
-    // REQUIRED for this client. The Wonders of the First board is named orbital
-    // spots (Ignis, Silva, Aqua, Aer, Umbra, Petraia) matched on the LISTING TITLE,
-    // not on a team code. Every one of those titles resolves to no code, and the
-    // v2.3.1 template drops an unresolved title before it reaches the bridge, which
-    // kills automation completely and silently. Verified 2026-08-30 by running the
-    // real matcher: "Spot 1" and "#4" survive as CUSTOM_NNN, every named spot dies.
-    sendUnresolved: true,
+    // Confirmed by Mike 2026-09-14. NOTE THE DIGITS: the handle is cardcave956,
+    // NOT cardcave. The gate lowercases the show host and compares it strictly, so
+    // this must stay lowercase and exact.
+    sellerUsername: "cardcave956",
+    sport:        "nil",   // multi-sport board (NFL/NBA/MLB/NHL/MLS); league inferred per listing title
+    overlayId:    "card-cave-overlay",
+    // FALSE for Card Cave: this is a pure TEAM-CODE board. The overlay marks tiles with
+    // markSold(code) guarded by requireValidCodeOrBail against its own team table, so a
+    // code-less event has nothing to match and a junk listing could only do harm.
+    sendUnresolved: false,
     channel:      "main",
     pollMs:       3000,
     summaryEvery: 5
