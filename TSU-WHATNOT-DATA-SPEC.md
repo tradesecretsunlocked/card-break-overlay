@@ -1,7 +1,7 @@
 # TSU Whatnot Data and Deployment Spec
 
-**Status:** APPROVED by Mike 2026-08-30. **PHASE 0 IS SHIPPED** (see the Phase 0 record below).
-Parts A and B beyond Phase 0 are still unbuilt.
+**Status:** APPROVED by Mike 2026-08-30. **PHASE 0 SHIPPED 2026-08-30. PHASE A1 SHIPPED 2026-09-15**
+(see both records below). Part B beyond Phase 0 is still unbuilt: the v3 extension and the installer.
 **Author:** Aria, 2026-08-30
 **Supersedes:** nothing. **Amends:** `TSU-OVERLAY-STANDARD.md` §7 and §8, `docs/SOP-CLIENT-PROVISIONING.md` §7.
 **Canon note:** where this doc and a skill reference file disagree, this doc wins until the
@@ -84,6 +84,204 @@ build per key won. Handles were then backfilled from `bridge_keys.whatnot_handle
 **The 55 missing handles are the Phase 2 backlog, in priority order.** Those clients cannot capture
 under the config model until a handle exists, which is the correct fail-closed behaviour and also the
 reason the migration is worth doing.
+
+---
+
+## PHASE A1 RECORD, shipped 2026-09-15
+
+Mike, 2026-09-15: *"i dont have the network captures just yet can you use placeholders for the time
+being and build it all out."* Everything below is live in production. Two operations are shipped as
+honest, recorded stubs because the network call has not been captured yet.
+
+### What Mike asked for, and where each piece landed
+
+| Ask | Where it lives |
+|---|---|
+| Default COGS cost per break, with a per-break override | `client_settings.default_cost_per_break`, override stays `break_costs.cost` |
+| Possibly a default per break TYPE | `client_settings.default_cost_by_break_type` jsonb, keyed on `break_type_catalog.code` |
+| Real shipping and fees for everyone, portal and Command Center | `wn_order_items` and `wn_shipments`, surfaced through `v_break_actuals` into `v_break_pnl` |
+| Fee inputs demoted to an optional per-break or per-stream override | new `fee_overrides` table, scope `break` or `stream` |
+| Break tagged with show name plus product title, not seller entered | `break_identity`, filled by `refresh_break_identity()` on an hourly cron |
+| A button to import upcoming streams | Command Center Shows page, calls `request_ingest('scheduled_shows')`. The Whatnot query is a stub |
+| Promotion analytics, ideally in Command Center | new Promotions page reading `wn_show_metrics` and `wn_promo_metrics` |
+| All of it permission based on analytics being enabled | `analytics_active(key)`, enforced in RLS, in a trigger, and in the edge function |
+
+### Precedence, which is the whole design
+
+**Fees**, worst case first: the client's fee percentages (an estimate) is the floor. A per-stream
+override beats it, a per-break override beats that, and real Whatnot figures beat everything. Every
+row stamps `fee_source` so the UI can label it.
+
+**Partial coverage is its own case, and this was a real bug caught in testing.** A break with 39
+overlay sales but one matched Whatnot item was reporting `fee_source = actual` and $1.90 of fees on
+$2,363 of gross. Coverage is now measured. At 90 percent or better it is `actual`. Below that it is
+`blended`: real fees on the matched value, the percentage estimate on the rest. `actual_coverage_pct`
+is exposed so the UI can say how solid the number is.
+
+**Cost:** per-break override, then the default for that break type, then the client default cost per
+break. `cost_source` is stamped `override`, `type_default` or `client_default`. `default_cost_enabled`
+turns the whole thing off for a seller who would rather see blanks than placeholders.
+
+**Shipping** is charged per ORDER and one order can span several breaks, so it is allocated pro rata
+by item value inside the order. It is never invented: a break with no captured shipment shows zero
+and `shipping_source = none`.
+
+### The permission gate, three layers deep
+
+`analytics_active(key)` requires `client_services.analytics` with **entitled AND enabled**. It is
+enforced in three places on purpose:
+
+1. **RLS** on every `wn_*` table, so a seller cannot read capture they are not entitled to.
+2. **A trigger** on every `wn_*` table, because the ingest runs on the service-role key and bypasses
+   RLS. This is the layer that actually holds.
+3. **The edge function**, which returns a clean `403 analytics_not_enabled` rather than letting a
+   constraint error surface.
+
+`wn_ingest_state` is deliberately exempt from the trigger so a refusal can still be recorded.
+
+### Endpoint
+
+`POST https://znyryhgjghjsobkzyfbx.supabase.co/functions/v1/whatnot-ingest`
+Headers: `x-bridge-key` (required), `x-ext-version` (optional). `verify_jwt` off, the key is the
+credential. `GET` on the same URL returns what to do next plus the per-operation state.
+
+Body: `{ "op": "<operation>", "payload": <the raw GraphQL response>, "cursor": "<optional>" }`
+
+| Operation | Status |
+|---|---|
+| `orders`, `receipts`, `shipments`, `ledger`, `payouts` | live |
+| `show_metrics`, `promo_metrics` | live |
+| `reports_discover` | live, but every row stays `awaiting_url` |
+| `scheduled_shows` | live since 2026-09-15 |
+| `scheduled_shows` | live since 2026-09-15, see below |
+| `reports_download` | **STUB, 501.** Operation identified 2026-09-15 as `GetSellerReportPresignedUrl`, see below |
+
+### scheduled_shows, un-stubbed 2026-09-15
+
+Mike captured `GetDashboardLivestreamsByUserId`. One call returns `currentLives`, `upcomingLives`
+and `pastLives`, each an edge list of `LiveStream` nodes: `id`, `title`, `startTime`, `endTime`,
+`status` (`CREATED` for scheduled), `userId`, `isHiddenBySeller`.
+
+**Trap 7, new:** `startTime` is epoch **milliseconds as a float** (`1790305500000.0`), not seconds
+and not an ISO string.
+
+**The unlock that matters more than the button.** `LiveStream.id` is the SAME uuid the overlay
+already sends as `liveId`, verified against live `v_sales` rows. So `pastLives` gives us the SHOW
+TITLE for every stream a client has run, with **no extension change at all**. `refresh_break_identity`
+now joins `wn_show_metrics` and stamps `title_source = whatnot_show`. Half of every break name is
+available the moment a client runs this one query. The product title still needs the extension.
+
+Because a show title alone is ambiguous when a stream had several breaks, `break_display_name()`
+appends a short break suffix when only the show title is known: `Friday Night Rips (NTEy)`.
+
+Past shows are written to `wn_show_metrics` with title and times only, so a later real
+`show_metrics` ingest is never overwritten with nulls.
+
+### Report download, 2026-09-15. CORRECTED: it IS GraphQL, and the operation is named.
+
+**A wrong call I made earlier the same day, recorded so it does not get repeated.** From a partial
+capture showing a Next.js RSC fetch and an already-presigned S3 URL with no visible POST between
+them, I concluded the presigned URL was embedded in the RSC payload and that there was no GraphQL
+presign call. **That was wrong.** Mike's fuller capture shows the operation plainly:
+
+```
+/services/graphql/?operationName=GetSellerReportPresignedUrl&ssr=0
+```
+
+The statements page is a Next.js App Router page, but its data comes from **Apollo GraphQL on the
+client**, not from the RSC payload. The RSC payload analysed earlier is only the page shell: it
+carries the tab strip and metadata and no report rows at all. The page's own config confirms the
+data path, listing `https://www.whatnot.com/services/graphql` in `staticSettings.allowedTracingUrls`.
+
+**The lesson, and it is the same one as 2026-08-29 and 2026-09-12:** absence of evidence in a partial
+capture is not evidence of absence. A request missing from one screenshot means the list was filtered
+or scrolled, not that the request does not exist. Do not build an architecture claim on what a
+capture does NOT show.
+
+### The three operations that make up the report path
+
+| Operation | What it does | Captured |
+|---|---|---|
+| `GetSellerReportTypes` | the taxonomy of what reports exist | YES, in full |
+| `getSellerReportDetailsPaginated` | the list of report files, returns S3 object keys | YES, 2026-08-30 |
+| `GetSellerReportPresignedUrl` | **turns an object key into a downloadable URL** | name only, payload and response still needed |
+
+**`GetSellerReportTypes` response, captured in full:**
+
+```json
+{"data":{"getSellerReportTypes":[
+  {"value":"EARNINGS","periods":["WEEKLY"],
+   "periodObjects":[{"value":"WEEKLY","shortLabel":"Weekly","label":"Weekly Order Report","__typename":"SellerReportPeriod"}],
+   "label":"Order Report","description":"Order Report","__typename":"DBTSellerReportType"},
+  {"value":"STATEMENTS","periods":["MONTHLY","ANNUAL"],
+   "periodObjects":[{"value":"MONTHLY","shortLabel":"Monthly","label":"Monthly Statement","__typename":"SellerReportPeriod"},
+                    {"value":"ANNUAL","shortLabel":"Annual","label":"Annual Statement","__typename":"SellerReportPeriod"}],
+   "label":"Statement","description":"Statement","__typename":"DBTSellerReportType"}]}}
+```
+
+Two things in there we did not know:
+
+1. **EARNINGS has only one period, WEEKLY.** There is no monthly or annual order report, so a weekly
+   cadence is the floor for the fees-and-shipping side of a backfill. It also fixes the request
+   count at roughly 52 files per year per seller.
+2. **ANNUAL statements exist** alongside MONTHLY. One file covering a whole year is the cheapest
+   possible way to sanity check a backfill total.
+
+Read the taxonomy from this query at runtime rather than hardcoding it. `periods` is exactly the kind
+of list Whatnot can extend without telling anyone.
+
+### The one capture still needed from Mike
+
+`GetSellerReportPresignedUrl`, both halves:
+
+- the **Payload** tab, showing the variables, almost certainly the objectId and possibly the report
+  type and period alongside it
+- the **Response** tab, showing what comes back and whether it carries an expiry
+
+The request URL carries `?operationName=GetSellerReportPresignedUrl&ssr=0`, which is convenient: the
+extension's fetch hook can identify the response from the URL alone, without parsing the body first.
+That naming convention holds for every Whatnot GraphQL call and is worth relying on.
+
+### Operational note, Kasada
+
+The page config shows `scripts.kasada: true`, and the request was scored `bot_score: 95`,
+`allowed_bot: false`, `verified_bot: false`. The extension runs inside the seller's own real browser
+session and inherits that standing, which is the whole reason this approach works at all. It is also
+a standing argument for the pre-generated report strategy over a per-order crawl: about 26 requests
+draws no attention, about 5,250 might.
+
+**Note on the file captured earlier:** `statement-f378284c.pdf` is a monthly statement PDF, not the
+weekly `earnings-and-costs-v3` CSV. The CSV is the one carrying per-order fees and shipping, so the
+EARNINGS / WEEKLY path is the one that matters most.
+
+### Verified live, 2026-09-15
+
+| Check | Result |
+|---|---|
+| No key / bad key / valid key | 401, 403, 200 |
+| Both stubs | 501 naming the exact capture needed |
+| Key without analytics, POST | 403, and zero rows written |
+| Key without analytics, direct insert | trigger refuses, zero rows written |
+| Reconciliation: 1300 subtotal, 104 commission, 86 processing | net 1110, matching the ledger SALES row |
+| Trap 2, cancelled order reporting netEarnings $17.35 | stored `is_revenue = false`, excluded from every rollup |
+| Trap 3, display strings | parsed to cents and the original string kept beside it |
+| Trap 4, shipping in the ledger not the shipment | `sellerPaidShippingCost` 0, ledger -415, folded onto the shipment as 415 |
+| PII | street and phone absent from the columns AND scrubbed out of `raw` |
+| Cost precedence | override beats type default beats client default, verified on live data |
+| Existing breaks with no capture and no defaults | numbers unchanged, so nothing regressed |
+
+All test rows were deleted afterwards. The `wn_*` tables are empty and waiting for real capture.
+
+### What is NOT built
+
+- The v3 extension that actually performs these fetches. Phase A1 is the receiving end only. Until
+  Phase 1 of Part B ships, nothing calls this endpoint.
+- `break_identity` is registering breaks (about 6,700 of them) but every row is `title_source =
+  unknown`, because the current extension does not send `productTitle` or `showTitle` on `team_sold`.
+  The function already reads both fields, so names appear the moment the extension sends them. This
+  is the single smallest extension change with the largest visible payoff.
+- Command Center still shows no sales of its own: `cmd_sales` is for manual and off-platform sales
+  only and remains empty by design. Overlay sales are read live from the views.
 
 ---
 

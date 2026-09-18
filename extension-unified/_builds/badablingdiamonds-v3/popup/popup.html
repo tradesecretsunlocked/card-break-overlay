@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>TSU Whatnot Bot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 320px;
+      min-height: 200px;
+      background: #0d0f14;
+      color: #f1f5f9;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 13px;
+      padding: 0;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #111827;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header h1 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      color: #f1f5f9;
+    }
+    .header .key-label {
+      font-size: 11px;
+      color: #6b7280;
+      font-family: monospace;
+    }
+
+    /* ── Status pill ── */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: #0f1117;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #6b7280;
+      flex-shrink: 0;
+    }
+    .status-dot.connected { background: #22c55e; box-shadow: 0 0 6px #22c55e80; }
+    .status-dot.error     { background: #ef4444; }
+    .status-dot.disabled  { background: #4b5563; }
+    .status-text { font-size: 12px; color: #9ca3af; }
+
+    /* ── Toggle ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .toggle-label { font-size: 12px; color: #9ca3af; }
+    .toggle {
+      position: relative;
+      width: 36px; height: 20px;
+    }
+    .toggle input { display: none; }
+    .toggle .slider {
+      position: absolute; inset: 0;
+      background: #374151;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .toggle .slider::before {
+      content: "";
+      position: absolute;
+      left: 2px; top: 2px;
+      width: 16px; height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform .2s;
+    }
+    .toggle input:checked + .slider { background: #22c55e; }
+    .toggle input:checked + .slider::before { transform: translateX(16px); }
+
+    /* ── Preset buttons ── */
+    .section {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .section-title {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: #4b5563;
+      margin-bottom: 8px;
+    }
+    .preset-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .preset-btn {
+      width: 100%;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.1);
+      background: #1f2937;
+      color: #f1f5f9;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      transition: background .15s, border-color .15s;
+    }
+    .preset-btn:hover { background: #374151; border-color: rgba(255,255,255,.2); }
+    .preset-btn:active { background: #4b5563; }
+    .preset-btn .label { flex: 1; }
+    .preset-btn .cooldown-badge {
+      font-size: 10px;
+      color: #6b7280;
+      background: #111827;
+      padding: 2px 6px;
+      border-radius: 4px;
+      min-width: 32px;
+      text-align: center;
+    }
+    .preset-btn.fired { border-color: #22c55e60; background: #14532d40; }
+    .preset-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ── Custom message ── */
+    .custom-row {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .custom-input-wrap {
+      display: flex;
+      gap: 6px;
+    }
+    .custom-input-wrap input {
+      flex: 1;
+      background: #1f2937;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px;
+      color: #f1f5f9;
+      padding: 7px 10px;
+      font-size: 12px;
+    }
+    .custom-input-wrap input::placeholder { color: #4b5563; }
+    .custom-input-wrap input:focus { outline: none; border-color: #3b82f6; }
+    .send-btn {
+      background: #2563eb;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .send-btn:hover { background: #1d4ed8; }
+    .send-btn:active { background: #1e3a8a; }
+
+    /* ── Config section ── */
+    .config-section {
+      padding: 10px 14px;
+    }
+    .config-field {
+      margin-bottom: 8px;
+    }
+    .config-field label {
+      display: block;
+      font-size: 10px;
+      color: #6b7280;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+    .config-field input {
+      width: 100%;
+      background: #1f2937;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 6px;
+      color: #f1f5f9;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-family: monospace;
+    }
+    .config-field input:focus { outline: none; border-color: #3b82f6; }
+    .save-btn {
+      width: 100%;
+      padding: 8px;
+      background: #059669;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .save-btn:hover { background: #047857; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      background: #111827;
+    }
+    .tab {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      background: transparent;
+      color: #6b7280;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+    .tab.active { color: #f1f5f9; border-bottom-color: #3b82f6; }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #22c55e;
+      color: #fff;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      opacity: 0;
+      transition: opacity .3s;
+      pointer-events: none;
+      z-index: 999;
+    }
+    #toast.show { opacity: 1; }
+    #toast.error { background: #ef4444; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🤖 TSU Whatnot Bot</h1>
+  <span class="key-label" id="key-display">—</span>
+</div>
+
+<div class="status-row">
+  <div class="status-dot" id="status-dot"></div>
+  <span class="status-text" id="status-text">Loading…</span>
+</div>
+
+<div class="toggle-row">
+  <span class="toggle-label">Bot enabled</span>
+  <label class="toggle">
+    <input type="checkbox" id="bot-toggle" checked />
+    <span class="slider"></span>
+  </label>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="triggers">Triggers</button>
+  <button class="tab" data-tab="config">Config</button>
+</div>
+
+<!-- TRIGGERS TAB -->
+<div id="tab-triggers" class="tab-panel active">
+  <div class="section">
+    <div class="section-title">Preset Messages</div>
+    <div class="preset-grid" id="preset-grid">
+      <!-- Populated by popup.js based on configured presets -->
+      <button class="preset-btn" data-preset="giveaway_started">
+        <span class="label">🎁 Giveaway Started</span>
+        <span class="cooldown-badge" data-key="giveaway_started">—</span>
+      </button>
+      <button class="preset-btn" data-preset="giveaway_ended">
+        <span class="label">🏆 Giveaway Ended</span>
+        <span class="cooldown-badge" data-key="giveaway_ended">—</span>
+      </button>
+      <button class="preset-btn" data-preset="break_starting">
+        <span class="label">⏰ Break Starting Soon</span>
+        <span class="cooldown-badge" data-key="break_starting">—</span>
+      </button>
+      <button class="preset-btn" data-preset="break_live">
+        <span class="label">🔴 We Are Live</span>
+        <span class="cooldown-badge" data-key="break_live">—</span>
+      </button>
+      <button class="preset-btn" data-preset="custom_1">
+        <span class="label">⚡ Custom 1</span>
+        <span class="cooldown-badge" data-key="custom_1">—</span>
+      </button>
+      <button class="preset-btn" data-preset="custom_2">
+        <span class="label">⚡ Custom 2</span>
+        <span class="cooldown-badge" data-key="custom_2">—</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="custom-row">
+    <div class="section-title" style="margin-bottom:6px">Send Any Message</div>
+    <div class="custom-input-wrap">
+      <input type="text" id="custom-text" placeholder="Type a message…" maxlength="500" />
+      <button class="send-btn" id="send-custom-btn">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIG TAB -->
+<div id="tab-config" class="tab-panel">
+  <div class="config-section">
+    <div class="config-field">
+      <label>Bridge Key</label>
+      <input type="text" id="cfg-bridge-key" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+    </div>
+    <div class="config-field">
+      <label>Supabase URL</label>
+      <input type="text" id="cfg-supabase-url" placeholder="https://xxx.supabase.co" />
+    </div>
+    <div class="config-field">
+      <label>Supabase Anon Key</label>
+      <input type="text" id="cfg-supabase-key" placeholder="eyJh…" />
+    </div>
+    <div class="config-field">
+      <label>Cooldown (seconds)</label>
+      <input type="number" id="cfg-cooldown" placeholder="30" min="5" max="300" />
+    </div>
+    <button class="save-btn" id="save-config-btn">Save & Reload Config</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="popup.js"></script>
+</body>
+</html>

@@ -46,7 +46,17 @@
     body{
       margin:15px;
       background:transparent;
-      font-family: "Arial Black", Arial, sans-serif;
+      /* 2026-09-16 KOREAN SUPPORT.
+         Arial Black has no Hangul glyphs. Chromium falls back per-glyph, but with
+         only "sans-serif" at the end of the stack the pick is whatever the OS
+         hands over — which in OBS is often a thin, mismatched face next to the
+         heavy Latin, or tofu boxes. Naming the Korean faces explicitly keeps
+         Latin on Arial Black and puts Hangul on a proper bold-capable Korean
+         font. All three are OS-installed (Malgun Gothic ships with Windows,
+         Apple SD Gothic Neo with macOS) so nothing is fetched over the network —
+         OBS's browser source has no reliable outbound access for webfonts. */
+      font-family: "Arial Black", Arial, "Malgun Gothic", "맑은 고딕",
+                   "Apple SD Gothic Neo", "Noto Sans KR", "Nanum Gothic", sans-serif;
       width:1080px;
       min-height:1000px;
       user-select:none;
@@ -348,7 +358,7 @@
 }
 
 .custom-team.sold .custom-text{
-  opacity:.45;
+  opacity:.25;
 }
 
 .custom-upload-row{
@@ -465,7 +475,7 @@
       color:#fff;
       font-weight: 900;
       outline:none;
-      font-family: Arial, sans-serif;
+      font-family: Arial, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
       font-size: 18px;
       line-height: 18px;
     }
@@ -785,6 +795,7 @@
       border:2px solid var(--accentBorder); border-radius:12px;
       box-shadow:0 10px 34px rgba(0,0,0,0.72), 0 0 18px rgba(109,187,101,0.28);
       font-size:15px; color:#fff; overflow:hidden;
+      max-width:1070px;
     }
     .hit-panel.open{ display:flex; }
     .hit-panel-head{
@@ -945,12 +956,12 @@
     }
 
     .sold-list-container{
-      margin: 8px auto 0 auto;
+      margin: 3px auto 0 auto;
       width: 100%;
       background: linear-gradient(180deg, #111111 0%, #080808 100%);
       border: 2px solid rgba(109,187,101,0.85);
       border-radius: 8px;
-      padding: 6px 7px 8px;
+      padding: 4px 1px 4px;
       text-align:center;
       box-shadow: 0 1px 3px rgba(0,0,0,0.55);
       position: relative;
@@ -961,7 +972,7 @@
       display:flex;
       align-items:center;
       justify-content: space-between;
-      gap: 8px;
+      gap: 1px;
       margin-bottom: 6px;
     }
 
@@ -1033,6 +1044,22 @@
     }
 
  
+
+    /* 2026-09-16 KOREAN SUPPORT — every field a seller types into.
+       Form controls do NOT inherit font-family from body by default; they use the
+       UA font. That left buyer names, the break number, the spot word and the
+       giveaway length on a different face to the rest of the overlay. Naming the
+       Korean fonts here means 안녕하세요 renders properly in every input, not just
+       the ones inside .ticker-editor. Deliberately NOT applied to .btn — buttons
+       keep their own styling. */
+    .sold-buyer-input,
+    .hit-row input,
+    #spotWordInput, #boxCountInput, #giveawayLenInput,
+    #breakModalInput, #titleModalInput,
+    input[type="text"], input[type="number"], textarea{
+      font-family: Arial, "Malgun Gothic", "맑은 고딕",
+                   "Apple SD Gothic Neo", "Noto Sans KR", "Nanum Gothic", sans-serif;
+    }
 
     .sold-buyer-input{
       font-size: 22px;
@@ -1801,17 +1828,18 @@
 
       <div class="sold-controls">
         <!-- One row, one size. TCG cycles every layout incl. CUSTOM. -->
-        <button class="btn secondary" style="padding:3px 5px; font-size:14px;" onclick="newBreak()">🧾 NEW BREAK</button>
-        <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openBreakEditor()">🔢 BREAK #</button>
+        <button class="btn secondary" style="padding:3px 5px; font-size:14px;" onclick="newBreak()">🧾NEW BREAK</button>
+        <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openBreakEditor()">BREAK #</button>
         <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="cycleSport()" id="tcgBtn" title="Cycle layouts: One Piece, Weiss, Union Arena, Other, Custom">🎴 TCG</button>
-          <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openCustomEntriesEditor()">📥 CUSTOM LIST</button>
+          <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openCustomEntriesEditor()">CUSTOM LIST</button>
           <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openTitleEditor()">🏷 TITLE</button>
         <button class="btn ghost" id="openTickerEditorBtn" style="padding:3px 5px; font-size:14px;" onclick="openTickerEditor()">📰 TICKER</button>
 
         
           <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openPromoEditor()">🎁 PROMO</button>
         <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openBoxCountModal()" title="How many spots, and what you call them">📦 SPOTS</button>
-        <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="startGiveaway()" id="giveawayBtn">🎁 GIVEAWAY</button>
+        <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="startGiveaway()" id="giveawayBtn">🎁 GIVY</button>
+        <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openGiveawayLenModal()" id="giveawayLenBtn" title="Giveaway length">⏱givy time</button>
         <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openBgModal()">🖼 BG</button>
         <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="openChaseModal()">⭐ CHASE</button>
         <button class="btn ghost" style="padding:3px 5px; font-size:14px;" onclick="toggleHitPanel()" title="Track guaranteed case hits and knock them down live">🎯 HITS</button>
@@ -1865,6 +1893,7 @@
 
   /* 2026-09-12 */
   SPOT_WORD:  "melon.spotWord",           // what the seller calls a spot: BOX / SPOT / TILE…
+  GIVEAWAY_MIN: "melon.giveawayMinutes",  // seller-set countdown length, in minutes
   GT_POS:     "melon.giveawayTimerPos",   // {x,y} once the seller drags the countdown
   HIT_SLOTS:  "melon.hitSlots.v1",        // [{id,name,total,remaining}] case-hit tracker
   HIT_PANEL:  "melon.hitPanel.v1"         // {open,x,y} for the detached tracker panel
@@ -3061,8 +3090,33 @@ function playGiveaway(ms){
   playGiveaway._t = setTimeout(() => layer.classList.remove("show"), Number(ms) || 4200);
 }
 
-/* ===== GIVEAWAY COUNTDOWN (5 minutes from the moment the giveaway starts) ===== */
-const GIVEAWAY_MINUTES = 5;
+/* ===== GIVEAWAY COUNTDOWN =====
+   2026-09-16: the length used to be a hardcoded 5. It is now seller-set and
+   persisted, so they can run a 90-second flash giveaway or a 20-minute one
+   without a rebuild. Stored in MINUTES but allows fractions (1.5 = 90s), which
+   is why it is parseFloat and not parseInt. */
+const GIVEAWAY_MIN_DEFAULT = 5;
+const GIVEAWAY_MIN_LO = 0.25, GIVEAWAY_MIN_HI = 120;
+
+function loadGiveawayMinutes(){
+  try{
+    const v = parseFloat(localStorage.getItem(LS.GIVEAWAY_MIN));
+    if (Number.isFinite(v) && v >= GIVEAWAY_MIN_LO && v <= GIVEAWAY_MIN_HI) return v;
+  }catch(_){}
+  return GIVEAWAY_MIN_DEFAULT;
+}
+function saveGiveawayMinutes(v){
+  const n = Math.max(GIVEAWAY_MIN_LO, Math.min(GIVEAWAY_MIN_HI, parseFloat(v) || GIVEAWAY_MIN_DEFAULT));
+  try{ localStorage.setItem(LS.GIVEAWAY_MIN, String(n)); }catch(_){}
+  return n;
+}
+/* "5", "1.5", "0:90" -> a human label for the button and modal */
+function giveawayLabel(mins){
+  const total = Math.round(mins * 60);
+  const m = Math.floor(total / 60), s = total % 60;
+  return s ? `${m}:${String(s).padStart(2,"0")}` : `${m} min`;
+}
+
 const LS_GIVEAWAY_END = "melon.giveawayEndsAt";
 let giveawayTick = null;
 function startGiveaway(){
@@ -3072,9 +3126,55 @@ function startGiveaway(){
     return;
   }
   playGiveaway();
-  try{ localStorage.setItem(LS_GIVEAWAY_END, String(Date.now() + GIVEAWAY_MINUTES*60000)); }catch(_){}
+  try{ localStorage.setItem(LS_GIVEAWAY_END, String(Date.now() + loadGiveawayMinutes()*60000)); }catch(_){}
   runGiveawayTimer();
 }
+
+/* ---- seller control for the countdown length ---- */
+function openGiveawayLenModal(){
+  const modal = document.getElementById("giveawayLenModal");
+  const inp   = document.getElementById("giveawayLenInput");
+  if (!modal || !inp) return;
+  inp.value = String(loadGiveawayMinutes());
+  syncGiveawayLenPreview();
+  modal.classList.add("open");
+}
+function closeGiveawayLenModal(){
+  document.getElementById("giveawayLenModal")?.classList.remove("open");
+}
+function presetGiveawayLen(v){
+  const inp = document.getElementById("giveawayLenInput");
+  if (inp) inp.value = String(v);
+  syncGiveawayLenPreview();
+}
+function syncGiveawayLenPreview(){
+  const inp = document.getElementById("giveawayLenInput");
+  const out = document.getElementById("giveawayLenPreview");
+  if (!out) return;
+  const v = Math.max(GIVEAWAY_MIN_LO, Math.min(GIVEAWAY_MIN_HI, parseFloat(inp?.value) || GIVEAWAY_MIN_DEFAULT));
+  out.textContent = giveawayLabel(v);
+}
+function applyGiveawayLenFromModal(){
+  const inp = document.getElementById("giveawayLenInput");
+  const n = saveGiveawayMinutes(inp?.value);
+  syncGiveawayBtnTitle();
+  closeGiveawayLenModal();
+  /* A giveaway already counting down keeps its original end time — changing the
+     default mid-countdown must not silently extend or cut a live giveaway. */
+  const running = parseInt(localStorage.getItem(LS_GIVEAWAY_END) || "0", 10) > Date.now();
+  tsuToast(running
+    ? `Next giveaway will run ${giveawayLabel(n)} (current one unchanged).`
+    : `Giveaway length set to ${giveawayLabel(n)}.`);
+}
+function syncGiveawayBtnTitle(){
+  const btn = document.getElementById("giveawayLenBtn");
+  if (btn) btn.title = "Giveaway length — currently " + giveawayLabel(loadGiveawayMinutes());
+}
+window.openGiveawayLenModal = openGiveawayLenModal;
+window.closeGiveawayLenModal = closeGiveawayLenModal;
+window.presetGiveawayLen = presetGiveawayLen;
+window.syncGiveawayLenPreview = syncGiveawayLenPreview;
+window.applyGiveawayLenFromModal = applyGiveawayLenFromModal;
 function stopGiveaway(announce){
   try{ localStorage.removeItem(LS_GIVEAWAY_END); }catch(_){}
   clearInterval(giveawayTick); giveawayTick = null;
@@ -3498,8 +3598,121 @@ function bgLayoutName(k){
   if (k === "custom") return "CUSTOM";
   return TCG_PRODUCTS[k] ? TCG_PRODUCTS[k].name : k.toUpperCase();
 }
-function loadBg(k){ try{ return localStorage.getItem(LS_BG_PREFIX + k) || ""; }catch(_){ return ""; } }
-function saveBg(k, dataUrl){ try{ if (dataUrl) localStorage.setItem(LS_BG_PREFIX + k, dataUrl); else localStorage.removeItem(LS_BG_PREFIX + k); return true; }catch(e){ tsuToast("Image too large to store. Try a smaller file."); return false; } }
+/* ===== ART STORAGE — moved off localStorage 2026-09-16 =====
+   WHY: docs/OVERLAY-FEATURE-NOTES.md ("Storage is the real constraint") is right —
+   a handful of full-size data URLs blows the ~5 MB localStorage quota AND takes the
+   overlay's whole saved state down with it. That quota is per ORIGIN, so every TSU
+   overlay on github.io shares one 5 MB pool. That is the actual reason the seller
+   keeps seeing "file size is too large": not the picture, the shelf it goes on.
+   Raising the compression ceiling alone would have made it fail sooner.
+
+   FIX: pictures now live in IndexedDB, which is measured in hundreds of MB, while
+   localStorage keeps doing what it is good at — small synchronous state. Reads stay
+   SYNCHRONOUS for every existing caller because the images are hydrated into
+   BG_CACHE once at boot; nothing downstream had to change.
+   Falls back to localStorage (old behaviour, old limits) if IndexedDB is blocked. */
+const BG_DB = "melonArt", BG_STORE = "bg";
+let BG_CACHE = Object.create(null);
+let BG_IDB = null, BG_IDB_READY = false;
+
+function idbOpen(){
+  return new Promise((res) => {
+    let rq;
+    try{ rq = indexedDB.open(BG_DB, 1); }catch(_){ return res(null); }
+    rq.onupgradeneeded = () => { try{ rq.result.createObjectStore(BG_STORE); }catch(_){} };
+    rq.onsuccess = () => res(rq.result);
+    rq.onerror   = () => res(null);
+    setTimeout(() => res(rq.result || null), 3000);   // never hang the overlay on a locked DB
+  });
+}
+function idbTx(mode){
+  if (!BG_IDB) return null;
+  try{ return BG_IDB.transaction(BG_STORE, mode).objectStore(BG_STORE); }catch(_){ return null; }
+}
+function idbPut(k, v){
+  return new Promise((res) => {
+    const st = idbTx("readwrite"); if (!st) return res(false);
+    let rq; try{ rq = (v ? st.put(v, k) : st.delete(k)); }catch(_){ return res(false); }
+    rq.onsuccess = () => res(true); rq.onerror = () => res(false);
+  });
+}
+function idbLoadAll(){
+  return new Promise((res) => {
+    const st = idbTx("readonly"); if (!st) return res({});
+    const out = Object.create(null);
+    let rq; try{ rq = st.openCursor(); }catch(_){ return res({}); }
+    rq.onsuccess = () => {
+      const c = rq.result;
+      if (!c) return res(out);
+      out[c.key] = c.value; c.continue();
+    };
+    rq.onerror = () => res(out);
+  });
+}
+
+/* Boot: open IDB, hydrate the cache, then MIGRATE anything still in localStorage
+   into IDB and delete it there — that is what actually gives the seller their
+   quota back on a machine that already hit the wall. */
+async function initBgStore(){
+  BG_IDB = await idbOpen();
+  BG_IDB_READY = !!BG_IDB;
+  if (BG_IDB_READY) Object.assign(BG_CACHE, await idbLoadAll());
+
+  let migrated = 0;
+  for (const k of bgLayoutKeys()){
+    let legacy = "";
+    try{ legacy = localStorage.getItem(LS_BG_PREFIX + k) || ""; }catch(_){}
+    if (!legacy) continue;
+    if (!BG_CACHE[k]) BG_CACHE[k] = legacy;
+    if (BG_IDB_READY && await idbPut(k, BG_CACHE[k])){
+      try{ localStorage.removeItem(LS_BG_PREFIX + k); migrated++; }catch(_){}
+    }
+  }
+  if (migrated) console.log("[melon] moved " + migrated + " background(s) out of localStorage into IndexedDB");
+  if (BG_IDB_READY) IMG_BUDGET_CHARS = IMG_BUDGET_IDB;
+
+  try{ applyBoardBackground(); }catch(_){}
+}
+window.initBgStore = initBgStore;
+
+function loadBg(k){
+  if (BG_CACHE[k]) return BG_CACHE[k];
+  try{ return localStorage.getItem(LS_BG_PREFIX + k) || ""; }catch(_){ return ""; }
+}
+
+function saveBg(k, dataUrl){
+  if (dataUrl) BG_CACHE[k] = dataUrl; else delete BG_CACHE[k];
+
+  if (BG_IDB_READY){
+    idbPut(k, dataUrl || null);      // async; the cache already has it, so the UI is live now
+    try{ localStorage.removeItem(LS_BG_PREFIX + k); }catch(_){}
+    return true;
+  }
+  /* No IndexedDB: old path, old ceiling, honest message. */
+  try{
+    if (dataUrl) localStorage.setItem(LS_BG_PREFIX + k, dataUrl);
+    else localStorage.removeItem(LS_BG_PREFIX + k);
+    return true;
+  }catch(e){
+    delete BG_CACHE[k];
+    bgStatus("Out of image storage (" + bgStorageUsedKB() + " KB used). This browser is blocking "
+           + "IndexedDB, so art has to share the small localStorage pool. Clear a slot you are not using.", true);
+    return false;
+  }
+}
+
+/* The standard says failures report on an inline status line in the modal, never
+   alert()/prompt(). Falls back to a toast when the modal is not open. */
+function bgStatus(msg, isError){
+  const el = document.getElementById("bgStatusLine");
+  if (el){
+    el.textContent = msg;
+    el.style.color = isError ? "#ef4444" : "var(--hay)";
+    return;
+  }
+  tsuToast(msg);
+}
+window.bgStatus = bgStatus;
 function applyBoardBackground(){
   const shell = document.getElementById("boardShell");
   if (!shell) return;
@@ -3533,32 +3746,110 @@ function openBgModal(){
       `<button class="btn ghost" style="padding:6px 10px; font-size:12px;">CLEAR</button>`;
     row.querySelector("input[type=file]").onchange = (e) => {
       const f = e.target.files && e.target.files[0]; if (!f) return;
-      shrinkImageFile(f, 1600, (dataUrl) => { if (saveBg(k, dataUrl)){ openBgModal(); applyBoardBackground(); tsuToast(bgLayoutName(k) + " background set"); } });
+      shrinkImageFile(f, IMG_MAX_W, (dataUrl) => { if (saveBg(k, dataUrl)){ openBgModal(); applyBoardBackground(); tsuToast(bgLayoutName(k) + " background set"); } });
     };
     row.querySelector("button").onclick = () => { saveBg(k, ""); openBgModal(); applyBoardBackground(); };
     rows.appendChild(row);
   });
+  const used = document.getElementById("bgUsedKB");
+  if (used) used.textContent = String(bgStorageUsedKB());
+  const st = document.getElementById("bgStatusLine");
+  if (st){
+    st.style.color = "var(--hay)";
+    st.textContent = BG_IDB_READY
+      ? "Large images OK — artwork is stored in IndexedDB, not the small localStorage pool."
+      : "IndexedDB unavailable in this browser — art is limited to the small localStorage pool.";
+  }
   modal.classList.add("open");
 }
 function closeBgModal(){ const m = document.getElementById("bgModal"); if (m) m.classList.remove("open"); }
+/* ===== IMAGE INTAKE — rewritten 2026-09-16 =====
+   Was: hard 1600px cap, PNG kept at full size, one crude fallback re-encode.
+   A 1600px PNG routinely lands over 4 MB as a data URL, and there are SIX art
+   slots (4 products + custom + promo) all sharing ONE localStorage budget of
+   roughly 5 MB for the whole github.io ORIGIN — which every TSU overlay shares.
+   So "raise the limit" cannot just mean a bigger number: two big PNGs already
+   exhausted the quota and the only feedback was "Image too large to store."
+
+   What this does instead:
+     - resolution ceiling raised 1600 -> 2560 (sharper art on a 1080p canvas)
+     - keeps PNG ONLY when the image actually uses transparency; an opaque PNG
+       becomes JPEG, which is where the real size win is
+     - steps quality down until it fits the budget, then steps RESOLUTION down,
+       rather than giving up
+     - reports the final size so the seller can see what they spent */
+const IMG_MAX_W        = 2560;
+/* Two budgets. localStorage has to stay tight — the ~5 MB pool is shared with every
+   other TSU overlay on the origin AND with this overlay's own saved state. Once
+   initBgStore() confirms IndexedDB, the ceiling goes up ~6x, which is what actually
+   lets the seller upload the artwork they keep being told is too large. */
+const IMG_BUDGET_LS    = 1400000;   // ~1.4 MB per slot, localStorage fallback
+const IMG_BUDGET_IDB   = 8000000;   // ~8 MB per slot once IndexedDB is live
+let   IMG_BUDGET_CHARS = IMG_BUDGET_LS;
+const IMG_QUALITY_STEPS = [0.92, 0.86, 0.8, 0.74, 0.68];
+
+function canvasHasAlpha(c){
+  try{
+    const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+    /* sample every 40th pixel — a full scan of a 2560px image is pointless work */
+    for (let i = 3; i < d.length; i += 160) if (d[i] < 250) return true;
+    return false;
+  }catch(_){ return true; }   // tainted canvas: assume alpha, keep PNG
+}
+
+function drawScaled(img, w){
+  const scale = Math.min(1, w / img.width);
+  const c = document.createElement("canvas");
+  c.width  = Math.max(1, Math.round(img.width  * scale));
+  c.height = Math.max(1, Math.round(img.height * scale));
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+
+function encodeWithinBudget(img){
+  for (const width of [IMG_MAX_W, 2048, 1600, 1280, 1024]){
+    const c = drawScaled(img, width);
+    const alpha = /png$/i.test(img._tsuType || "") && canvasHasAlpha(c);
+
+    if (alpha){
+      const png = c.toDataURL("image/png");
+      if (png.length <= IMG_BUDGET_CHARS) return { out: png, width: c.width, fmt: "PNG" };
+      /* transparency that will not fit is still better flattened than rejected */
+    }
+    for (const q of IMG_QUALITY_STEPS){
+      const jpg = c.toDataURL("image/jpeg", q);
+      if (jpg.length <= IMG_BUDGET_CHARS) return { out: jpg, width: c.width, fmt: "JPG", q };
+    }
+  }
+  return null;
+}
+
 function shrinkImageFile(file, maxW, cb){
   const r = new FileReader();
   r.onload = () => {
     const img = new Image();
+    img._tsuType = file.type || "";
     img.onload = () => {
-      const scale = Math.min(1, maxW / img.width);
-      const c = document.createElement("canvas");
-      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
-      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-      const isPng = /png$/i.test(file.type);
-      let out = isPng ? c.toDataURL("image/png") : c.toDataURL("image/jpeg", 0.85);
-      if (out.length > 2500000) out = c.toDataURL("image/jpeg", 0.8);   // keep well inside the localStorage budget
-      cb(out);
+      const res = encodeWithinBudget(img);
+      if (!res){
+        bgStatus("Could not compress that image small enough to store. Try a simpler or smaller picture.", true);
+        return;
+      }
+      const kb = Math.round(res.out.length / 1024);
+      bgStatus(`Image stored — ${res.width}px ${res.fmt}, ${kb} KB.`, false);
+      cb(res.out);
     };
     img.onerror = () => tsuToast("That file is not an image the browser can read.");
     img.src = r.result;
   };
   r.readAsDataURL(file);
+}
+
+/* How much of the art budget is already spent, for the BG modal readout. */
+function bgStorageUsedKB(){
+  let total = 0;
+  bgLayoutKeys().forEach(k => { total += (loadBg(k) || "").length; });
+  return Math.round(total / 1024);
 }
 
 /* ===== BUYER NAME ON SOLD TILES ===== */
@@ -4021,11 +4312,23 @@ function resetAll(){
     return String(s || '').replace(/"/g,'\\"');
   }
 
+  /* 2026-09-16 — UNICODE FIX (Korean support).
+     This used to be .replace(/[^a-z0-9]+/g,' '), which deletes every non-ASCII
+     character. Two things broke the moment a seller typed Hangul:
+       1. A Korean listing title normalised to "" and returned null — no automation.
+       2. FAR WORSE: a Korean CUSTOM SPOT NAME normalised to "", and the matcher
+          below does `t.includes(norm(tm.name))`. "".includes("") is ALWAYS true,
+          so the first Korean-named spot would silently swallow EVERY sale on the
+          board, marking the wrong tile with no error anywhere.
+     \p{L}\p{N} keeps letters and digits in any script — Hangul, Latin, accents,
+     Cyrillic — and still strips punctuation and emoji the way it always did.
+     .toLowerCase() is a no-op for Hangul (it is caseless), so Latin behaviour is
+     byte-for-byte unchanged. */
   function norm(s){
     return String(s || '')
       .toLowerCase()
       .replace(/&/g,'and')
-      .replace(/[^a-z0-9]+/g,' ')
+      .replace(/[^\p{L}\p{N}]+/gu,' ')
       .trim();
   }
 function inferCodeFromTitle(title, sportHint){
@@ -4079,8 +4382,10 @@ function inferCodeFromTitle(title, sportHint){
     for (const tm of list){
       const code = String(tm.code || '').toUpperCase().trim();
       if (!code) continue;
-      if (t.includes(norm(code))) return code;
-      if (tm.name && t.includes(norm(tm.name))) return code;
+      const nc = norm(code);
+      if (nc && t.includes(nc)) return code;
+      const nn = norm(tm.name);
+      if (nn && t.includes(nn)) return code;
     }
   }
 
@@ -4089,8 +4394,10 @@ function inferCodeFromTitle(title, sportHint){
     for (const tm of list){
       const code = String(tm.code || '').toUpperCase().trim();
       if (!code) continue;
-      if (t.includes(norm(code))) return code;
-      if (tm.name && t.includes(norm(tm.name))) return code;
+      const nc = norm(code);
+      if (nc && t.includes(nc)) return code;
+      const nn = norm(tm.name);
+      if (nn && t.includes(nn)) return code;
     }
   }
 
@@ -5010,9 +5317,53 @@ if (e.target === m){
       </div>
     </div>
     <div id="bgRows" class="ticker-editor" style="flex-direction:column; gap:0;"></div>
+    <!-- inline status line: the standard forbids alert()/prompt() for these failures -->
+    <div id="bgStatusLine" style="padding:6px 2px; font-size:13px; font-weight:800; color:var(--hay); min-height:19px;"></div>
     <div class="ticker-hint">
-      Browse to a JPG or PNG for each board. The image is stored in this browser (resized to 1600px so it fits),
-      so it survives reloads and OBS restarts. It fills the board area behind the tiles. Clear puts the default back.
+      Browse to a JPG or PNG for each board. Images are resized to fit (up to 2560px) and compressed
+      automatically; transparency is preserved when the picture actually uses it. Stored in this browser, so
+      they survive reloads and OBS restarts. Clear puts the default back.
+      <br><br><b>Art storage used: <span id="bgUsedKB">0</span> KB</b> across all slots. Artwork is kept in
+      IndexedDB, which allows far larger files than the old limit — if you were told a picture was too large
+      before, try it again. Existing backgrounds are moved over automatically the first time this overlay loads.
+    </div>
+  </div>
+</div>
+
+<!-- ===== GIVEAWAY LENGTH ===== -->
+<div class="modal-backdrop" id="giveawayLenModal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Giveaway length" style="width:520px;">
+    <div class="modal-head">
+      <div class="modal-title">Giveaway length</div>
+      <div class="modal-actions">
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyGiveawayLenFromModal()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeGiveawayLenModal()">CLOSE</button>
+      </div>
+    </div>
+
+    <div class="ticker-editor" style="flex-direction:column;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <input id="giveawayLenInput" type="number" min="0.25" max="120" step="0.25"
+               oninput="syncGiveawayLenPreview()"
+               style="flex:1; text-align:center; font-size:30px; font-weight:900; padding:8px; border-radius:8px; border:2px solid var(--accentBorder); background:#061405; color:#fff;">
+        <div id="giveawayLenPreview" class="btn ghost" style="padding:10px 16px; font-size:18px; font-weight:900; cursor:default; white-space:nowrap;">5 min</div>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+        <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetGiveawayLen(0.5)">30s</button>
+        <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetGiveawayLen(1)">1 min</button>
+        <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetGiveawayLen(2)">2 min</button>
+        <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetGiveawayLen(5)">5 min</button>
+        <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetGiveawayLen(10)">10 min</button>
+        <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetGiveawayLen(15)">15 min</button>
+        <button class="btn ghost" style="padding:8px 12px; font-size:13px;" onclick="presetGiveawayLen(30)">30 min</button>
+      </div>
+    </div>
+
+    <div class="ticker-hint">
+      How long the countdown runs when you press 🎁 GIVEAWAY. Minutes, and fractions are fine
+      (0.5 = 30 seconds). Saved for next time. Changing this while a giveaway is already
+      counting down does <b>not</b> alter the one in progress.
     </div>
   </div>
 </div>
@@ -5057,6 +5408,8 @@ if (e.target === m){
       try{ if (typeof initGiveawayTimerDrag === "function") initGiveawayTimerDrag(); }catch(e){ console.warn("[melon] giveaway drag init failed", e); }
       try{ if (typeof initHitPanel === "function") initHitPanel(); }catch(e){ console.warn("[melon] hit panel init failed", e); }
       try{ if (typeof resumeGiveawayTimerIfRunning === "function") resumeGiveawayTimerIfRunning(); }catch(e){ console.warn("[melon] giveaway resume failed", e); }
+      try{ if (typeof syncGiveawayBtnTitle === "function") syncGiveawayBtnTitle(); }catch(e){ console.warn("[melon] giveaway label failed", e); }
+      try{ if (typeof initBgStore === "function") initBgStore(); }catch(e){ console.warn("[melon] art store init failed", e); }
     };
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go);
     else go();
