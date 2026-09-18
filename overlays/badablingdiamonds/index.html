@@ -857,18 +857,35 @@
       background: linear-gradient(180deg, #070b18 0%, #03050c 100%);
       border-color: rgba(248,184,56,0.25);
     }
-    .team.dr-tile.sold .dr-num,
-    .team.dr-tile.sold .fallback-code,
-    .team.dr-tile.sold .dr-cap{ opacity: .28; }
-    .team.dr-tile.sold::after{
-      content: "SOLD";
-      font-size: 13px; letter-spacing: 2px;
+    .team.dr-tile.sold .fallback-code{ opacity: .28; }
+    /* round 4 (2026-09-17): the winner's name sits ON the spot instead of a SOLD
+       stamp. The spot number moves up beside the caption so it stays readable. */
+    .team.dr-tile.sold::after{ content: none; }
+    .dr-won{
+      display: none;
+      position: absolute; left: 3px; right: 3px; top: 50%;
+      transform: translateY(-58%);
+      z-index: 4;
+      text-align: center; line-height: 1.1;
+      font-size: 14px; font-weight: 900; letter-spacing: .2px;
+      white-space: nowrap;
       color: #1a1200;
-      padding: 1px 6px; border-radius: 4px;
-      background: linear-gradient(135deg, #FFE3A3, #F8B838 55%, #9A6A12);
-      transform: translate(-50%, -60%) rotate(-12deg);
-      box-shadow: 0 0 10px rgba(248,184,56,0.55);
+      padding: 2px 3px; border-radius: 5px;
+      background: linear-gradient(135deg, #FFE3A3, #F8B838 58%, #E0A322);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.55);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      font-family: Arial, sans-serif;
     }
+    .team.dr-tile.sold .dr-won{ display: block; }
+    .dr-won.placeholder{
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+    }
+    /* the spot number and caption stay exactly as they were; only the label changes */
+    .team.dr-tile.sold .dr-num{ opacity: .28; }
+    .team.dr-tile.sold .dr-cap{ opacity: .28; }
+    /* a delayed reveal tile carries the name ONCE, in the label */
+    .team.dr-tile .tile-buyer{ display: none !important; }
     .team .tile-buyer{ font-size: 10px; }
 
     .gem-slot{
@@ -1180,6 +1197,22 @@
     .sold-list-container.detached .sold-list-title{ margin-right: auto; }
     .sold-top-row{ flex-wrap: wrap; row-gap: 4px; }
     .sold-controls{ flex-wrap: wrap; row-gap: 3px; }
+    .break-pill{ cursor: pointer; }
+
+    /* ===== CLIPBOARD (2026-09-18) =====
+       body user-select:none was inherited by the config panels, so nothing could be
+       selected and nothing could be copied. Fields and modals opt back in. */
+    input, textarea, select,
+    .modal-panel, .modal-panel *,
+    .sold-buyer-input, .reveal-name, .sold-team-name{
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
+    .modal-panel .btn, .modal-panel .sold-x{ user-select: none !important; -webkit-user-select: none !important; }
+    .clip-hint{
+      font-size: 11px; opacity: .8; color: var(--goldLight);
+      font-family: Arial, sans-serif; letter-spacing: .2px; margin-top: 2px;
+    }
 
   </style>
 </head>
@@ -1198,7 +1231,7 @@
 
       <div class="header-right">
         <div class="header-sub" id="headerSub">100 SPOTS</div>
-        <div class="break-pill">
+        <div class="break-pill" title="Click to hide. The PILL button in the sold panel brings it back.">
           <span class="label">Break #</span>
           <span class="value" id="breakNumberDisplay">1</span>
         </div>
@@ -1245,6 +1278,7 @@
         <button class="btn secondary" id="newBreakBtn" onclick="armThen(this, newBreak)">🧾 NEW BREAK</button>
         <button class="btn ghost" id="resetBtn" onclick="armThen(this, resetAll)">↺ RESET</button>
         <button class="btn ghost" onclick="openBreakEditor()">BREAK #</button>
+        <button class="btn ghost" id="breakPillBtn" onclick="toggleBreakPill()">#️⃣ PILL ON</button>
         <button class="btn ghost" onclick="openSetEditor()">💎 SETS</button>
         <button class="btn ghost" onclick="openRevealModal()">🎲 REVEALS</button>
         <button class="btn ghost" onclick="openTitleEditor()">🏷 TITLE</button>
@@ -1267,6 +1301,7 @@
     <div class="modal-head">
       <div class="modal-title">Title Editor</div>
       <div class="modal-actions">
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="pasteIntoFocused()" title="Paste into the box you last clicked in">📥 PASTE</button>
         <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyTitleFromModal()">APPLY</button>
         <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeTitleEditor()">CLOSE</button>
       </div>
@@ -1285,6 +1320,7 @@
     <div class="modal-head">
       <div class="modal-title">Ticker Editor</div>
       <div class="modal-actions">
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="pasteIntoFocused()" title="Paste into the box you last clicked in">📥 PASTE</button>
         <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyTickerFromModal()">APPLY</button>
         <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeTickerEditor()">CLOSE</button>
       </div>
@@ -1326,6 +1362,8 @@
     <div class="modal-head">
       <div class="modal-title">💎 Surprise Set Setup</div>
       <div class="modal-actions">
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="copyFromFocused()" title="Copy the box you last clicked in">📋 COPY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="pasteIntoFocused()" title="Paste into the box you last clicked in">📥 PASTE</button>
         <button class="btn secondary" style="padding:8px 12px; font-size:12px;" onclick="applySetFromModal()">APPLY TO BOARD</button>
         <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeSetEditor()">CLOSE</button>
       </div>
@@ -1388,6 +1426,7 @@
       <div class="form-row">
         <button class="btn ghost" style="padding:6px 10px; font-size:12px;" onclick="addTypeRow()">+ ADD ITEM TYPE</button>
       </div>
+      <div class="clip-hint">Pasting: click the box, then Ctrl+V, or right-click the box, or use 📥 PASTE above. 📋 COPY copies the box you last clicked in.</div>
       <div class="set-total" id="setTotalLine"></div>
     </div>
 
@@ -1431,6 +1470,7 @@
     <div class="modal-head">
       <div class="modal-title">⇪ Export &amp; Backup</div>
       <div class="modal-actions">
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="pasteIntoFocused()" title="Paste into the box you last clicked in">📥 PASTE</button>
         <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeExportModal()">CLOSE</button>
       </div>
     </div>
@@ -1552,7 +1592,7 @@
   // ===================================================================
   //  OPTIONS
   // ===================================================================
-  const OPTS_DEFAULT = { tickerCounts: false, soldPanelHidden: false, adminHidden: false };
+  const OPTS_DEFAULT = { tickerCounts: false, soldPanelHidden: false, adminHidden: false, breakPillHidden: false };
   let OPTS = Object.assign({}, OPTS_DEFAULT, lsJSON(LS.OPTS, {}));
   function saveOpts(){ lsSet(LS.OPTS, JSON.stringify(OPTS)); }
 
@@ -1929,9 +1969,13 @@
     const num = document.createElement("div");
     num.className = "dr-num fallback-code";
     num.textContent = String(n);
+    /* The winner's name goes ON the spot, in place of the old SOLD stamp. The
+       bottom buyer bar and the sold list keep their copies. */
+    const won = document.createElement("div");
+    won.className = "dr-won";
     const buyer = document.createElement("div");
     buyer.className = "tile-buyer";
-    d.append(cap, num, buyer);
+    d.append(cap, num, won, buyer);
     if (soldTeams.has(code)) d.classList.add("sold");
     return d;
   }
@@ -1967,6 +2011,23 @@
     updateSoldList();
   }
 
+  /* A handle is one unbreakable token in a 70-odd px tile, so the size is a
+     MAXIMUM and each name steps down only as far as its own tile needs
+     (the CCS buyer-font lesson, 2026-09-14). Floor 7px, then it ellipsises. */
+  /* The sold label IS the buyer name. Mike's rule (2026-09-18): shrink the label by
+     at most 2px for a longer name, then let it clip — never smaller than that and
+     never a second copy of the name on the tile. */
+  const TILE_NAME_MAX = 14, TILE_NAME_MIN = 12;
+  function fitTileName(el){
+    if (!el || !el.textContent) return;
+    let px = TILE_NAME_MAX;
+    el.style.fontSize = px + "px";
+    while (px > TILE_NAME_MIN && el.scrollWidth > el.clientWidth){
+      px -= 1;
+      el.style.fontSize = px + "px";
+    }
+  }
+
   function renderTileBuyers(){
     const n = ACTIVE_SET.delayed.count;
     const byCode = new Map();
@@ -1975,10 +2036,22 @@
       const code = tileCode(i);
       const tile = document.querySelector(`[data-team-code="${cssEscape(code)}"]`);
       if (!tile) continue;
-      tile.classList.toggle("sold", soldTeams.has(code));
-      const b = tile.querySelector(".tile-buyer");
+      const sold = soldTeams.has(code);
+      tile.classList.toggle("sold", sold);
       const val = byCode.get(code) || "";
-      if (b && b.textContent !== val) b.textContent = val;
+      const b = tile.querySelector(".tile-buyer");
+      if (b && b.textContent !== "") b.textContent = "";   // the label carries the name; no second copy
+      const won = tile.querySelector(".dr-won");
+      if (won){
+        // no name yet on a sold spot: say SOLD until the buyer lands
+        const face = sold ? (val || "SOLD") : "";
+        if (won.textContent !== face){
+          won.textContent = face;
+          won.title = face;
+          won.classList.toggle("placeholder", sold && !val);
+          if (face) requestAnimationFrame(() => fitTileName(won));
+        }
+      }
     }
   }
 
@@ -2260,9 +2333,8 @@
   function updateSoldList(){
     const host = document.getElementById("soldList");
     if (!host) return;
-    // unplaced sales first (they need the seller), then newest first
-    const rev = soldTeamsList.slice().reverse();
-    const order = rev.filter(e => !e.target).concat(rev.filter(e => e.target));
+    // oldest first, top left, each new sale appended at the end (Mike, 2026-09-18)
+    const order = soldTeamsList.slice();
     const live = new Set(order.map(e => e.eid));
 
     for (const [eid, el] of soldRowEls){
@@ -3026,6 +3098,7 @@
     document.body.classList.toggle("sold-panel-hidden", !!OPTS.soldPanelHidden);
     const pn = document.getElementById("soldPanel");
     if (pn) pn.classList.toggle("admin-hidden", !!OPTS.adminHidden);
+    applyBreakPillVisibility();
   }
   function toggleSoldPanelHidden(){
     OPTS.soldPanelHidden = !OPTS.soldPanelHidden;
@@ -3033,6 +3106,18 @@
     applyPanelVisibility();
     if (!OPTS.soldPanelHidden) applySoldFloat();
   }
+  function applyBreakPillVisibility(){
+    const pill = document.querySelector(".break-pill");
+    if (pill) pill.style.display = OPTS.breakPillHidden ? "none" : "";
+    const btn = document.getElementById("breakPillBtn");
+    if (btn) btn.textContent = OPTS.breakPillHidden ? "#️⃣ PILL OFF" : "#️⃣ PILL ON";
+  }
+  function toggleBreakPill(){
+    OPTS.breakPillHidden = !OPTS.breakPillHidden;
+    saveOpts();
+    applyBreakPillVisibility();
+  }
+
   function toggleAdminHidden(){
     OPTS.adminHidden = !OPTS.adminHidden;
     saveOpts();
@@ -3506,6 +3591,128 @@
     evt.target.value = "";
   }
 
+  // ===================================================================
+  //  CLIPBOARD (2026-09-18)
+  //  Config fields could not be pasted into. Two causes, both fixed:
+  //  1. `user-select: none` on the body is inherited by the panels, so nothing
+  //     could be SELECTED (and therefore not copied) — the CSS now exempts every
+  //     field and every modal.
+  //  2. An OBS browser-source interact window does not always deliver Ctrl+V to
+  //     the focused field. So every paste route is covered: the native event, a
+  //     document-level catch that redirects a stray paste into the last focused
+  //     field, a PASTE button, right-click on a field, and a keyboard fallback
+  //     that reads the clipboard only when the native paste did not arrive.
+  // ===================================================================
+  let LAST_FIELD = null;
+  let lastNativePasteAt = 0;
+
+  function isField(el){
+    return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA") && !el.readOnly && !el.disabled;
+  }
+
+  function insertIntoField(el, text){
+    if (!isField(el) || !text) return false;
+    const t = String(text);
+    try{
+      el.focus();
+      const start = el.selectionStart, end = el.selectionEnd;
+      if (typeof start === "number" && typeof end === "number"){
+        el.value = el.value.slice(0, start) + t + el.value.slice(end);
+        const caret = start + t.length;
+        el.setSelectionRange(caret, caret);
+      } else {
+        el.value += t;
+      }
+    }catch(_){
+      el.value += t;
+    }
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
+  }
+
+  async function readClipboard(){
+    try{
+      if (navigator.clipboard && navigator.clipboard.readText){
+        const t = await navigator.clipboard.readText();
+        if (t != null) return t;
+      }
+    }catch(_){}
+    // CEF (OBS) still honours execCommand('paste') into a focused field
+    try{
+      const box = document.createElement("textarea");
+      box.style.cssText = "position:fixed;left:-9999px;top:0;opacity:0;";
+      document.body.appendChild(box);
+      box.focus();
+      const ok = document.execCommand("paste");
+      const t = ok ? box.value : null;
+      box.remove();
+      if (t) return t;
+    }catch(_){}
+    return null;
+  }
+
+  async function pasteIntoFocused(target){
+    const el = isField(target) ? target : LAST_FIELD;
+    if (!el){ tsuToast("Click the box you want to paste into first, then press PASTE."); return false; }
+    const txt = await readClipboard();
+    if (txt == null || txt === ""){
+      tsuToast("This window will not hand over the clipboard. Press Ctrl+V with the box selected, or open the overlay in Chrome to set it up.");
+      return false;
+    }
+    insertIntoField(el, txt);
+    return true;
+  }
+  window.pasteIntoFocused = pasteIntoFocused;
+
+  async function copyFromFocused(target){
+    const el = isField(target) ? target : LAST_FIELD;
+    if (!el){ tsuToast("Click the box you want to copy from first."); return; }
+    const sel = (el.selectionStart !== el.selectionEnd)
+      ? el.value.slice(el.selectionStart, el.selectionEnd)
+      : el.value;
+    if (!sel){ tsuToast("That box is empty."); return; }
+    copyText(sel, el);
+  }
+  window.copyFromFocused = copyFromFocused;
+
+  function initClipboard(){
+    document.addEventListener("focusin", (e) => { if (isField(e.target)) LAST_FIELD = e.target; });
+
+    document.addEventListener("paste", (e) => {
+      lastNativePasteAt = Date.now();
+      if (isField(e.target)) return;                  // the field handled it itself
+      const el = LAST_FIELD;
+      if (!el) return;
+      const txt = (e.clipboardData && e.clipboardData.getData("text")) || "";
+      if (!txt) return;
+      e.preventDefault();
+      insertIntoField(el, txt);
+    }, true);
+
+    document.addEventListener("keydown", (e) => {
+      const mod = e.ctrlKey || e.metaKey;
+      if (!mod) return;
+      const k = String(e.key || "").toLowerCase();
+      if (k !== "v") return;
+      const el = isField(e.target) ? e.target : LAST_FIELD;
+      if (!el) return;
+      const before = el.value;
+      setTimeout(() => {
+        if (Date.now() - lastNativePasteAt < 500) return;   // native paste did arrive
+        if (el.value !== before) return;
+        pasteIntoFocused(el);
+      }, 180);
+    });
+
+    // right-click a field to paste (an OBS interact window has no context menu)
+    document.addEventListener("contextmenu", (e) => {
+      if (!isField(e.target)) return;
+      e.preventDefault();
+      pasteIntoFocused(e.target);
+    });
+  }
+
   /* OBS-safe notice. Native browser dialogs freeze an OBS browser source with a box
      the seller can never dismiss, so every user-facing message goes through this toast. */
   function tsuToast(msg, ms){
@@ -3545,6 +3752,9 @@
     applyPanelVisibility();
     applySoldFloat();
     initSoldPanelDrag();
+    const pill = document.querySelector(".break-pill");
+    if (pill) pill.addEventListener("click", toggleBreakPill);   // quick hide; the PILL button brings it back
+    initClipboard();
     const addInp = document.getElementById("revealAddInput");
     if (addInp) addInp.addEventListener("keydown", (e) => { if (e.key === "Enter") addRevealName(); });
 
