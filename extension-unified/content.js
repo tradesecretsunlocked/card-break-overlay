@@ -904,7 +904,27 @@
           const code = inferCodeFromTitle(title, sport);
 
           if (!code && !DEFAULTS.sendUnresolved) {
-            console.warn("[TSU] unresolved title (will retry):", { id, title, sport, rawTitle });
+            /* 2026-09-22 FIX — this branch used to `continue` WITHOUT recording the
+               item in `seen`, so an unresolvable listing was reprocessed on every
+               poll, forever. Two consequences, seen live on texazmadesoulja with
+               "2026 Panini Prizm Baseball Hobby X2 - NIL":
+                 1. the same warning every 3s for the whole show (dozens per minute)
+                 2. worse — isSeenUnchanged() drives the early-stop in
+                    fetchAllSoldEdges(). An item never marked seen means its page can
+                    never be "all seen", so seenPagesInARow keeps resetting and the
+                    poller re-walks pages every cycle. That is the same request
+                    pressure that tripped Whatnot's rate limiter on EnergyVault.
+               Record it against the title we could not resolve. The dedup check
+               above compares stored title vs current title, so "will retry" still
+               holds in the way that matters: the moment the seller RETITLES the
+               listing to a real team, the title differs, dedup lets it through and
+               it resolves normally. We just stop asking the same dead question
+               twenty times a minute. */
+            if (seen.get(id) !== title) {
+              console.warn("[TSU] unresolved title — parked until the listing is retitled:",
+                           { id, title, sport, rawTitle });
+            }
+            seenSetWithPersist(id, title);
             continue;
           }
           // passthrough (sendUnresolved): no code resolved, but emit anyway with code:"" so the

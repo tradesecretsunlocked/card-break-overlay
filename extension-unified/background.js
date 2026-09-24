@@ -55,13 +55,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // in the service worker is not throttled that way.
     if (msg.type === "arm_reminder" && sender.tab?.id != null) {
       const name = REMINDER_PREFIX + sender.tab.id;
-      reminderPresets[sender.tab.id] = msg.preset || "break_starting";
+      setReminderPreset(sender.tab.id, msg.preset || "break_starting");
       chrome.alarms.create(name, { periodInMinutes: Math.max(1, Number(msg.periodMinutes) || 5) });
     }
 
     if (msg.type === "disarm_reminder" && sender.tab?.id != null) {
       chrome.alarms.clear(REMINDER_PREFIX + sender.tab.id);
-      delete reminderPresets[sender.tab.id];
+      dropReminderPreset(sender.tab.id);
       clearTimersForTab(sender.tab.id);
     }
 
@@ -69,13 +69,21 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // two open shows can never double-post.
     if (msg.type === "arm_timers" && sender.tab?.id != null) {
       const tabId = sender.tab.id;
-      clearTimersForTab(tabId);
-      (Array.isArray(msg.timers) ? msg.timers : []).forEach((t) => {
-        const id   = String(t.id || "t").replace(/[^A-Za-z0-9_-]/g, "");
-        const name = TIMER_PREFIX + tabId + "__" + id;
-        timerSpecs[name] = { preset: t.preset || "break_starting", text: t.text || "", timerId: id };
-        chrome.alarms.create(name, { periodInMinutes: Math.max(1, Number(t.periodMinutes) || 5) });
-      });
+      const list  = Array.isArray(msg.timers) ? msg.timers : [];
+      /* Sequenced: clearTimersForTab() and setTimerSpec() both read-modify-write
+         the same stored map, so firing them off in parallel would let the clear
+         land last and wipe the specs we just wrote. */
+      (async () => {
+        await clearTimersForTab(tabId);
+        for (const t of list){
+          const id   = String(t.id || "t").replace(/[^A-Za-z0-9_-]/g, "");
+          const name = TIMER_PREFIX + tabId + "__" + id;
+          await setTimerSpec(name, { preset: t.preset || "break_starting", text: t.text || "", timerId: id });
+          chrome.alarms.create(name, { periodInMinutes: Math.max(1, Number(t.periodMinutes) || 5) });
+        }
+        console.log("[TSU] armed " + list.length + " timer(s) for tab " + tabId +
+                    ": " + list.map(t => (t.id || "?") + "@" + t.periodMinutes + "min").join(", "));
+      })();
     }
 
     sendResponse({ ok: true });
@@ -84,28 +92,105 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 // ── Timed reminder alarms ────────────────────────────────────────────────────
 const REMINDER_PREFIX = "tsu_reminder_";
-const reminderPresets = {};
+const TIMER_PREFIX    = "tsu_timer_";
 
-const TIMER_PREFIX = "tsu_timer_";
-const timerSpecs = {};   // alarmName -> { preset, text, timerId }
+/* ═══════════════════════════════════════════════════════════════════════════
+   2026-09-21 CRITICAL FIX — timed messages never fired.
 
-function clearTimersForTab(tabId) {
-  const pfx = TIMER_PREFIX + tabId + "__";
-  Object.keys(timerSpecs).forEach((name) => {
-    if (name.startsWith(pfx)) { chrome.alarms.clear(name); delete timerSpecs[name]; }
-  });
+   `timerSpecs` and `reminderPresets` were plain module-level objects. This is an
+   MV3 SERVICE WORKER: Chrome terminates it after ~30 seconds idle and restarts
+   it fresh when an event arrives. Module state does NOT survive that.
+
+   So the sequence was always:
+     1. content.js arms a 2-minute alarm, spec written to memory  ✓
+     2. ~30s later Chrome kills the idle service worker, memory gone
+     3. at 2 minutes the alarm fires and WAKES the worker — but `timerSpecs` is
+        now `{}`, so `if (!spec) return;` bailed out silently
+   The alarm was firing correctly the whole time. The payload to send with it had
+   evaporated. Net effect: scheduled messages could only ever work if the alarm
+   happened to land while the worker was still warm, which is almost never on a
+   2+ minute interval. Zero log lines, zero bridge events — indistinguishable
+   from "the timer never armed".
+
+   Fix: keep the specs in chrome.storage.session, which is exactly what it is for
+   — service-worker-restart-safe, cleared when the browser closes (which is the
+   right lifetime, since the alarms are tab-scoped and tabs do not outlive the
+   browser either). The in-memory object stays as a fast path, but storage is the
+   source of truth and is always consulted on a miss.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const SPECS_KEY     = "tsu.timerSpecs";
+const REMINDERS_KEY = "tsu.reminderPresets";
+
+/* storage.session needs Chrome 102+. Fall back to storage.local so an older
+   build degrades to "works but survives a browser restart" instead of breaking. */
+const sessionStore = (chrome.storage && chrome.storage.session) || chrome.storage.local;
+
+async function readMap(key){
+  try{ const o = await sessionStore.get(key); return (o && o[key]) || {}; }
+  catch(_){ return {}; }
+}
+async function writeMap(key, map){
+  try{ await sessionStore.set({ [key]: map }); }catch(_){}
 }
 
-chrome.alarms.onAlarm.addListener((alarm) => {
+let timerSpecs     = {};   // alarmName -> { preset, text, timerId }   (cache only)
+let reminderPresets = {};  // tabId     -> preset                       (cache only)
+
+async function setTimerSpec(name, spec){
+  const map = await readMap(SPECS_KEY);
+  map[name] = spec;
+  timerSpecs = map;
+  await writeMap(SPECS_KEY, map);
+}
+async function setReminderPreset(tabId, preset){
+  const map = await readMap(REMINDERS_KEY);
+  map[tabId] = preset;
+  reminderPresets = map;
+  await writeMap(REMINDERS_KEY, map);
+}
+async function dropReminderPreset(tabId){
+  const map = await readMap(REMINDERS_KEY);
+  delete map[tabId];
+  reminderPresets = map;
+  await writeMap(REMINDERS_KEY, map);
+}
+
+async function clearTimersForTab(tabId) {
+  const pfx = TIMER_PREFIX + tabId + "__";
+  const map = await readMap(SPECS_KEY);
+  for (const name of Object.keys(map)){
+    if (name.startsWith(pfx)) { chrome.alarms.clear(name); delete map[name]; }
+  }
+  timerSpecs = map;
+  await writeMap(SPECS_KEY, map);
+}
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
   // v2.0 multi-timer alarms
   if (alarm.name.startsWith(TIMER_PREFIX)) {
-    const spec  = timerSpecs[alarm.name];
+    const map   = await readMap(SPECS_KEY);          // survives worker restarts
+    const spec  = map[alarm.name] || timerSpecs[alarm.name];
     const tabId = Number(alarm.name.slice(TIMER_PREFIX.length).split("__")[0]);
-    if (!spec || !Number.isFinite(tabId)) return;
+    if (!spec || !Number.isFinite(tabId)) {
+      /* Genuinely orphaned (tab gone, or armed before this fix shipped). Clear it
+         so it stops waking the worker for nothing — and SAY so, because the old
+         silent return is what made this invisible for weeks. */
+      console.warn("[TSU] timer alarm with no stored spec, clearing:", alarm.name);
+      chrome.alarms.clear(alarm.name);
+      return;
+    }
     chrome.tabs.sendMessage(
       tabId,
       { _from: "background", type: "timed_reminder_fire", preset: spec.preset, text: spec.text, timerId: spec.timerId },
-      () => { if (chrome.runtime.lastError) { chrome.alarms.clear(alarm.name); delete timerSpecs[alarm.name]; } }
+      () => {
+        if (chrome.runtime.lastError) {
+          chrome.alarms.clear(alarm.name);
+          delete map[alarm.name];
+          timerSpecs = map;
+          writeMap(SPECS_KEY, map);
+        }
+      }
     );
     return;
   }
@@ -114,10 +199,13 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   const tabId = Number(alarm.name.slice(REMINDER_PREFIX.length));
   if (!Number.isFinite(tabId)) return;
 
+  const rmap = await readMap(REMINDERS_KEY);
+  const preset = rmap[tabId] || reminderPresets[tabId] || "break_starting";
+
   // Fire into the exact tab that armed it, so two open shows cannot double post.
   chrome.tabs.sendMessage(
     tabId,
-    { _from: "background", type: "timed_reminder_fire", preset: reminderPresets[tabId] },
+    { _from: "background", type: "timed_reminder_fire", preset },
     () => { if (chrome.runtime.lastError) chrome.alarms.clear(alarm.name); }
   );
 });
@@ -125,7 +213,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // Tab closed: drop its schedule.
 chrome.tabs.onRemoved.addListener((tabId) => {
   chrome.alarms.clear(REMINDER_PREFIX + tabId);
-  delete reminderPresets[tabId];
+  dropReminderPreset(tabId);
   clearTimersForTab(tabId);
 });
 

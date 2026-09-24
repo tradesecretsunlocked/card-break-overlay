@@ -22,22 +22,67 @@
   // system. This fires the native setter, then dispatches an 'input' event that
   // React's listener is watching for.
 
+  /* ═══════════════════════════════════════════════════════════════════════
+     2026-09-21 ROOT CAUSE FIX — "types into the box but never sends".
+
+     Proven from a live bot_error on the seller dashboard:
+       matchedInput   input[type=text][ph=Say something...]   (selector was fine)
+       hasForm        true
+       hadSendButton  false
+       error          SEND_NOT_FIRED
+
+     So the input was found and filled, then Enter, form.requestSubmit() and a
+     second Enter all did nothing. requestSubmit() is a REAL native submit — if
+     React had a message in state it would have sent. It follows that React's
+     state was still EMPTY and the send handler was bailing on an empty message,
+     while the DOM kept our text because React was not re-rendering the field.
+
+     Why: React keeps a `_valueTracker` on controlled inputs to decide whether an
+     input event is a real change. Writing through the prototype's native setter
+     mutates the DOM but leaves the tracker holding the OLD value, and in that
+     state React can swallow the synthetic input event and never update state.
+     The previous code never touched the tracker.
+
+     Fix, most-native first:
+       1. document.execCommand("insertText") — drives Chromium's real editing
+          pipeline, so React sees a genuine beforeinput/input sequence. This is
+          what a human typing actually produces.
+       2. Native setter WITH an explicit tracker reset, which forces React to
+          treat the next input event as a change.
+     Returns which path was used so it lands in the diagnostics. */
   function setReactInputValue(element, value) {
+    element.focus();
+
+    // ── 1. the native editing pipeline ──────────────────────────────────────
+    try {
+      element.select && element.select();
+      if (document.execCommand("insertText", false, value) && element.value === value) {
+        return "execCommand";
+      }
+    } catch (_) {}
+
+    // ── 2. native setter + value tracker reset ──────────────────────────────
     const proto = element.tagName === "TEXTAREA"
       ? window.HTMLTextAreaElement.prototype
       : window.HTMLInputElement.prototype;
 
+    const previous   = element.value;
     const descriptor = Object.getOwnPropertyDescriptor(proto, "value");
-    if (!descriptor || !descriptor.set) {
-      // Fallback — some environments don't expose the descriptor
-      element.value = value;
-    } else {
-      descriptor.set.call(element, value);
-    }
+    if (!descriptor || !descriptor.set) element.value = value;
+    else descriptor.set.call(element, value);
 
-    // Dispatch events React listens for
-    element.dispatchEvent(new Event("input",  { bubbles: true, cancelable: true }));
+    /* THE LINE THAT WAS MISSING. Rewind React's tracker to the pre-change value
+       so the input event below cannot be deduped away as "nothing changed". */
+    try {
+      const tracker = element._valueTracker;
+      if (tracker && typeof tracker.setValue === "function") tracker.setValue(previous);
+    } catch (_) {}
+
+    element.dispatchEvent(new InputEvent("input", {
+      bubbles: true, cancelable: true, inputType: "insertText", data: value,
+    }));
     element.dispatchEvent(new Event("change", { bubbles: true, cancelable: true }));
+    return "nativeSetter";
   }
 
   // ── Find an element using a prioritized selector list ──────────────────────
@@ -68,11 +113,20 @@
     // 1. Find the chat input
     const input = findElement(chatInputSelectors);
     if (!input) {
-      throw new Error(
-        "Chat input not found. The Whatnot DOM may have changed.\n" +
-        "Tried selectors: " + chatInputSelectors.join(", ") + "\n" +
-        "See PENDING.md → Step 1 for how to find the real selector."
-      );
+      /* 2026-09-21: dump what IS on the page so a miss is diagnosable remotely
+         instead of needing someone to sit in the console. */
+      let seen = [];
+      try {
+        seen = Array.from(document.querySelectorAll("input,textarea"))
+          .slice(0, 12)
+          .map(el => (el.tagName.toLowerCase()
+                   + (el.type ? "[type=" + el.type + "]" : "")
+                   + (el.placeholder ? "[ph=" + el.placeholder.slice(0,40) + "]" : "")
+                   + (el.getAttribute("data-testid") ? "[tid=" + el.getAttribute("data-testid") + "]" : "")));
+      } catch (_) {}
+      const err = new Error("CHAT_INPUT_NOT_FOUND: none of the selectors matched on " + location.pathname);
+      err.tsuDiag = { stage: "find_input", tried: chatInputSelectors, inputsOnPage: seen, url: location.href };
+      throw err;
     }
 
     // 2. Focus the input
@@ -80,7 +134,7 @@
     await delay(100);
 
     // 3. Set the message (React-aware)
-    setReactInputValue(input, outbound);
+    const setVia = setReactInputValue(input, outbound);
     await delay(150);
 
     // 4. Submit. Whatnot chat is a single-line input that sends on Enter (no send
@@ -88,11 +142,12 @@
     //    send button -> full Enter key sequence -> surrounding form submit.
     await delay(60);
 
+    let via = null;
     const sendBtn = findElement(chatSendSelectors);
     if (sendBtn && !sendBtn.disabled) {
-      sendBtn.click();
+      sendBtn.click(); via = "send_button";
     } else {
-      fireEnter(input);
+      fireEnter(input); via = "enter";
     }
 
     // 5. Verify the field cleared; if our text is still there, escalate.
@@ -109,19 +164,34 @@
         }
       }
       await delay(200);
+      if (input.value !== outbound) via = "form_submit";
     }
     if (input.value === outbound) {
       // Escalate 2: one more full Enter sequence directly on the focused input.
       input.focus();
       fireEnter(input);
       await delay(200);
+      if (input.value !== outbound) via = "enter_retry";
     }
 
     // Honest result: if our text is STILL sitting in the box, the send never fired.
     // Report it as a real failure instead of a false "posted".
     if (input.value === outbound) {
-      throw new Error("SEND_NOT_FIRED: text was set but the message did not send (Whatnot rejected Enter/submit). Needs a different send trigger.");
+      const err = new Error("SEND_NOT_FIRED: the text WAS placed in the chat box but nothing sent it. Whatnot ignored the send button, Enter, and form submit.");
+      err.tsuDiag = {
+        stage: "send",
+        setVia: setVia,
+        matchedInput: input.tagName.toLowerCase()
+                    + (input.type ? "[type=" + input.type + "]" : "")
+                    + (input.placeholder ? "[ph=" + input.placeholder.slice(0,40) + "]" : ""),
+        hadSendButton: !!sendBtn,
+        hasForm: !!(input.form || (input.closest && input.closest("form"))),
+        isConnected: input.isConnected,
+        url: location.href,
+      };
+      throw err;
     }
+    return via;
   }
 
   // Dispatch a complete, React-friendly Enter keypress (keydown + keypress + keyup).
@@ -172,6 +242,9 @@
   // responses for it. Drives the same TSU_BOT_GIVEAWAY_CHANGE content.js handles.
   let giveawayNetActive = false;
   const GIVEAWAY_ENDED_STATUSES = new Set(["ended","cancelled","canceled","sold","closed","complete","completed","archived"]);
+  /* Only these count as "a giveaway is RUNNING". Deliberately narrow — see the
+     false-positive note in _tsuEvaluateGiveaway. */
+  const GIVEAWAY_STARTED_STATUSES = new Set(["active","live","running","started","open","in_progress"]);
   function _tsuScanListings(obj, out, depth){
     if (!obj || typeof obj !== "object" || depth > 9) return;
     if (Object.prototype.hasOwnProperty.call(obj, "transactionType")) out.push(obj);
@@ -190,11 +263,26 @@
     if (!giveaways.length) return; // no giveaway here -> leave state unchanged
     for (const g of giveaways){
       const gid = String(g.id || g.listingId || g.uuid || g.transactionId || "") || null;
-      const ended = GIVEAWAY_ENDED_STATUSES.has(String(g.status || "").toLowerCase());
+      const status = String(g.status || "").toLowerCase();
+      const ended = GIVEAWAY_ENDED_STATUSES.has(status);
       if (!ended){
+        /* 2026-09-21 FALSE-POSITIVE FIX. Four live bot_giveaway_signal events all
+           came through here with source=graphql_listing, fired by merely OPENING
+           the giveaway tab — which loads GIVEAWAY listings that are not running.
+           "Not ended" is NOT the same as "started": a listing the seller has only
+           drafted or is looking at also fails the ended test. Require POSITIVE
+           evidence of a running giveaway. The analytics signal
+           (seller_sees_giveaway_started) remains the trusted start trigger.
+           Unknown statuses are reported, not acted on, so the allow-list can be
+           completed from real data instead of another guess. */
+        if (!GIVEAWAY_STARTED_STATUSES.has(status)){
+          window.postMessage({ type: "TSU_BOT_GIVEAWAY_OBSERVED",
+                               status: status || "(none)", gid }, "*");
+          continue;
+        }
         if (!giveawayNetActive || (gid && _tsuActiveGiveawayId !== gid)){
           giveawayNetActive = true; _tsuActiveGiveawayId = gid;
-          window.postMessage({ type: "TSU_BOT_GIVEAWAY_CHANGE", active: true }, "*");
+          window.postMessage({ type: "TSU_BOT_GIVEAWAY_CHANGE", active: true, source: "graphql_status:" + status }, "*");
         }
       } else {
         if (giveawayNetActive && (!_tsuActiveGiveawayId || _tsuActiveGiveawayId === gid)){
@@ -209,8 +297,17 @@
   // The bot runs on the SELLER's dashboard, so this is the most reliable start signal.
   function _tsuCheckGiveawayStartText(txt){
     try {
-      if (txt && /seller_sees_giveaway_started|story_start_giveaway|seller_taps_start_giveaway/i.test(txt)){
-        if (!giveawayNetActive){ giveawayNetActive = true; window.postMessage({ type: "TSU_BOT_GIVEAWAY_CHANGE", active: true }, "*"); }
+      /* 2026-09-21: these three names were assumed to mean "a giveaway started".
+         Field report says merely OPENING the giveaway tab fires one of them, so at
+         least one fires on panel-open, not on start. Capture WHICH name matched and
+         ship it with the event so the pattern can be narrowed from real data rather
+         than guessed at a third time. */
+      const m = txt && String(txt).match(/seller_sees_giveaway_started|story_start_giveaway|seller_taps_start_giveaway/i);
+      if (m){
+        if (!giveawayNetActive){
+          giveawayNetActive = true;
+          window.postMessage({ type: "TSU_BOT_GIVEAWAY_CHANGE", active: true, source: "analytics:" + m[0] }, "*");
+        }
       }
     } catch (_) {}
   }
@@ -319,12 +416,13 @@
     if (type === "TSU_BOT_POST_CHAT") {
       const { messageKey, message, chatInputSelectors, chatSendSelectors, announce } = ev.data;
       try {
-        await postChat(message, chatInputSelectors, chatSendSelectors, announce);
+        const via = await postChat(message, chatInputSelectors, chatSendSelectors, announce);
         window.postMessage({
           type: "TSU_BOT_CHAT_RESULT",
           success: true,
           messageKey,
           message,
+          via,
         }, "*");
       } catch (err) {
         window.postMessage({
@@ -332,6 +430,7 @@
           success: false,
           messageKey,
           error: err.message,
+          diag: err.tsuDiag || null,
         }, "*");
       }
     }

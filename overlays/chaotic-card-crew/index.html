@@ -3373,8 +3373,15 @@ function startSSE(){
   connectScoresSSE(normalizeBridge(SCORES_URL));
 }
 
+  /* Belt and braces: even if some future code path re-introduces an echo, this
+     caps warmups at one per 10s. The loop above managed ~20 per SECOND. */
+  let _lastWarmupAt = 0;
+  const WARMUP_MIN_GAP_MS = 10000;
   async function warmupPing(){
     if (!automationEnabled()) return;
+    const now = Date.now();
+    if (now - _lastWarmupAt < WARMUP_MIN_GAP_MS) return;
+    _lastWarmupAt = now;
     const base = normalizeBridge(BRIDGE_URL);
 
     try{
@@ -3426,9 +3433,20 @@ function handleSSEEvent(data){
 
   if (!type || type === "hello") return;
 
-  /* A warmup from the extension means a show just started: re-post ours so the
-     portal and the extension agree on which break this board is showing. */
+  /* A warmup from the EXTENSION means a show just started: re-post ours so the
+     portal and the extension agree on which break this board is showing.
+
+     2026-09-21 INFINITE LOOP FIX. This used to call warmupPing() for ANY warmup,
+     including the one it had just sent itself. The bridge broadcasts every event
+     back over SSE, so the overlay answered its own echo, forever, one lap every
+     ~48ms. It logged 650,000+ junk rows to bridge_events between 17:00 on 09-20
+     and 04:00 on 09-21 (~65k/hour) before it stopped.
+     The extension's warmup carries `liveId` and NO `overlay` field; an overlay's
+     carries `overlay`. So: if it came from an overlay, it is an echo — ignore it. */
   if (type === "overlay_warmup"){
+    const fromOverlay = String(payload.overlay || data.overlay ||
+                               payload.overlay_id || data.overlay_id || "").trim();
+    if (fromOverlay) return;          // echo of ours, or another board's — never answer
     warmupPing();
     return;
   }

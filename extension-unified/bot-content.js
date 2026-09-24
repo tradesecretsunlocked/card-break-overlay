@@ -138,11 +138,47 @@
       injectedReady = true;
       log("bot-injected.js ready");
     }
+    /* 2026-09-21 OBSERVABILITY FIX.
+       This used to be console-only. postChatMessage() emitted `bot_event` the
+       moment it HANDED OFF to the page script, so the bridge recorded a success
+       for every attempt — including the ones where the message never reached
+       Whatnot chat. That made bridge_events actively misleading: it showed the
+       bot "working" while the seller saw nothing, and the real reason existed
+       only in a console nobody had open. Both outcomes now reach the bridge. */
     if (type === "TSU_BOT_CHAT_RESULT") {
-      if (ev.data.success) log("✓ chat posted:", ev.data.message?.slice(0, 60));
-      else warn("✗ chat post failed:", ev.data.error);
+      if (ev.data.success) {
+        log("✓ chat posted:", ev.data.message?.slice(0, 60));
+        notifyBridge({
+          type:    "bot_event",
+          trigger: ev.data.messageKey || "unknown",
+          posted:  true,
+          via:     ev.data.via || null,        // which send path actually worked
+          ts:      Date.now(),
+        });
+      } else {
+        warn("✗ chat post failed:", ev.data.error);
+        notifyBridge({
+          type:      "bot_error",
+          trigger:   ev.data.messageKey || "unknown",
+          error:     String(ev.data.error || "").slice(0, 400),
+          diag:      ev.data.diag || null,     // selector/DOM detail from postChat
+          href:      location.href,
+          ts:        Date.now(),
+        });
+      }
+    }
+    /* A giveaway listing we saw but did NOT act on — reports the real status
+       string so the started-status allow-list can be completed from data. */
+    if (type === "TSU_BOT_GIVEAWAY_OBSERVED") {
+      notifyBridge({ type: "bot_giveaway_observed", status: ev.data.status,
+                     gid: ev.data.gid || null, href: location.href, ts: Date.now() });
     }
     if (type === "TSU_BOT_GIVEAWAY_CHANGE") {
+      /* record WHAT claimed a giveaway started — analytics event name, or the
+         GraphQL listing scan — so a false trigger names its own source. */
+      notifyBridge({ type: "bot_giveaway_signal", active: !!ev.data.active,
+                     source: ev.data.source || "graphql_listing",
+                     href: location.href, ts: Date.now() });
       handleGiveawayChange(ev.data.active);
     }
   });
@@ -380,8 +416,10 @@
 
     markFired(messageKey);
 
-    // Also broadcast bot_event to bridge so overlay can reflect it
-    notifyBridge({ type: "bot_event", trigger: messageKey, ts: Date.now() });
+    /* NOTE: the bot_event used to be emitted HERE, which was wrong — at this point
+       we have only handed the text to the page script and have no idea whether it
+       reached chat. It now fires from the TSU_BOT_CHAT_RESULT handler above, on the
+       real outcome, alongside a bot_error for failures. */
 
     return true;
   }
@@ -869,6 +907,26 @@
     }
 
     log("Host verified: @" + showHost + " — bot armed.");
+
+    /* 2026-09-21: report what we ARE, where we ARE, and whether the chat box is
+       even findable from here — to the bridge, once, on arm. Until now the only
+       way to answer "which build is he running / can the bot see the chat input"
+       was to ask someone to read a console mid-stream. */
+    try {
+      const ver = (chrome.runtime.getManifest && chrome.runtime.getManifest().version) || "?";
+      const inputSel = CHAT_INPUT_SELECTORS.find(sel => { try { return !!document.querySelector(sel); } catch(_) { return false; } }) || null;
+      notifyBridge({
+        type:           "bot_diag",
+        build:          ver,
+        href:           location.href,
+        host:           showHost,
+        chatInputFound: !!inputSel,
+        chatInputSel:   inputSel,
+        timersArmed:    Array.isArray(cfg.timers) ? cfg.timers.filter(t => t && t.enabled !== false).length : 0,
+        commandsOn:     Array.isArray(cfg.commands) ? cfg.commands.filter(c => c && c.enabled !== false).length : 0,
+        ts:             Date.now(),
+      });
+    } catch (_) {}
 
     // Start all subsystems
     // setupGiveawayObserver();  // DOM detection disabled — network detector in bot-injected.js is primary
