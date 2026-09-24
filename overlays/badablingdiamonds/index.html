@@ -790,7 +790,6 @@
       font-family: "Arial Black", Arial, sans-serif;
       width:1080px;
       min-height:700px;
-      user-select:none;
       color:#fff;
     }
 
@@ -1214,6 +1213,21 @@
       font-family: Arial, sans-serif; letter-spacing: .2px; margin-top: 2px;
     }
 
+    /* 2026-09-18: selection is switched off on the BOARD only (so a stray drag on
+       stream never highlights a tile) and left on everywhere a seller types,
+       which is what makes right-click > Copy and Cmd+C behave normally. */
+    .container, .sold-top-row, .set-strip, .sold-fx-layer, .tsu-toast{
+      user-select: none; -webkit-user-select: none;
+    }
+    .sold-list-grid, .sold-list-grid *,
+    .modal-backdrop, .modal-backdrop *,
+    input, textarea, select{
+      user-select: text !important; -webkit-user-select: text !important;
+    }
+    .modal-panel .btn, .modal-panel .sold-x, .sold-list-grid .sold-x, .sold-list-grid .sold-badge{
+      user-select: none !important; -webkit-user-select: none !important;
+    }
+
   </style>
 </head>
 <body>
@@ -1426,7 +1440,7 @@
       <div class="form-row">
         <button class="btn ghost" style="padding:6px 10px; font-size:12px;" onclick="addTypeRow()">+ ADD ITEM TYPE</button>
       </div>
-      <div class="clip-hint">Pasting: click the box, then Ctrl+V, or right-click the box, or use 📥 PASTE above. 📋 COPY copies the box you last clicked in.</div>
+      <div class="clip-hint">Pasting: click the box, then Cmd+V / Ctrl+V, or right-click the box, or use 📥 PASTE above. 📋 COPY copies the box you last clicked in. If nothing pastes, OBS is holding the clipboard back &mdash; open this same URL in a Custom Browser Dock (View &gt; Docks &gt; Custom Browser Docks) and set up there, or see 🔗 SETUP LINK in the EXPORT panel.</div>
       <div class="set-total" id="setTotalLine"></div>
     </div>
 
@@ -1492,10 +1506,22 @@
         <button class="btn ghost" style="padding:6px 10px; font-size:12px;" onclick="copySettings()">COPY SETTINGS TEXT</button>
         <button class="btn ghost" style="padding:6px 10px; font-size:12px;" onclick="document.getElementById('settingsFile').click()">IMPORT FROM FILE</button>
         <button class="btn ghost" style="padding:6px 10px; font-size:12px;" onclick="armThen(this, importSettingsFromTextarea)">IMPORT PASTED TEXT</button>
+        <button class="btn secondary" style="padding:6px 10px; font-size:12px;" onclick="showSetupLink()" title="Builds a link that carries this whole setup">🔗 SETUP LINK</button>
         <input type="file" id="settingsFile" class="hidden-file" accept=".json,application/json,text/plain" onchange="importSettingsFromFile(event)">
       </div>
       <textarea id="settingsTextarea" class="modal-textarea" placeholder="Settings text appears here. On the other computer, paste it here and press IMPORT PASTED TEXT."></textarea>
       <div class="modal-msg" id="exportMsg"></div>
+      <div class="clip-hint">
+        <b>If Cmd+V will not paste inside OBS:</b> that is OBS, not the overlay. An OBS <i>browser source</i> is drawn
+        off-screen, so it has no right-click menu and macOS gives Cmd+V to the OBS menu bar instead of the page.
+        Three ways round it, best first.
+        <br><b>1. Custom Browser Dock (recommended).</b> OBS &gt; View &gt; Docks &gt; Custom Browser Docks, add this same
+        overlay URL. A dock is a real browser window: right-click &gt; Paste, Cmd+C and Cmd+V all work, and it shares
+        storage with the browser source, so set the board up there and refresh the source.
+        <br><b>2. SETUP LINK.</b> Set up in Chrome at the same URL, press 🔗 SETUP LINK, paste that link into the OBS
+        browser source URL field (Cmd+V always works there), load once, then put the plain URL back.
+        <br><b>3. Settings file.</b> DOWNLOAD SETTINGS FILE in Chrome, then IMPORT FROM FILE here.
+      </div>
     </div>
   </div>
 </div>
@@ -1574,13 +1600,26 @@
   function newId(p){ return (p || "t") + Math.random().toString(36).slice(2, 8); }
   function clampInt(v, lo, hi, d){ const n = parseInt(v, 10); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : d; }
 
-  /* Unicode-aware normaliser (kept from Melon's 2026-09-16 fix): letters and digits
-     in any script survive, punctuation and emoji become spaces. */
+  /* Unicode-aware normaliser (Melon 2026-09-16, extended 2026-09-19 for Bada Bling).
+     Letters and digits in any script survive, punctuation and emoji become spaces.
+     Two additions driven by how this seller writes Whatnot titles:
+       a) NFKD + mark strip, so the stylised unicode fonts sellers paste in
+          (bold, italic, sans "DELAYED REVEAL") fold down to plain letters, and an
+          accent no longer splits a word. Without this a bold title matched nothing.
+       b) a decimal point INSIDE a number is kept as a middle dot, so ".5 CT" and
+          "1.5 CT" stay different tokens. Before this, ".5 CT" normalised to "5 ct",
+          which is a whole-word substring of "1 5 ct", and every 1.5 CT sale silently
+          came off the .5 CT counter. */
+  const DECIMAL_DOT = '\u00B7';
   function norm(s){
     return String(s || '')
+      .normalize('NFKD')
+      .replace(/\p{M}+/gu, '')
       .toLowerCase()
       .replace(/&/g,' and ')
-      .replace(/[^\p{L}\p{N}]+/gu,' ')
+      .replace(/(\d)[.,](\d)/g, '$1' + DECIMAL_DOT + '$2')
+      .replace(/(^|[^\d])[.,](\d)/g, '$10' + DECIMAL_DOT + '$2')
+      .replace(new RegExp('[^\\p{L}\\p{N}' + DECIMAL_DOT + ']+','gu'),' ')
       .replace(/\s+/g,' ')
       .trim();
   }
@@ -2679,7 +2718,16 @@
     if (best && tie) return { key: "", why: `ambiguous title "${title}"` };
 
     if (best && best.owner === "DELAYED"){
-      const n = delayedNum;
+      let n = delayedNum;
+      /* 2026-09-19: this seller numbers every listing, and the number does not always
+         sit after the name ("#3 DELAYED REVEAL"). If the name matched without a number,
+         take a lone whole number from anywhere in the title. Only when there is exactly
+         one, so "DELAYED REVEAL 2026 TOPPS 3" stays a next-open-tile rather than a guess.
+         Decimal tokens carry a middle dot, so a carat weight is never read as a spot. */
+      if (!n){
+        const loose = t.split(' ').filter(w => /^\d{1,3}$/.test(w));
+        if (loose.length === 1) n = parseInt(loose[0], 10);
+      }
       if (n){
         if (n > ACTIVE_SET.delayed.count) return { key: "", why: `${ACTIVE_SET.delayed.label} ${n} is past the last tile` };
         return { key: tileCode(n), why: "title" };
@@ -2761,6 +2809,28 @@
   }
   function getTitleFromPayload(data){
     return String(data?.title || data?.itemTitle || data?.listingTitle || "").trim();
+  }
+  /* The extension sends `title` with everything before the last " - " stripped off
+     (a Whatnot convention for "SELLER - ITEM"). A title written the other way round,
+     "DELAYED REVEAL #3 - 2026 Topps", loses the item name that way. Extension v3.0.3+
+     also sends the untouched string, so when the stripped one resolves to nothing we
+     try the raw one before giving up. Older extensions simply do not send it. */
+  function getRawTitleFromPayload(data){
+    return String(data?.rawTitle || data?.raw_title || data?.fullTitle || "").trim();
+  }
+  function resolveWithFallback(payload){
+    const title = getTitleFromPayload(payload);
+    const res = resolveSaleTarget(title, getCodeFromPayload(payload));
+    if (res.key) return res;
+    const raw = getRawTitleFromPayload(payload);
+    if (raw && raw !== title){
+      const alt = resolveSaleTarget(raw, getCodeFromPayload(payload));
+      if (alt.key){
+        console.log("[TSU] matched on the untouched title:", raw);
+        return alt;
+      }
+    }
+    return res;
   }
   /* Dedup / reassignment key. The extension always sends saleId (the Whatnot sold
      item id). listingId is NOT used: a surprise set is one listing sold many times,
@@ -2932,13 +3002,18 @@
      the second layer for an older or template extension. */
   const GIVEAWAY_WORDS = /\b(give ?away|givvy|givy|givey|gwp|raffle|freebie)\b/i;
   function isGiveawayEvent(p){
+    /* Both strings are tested. The extension strips everything before the last " - ",
+       so "GIVEAWAY - Lab Diamond" arrives as "Lab Diamond" and the giveaway word is
+       only in the untouched title (7cbreaks/bigtime rule, extended 2026-09-19). */
     const title = getTitleFromPayload(p).toLowerCase();
+    const raw   = getRawTitleFromPayload(p).toLowerCase();
     const tx = String(p?.transactionType || p?.listingType || "").toLowerCase();
     const cents = p?.amountCents;
     const amount = Number(p?.amount ?? (cents != null ? cents / 100 : NaN));
     if (tx.includes("giveaway")) return true;
-    if (GIVEAWAY_WORDS.test(title)) return true;
-    if (amount === 0 && /\b(bookmark|upcoming|reminder|placeholder)\b/.test(title)) return true;
+    if (GIVEAWAY_WORDS.test(title) || (raw && GIVEAWAY_WORDS.test(raw))) return true;
+    const ph = /\b(bookmark|upcoming|reminder|placeholder)\b/;
+    if (amount === 0 && (ph.test(title) || (raw && ph.test(raw)))) return true;
     return false;
   }
 
@@ -2947,7 +3022,7 @@
     const title = getTitleFromPayload(payload);
     const buyer = getBuyerFromPayload(payload);
     const amount = Number(payload.amount) || 0;
-    const res = resolveSaleTarget(title, getCodeFromPayload(payload));
+    const res = resolveWithFallback(payload);
 
     if (saleKey && lastCodeByListingKey.has(saleKey)){
       const led = lastCodeByListingKey.get(saleKey);
@@ -3605,6 +3680,7 @@
   // ===================================================================
   let LAST_FIELD = null;
   let lastNativePasteAt = 0;
+  let pasteHintShown = false;
 
   function isField(el){
     return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA") && !el.readOnly && !el.disabled;
@@ -3652,12 +3728,12 @@
     return null;
   }
 
-  async function pasteIntoFocused(target){
+  async function pasteIntoFocused(target, quiet){
     const el = isField(target) ? target : LAST_FIELD;
-    if (!el){ tsuToast("Click the box you want to paste into first, then press PASTE."); return false; }
+    if (!el){ if (!quiet) tsuToast("Click the box you want to paste into first, then press PASTE."); return false; }
     const txt = await readClipboard();
     if (txt == null || txt === ""){
-      tsuToast("This window will not hand over the clipboard. Press Ctrl+V with the box selected, or open the overlay in Chrome to set it up.");
+      if (!quiet) tsuToast("OBS will not hand the clipboard to the page. Set up in a Custom Browser Dock or Chrome, or carry the config in with SETUP LINK in the EXPORT panel.", 6000);
       return false;
     }
     insertIntoField(el, txt);
@@ -3690,27 +3766,90 @@
       insertIntoField(el, txt);
     }, true);
 
+    // Cmd+V (mac) / Ctrl+V: never touched, never blocked. If the native paste
+    // does not arrive within 250ms we try the clipboard API as a fallback.
     document.addEventListener("keydown", (e) => {
-      const mod = e.ctrlKey || e.metaKey;
-      if (!mod) return;
-      const k = String(e.key || "").toLowerCase();
-      if (k !== "v") return;
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (String(e.key || "").toLowerCase() !== "v") return;
       const el = isField(e.target) ? e.target : LAST_FIELD;
       if (!el) return;
       const before = el.value;
-      setTimeout(() => {
-        if (Date.now() - lastNativePasteAt < 500) return;   // native paste did arrive
-        if (el.value !== before) return;
-        pasteIntoFocused(el);
-      }, 180);
-    });
+      setTimeout(async () => {
+        if (Date.now() - lastNativePasteAt < 600) return;   // native paste arrived
+        if (el.value !== before) return;                    // something changed it
+        const ok = await pasteIntoFocused(el, true);        // quiet attempt
+        if (!ok && !pasteHintShown){                        // tell the seller once, then stay quiet
+          pasteHintShown = true;
+          tsuToast("OBS blocks the clipboard here. Open this same URL in a Custom Browser Dock (View > Docks > Custom Browser Docks) and set up there, or use SETUP LINK in the EXPORT panel.", 6000);
+        }
+      }, 250);
+    }, true);
 
-    // right-click a field to paste (an OBS interact window has no context menu)
-    document.addEventListener("contextmenu", (e) => {
-      if (!isField(e.target)) return;
-      e.preventDefault();
-      pasteIntoFocused(e.target);
-    });
+    /* 2026-09-18: DO NOT preventDefault on contextmenu. The browser's own
+       right-click menu is the reliable Cut / Copy / Paste on macOS, and the
+       previous version replaced it with a scripted paste that the OS refuses
+       inside OBS. Right-click now behaves like any normal web page. */
+  }
+
+  // ===================================================================
+  //  SETUP LINK  (config transfer with no clipboard at all, 2026-09-18)
+  //  OBS refuses to hand the page the clipboard, but the browser-source URL
+  //  field in OBS is a native macOS text box where Cmd+V always works. So a
+  //  whole setup can ride in on the URL:
+  //    ...?setup=<base64url of the settings JSON>
+  //    ...?setupUrl=https://.../badabling-settings.json
+  //  Either one is imported once on load and then remembered, so the plain URL
+  //  can go back afterwards.
+  // ===================================================================
+  function b64urlEncode(str){
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    bytes.forEach(b => { bin += String.fromCharCode(b); });
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function b64urlDecode(s){
+    const b64 = String(s).replace(/-/g, "+").replace(/_/g, "/");
+    const bin = atob(b64 + "=".repeat((4 - b64.length % 4) % 4));
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  }
+
+  function buildSetupLink(){
+    const base = location.origin + location.pathname;
+    return `${base}?setup=${b64urlEncode(JSON.stringify(buildSettingsBackup()))}`;
+  }
+  function showSetupLink(){
+    const ta = document.getElementById("settingsTextarea");
+    const link = buildSetupLink();
+    if (ta){ ta.value = link; ta.focus(); ta.select(); }
+    copyText(link, ta);
+    exportMsg("Setup link ready. Paste it into the OBS browser source URL field (Cmd+V works there), load it once, then put the plain URL back.");
+  }
+
+  async function applySetupFromUrl(){
+    const q = new URLSearchParams(location.search);
+    const raw = q.get("setup");
+    const url = q.get("setupUrl");
+    if (!raw && !url) return;
+    const stamp = "badabling.setupApplied";
+    const token = (raw || url).slice(0, 64);
+    try{ if (lsGet(stamp) === token) return; }catch(_){}   // already imported this one
+    let text = null;
+    if (raw){
+      try{ text = b64urlDecode(raw); }catch(_){ tsuToast("That setup link is damaged."); return; }
+    } else {
+      try{
+        const r = await fetch(url, { cache: "no-store" });
+        if (r.ok) text = await r.text();
+      }catch(_){}
+      if (text == null){ tsuToast("Could not load that setup file."); return; }
+    }
+    try{
+      if (importSettingsObject(JSON.parse(text))){
+        lsSet(stamp, token);
+        tsuToast("Setup imported from the link. The board is ready.");
+      }
+    }catch(_){ tsuToast("That setup link did not contain readable settings."); }
   }
 
   /* OBS-safe notice. Native browser dialogs freeze an OBS browser source with a box
@@ -3755,6 +3894,7 @@
     const pill = document.querySelector(".break-pill");
     if (pill) pill.addEventListener("click", toggleBreakPill);   // quick hide; the PILL button brings it back
     initClipboard();
+    applySetupFromUrl();
     const addInp = document.getElementById("revealAddInput");
     if (addInp) addInp.addEventListener("keydown", (e) => { if (e.key === "Enter") addRevealName(); });
 
