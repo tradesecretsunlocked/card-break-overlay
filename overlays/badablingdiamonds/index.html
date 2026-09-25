@@ -3910,6 +3910,11 @@
   //  congrats.MP3 and GitHub Pages serves case-sensitively, so a single spelling
   //  would 404 on one of the two hosts.
   // ===================================================================
+  /* Paths are relative to THIS PAGE, deliberately NOT prefixed with BASE.
+     BASE resolves to the repository root, which is right for images/logos/* but
+     wrong for these two: they live in the same folder as index.html. Using BASE
+     asked GitHub Pages for /card-break-overlay/congrats.webm and got a 404.
+     A bare filename is correct on GitHub Pages, on a local folder and in OBS. */
   const CONGRATS_VIDEO = "congrats.webm";
   const CONGRATS_AUDIO_NAMES = ["congrats.mp3", "congrats.MP3"];
   const CONGRATS_MAX_MS = 9000;          // hard ceiling, so a stalled clip cannot stick
@@ -3929,23 +3934,23 @@
   function congratsArm(){
     const { vid, sfx } = congratsEls();
     if (vid && !vid.getAttribute("src")){
-      vid.setAttribute("src", BASE + CONGRATS_VIDEO);
+      vid.setAttribute("src", CONGRATS_VIDEO);
       vid.addEventListener("error", () => {
         congratsBroken = true;
-        console.warn("[TSU] congrats video missing or undecodable:", BASE + CONGRATS_VIDEO);
+        console.warn("[TSU] congrats video missing or undecodable:", new URL(CONGRATS_VIDEO, location.href).href);
         congratsHide();
       });
       vid.addEventListener("ended", congratsHide);
     }
     if (sfx && !sfx.getAttribute("src")){
-      sfx.setAttribute("src", BASE + CONGRATS_AUDIO_NAMES[0]);
+      sfx.setAttribute("src", CONGRATS_AUDIO_NAMES[0]);
       sfx.addEventListener("error", () => {
         congratsAudioIdx++;
         if (congratsAudioIdx < CONGRATS_AUDIO_NAMES.length){
-          sfx.setAttribute("src", BASE + CONGRATS_AUDIO_NAMES[congratsAudioIdx]);
+          sfx.setAttribute("src", CONGRATS_AUDIO_NAMES[congratsAudioIdx]);
           try{ sfx.load(); }catch(_){}
         } else {
-          console.warn("[TSU] congrats audio not found under either spelling; video plays silently");
+          console.warn("[TSU] congrats audio not found under either spelling next to", location.href);
         }
       });
     }
