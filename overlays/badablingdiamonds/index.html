@@ -1228,10 +1228,46 @@
       user-select: none !important; -webkit-user-select: none !important;
     }
 
+
+/* ===================================================================
+   CONGRATS CELEBRATION  (2026-09-25)
+   Sits above the board and below the modals. pointer-events:none so it can
+   never swallow a click on the board underneath. The layer is display:none
+   when idle so an idle browser source composites nothing at all.
+   =================================================================== */
+.congrats-layer{
+  position: fixed; inset: 0; z-index: 640;
+  display: none; align-items: center; justify-content: center;
+  pointer-events: none; background: transparent;
+}
+.congrats-layer.show{ display: flex; }
+.congrats-vid{
+  width: min(86vw, 1280px);
+  height: auto; max-height: 92vh;
+  object-fit: contain;
+  background: transparent;                /* never paint a box behind the alpha */
+  filter: drop-shadow(0 0 26px rgba(0,0,0,.45));
+  opacity: 0;
+  transition: opacity .14s linear;
+}
+.congrats-layer.show .congrats-vid{ opacity: 1; }
+
   </style>
 </head>
 <body>
 <div id="soldFxLayer" class="sold-fx-layer"></div>
+
+<!-- ===== Congrats celebration (delayed reveal wins) =====
+     VP9 + alpha WebM. Chromium is the only engine that plays an alpha video, and
+     WebM/VP9 is the only container-codec pair it does it in, so the seller's .mov
+     (QuickTime Animation, which CEF cannot decode at all) is converted, not linked.
+     The video is always MUTED so autoplay can never be refused; the sound rides on a
+     separate audio element, and if OBS refuses that the clip still plays silently. -->
+<div id="congratsLayer" class="congrats-layer" aria-hidden="true">
+  <video id="congratsVid" class="congrats-vid" muted playsinline preload="auto"
+         disablepictureinpicture disableremoteplayback></video>
+</div>
+<audio id="congratsSfx" preload="auto"></audio>
 
   <div class="container">
     <div class="header" id="header">
@@ -1293,6 +1329,9 @@
         <button class="btn ghost" id="resetBtn" onclick="armThen(this, resetAll)">↺ RESET</button>
         <button class="btn ghost" onclick="openBreakEditor()">BREAK #</button>
         <button class="btn ghost" id="breakPillBtn" onclick="toggleBreakPill()">#️⃣ PILL ON</button>
+        <button class="btn ghost" id="congratsBtn" onclick="toggleCongrats()" title="Play the congrats video when a delayed reveal spot sells">🎉 FX ON</button>
+        <button class="btn ghost" id="congratsSoundBtn" onclick="toggleCongratsSound()" title="Sound for the congrats video">🔊 SFX ON</button>
+        <button class="btn ghost" onclick="testCongrats()" title="Preview the congrats video now">▶ TEST FX</button>
         <button class="btn ghost" onclick="openSetEditor()">💎 SETS</button>
         <button class="btn ghost" onclick="openRevealModal()">🎲 REVEALS</button>
         <button class="btn ghost" onclick="openTitleEditor()">🏷 TITLE</button>
@@ -1631,7 +1670,7 @@
   // ===================================================================
   //  OPTIONS
   // ===================================================================
-  const OPTS_DEFAULT = { tickerCounts: false, soldPanelHidden: false, adminHidden: false, breakPillHidden: false };
+  const OPTS_DEFAULT = { tickerCounts: false, soldPanelHidden: false, adminHidden: false, breakPillHidden: false, congratsOff: false, congratsMuted: false };
   let OPTS = Object.assign({}, OPTS_DEFAULT, lsJSON(LS.OPTS, {}));
   function saveOpts(){ lsSet(LS.OPTS, JSON.stringify(OPTS)); }
 
@@ -2226,6 +2265,7 @@
   function celebrate(e){
     const key = e.target;
     if (tileNumOf(key)){
+      playCongrats();                     // delayed reveal win: roll the congrats clip
       const tile = document.querySelector(`[data-team-code="${cssEscape(key)}"]`);
       if (tile){
         tile.classList.add("flash");
@@ -3852,6 +3892,131 @@
     }catch(_){ tsuToast("That setup link did not contain readable settings."); }
   }
 
+  // ===================================================================
+  //  CONGRATS CELEBRATION  (2026-09-25)
+  //  Fires when a DELAYED REVEAL tile sells. Counted-item sales never fire it.
+  //
+  //  Format note, learned the hard way: the seller's congrats.mov is QuickTime
+  //  Animation (qtrle, ARGB). CEF cannot decode that at all, and no H.264 file can
+  //  carry alpha, so the asset ships as VP9-with-alpha in WebM - the only
+  //  transparent video Chromium renders.
+  //
+  //  The video element is permanently MUTED. A muted video may always autoplay, so
+  //  the picture can never be blocked. Sound rides on a separate audio element and
+  //  is attempted after it; if the host refuses that, the clip still plays silently
+  //  rather than not at all.
+  //
+  //  The audio filename is tried in both cases. The asset was committed as
+  //  congrats.MP3 and GitHub Pages serves case-sensitively, so a single spelling
+  //  would 404 on one of the two hosts.
+  // ===================================================================
+  const CONGRATS_VIDEO = "congrats.webm";
+  const CONGRATS_AUDIO_NAMES = ["congrats.mp3", "congrats.MP3"];
+  const CONGRATS_MAX_MS = 9000;          // hard ceiling, so a stalled clip cannot stick
+  let congratsBusy = false;
+  let congratsBroken = false;            // asset missing: stop trying, stay silent
+  let congratsTimer = null;
+  let congratsAudioIdx = 0;
+
+  function congratsEls(){
+    return { layer: document.getElementById("congratsLayer"),
+             vid:   document.getElementById("congratsVid"),
+             sfx:   document.getElementById("congratsSfx") };
+  }
+
+  /* Sources are attached on first use, not in the markup, so an overlay shipped
+     without the asset files never issues a request and never logs a 404 per load. */
+  function congratsArm(){
+    const { vid, sfx } = congratsEls();
+    if (vid && !vid.getAttribute("src")){
+      vid.setAttribute("src", BASE + CONGRATS_VIDEO);
+      vid.addEventListener("error", () => {
+        congratsBroken = true;
+        console.warn("[TSU] congrats video missing or undecodable:", BASE + CONGRATS_VIDEO);
+        congratsHide();
+      });
+      vid.addEventListener("ended", congratsHide);
+    }
+    if (sfx && !sfx.getAttribute("src")){
+      sfx.setAttribute("src", BASE + CONGRATS_AUDIO_NAMES[0]);
+      sfx.addEventListener("error", () => {
+        congratsAudioIdx++;
+        if (congratsAudioIdx < CONGRATS_AUDIO_NAMES.length){
+          sfx.setAttribute("src", BASE + CONGRATS_AUDIO_NAMES[congratsAudioIdx]);
+          try{ sfx.load(); }catch(_){}
+        } else {
+          console.warn("[TSU] congrats audio not found under either spelling; video plays silently");
+        }
+      });
+    }
+  }
+
+  function congratsHide(){
+    const { layer, vid, sfx } = congratsEls();
+    clearTimeout(congratsTimer); congratsTimer = null;
+    congratsBusy = false;
+    if (layer) layer.classList.remove("show");
+    try{ if (vid){ vid.pause(); vid.currentTime = 0; } }catch(_){}
+    try{ if (sfx){ sfx.pause(); sfx.currentTime = 0; } }catch(_){}
+  }
+
+  function playCongrats(){
+    if (OPTS.congratsOff || congratsBroken) return;
+    if (congratsBusy) return;            // one celebration at a time, never stacked
+    congratsArm();
+    const { layer, vid, sfx } = congratsEls();
+    if (!layer || !vid) return;
+    congratsBusy = true;
+    layer.classList.add("show");
+    try{ vid.currentTime = 0; }catch(_){}
+    vid.muted = true;                    // never negotiable: this is what makes autoplay legal
+    const pv = vid.play();
+    if (pv && typeof pv.catch === "function"){
+      pv.catch((err) => { console.warn("[TSU] congrats video refused to play:", err && err.message); congratsHide(); });
+    }
+    if (!OPTS.congratsMuted && sfx){
+      try{
+        sfx.currentTime = 0;
+        const pa = sfx.play();
+        if (pa && typeof pa.catch === "function"){
+          pa.catch(() => console.warn("[TSU] congrats sound blocked by the host; the clip is playing silently"));
+        }
+      }catch(_){}
+    }
+    congratsTimer = setTimeout(congratsHide, CONGRATS_MAX_MS);
+  }
+  window.playCongrats = playCongrats;
+
+  function testCongrats(){
+    if (congratsBroken){ tsuToast("The congrats video is missing next to this overlay (congrats.webm)."); return; }
+    if (OPTS.congratsOff){ tsuToast("Congrats FX is OFF. Press FX OFF to switch it back on."); return; }
+    congratsHide();
+    playCongrats();
+  }
+  window.testCongrats = testCongrats;
+
+  function applyCongratsUI(){
+    const b = document.getElementById("congratsBtn");
+    if (b) b.textContent = OPTS.congratsOff ? "\u{1F389} FX OFF" : "\u{1F389} FX ON";
+    const s2 = document.getElementById("congratsSoundBtn");
+    if (s2) s2.textContent = OPTS.congratsMuted ? "\u{1F507} SFX OFF" : "\u{1F50A} SFX ON";
+  }
+  function toggleCongrats(){
+    OPTS.congratsOff = !OPTS.congratsOff;
+    saveOpts(); applyCongratsUI();
+    if (OPTS.congratsOff) congratsHide();
+    tsuToast(OPTS.congratsOff ? "Congrats video OFF." : "Congrats video ON for every delayed reveal win.");
+  }
+  function toggleCongratsSound(){
+    OPTS.congratsMuted = !OPTS.congratsMuted;
+    saveOpts(); applyCongratsUI();
+    const { sfx } = congratsEls();
+    if (OPTS.congratsMuted && sfx){ try{ sfx.pause(); sfx.currentTime = 0; }catch(_){} }
+    tsuToast(OPTS.congratsMuted ? "Congrats sound OFF." : "Congrats sound ON.");
+  }
+  window.toggleCongrats = toggleCongrats;
+  window.toggleCongratsSound = toggleCongratsSound;
+
   /* OBS-safe notice. Native browser dialogs freeze an OBS browser source with a box
      the seller can never dismiss, so every user-facing message goes through this toast. */
   function tsuToast(msg, ms){
@@ -3895,6 +4060,7 @@
     if (pill) pill.addEventListener("click", toggleBreakPill);   // quick hide; the PILL button brings it back
     initClipboard();
     applySetupFromUrl();
+    applyCongratsUI();
     const addInp = document.getElementById("revealAddInput");
     if (addInp) addInp.addEventListener("keydown", (e) => { if (e.key === "Enter") addRevealName(); });
 
