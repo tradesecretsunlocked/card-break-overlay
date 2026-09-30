@@ -806,10 +806,50 @@
       const cur = readLock();
       return !cur || cur.owner === INSTANCE_ID;
     }
+    /* 2026-09-30: release on unload. Without this, a RELOAD leaves the dead
+       instance's lock sitting in localStorage with a timestamp only milliseconds
+       old, so the fresh instance sees a "live" owner that no longer exists. */
+    function releaseLock() {
+      try {
+        const cur = readLock();
+        if (cur && cur.owner === INSTANCE_ID) localStorage.removeItem(LOCK_KEY);
+      } catch (_) {}
+    }
+    window.addEventListener("pagehide", releaseLock);
+    window.addEventListener("beforeunload", releaseLock);
 
+    /* ═══════════════════════════════════════════════════════════════════════
+       2026-09-30 FIX — "another tab is already polling this show".
+
+       This used to `return` outright, which killed capture for the WHOLE life of
+       that page load with no retry and no recovery except a manual reload.
+
+       The cruel part is that RELOADING CAUSED IT. The old instance heartbeats the
+       lock every poll (3s). On reload it dies instantly, but the lock it wrote is
+       only 0-3s old — well inside the 15s stale window — so the new instance saw a
+       "fresh" lock owned by a tab that no longer exists and stood down for good.
+       Sellers reload precisely when something looks wrong, so the usual fix was
+       the thing creating the fault, and it stayed broken until they happened to
+       reload again more than 15s later. That matches the field report exactly.
+
+       Now: wait for the lock instead of giving up. A genuinely busy second tab
+       still keeps this one passive (the duplicate-sale protection is intact),
+       but a dead owner is reclaimed the moment its lock goes stale.
+       ═══════════════════════════════════════════════════════════════════════ */
     if (!claimLock()) {
-      console.warn("[TSU] another tab is already polling this show. Standing down to avoid duplicate sales.");
-      return;
+      console.warn("[TSU] this show is being polled by another window. Waiting for it to finish rather than standing down — capture will start automatically if that window closes.");
+      const WAIT_POLL_MS = 2000;
+      let waited = 0;
+      while (!claimLock()) {
+        if (!window.__TSU_BRIDGE_ACTIVE__) return;   // page tearing down
+        await sleep(WAIT_POLL_MS);
+        waited += WAIT_POLL_MS;
+        if (waited % 30000 === 0) {
+          console.log("[TSU] still waiting for the poll lock (" + (waited / 1000) + "s). " +
+                      "If no other Whatnot tab is open for this show, close any stale ones.");
+        }
+      }
+      console.log("[TSU] poll lock acquired after " + (waited / 1000) + "s — capture ON.");
     }
     console.log("[TSU] host verified: @" + showHost + " — capture ON.");
 

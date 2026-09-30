@@ -2353,7 +2353,20 @@ function normalizeCodeAliases(code, sportKey){
 function isValidCodeForSport(code, sportKey){
   const s = String(sportKey || "").toLowerCase();
   if (!code || !breakTypes[s]) return false;
-  const lookup = buildLookup(breakTypes[s].teams);
+  /* 2026-09-30 FIX — off-board custom spots were being rejected.
+     breakTypes.custom.teams is ONLY the featured 32, so validating against it
+     meant any spot past #32 was "invalid for this sport". requireValidCodeOrBail
+     then returned null and the SSE handler bailed early, which cost three things
+     at once, all from this one line:
+       1. the off-board spot was never marked sold
+       2. on a re-randomise, markUnsold(prevCode) never ran, so the PREVIOUS
+          spot stayed lit — the reported symptom
+       3. updateStats()/renderSoldPanel() sit at the END of handleSSEEvent, so
+          the early return skipped the counter refresh as well
+     Every spot in the hit list is sellable by design, so validate against the
+     WHOLE list here. Tiling is a display concern and is handled elsewhere. */
+  const pool = (s === 'custom') ? customAllSpots() : breakTypes[s].teams;
+  const lookup = buildLookup(pool);
   return lookup.has(norm(code));
 }
 
