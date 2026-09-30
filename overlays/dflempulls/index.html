@@ -736,6 +736,18 @@ background-size: 140% auto; /* try 140–220% */
     /* =========================
        CHASER INDICATOR (per-sport) — gold ring + animated CHASE badge
     ========================== */
+    /* Text tile for custom hit-list spots (no artwork). Shrinks to fit a long
+       card name rather than overflowing the tile. */
+    .tile-label{
+      display:flex; align-items:center; justify-content:center;
+      width:100%; height:100%; padding:4px 5px;
+      font-size:11px; font-weight:900; line-height:1.15;
+      text-align:center; text-transform:uppercase; letter-spacing:.3px;
+      color:#fff; overflow:hidden;
+      overflow-wrap:anywhere; hyphens:auto;
+    }
+    .tile.sold .tile-label{ opacity:.35; }
+
     .tile.chaser{
       border-color: rgba(255,209,64,0.95) !important;
       box-shadow:
@@ -892,28 +904,39 @@ background-size: 140% auto; /* try 140–220% */
       display:block;
     }
 
+    /* 2026-09-29: one row, always. Adding the Hit List pill tipped this to two
+       rows, which pushed the sold grid down and changed the board height mid
+       stream. nowrap + shrinkable pills keeps it to a single line however many
+       controls there are. */
     .sold-top{
       display:none;
       align-items:center;
       justify-content: center;
-      gap: 2px;
+      gap: 4px;
       margin-bottom: 5px;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
+      width: 100%;
     }
     .sold-wrap.active .sold-top{ display:flex; }
 
     .pill{
-      padding: 8px 14px;
+      padding: 8px 10px;
       border-radius: 999px;
       background: rgba(73, 71, 71, 0.788);
       border: 1px solid rgba(255,255,255,0.14);
       color:#fff;
       font-weight: 900;
-      font-size: 12px;
-      letter-spacing: .7px;
+      /* scales with the board width so the row fits at any size */
+      font-size: clamp(8.5px, 0.92vw, 12px);
+      letter-spacing: .3px;
       text-transform: uppercase;
       cursor:pointer;
       white-space: nowrap;
+      /* allowed to shrink, never to wrap */
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .pill:hover{
       border-color: rgba(0,66,169,0.45);
@@ -1108,10 +1131,11 @@ background-size: 140% auto; /* try 140–220% */
         <div class="l">Left</div>
       </div>
 
-      <!-- NEW CENTER STAT -->
+      <!-- Centre stat: Highest Bid on the sport boards, HITS LEFT on the custom
+           board (how many of the top-32 hit list are still unsold). -->
       <div class="ctl stat">
         <div class="v" id="highBidCtl">—</div>
-        <div class="l">Highest Bid</div>
+        <div class="l" id="highBidCtlLabel">Highest Bid</div>
       </div>
 
       <div class="ctl stat" id="soldToggle">
@@ -1134,6 +1158,7 @@ background-size: 140% auto; /* try 140–220% */
       <div class="pill" id="setTitleBtn">Set Title</div>
       <div class="pill" id="exportBtn">Export CSV</div>
       <div class="pill" id="chasersBtn">Pick Chasers</div>
+      <div class="pill" id="hitListBtn">Hit List</div>
       <div class="pill" id="sportBtn">Change Sport</div>
       <div class="pill" id="promoBtn">Edit Promo</div>
       <div class="pill" id="camBgBtn">Cam Background</div>
@@ -1191,6 +1216,28 @@ background-size: 140% auto; /* try 140–220% */
       <div class="popup-btns">
         <button id="applyChasers">Apply</button>
         <button id="closeChasers">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom board hit list -->
+  <div class="popup" id="hitListPopup">
+    <div class="popup-card">
+      <h2>Custom Board &mdash; Hit List</h2>
+      <div style="font-size:12px;opacity:.75;text-align:center;margin:-4px 0 8px">
+        One card per line. Add as many as you like &mdash; every one of them is sellable
+        and counts toward <b>Spots Left</b>. Then use <b>Pick Chasers</b> to choose which
+        <b>32</b> get a tile on the board.
+      </div>
+      <textarea id="hitListBox" spellcheck="false"
+        style="width:100%;height:260px;resize:vertical;padding:10px;border-radius:10px;
+               border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.45);
+               color:#fff;font:600 13px/1.45 Arial,sans-serif"
+        placeholder="Wembanyama Prizm Silver&#10;Jokic Downtown&#10;Curry Kaboom&#10;..."></textarea>
+      <div id="hitListCount" style="font-size:12px;opacity:.8;text-align:center;margin-top:6px"></div>
+      <div class="popup-btns">
+        <button id="applyHitList">Apply</button>
+        <button id="closeHitList">Close</button>
       </div>
     </div>
   </div>
@@ -1996,7 +2043,24 @@ const CHANNELS = (() => {
     nba: { name: "NBA", teams: NBA, count: 30, bottomCols: 5, bottomCount: 10 },
     mlb: { name: "MLB", teams: MLB, count: 30, bottomCols: 5, bottomCount: 10 },
     nfl: { name: "NFL", teams: NFL, count: 32, bottomCols: 6, bottomCount: 12 },
-    nhl: { name: "NHL", teams: NHL, count: 32, bottomCols: 6, bottomCount: 12 }
+    nhl: { name: "NHL", teams: NHL, count: 32, bottomCols: 6, bottomCount: 12 },
+
+    /* =====================================================================
+       CUSTOM — the top-hit / chaser board (added 2026-09-29)
+       Shape deliberately mirrors NFL (32 tiles: 10 left, 10 right, 12 bottom)
+       so renderTeams() needs no special case.
+
+       TWO DIFFERENT LISTS, and the distinction is the whole feature:
+         customAllSpots()  every spot the seller entered. UNLIMITED. All of them
+                           are sellable and all of them count toward Spots Left.
+         .teams            only the FEATURED spots -- the ones that get a tile.
+                           Capped at 32, and chosen via the existing Pick Chasers
+                           picker, so "featured" and "chaser" are one concept
+                           rather than two competing ones.
+       `count` is refreshed from the FULL list, not from .teams, so Spots Left
+       counts the whole hit list while Chasers Left counts only the 32 on screen.
+    ===================================================================== */
+    custom: { name: "CUSTOM", teams: [], count: 0, bottomCols: 6, bottomCount: 12 }
     // MLS deliberately NOT offered on this board: extension-unified TEAM_TITLE_RULES
     // carries nfl/nba/mlb/nhl only, so a soccer sale resolves to "" and is dropped
     // before the bridge. Re-enable ONLY together with MLS codes in the extension.
@@ -2038,6 +2102,59 @@ function rememberSaleId(saleId){
     }
   }
 }
+
+  /* ===== CUSTOM BOARD: the seller's hit list ===== */
+  const CUSTOM_SPOTS_KEY = "dflempulls.customSpots";
+  const CUSTOM_FEATURED_MAX = 32;
+  let customSpots = [];   // [{code,name}] — the FULL list, unlimited
+
+  /* Codes are positional and stable (C1..Cn) so a spot keeps its identity across
+     reloads and its sold state survives an edit elsewhere in the list. */
+  function customCodeFor(i){ return "C" + (i + 1); }
+
+  function loadCustomSpots(){
+    try{
+      const raw = localStorage.getItem(CUSTOM_SPOTS_KEY);
+      const arr = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(arr)){
+        customSpots = arr
+          .map((x, i) => ({
+            code: String((x && x.code) || customCodeFor(i)),
+            name: String((x && x.name) != null ? x.name : x || "").trim()
+          }))
+          .filter(x => x.name);
+      }
+    }catch(_){ customSpots = []; }
+    return customSpots;
+  }
+  function saveCustomSpots(){
+    try{ localStorage.setItem(CUSTOM_SPOTS_KEY, JSON.stringify(customSpots)); }catch(_){}
+  }
+  function setCustomSpotsFromText(text){
+    customSpots = String(text || "")
+      .split("\n").map(s => s.trim()).filter(Boolean)
+      .map((name, i) => ({ code: customCodeFor(i), name }));
+    saveCustomSpots();
+    refreshCustomBoard();
+  }
+  function customAllSpots(){ return customSpots; }
+
+  /* Featured = THE FIRST 32 ENTERED. Deliberately not the chaser picks.
+     2026-09-29: deriving featured from the chaser picker meant every tile on the
+     board carried a CHASE badge, which made the badge meaningless — if all 32 are
+     chasers, none of them are. Entry order is also predictable: the seller types
+     their hit list top-down and the top 32 are the board. Chaser flagging stays a
+     SEPARATE, optional mark on top of those 32. */
+  function refreshCustomBoard(){
+    breakTypes.custom.teams = customSpots.slice(0, CUSTOM_FEATURED_MAX);
+    breakTypes.custom.count = customSpots.length;   // Spots Left counts EVERYTHING
+  }
+  /* The hit list = the first 32. Tracked separately from the overall spot pool. */
+  function customHitList(){ return customSpots.slice(0, CUSTOM_FEATURED_MAX); }
+  function countHitsLeft(){
+    return customHitList().filter(sp => !soldSet.has(sp.code)).length;
+  }
+  window.refreshCustomBoard = refreshCustomBoard;
 
   // chasers — tracked SEPARATELY per sport
   const CHASERS_KEY = "dflempulls.chasersBySport";
@@ -2170,7 +2287,10 @@ function loadSport(){
   }
 
   function inferCodeFromTitle(title){
-    const teams = breakTypes[currentSport].teams;
+    /* On the custom board match against the ENTIRE hit list. Using .teams here
+       would only ever see the 32 featured tiles, so a sale of a non-featured
+       spot could never resolve. */
+    const teams = (currentSport === 'custom') ? customAllSpots() : breakTypes[currentSport].teams;
     const lookup = buildLookup(teams);
     const t = norm(title);
     if (!t) return null;
@@ -2277,12 +2397,20 @@ function buildTile(team){
   fx.className = 'fx';
   d.appendChild(fx);
 
-  const img = document.createElement('img');
-  img.src = team.image;
-  img.alt = team.name;
-  img.onerror = () => { d.textContent = team.code; };
-
-  d.appendChild(img);
+  /* Custom hit-list spots carry no artwork, so render the card NAME instead of
+     an <img> that can only 404. Sport tiles are untouched. */
+  if (team.image){
+    const img = document.createElement('img');
+    img.src = team.image;
+    img.alt = team.name;
+    img.onerror = () => { d.textContent = team.code; };
+    d.appendChild(img);
+  } else {
+    const lbl = document.createElement('div');
+    lbl.className = 'tile-label';
+    lbl.textContent = team.name || team.code;
+    d.appendChild(lbl);
+  }
 
   // Chaser indicator (per-sport) — animated badge + glow
   if (currentChasers().has(team.code)){
@@ -2297,7 +2425,12 @@ function buildTile(team){
   return d;
 }
 
-  function getSportCount(){ return breakTypes[currentSport].count; }
+  function getSportCount(){
+    /* Custom board: the count is the FULL hit list, not the 32 tiles, so
+       "Spots Left" keeps decrementing when an off-board spot sells. */
+    if (currentSport === 'custom') return customAllSpots().length;
+    return breakTypes[currentSport].count;
+  }
 
   function renderTeams(){
     const cfg = breakTypes[currentSport];
@@ -2503,7 +2636,9 @@ const _cycleOrder = ["nba"];   // DFLEMPULLS is an NBA-only board (questionnaire
     highBid = Number.isFinite(val) ? val : 0;
     const txt = highBid > 0 ? `$${highBid.toFixed(2)}` : '—';
     safeText('highBidText', txt);   // right panel
-    safeText('highBidCtl', txt);    // NEW center stat
+    /* Only write the centre stat when it is actually showing Highest Bid —
+       on the custom board that slot belongs to Hits Left. */
+    if (currentSport !== 'custom') safeText('highBidCtl', txt);
   }
 
   function updateBuyerStats(buyer, amount){
@@ -2530,7 +2665,21 @@ const _cycleOrder = ["nba"];   // DFLEMPULLS is an NBA-only board (questionnaire
     const total = getSportCount();
     safeText('soldCount', soldSet.size);
     safeText('leftCount', total - soldSet.size);
+    updateCentreStat();
     updateStreamStatsBox();
+  }
+
+  /* Custom board: the centre stat tracks the 32-card hit list, which is the
+     number the seller actually cares about there. Sport boards keep Highest Bid.
+     Re-applied on every stat update AND on every board switch. */
+  function updateCentreStat(){
+    if (currentSport === 'custom'){
+      safeText('highBidCtlLabel', 'Hits Left');
+      safeText('highBidCtl', String(countHitsLeft()) + '/' + customHitList().length);
+    } else {
+      safeText('highBidCtlLabel', 'Highest Bid');
+      safeText('highBidCtl', highBid > 0 ? `$${highBid.toFixed(2)}` : '—');
+    }
   }
 
   /* =========================
@@ -2727,7 +2876,7 @@ function setScoreboard(games, sport){
   }
 
   function cycleSport(){
-    const order = ['nba','nfl','mlb','nhl'];
+    const order = ['nba','nfl','mlb','nhl','custom'];
     const idx = order.indexOf(currentSport);
     const next = order[(idx + 1 + order.length) % order.length];
     setSport(next);
@@ -2742,7 +2891,9 @@ function setScoreboard(games, sport){
   function openChasersPicker(){
     chasersGrid.innerHTML = "";
 
-    const teams = breakTypes[currentSport].teams;
+    /* Custom board: only the 32 on the board can carry a CHASE badge, so only
+       those are offered. Chasers are now a subset of the hit list, not all of it. */
+    const teams = (currentSport === 'custom') ? customHitList() : breakTypes[currentSport].teams;
     const cs = currentChasers();
 
     teams.forEach(team => {
@@ -3081,9 +3232,39 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
   document.getElementById("closeChasers").addEventListener("click", () => chasersPopup.classList.remove("active"));
   document.getElementById("applyChasers").addEventListener("click", () => {
     saveChasers();
+    /* On the custom board the chaser picks ARE the featured 32, so the board
+       has to be rebuilt from them, not just re-badged. */
+    if (currentSport === 'custom') refreshCustomBoard();
     renderTeams();            // refresh chaser badges on the board
     updateStreamStatsBox();
     chasersPopup.classList.remove("active");
+  });
+
+  /* ===== Hit List editor ===== */
+  const hitListPopup = document.getElementById("hitListPopup");
+  const hitListBox   = document.getElementById("hitListBox");
+  function paintHitListCount(){
+    const lines = String(hitListBox.value || "").split("\n").map(x=>x.trim()).filter(Boolean);
+    const picks = (chasersBySport && chasersBySport.custom) ? chasersBySport.custom.size : 0;
+    const featured = Math.min(picks || Math.min(lines.length, CUSTOM_FEATURED_MAX), CUSTOM_FEATURED_MAX);
+    document.getElementById("hitListCount").textContent =
+      `${lines.length} spot${lines.length===1?"":"s"} • ${featured} featured on the board • ` +
+      `${Math.max(0, lines.length - featured)} off-board`;
+  }
+  document.getElementById("hitListBtn").addEventListener("click", () => {
+    hitListBox.value = customAllSpots().map(sp => sp.name).join("\n");
+    paintHitListCount();
+    hitListPopup.classList.add("active");
+  });
+  hitListBox.addEventListener("input", paintHitListCount);
+  document.getElementById("closeHitList").addEventListener("click", () => hitListPopup.classList.remove("active"));
+  document.getElementById("applyHitList").addEventListener("click", () => {
+    setCustomSpotsFromText(hitListBox.value);
+    /* Jump to the custom board so the seller sees the result of what they just
+       typed instead of applying it invisibly to a board they are not on. */
+    if (currentSport !== 'custom') setSport('custom'); else renderTeams();
+    updateStats();
+    hitListPopup.classList.remove("active");
   });
 
   // Set break popup
@@ -3162,6 +3343,8 @@ console.log("[Overlay] SOLD state:", code, "soldSet has?", soldSet.has(code), "t
 
     loadBreakNum();
     loadChasers();
+    loadCustomSpots();
+    refreshCustomBoard();
     loadHeaderTitle();
 
     const cfg = breakTypes[currentSport];

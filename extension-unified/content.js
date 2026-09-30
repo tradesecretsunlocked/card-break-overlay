@@ -261,36 +261,46 @@
        KNOWN GAP: normalizeTitle strips the accent in "CF Montreal" to "cf montr al",
        so an accented Whatnot title will not match. The unaccented form does.
     ------------------------------------------------------------------------------ */
+    /* 2026-09-29 COLLISION FIX. The bare one-word nicknames were removed from every
+       club below. With sport:"nil" the matcher accepts ANY league and returns a bare
+       code, so an MLS nickname that is also an ordinary English word hijacked sales
+       on boards that have no soccer at all. Proven against the real resolver:
+         "2026 Panini Revolution Basketball Hobby Box" -> NE   (New England, NFL tile)
+         "2026 Panini Crown Royale - Union"            -> PHI
+       Panini Revolution is a mainstream BASKETBALL product, so this was live-fire
+       risk for any NBA breaker. Full club names still match, which is what an MLS
+       board's listings actually say. Same discipline the block's original author
+       applied to bare city names and to "united"/"fire" — these were just missed. */
     { sport: "mls", code: "ATL",  names: ["atlanta united", "atlanta utd"] },
     { sport: "mls", code: "ATX",  names: ["austin fc"] },
     { sport: "mls", code: "CHI",  names: ["chicago fire"] },
     { sport: "mls", code: "CIN",  names: ["fc cincinnati"] },
-    { sport: "mls", code: "CLB",  names: ["columbus crew", "crew"] },
+    { sport: "mls", code: "CLB",  names: ["columbus crew"] },
     { sport: "mls", code: "CLT",  names: ["charlotte fc"] },
-    { sport: "mls", code: "COL",  names: ["colorado rapids", "rapids"] },
+    { sport: "mls", code: "COL",  names: ["colorado rapids"] },
     { sport: "mls", code: "DAL",  names: ["fc dallas"] },
     { sport: "mls", code: "DC",   names: ["d.c. united", "dc united"] },
-    { sport: "mls", code: "HOU",  names: ["houston dynamo", "dynamo"] },
+    { sport: "mls", code: "HOU",  names: ["houston dynamo"] },
     { sport: "mls", code: "LAFC", names: ["los angeles fc", "lafc"] },
-    { sport: "mls", code: "LAG",  names: ["la galaxy", "los angeles galaxy", "galaxy"] },
+    { sport: "mls", code: "LAG",  names: ["la galaxy", "los angeles galaxy"] },
     { sport: "mls", code: "MIA",  names: ["inter miami"] },
     { sport: "mls", code: "MIN",  names: ["minnesota united", "mnufc"] },
     { sport: "mls", code: "MTL",  names: ["cf montreal", "club de foot montreal"] },
-    { sport: "mls", code: "NE",   names: ["new england revolution", "revolution", "revs"] },
+    { sport: "mls", code: "NE",   names: ["new england revolution"] },
     { sport: "mls", code: "NSH",  names: ["nashville sc"] },
     { sport: "mls", code: "NYC",  names: ["new york city fc", "nycfc"] },
     { sport: "mls", code: "ORL",  names: ["orlando city"] },
-    { sport: "mls", code: "PHI",  names: ["philadelphia union", "union"] },
-    { sport: "mls", code: "POR",  names: ["portland timbers", "timbers"] },
+    { sport: "mls", code: "PHI",  names: ["philadelphia union"] },
+    { sport: "mls", code: "POR",  names: ["portland timbers"] },
     { sport: "mls", code: "RBNY", names: ["new york red bulls", "ny red bulls", "red bulls"] },
     { sport: "mls", code: "RSL",  names: ["real salt lake"] },
     { sport: "mls", code: "SD",   names: ["san diego fc"] },
-    { sport: "mls", code: "SEA",  names: ["seattle sounders", "sounders"] },
-    { sport: "mls", code: "SJ",   names: ["san jose earthquakes", "earthquakes", "quakes"] },
+    { sport: "mls", code: "SEA",  names: ["seattle sounders"] },
+    { sport: "mls", code: "SJ",   names: ["san jose earthquakes"] },
     { sport: "mls", code: "SKC",  names: ["sporting kansas city", "sporting kc"] },
     { sport: "mls", code: "STL",  names: ["st. louis city", "st louis city", "stl city"] },
     { sport: "mls", code: "TOR",  names: ["toronto fc"] },
-    { sport: "mls", code: "VAN",  names: ["vancouver whitecaps", "whitecaps"] }
+    { sport: "mls", code: "VAN",  names: ["vancouver whitecaps"] }
   ];
 
   // v2.3: aliases are matched on WORD BOUNDARIES, not raw substring, and anything
