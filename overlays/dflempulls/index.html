@@ -964,6 +964,23 @@ background-size: 140% auto; /* try 140–220% */
       object-fit: contain;
       filter: drop-shadow(0 10px 16px rgba(0,0,0,0.55));
     }
+    /* Text label for artwork-less (custom) spots in the sold list. Fixed share of
+       the row so a long card name cannot squeeze the buyer field out. */
+    .sold-item-label{
+      flex: 0 0 42%;
+      min-width: 0;
+      padding: 2px 6px;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.15;
+      text-transform: uppercase;
+      letter-spacing: .2px;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .sold-item input{
       width: 100%;
       border: none;
@@ -2595,6 +2612,19 @@ let _scoreCycleTimer = null;
 let _cycleIdx = 0;
 const _cycleOrder = ["nba"];   // DFLEMPULLS is an NBA-only board (questionnaire sports_requested = ["NBA"])
 
+  /* Which spot is this row? On a sport board the logo says it. Custom spots have
+     no artwork, so without a label the sold row was just a nameless buyer box —
+     and an OFF-BOARD spot has no tile to read anything from either, so the lookup
+     has to go to the hit list itself, not to the DOM. */
+  function soldRowLabel(code){
+    if (currentSport === 'custom'){
+      const sp = customAllSpots().find(x => x.code === code);
+      if (sp && sp.name) return sp.name;
+    }
+    const t = (typeof getTeamByCode === 'function') ? getTeamByCode(code) : null;
+    return (t && t.name) ? t.name : String(code || '');
+  }
+
   function renderSoldPanel(){
     soldGrid.innerHTML = '';
     // FIX 2026-08-15: this function used to force the panel open or closed on EVERY call.
@@ -2616,6 +2646,13 @@ const _cycleOrder = ["nba"];   // DFLEMPULLS is an NBA-only board (questionnaire
         const img = document.createElement('img');
         img.src = src;
         row.appendChild(img);
+      } else {
+        /* No logo -> name the spot, or the seller cannot tell these rows apart. */
+        const lbl = document.createElement('div');
+        lbl.className = 'sold-item-label';
+        lbl.textContent = soldRowLabel(entry.code);
+        lbl.title = lbl.textContent;
+        row.appendChild(lbl);
       }
 
       const input = document.createElement('input');
@@ -2731,10 +2768,14 @@ function resetAll(){
     // Tabs and newlines are stripped from seller-typed buyer names so one bad name cannot
     // shift every following column.
     const clean = v => String(v == null ? "" : v).replace(/[\t\r\n]+/g, " ").trim();
-    const header = ["Name", "Break#", "Sport", "Team"].join("\t") + "\n";
+    /* 2026-09-30: the Team column exported the raw CODE. On a sport board "LAL"
+       is readable; on the custom board it exported "C17", which is meaningless to
+       anyone receiving the sheet. Export the spot's NAME, keeping the code in its
+       own column so it is still traceable back to the board. */
+    const header = ["Name", "Break#", "Sport", "Spot", "Code"].join("\t") + "\n";
     const sportName = breakTypes[currentSport].name;
     const rows = soldList.map(x =>
-      [clean(x.buyer), breakNum, sportName, clean(x.code)].join("\t")
+      [clean(x.buyer), breakNum, sportName, clean(soldRowLabel(x.code)), clean(x.code)].join("\t")
     ).join("\n");
     return header + rows + (rows ? "\n" : "");
   }
