@@ -294,8 +294,8 @@
   .sold-item .dot{ width:8px; height:8px; border-radius:50%; background:var(--col,#888); flex:none; }
   .sold-item input{
     flex:1; min-width:0; border:none; outline:none; border-radius:999px;
-    background: rgba(0,0,0,0.55); color:#fff; padding:4px 8px;
-    font-size:13px; font-weight:900; font-family:inherit;
+    background: rgba(0,0,0,0.55); color:#fff; padding:4px 2px; max-width:180px;
+    font-size:20px; font-weight:900; font-family:inherit;
   }
   .sold-empty{ grid-column:1/-1; font-size:12px; opacity:.6; padding:4px 2px; }
 
@@ -589,11 +589,27 @@
     return t==='misc' || t==='7threalm' || t==='seventhrealm';
   }
 
-  function orbitalFor(spot){
-    const t = norm(spot.orbital);
-    const hit = orbitals.find(o=> norm(o.name)===t || o.key===t);
-    return hit || MISC;
+  /* Spellings Luis actually uses in his Whatnot titles for a column whose
+     configured name differs. Keyed by column KEY (position), not name, so a later
+     rename of the column keeps the alias pointing at the same column.
+     2026-10-02: column 3 is "Patraia" but his titles say "Petraia" and "Petroia". */
+  const ORBITAL_ALIASES = { petraia:'o3', petroia:'o3' };
+  function orbKey(v){ return norm(v).replace(/[^a-z0-9]/g,''); }
+  function findOrbital(v){
+    const t = orbKey(v); if(!t) return null;
+    const hit = orbitals.find(o=> orbKey(o.name)===t || o.key===t);
+    if (hit) return hit;
+    const ak = ORBITAL_ALIASES[t];
+    return ak ? (orbitals.find(o=> o.key===ak) || null) : null;
   }
+  function orbitalFor(spot){
+    return findOrbital(spot.orbital) || MISC;
+  }
+  /* What a sale title is matched against: the spot name up to its first comma.
+     Mythics names carry a comma separated card list; matching on the part before
+     the first comma is exactly how every spot matched before 2026-10-02, so a typo
+     in the card list can never cost a sale. */
+  function matchKey(name){ return norm(String(name||'').split(',')[0]); }
 
   /* ===== Artwork is pinned to the COLUMN POSITION, never to the orbital name =====
      Renaming a column must NOT move its stone or its symbol. The previous build
@@ -768,8 +784,8 @@
   }
   function markSoldByName(name, buyer){
     const t = norm(name);
-    let idx = spots.findIndex(s=> norm(s.name)===t && !s.sold);
-    if (idx<0) idx = spots.findIndex(s=> t.includes(norm(s.name)) && norm(s.name).length>2 && !s.sold);
+    let idx = spots.findIndex(s=> (norm(s.name)===t || matchKey(s.name)===t) && !s.sold);
+    if (idx<0) idx = spots.findIndex(s=> { const k=matchKey(s.name); return k.length>2 && t.includes(k) && !s.sold; });
     if (idx>=0){
       spots[idx].sold=true; spots[idx].buyer=buyer||''; persist();
       flashSold(spots[idx].name, idx, orbitalFor(spots[idx]).color);
@@ -844,7 +860,8 @@
   function looksLikeHeader(cols){
     const a = String(cols[0]||'').trim().toLowerCase().replace(/\s+/g,' ');
     const b = String(cols[1]||'').trim().toLowerCase().replace(/\s+/g,' ');
-    const knownOrbital = orbitals.some(o=> norm(o.name)===norm(b)) || isSeventh(b);
+    const knownOrbital = !!findOrbital(b) || isSeventh(b)
+                      || !!findOrbital(cols[cols.length-1]);
     if (knownOrbital) return false;                    // guard 1
     const nameish = /^(name|spot|spot name|spotname|item|item name|card|card name|player|title|description)$/;
     const orbish  = /^(orbital|orbitals|column|col|group|category|type|element|set)$/;
@@ -866,8 +883,20 @@
         checkedHeader = true;
         if (looksLikeHeader(cols)) continue;
       }
-      const name = (cols[0]||'').trim();
-      const orb  = (cols[1]||'').trim() || '7th Realm';
+      /* Column = the LAST field when it names a real column (or 7th Realm), and
+         everything before it is the spot name. "Umbrathene Mythics 1: A, B, C,Umbrathene"
+         keeps its whole name and lands in Umbrathene. If the last field is not a
+         column (an extra price column, say) it falls back to the old rule:
+         field 1 = name, field 2 = column. */
+      let name, orb;
+      const last = (cols[cols.length-1]||'').trim();
+      if (cols.length > 2 && (findOrbital(last) || isSeventh(last))){
+        name = cols.slice(0,-1).map(x=>x.trim()).filter(Boolean).join(', ');
+        orb  = last;
+      } else {
+        name = (cols[0]||'').trim();
+        orb  = (cols[1]||'').trim() || '7th Realm';
+      }
       if (name) out.push({ name, orbital:orb, sold:false, buyer:'' });
     }
     return out;
@@ -879,8 +908,7 @@
     const el = $('importCount'); if(!el) return;
     const parsed = parseImport($('importInput').value);
     if (!parsed.length){ el.textContent='no spots yet'; el.className='importHint'; return; }
-    const known = orbitals.map(o=>norm(o.name));
-    const miscN = parsed.filter(p=> !known.includes(norm(p.orbital))).length;
+    const miscN = parsed.filter(p=> !findOrbital(p.orbital) && !isSeventh(p.orbital)).length;
     el.textContent = parsed.length + ' spot' + (parsed.length===1?'':'s')
       + (miscN ? '  ·  ' + miscN + ' going to 7th Realm' : '  ·  all orbitals matched');
     el.className = 'importHint ' + (miscN ? 'warn' : 'ok');
