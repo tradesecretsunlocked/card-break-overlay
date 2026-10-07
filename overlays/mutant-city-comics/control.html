@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mutant City Comics - Control Panel</title>
+<style>
+:root{
+  /* Client brand: the two values a build changes (TSU Standard 2.4, sec 5). */
+  --primary:   #4da044;   /* Mutant City green */
+  --secondary: #040707;   /* Mutant City near-black */
+  --fire:#ff6a1a; --fire2:#ffd23f; --white:#fff;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; width:100%; height:100%; background:transparent; overflow:hidden; font-family:Arial,Helvetica,sans-serif; color:#fff; user-select:none; }
+
+/* Full-viewport canvas: works at any browser-source size (1920x1080 recommended). Positions are stored as fractions of the viewport. */
+#stage{ position:fixed; inset:0; pointer-events:none; }
+.w{ position:absolute; transform-origin:top left; display:none; }
+.w.on{ display:block; }
+body.edit .w.on{ outline:2px dashed rgba(255,255,255,0.9); outline-offset:2px; cursor:move; pointer-events:auto; }
+.rz{ display:none; position:absolute; right:-10px; bottom:-10px; width:22px; height:22px; border-radius:50%; background:#fff; border:3px solid var(--primary); cursor:nwse-resize; z-index:50; pointer-events:auto; }
+body.edit .w.on > .rz{ display:block; }
+.wlabel{ display:none; position:absolute; left:0; top:-24px; font-size:12px; font-weight:900; letter-spacing:1px; background:#fff; color:#000; padding:2px 8px; border-radius:6px; z-index:50; white-space:nowrap; }
+body.edit .w.on > .wlabel{ display:block; }
+
+/* ---------- promo bar ---------- */
+.promo{ container-type:size; border-radius:16px; overflow:hidden; display:flex; align-items:center;
+  border:3px solid var(--primary); box-shadow:0 8px 22px rgba(0,0,0,0.55), 0 0 18px rgba(77,160,68,0.30); background:#06120a; }
+.promo-default{ position:absolute; inset:0; z-index:0;
+  background:radial-gradient(rgba(255,255,255,0.12) 1.4px, transparent 1.8px) 0 0 / 12px 12px,
+    linear-gradient(100deg, #0f3a14 0%, #1d6a25 38%, #4da044 52%, #1d6a25 66%, #0a2a0e 100%); }
+.promo-bg{ position:absolute; inset:0; z-index:0; background-position:center; background-size:cover; background-repeat:no-repeat; }
+.promo-shade{ position:absolute; inset:0; z-index:1; background:linear-gradient(90deg, rgba(0,0,0,0.6), rgba(0,0,0,0.15) 40%, rgba(0,0,0,0.35)); }
+.promo-logo{ position:relative; z-index:2; height:88cqh; max-width:26cqw; margin-left:2cqh; padding:0 3cqh; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+.promo-logo img{ height:100%; width:auto; max-width:100%; object-fit:contain; filter:drop-shadow(0 3px 6px rgba(0,0,0,0.85)); }
+.promo-logo .wordmark{ font-weight:900; font-size:26cqh; line-height:1; text-align:center; letter-spacing:1px; text-transform:uppercase; text-shadow:0 2px 0 #000; }
+.promo-sep{ position:relative; z-index:2; width:4px; height:66cqh; margin:0 3cqh; border-radius:2px; background:linear-gradient(180deg, transparent, #fff, transparent); opacity:.85; flex:0 0 auto; }
+.promo-text{ position:relative; z-index:2; flex:1 1 auto; min-width:0; height:100%; }
+.promo-line{ position:absolute; left:0; right:3cqh; top:0; bottom:0; display:flex; align-items:center; justify-content:center; text-align:center; font-weight:900; text-transform:uppercase;
+  letter-spacing:.06em; font-family:"Arial Black",Arial,Helvetica,sans-serif; font-size:34cqh; line-height:1.05; color:#fff; text-shadow:0 3px 0 rgba(0,0,0,0.85), 0 0 14px rgba(0,0,0,0.7);
+  opacity:0; transform:translateY(14px); transition:opacity .45s ease, transform .45s ease; }
+.promo-line.m{ font-size:28cqh; } .promo-line.s{ font-size:22cqh; }
+.promo-line.show{ opacity:1; transform:translateY(0); } .promo-line.out{ opacity:0; transform:translateY(-14px); }
+
+/* ---------- mode badge ---------- */
+.stackin{ width:340px; } .sw{ display:none; } .sw.on{ display:block; } .sw + .sw{ margin-top:12px; }
+.mode{ width:100%; min-height:90px; }
+.mode img{ display:block; width:100%; height:auto; filter:drop-shadow(0 6px 10px rgba(0,0,0,0.75)); }
+.mode .fallback{ display:none; height:90px; border-radius:14px; align-items:center; justify-content:center; text-align:center; padding:6px 10px;
+  font-family:"Arial Black",Arial,sans-serif; font-weight:900; font-size:30px; line-height:1; letter-spacing:1px; text-transform:uppercase; color:#fff;
+  text-shadow:0 3px 0 #7a1d00, 0 0 12px rgba(255,200,60,0.8); background:linear-gradient(135deg,#ff3d00,var(--fire) 45%,var(--fire2));
+  border:3px solid #fff; box-shadow:0 0 0 3px #b33000, 0 8px 18px rgba(0,0,0,0.6), 0 0 26px rgba(255,106,26,0.7); transform:rotate(-2deg); animation:flicker 1.6s ease-in-out infinite; }
+.mode.nofile .fallback{ display:flex; } .mode.nofile img{ display:none; }
+.mode.sudden .fallback{ background:linear-gradient(135deg,#5b0000,#d60000 55%,#ff5a5a); text-shadow:0 3px 0 #2a0000,0 0 12px rgba(255,80,80,0.8); }
+@keyframes flicker{ 0%,100%{ filter:brightness(1); } 50%{ filter:brightness(1.18); } }
+@keyframes pop{ 0%{ transform:scale(.7); opacity:0; } 100%{ transform:scale(1); opacity:1; } }
+
+/* ---------- timer ---------- */
+.timer{ width:100%; border-radius:16px; padding:10px 12px 12px; text-align:center; background:linear-gradient(180deg, rgba(0,0,0,0.88), rgba(8,22,10,0.92));
+  border:3px solid var(--fire); box-shadow:0 8px 22px rgba(0,0,0,0.6), 0 0 22px rgba(255,106,26,0.45); }
+.timer .lbl{ font-size:14px; font-weight:900; letter-spacing:2.5px; text-transform:uppercase; color:var(--fire2); }
+.timer .clock{ font-family:"Arial Black",Arial,sans-serif; font-weight:900; font-size:78px; line-height:1; letter-spacing:2px; font-variant-numeric:tabular-nums; text-shadow:0 4px 0 #000, 0 0 20px rgba(255,106,26,0.6); }
+.timer .bar{ height:10px; border-radius:6px; background:rgba(255,255,255,0.15); overflow:hidden; margin-top:6px; }
+.timer .bar > i{ display:block; height:100%; width:100%; background:linear-gradient(90deg,var(--fire),var(--fire2)); transition:width .25s linear; }
+.timer.low{ border-color:#ff2a2a; animation:lowPulse .8s ease-in-out infinite; } .timer.low .clock{ color:#ff5a5a; }
+.timer.paused .lbl::after{ content:" (PAUSED)"; color:#fff; }
+@keyframes lowPulse{ 0%,100%{ box-shadow:0 8px 22px rgba(0,0,0,0.6), 0 0 16px rgba(255,42,42,0.5); } 50%{ box-shadow:0 8px 22px rgba(0,0,0,0.6), 0 0 34px rgba(255,42,42,0.95); } }
+
+/* ---------- fire sale product card ---------- */
+.fcard{ width:100%; position:relative; border-radius:18px; padding:10px; background:linear-gradient(180deg,#0c2410,#050c07); border:3px solid var(--primary); box-shadow:0 10px 26px rgba(0,0,0,0.65), 0 0 26px rgba(255,106,26,0.35); }
+.fcard .flame{ position:absolute; left:10px; top:-13px; z-index:3; padding:3px 12px; border-radius:999px; font-weight:900; font-size:13px; letter-spacing:2px; text-transform:uppercase; background:linear-gradient(90deg,#ff3d00,var(--fire2)); color:#2a0a00; border:2px solid #fff; box-shadow:0 3px 8px rgba(0,0,0,0.6); }
+.fcard .photo{ height:130px; border-radius:12px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:linear-gradient(180deg,#14521a,#0b2d0f); border:1px solid rgba(77,160,68,0.6); }
+.fcard .photo img{ width:100%; height:100%; object-fit:cover; display:none; }
+.fcard .photo .ph{ font-family:"Arial Black",Arial,sans-serif; font-size:44px; font-weight:900; color:var(--fire2); letter-spacing:2px; text-shadow:0 3px 0 #000; text-align:center; line-height:1; }
+.fcard .save{ position:absolute; right:-2px; top:-14px; z-index:4; width:84px; height:84px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:radial-gradient(circle at 35% 30%,#ff7a3a,#d92b00); color:#fff; font-weight:900; transform:rotate(9deg);
+  clip-path:polygon(50% 0%,61% 12%,77% 6%,80% 22%,96% 27%,88% 42%,100% 55%,86% 64%,90% 81%,73% 82%,65% 97%,50% 88%,35% 97%,27% 82%,10% 81%,14% 64%,0% 55%,12% 42%,4% 27%,20% 22%,23% 6%,39% 12%); }
+.fcard .save small{ font-size:11px; letter-spacing:1.5px; line-height:1; } .fcard .save b{ font-size:28px; line-height:1; }
+.fcard .item{ margin-top:8px; font-size:11px; font-weight:900; letter-spacing:2.5px; text-transform:uppercase; color:var(--fire2); }
+.fcard .name{ margin-top:2px; font-size:22px; font-weight:900; line-height:1.1; text-shadow:0 2px 0 rgba(0,0,0,0.8); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+.fcard .prices{ display:flex; align-items:baseline; gap:12px; margin-top:4px; }
+.fcard .now{ font-family:"Arial Black",Arial,sans-serif; font-size:50px; font-weight:900; line-height:1; color:var(--fire2); text-shadow:0 3px 0 #000, 0 0 16px rgba(255,210,63,0.45); }
+.fcard .was{ font-size:24px; font-weight:800; color:#ff5252; text-decoration:line-through; text-decoration-thickness:3px; }
+.fcard .row{ margin-top:8px; padding:8px 10px; border-radius:12px; background:rgba(0,0,0,0.5); border:1px solid rgba(77,160,68,0.5); }
+.fcard .row .top{ display:flex; justify-content:space-between; align-items:center; font-size:12px; font-weight:900; letter-spacing:2px; text-transform:uppercase; }
+.fcard .row .top b{ font-size:26px; letter-spacing:0; color:var(--fire2); font-variant-numeric:tabular-nums; }
+.fcard .track{ height:14px; margin-top:5px; border-radius:8px; background:rgba(255,255,255,0.12); overflow:hidden; border:1px solid rgba(77,160,68,0.6); }
+.fcard .track > i{ display:block; height:100%; width:100%; background:linear-gradient(90deg,#1fb85c,#7dff9a); transition:width .4s ease; }
+.fcard .track.time > i{ background:linear-gradient(90deg,var(--fire),var(--fire2)); }
+.fcard .row.low .top b{ color:#ff5a5a; } .fcard .row.low .track > i{ background:linear-gradient(90deg,#ff2a2a,#ff8a3a); }
+.fcard.ended{ filter:saturate(.4) brightness(.8); }
+.fcard .ended-banner{ display:none; position:absolute; left:50%; top:42%; transform:translate(-50%,-50%) rotate(-6deg); z-index:6; padding:6px 18px; border-radius:10px; font-family:"Arial Black",Arial,sans-serif; font-size:30px; letter-spacing:2px; background:#b00000; border:3px solid #fff; white-space:nowrap; }
+.fcard.ended .ended-banner{ display:block; }
+
+/* ---------- floating control panel (free floating: drag the title bar, resize the corner) ---------- */
+#panel{ position:fixed; z-index:99999; display:none; flex-direction:column; min-width:280px; min-height:44px; background:linear-gradient(160deg,#0a1a0c,#000); border:2px solid var(--primary); border-radius:14px; box-shadow:0 14px 40px rgba(0,0,0,0.85); pointer-events:auto; font-size:13px; }
+#panel.open{ display:flex; }
+#panel .ph{ display:flex; align-items:center; gap:8px; padding:8px 10px; cursor:move; background:linear-gradient(90deg,#14521a,#0a1a0c); border-radius:12px 12px 0 0; font-weight:900; letter-spacing:1.5px; text-transform:uppercase; font-size:12px; touch-action:none; }
+#panel .ph span.t{ flex:1; }
+#panel .ph button{ background:#0a1a0c; color:#fff; border:1px solid var(--primary); border-radius:8px; width:26px; height:24px; font-weight:900; cursor:pointer; }
+#panel .body{ overflow:auto; padding:8px 10px 14px; flex:1; }
+#panel.min .body, #panel.min .prz{ display:none; }
+#panel.dock{ position:fixed; inset:0; min-width:0; border-radius:0; border:none; }
+#panel.dock .ph{ cursor:default; border-radius:0; }
+.prz{ position:absolute; right:2px; bottom:2px; width:18px; height:18px; cursor:nwse-resize; background:linear-gradient(135deg, transparent 50%, var(--primary) 50%); border-radius:0 0 10px 0; touch-action:none; }
+details{ border:1px solid rgba(77,160,68,0.45); border-radius:10px; margin-top:8px; background:rgba(255,255,255,0.03); }
+summary{ cursor:pointer; padding:7px 10px; font-weight:900; letter-spacing:1px; text-transform:uppercase; font-size:12px; color:var(--primary); }
+.sec{ padding:4px 10px 10px; display:flex; flex-direction:column; gap:7px; }
+.lab{ font-size:10px; font-weight:900; letter-spacing:1px; text-transform:uppercase; opacity:.8; margin-bottom:-3px; }
+#panel input[type=text], #panel input[type=number], #panel textarea{ width:100%; background:#000; color:#fff; border:1px solid rgba(77,160,68,0.5); border-radius:8px; padding:7px 9px; font-size:13px; font-weight:800; outline:none; font-family:inherit; }
+#panel textarea{ height:96px; resize:vertical; font-family:ui-monospace,Consolas,monospace; font-size:12px; }
+.g2{ display:grid; grid-template-columns:1fr 1fr; gap:7px; } .g3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
+.btns{ display:flex; gap:6px; flex-wrap:wrap; }
+.b{ flex:1 1 auto; text-align:center; padding:7px 10px; border-radius:999px; background:rgba(20,40,22,0.95); border:1px solid rgba(77,160,68,0.8); color:#fff; font-weight:900; font-size:11px; letter-spacing:.6px; text-transform:uppercase; cursor:pointer; white-space:nowrap; }
+.b:hover{ border-color:#fff; } .b.fire{ border-color:var(--fire); background:rgba(60,22,6,0.95); } .b.go{ background:var(--primary); color:#000; border-color:var(--primary); }
+.b.tog{ opacity:.55; } .b.tog.on{ opacity:1; background:var(--primary); color:#000; }
+.b.editon{ background:#fff; color:#000; }
+.note{ font-size:11px; font-weight:800; line-height:1.35; opacity:.9; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.10); border-radius:8px; padding:6px 9px; }
+.note.err{ color:#ffd7d7; background:rgba(255,60,60,0.12); } .note.ok{ color:#d9ffe4; background:rgba(60,255,120,0.10); }
+.hidefile{ position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+#hot{ position:fixed; left:0; top:0; width:44px; height:44px; z-index:99998; pointer-events:auto; background:transparent; cursor:default; }
+body.controls-only #stage, body.controls-only #hot{ display:none; }
+</style>
+</head>
+<body>
+<div id="hot" title=""></div>
+
+<div id="stage">
+  <div class="w" id="w-promo" data-k="promo" data-label="PROMO BAR">
+    <div class="promo" id="promo" style="width:100%;height:100%;position:relative">
+      <div class="promo-default"></div><div class="promo-bg" id="promoBg"></div><div class="promo-shade"></div>
+      <div class="promo-logo" id="promoLogo"><div class="wordmark">MUTANT CITY<br>COMICS</div></div>
+      <div class="promo-sep"></div>
+      <div class="promo-text" id="promoText"></div>
+    </div>
+    <div class="wlabel">PROMO BAR</div><div class="rz"></div>
+  </div>
+
+  <div class="w" id="w-stack" data-k="stack" data-label="LIVE WIDGETS">
+    <div class="stackin">
+      <div class="sw" id="sw-mode"><div class="mode" id="mode"><img id="modeImg" alt=""><div class="fallback" id="modeFallback"></div></div></div>
+      <div class="sw" id="sw-card">
+    <div class="fcard" id="fcard">
+      <div class="flame">Fire Sale</div>
+      <div class="save"><small>SAVE</small><b id="fcPct">0%</b></div>
+      <div class="photo"><img id="fcImg" alt=""><div class="ph" id="fcPh">HOT</div></div>
+      <div class="item" id="fcItem"></div><div class="name" id="fcName"></div>
+      <div class="prices"><div class="now" id="fcNow"></div><div class="was" id="fcWas"></div></div>
+      <div class="row" id="fcTimeRow"><div class="top"><span>Time left</span><b id="fcTime">00:00</b></div><div class="track time"><i id="fcTimeBar"></i></div></div>
+      <div class="row" id="fcQtyRow"><div class="top"><span>Qty left</span><b id="fcQty">0</b></div><div class="track"><i id="fcQtyBar"></i></div></div>
+      <div class="ended-banner" id="fcEnded">SALE OVER</div>
+    </div>
+      </div>
+      <div class="sw" id="sw-timer"><div class="timer" id="timer"><div class="lbl" id="tmLabel">TIMER</div><div class="clock" id="tmClock">00:00</div><div class="bar"><i id="tmBar"></i></div></div></div>
+    </div>
+    <div class="wlabel">LIVE WIDGETS</div><div class="rz"></div>
+  </div>
+</div>
+
+<!-- Floating control panel. Not part of the picture: open with the hidden top-left corner, the C key, or ?panel=1 -->
+<div id="panel">
+  <div class="ph" id="panelHead"><span class="t">Mutant City Controls</span><button id="pMin" title="Collapse">-</button><button id="pClose" title="Close">x</button></div>
+  <div class="body">
+    <div class="lab">Show / hide on stream</div>
+    <div class="btns">
+      <div class="b tog" data-vis="promo">Promo bar</div><div class="b tog" data-vis="card">Sale card</div>
+      <div class="b tog" data-vis="mode">Mode badge</div><div class="b tog" data-vis="timer">Timer</div>
+    </div>
+    <div class="btns" style="margin-top:6px"><div class="b" id="editBtn">Move / resize widgets</div><div class="b" id="resetLayoutBtn">Reset layout</div></div>
+    <div class="note" id="layoutNote">Turn on Move / resize, then drag any widget on the stream to place it and drag its white corner dot to resize. Turn it off when you are happy.</div>
+
+    <details open><summary>Fire sale</summary><div class="sec">
+      <div class="lab">Product name</div><input id="sName" type="text" placeholder="Amazing Spider-Man #300 CGC 9.4">
+      <div class="g2"><div><div class="lab">Item # (optional)</div><input id="sItem" type="text" placeholder="MC-1001"></div><div><div class="lab">Quantity</div><input id="sQty" type="number" min="1" step="1"></div></div>
+      <div class="g3"><div><div class="lab">Regular $</div><input id="sWas" type="number" min="0" step="0.01"></div><div><div class="lab">Sale $</div><input id="sNow" type="number" min="0" step="0.01"></div><div><div class="lab">Minutes</div><input id="sMin" type="number" min="1" max="600" step="1"></div></div>
+      <div class="note" id="saleCalc">Percent off is worked out for you.</div>
+      <div class="btns"><div class="b" id="saleImgBtn">Add photo</div><div class="b" id="saleImgClear">Remove photo</div></div>
+      <input class="hidefile" type="file" id="saleFile" accept="image/*">
+      <div class="btns"><div class="b go fire" id="startSale">Start fire sale</div><div class="b fire" id="qtyMinusBtn">Qty -1</div><div class="b fire" id="qtyPlusBtn">Qty +1</div><div class="b fire" id="saleEndBtn">End sale</div></div>
+    </div></details>
+
+    <details><summary>Mode badge</summary><div class="sec">
+      <div class="btns"><div class="b fire" data-mode="fire">Fire sale active</div><div class="b fire" data-mode="rapid">Rapid fire active</div><div class="b fire" data-mode="sudden">Sudden death</div></div>
+      <div class="btns"><div class="b" id="modeOff">Clear badge</div></div>
+    </div></details>
+
+    <details><summary>Timer</summary><div class="sec">
+      <div class="lab">Label</div><input id="tLabel" type="text" placeholder="RAPID FIRE">
+      <div class="g2"><div><div class="lab">Minutes</div><input id="tMin" type="number" min="0" max="180" step="1"></div><div><div class="lab">Seconds</div><input id="tSec" type="number" min="0" max="59" step="1"></div></div>
+      <div class="btns"><div class="b fire" id="tp30">30s</div><div class="b fire" id="tp60">1 min</div><div class="b fire" id="tp300">5 min</div><div class="b fire" id="tp600">10 min</div></div>
+      <div class="btns"><div class="b go" id="tStart">Start</div><div class="b" id="tPause">Pause / resume</div><div class="b" id="tHide">Clear</div></div>
+    </div></details>
+
+    <details><summary>Promo bar</summary><div class="sec">
+      <div class="lab">One message per line, they rotate</div><textarea id="promoLinesInput"></textarea>
+      <div class="lab">Seconds per message (2 to 60)</div><input id="promoSecsInput" type="number" min="2" max="60">
+      <div class="btns"><div class="b go" id="applyPromo">Save messages</div></div>
+      <div class="lab">Images</div>
+      <div class="btns"><div class="b" id="logoBtn">Set logo</div><div class="b" id="logoClear">Clear logo</div><div class="b" id="pbgBtn">Promo background</div><div class="b" id="pbgClear">Clear background</div></div>
+      <input class="hidefile" type="file" id="imgFile" accept="image/*">
+      <div class="note" id="imgNote">Pick an image. It is resized and saved in this browser source only, so it survives an OBS restart.</div>
+    </div></details>
+  </div>
+  <div class="prz" id="panelRz"></div>
+</div>
+
+<script>
+/* =========================================================
+   Mutant City Comics - Live Sale Overlay (hand operated)
+   No bridge, no SSE, no Chrome extension: the client did not buy automation
+   and nothing here needs it. The seller types the values in; state lives in
+   this browser source's localStorage (namespaced). OBS-safe: never
+   prompt/alert/confirm. ES6, no CDN.
+
+   Layout is fraction-of-viewport, so it is correct at any browser-source
+   size. Set the source to the stream canvas (1920x1080 for Whatnot).
+   Two ways to run the controls:
+     1) floating panel inside this source (open: C key / hidden top-left corner)
+     2) as an OBS Custom Browser Dock pointed at this page with ?controls=1,
+        which keeps the panel OFF the stream entirely. Both talk through
+        localStorage and update each other live.
+========================================================= */
+const CLIENT_ID = "mutant-city-comics";
+const LS = {
+  get(k, d=""){ try{ const v = localStorage.getItem(`${CLIENT_ID}.${k}`); return v==null ? d : v; }catch(_){ return d; } },
+  set(k, v){ try{ localStorage.setItem(`${CLIENT_ID}.${k}`, typeof v === "string" ? v : JSON.stringify(v)); return true; }catch(_){ return false; } },
+  del(k){ try{ localStorage.removeItem(`${CLIENT_ID}.${k}`); }catch(_){ } },
+  json(k, d){ try{ const v = localStorage.getItem(`${CLIENT_ID}.${k}`); return v ? JSON.parse(v) : d; }catch(_){ return d; } }
+};
+const $ = (id) => document.getElementById(id);
+const Q = new URLSearchParams(location.search);
+const CONTROLS_ONLY = true;   // this file IS the control panel
+
+const BASE = (() => {
+  if (location.hostname.endsWith("github.io")){ const p = location.pathname.split("/").filter(Boolean); return `/${p.length ? p[0] : ""}/`; }
+  return "../../";
+})();
+const ASSET = (f) => `${BASE}images/logos/${f}`;
+const LOGO_FILE = "mutant-city-comics-logo.png", PROMO_BG_FILE = "mutant-city-comics-promo-bg.png";
+const MODE_FILES = { fire:"mutant-city-comics-fire-sale-active.png", rapid:"mutant-city-comics-rapid-fire-active.png", sudden:"mutant-city-comics-sudden-death.png" };
+const MODE_TEXT  = { fire:"FIRE SALE ACTIVE", rapid:"RAPID FIRE ACTIVE", sudden:"SUDDEN DEATH" };
+const DEFAULT_PROMO = ["WELCOME TO MUTANT CITY COMICS","FOLLOW US FOR THE NEXT SHOW","FIRE SALES AND RAPID FIRE ALL NIGHT","SHIPPING COMBINES, ASK IN CHAT"];
+
+/* ---------- state (all in localStorage so the dock and the stream source stay in sync) ---------- */
+const DEF_LAYOUT = {
+  promo:{ x:0.03, y:0.86, w:0.94, h:0.105 },
+  stack:{ x:0.76, y:0.05, s:1 },
+  panel:{ x:0.30, y:0.12, w:400, h:640 }
+};
+const DEF_VIS = { promo:true, card:true, mode:true, timer:true };
+let S = {};
+function loadState(){
+  S.layout = Object.assign({}, JSON.parse(JSON.stringify(DEF_LAYOUT)), LS.json("layout", {}));
+  S.vis    = Object.assign({}, DEF_VIS, LS.json("vis", {}));
+  S.edit   = LS.get("edit","") === "1";
+  S.mode   = LS.get("mode","");
+  S.sale   = LS.json("sale", null); if (S.sale && !S.sale.name) S.sale = null;
+  S.tm     = LS.json("timer", null); if (S.tm && !S.tm.totalSec) S.tm = null;
+  let pl   = LS.json("promoLines", null); S.promoLines = (Array.isArray(pl) && pl.length) ? pl.map(String) : DEFAULT_PROMO.slice();
+  const ps = parseInt(LS.get("promoSecs",""),10); S.promoSecs = (Number.isFinite(ps) && ps>=2 && ps<=60) ? ps : 6;
+}
+const saveLayout = () => LS.set("layout", S.layout);
+const saveVis = () => LS.set("vis", S.vis);
+
+const SAMPLE_SALE = { name:"Sample Comic Book #1 CGC 9.8", item:"MC-0001", was:149.99, now:89, qtyTotal:12, qtyLeft:9, totalSec:600, endsAt:0, sample:true };
+const money = (n) => "$" + (Number.isInteger(n) ? String(n) : n.toFixed(2));
+const pctOff = (was, now) => (was > 0 && now >= 0 && now < was) ? Math.round((1 - now/was) * 100) : 0;
+const fmt = (sec) => { sec = Math.max(0, Math.ceil(sec)); const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60; const p = (x) => String(x).padStart(2,"0"); return h ? `${h}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`; };
+
+/* ---------- placement ---------- */
+function place(k){
+  const el = $("w-"+k), L = S.layout[k]; if (!el || !L) return;
+  el.style.left = (L.x*100) + "vw"; el.style.top = (L.y*100) + "vh";
+  if (k === "promo"){ el.style.width = (L.w*100) + "vw"; el.style.height = (L.h*100) + "vh"; el.style.transform = ""; }
+  else { el.style.transform = `scale(${L.s})`; }
+}
+function effectiveOn(k){
+  if (!S.vis[k]) return false;
+  if (S.edit) return true;                       // while arranging, show every enabled widget (with sample content)
+  if (k === "card") return !!S.sale;
+  if (k === "mode") return !!S.mode;
+  if (k === "timer") return !!S.tm;
+  return true;
+}
+function renderVis(){
+  $("w-promo").classList.toggle("on", effectiveOn("promo"));
+  ["mode","card","timer"].forEach(k => $("sw-"+k).classList.toggle("on", effectiveOn(k)));
+  $("w-stack").classList.toggle("on", ["mode","card","timer"].some(effectiveOn));
+  place("promo"); place("stack");
+  document.body.classList.toggle("edit", S.edit && !CONTROLS_ONLY);
+  document.querySelectorAll("[data-vis]").forEach(b => b.classList.toggle("on", !!S.vis[b.dataset.vis]));
+  $("editBtn").classList.toggle("editon", S.edit);
+  $("editBtn").textContent = S.edit ? "Done arranging" : "Move / resize widgets";
+}
+
+/* ---------- logo + backgrounds ---------- */
+function applyImages(){
+  const logo = LS.get("img.logo","");
+  const host = $("promoLogo");
+  const useLogo = (url) => { host.innerHTML = ""; const i = document.createElement("img"); i.alt = "Mutant City Comics"; i.src = url; host.appendChild(i); };
+  const wordmark = () => { host.innerHTML = '<div class="wordmark">MUTANT CITY<br>COMICS</div>'; };
+  if (logo) useLogo(logo);
+  else { const pr = new Image(); pr.onload = () => useLogo(ASSET(LOGO_FILE)); pr.onerror = wordmark; pr.src = ASSET(LOGO_FILE); wordmark(); }
+  const bg = LS.get("img.promoBg","");
+  $("promoBg").style.backgroundImage = bg ? `url("${bg}")` : "";
+  if (!bg){ const pr = new Image(); pr.onload = () => { if (!LS.get("img.promoBg","")) $("promoBg").style.backgroundImage = `url("${ASSET(PROMO_BG_FILE)}")`; }; pr.src = ASSET(PROMO_BG_FILE); }
+}
+
+/* ---------- promo rotation ---------- */
+let promoIdx = -1, promoTimer = null, promoSig = "";
+function showPromoLine(){
+  const host = $("promoText"); if (!S.promoLines.length){ host.innerHTML = ""; return; }
+  promoIdx = (promoIdx + 1) % S.promoLines.length;
+  const old = host.querySelector(".promo-line"); if (old){ old.classList.remove("show"); old.classList.add("out"); setTimeout(() => old.remove(), 500); }
+  const el = document.createElement("div"); const t = S.promoLines[promoIdx];
+  el.className = "promo-line" + (t.length > 52 ? " s" : t.length > 34 ? " m" : ""); el.textContent = t; host.appendChild(el);
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("show")));
+}
+function startPromo(){
+  const sig = JSON.stringify([S.promoLines, S.promoSecs]); if (sig === promoSig) return; promoSig = sig;
+  clearInterval(promoTimer); promoIdx = -1; showPromoLine();
+  if (S.promoLines.length > 1) promoTimer = setInterval(showPromoLine, S.promoSecs * 1000);
+}
+
+/* ---------- mode badge ---------- */
+function renderMode(){
+  const m = $("mode"), k = S.mode || (S.edit ? "fire" : "");
+  if (!k || !MODE_FILES[k]) return;
+  m.classList.toggle("sudden", k === "sudden"); $("modeFallback").textContent = MODE_TEXT[k];
+  const img = $("modeImg"); const want = ASSET(MODE_FILES[k]);
+  if (img.dataset.k !== k){
+    img.dataset.k = k; m.classList.add("nofile");
+    img.onload = () => m.classList.remove("nofile"); img.onerror = () => m.classList.add("nofile"); img.src = want;
+  }
+}
+function setMode(v){
+  S.mode = v || ""; if (S.mode){ LS.set("mode", S.mode); S.vis.mode = true; saveVis(); } else LS.del("mode");
+  renderMode(); renderVis();
+}
+
+/* ---------- fire sale ---------- */
+function renderSale(){
+  const s = S.sale || (S.edit ? SAMPLE_SALE : null); if (!s) return;
+  $("fcName").textContent = s.name;
+  $("fcItem").textContent = s.item ? `ITEM #${s.item}` : ""; $("fcItem").style.display = s.item ? "" : "none";
+  $("fcNow").textContent = money(s.now); $("fcWas").textContent = money(s.was);
+  const p = pctOff(s.was, s.now); $("fcPct").textContent = p + "%";
+  const img = LS.get("img.sale","");
+  if (img){ $("fcImg").src = img; $("fcImg").style.display = "block"; $("fcPh").style.display = "none"; }
+  else { $("fcImg").style.display = "none"; $("fcPh").style.display = ""; $("fcPh").textContent = p + "% OFF"; }
+  tickSale();
+}
+function tickSale(){
+  const s = S.sale || (S.edit ? SAMPLE_SALE : null); if (!s) return;
+  const left = s.sample ? 412 : Math.max(0, (s.endsAt - Date.now())/1000), total = Math.max(1, s.totalSec);
+  $("fcTime").textContent = fmt(left); $("fcTimeBar").style.width = Math.min(100, (left/total)*100) + "%";
+  $("fcTimeRow").classList.toggle("low", left <= 30 && left > 0);
+  const q = Math.max(0, s.qtyLeft), tq = Math.max(1, s.qtyTotal);
+  $("fcQty").textContent = String(q); $("fcQtyBar").style.width = Math.min(100, (q/tq)*100) + "%";
+  $("fcQtyRow").classList.toggle("low", q <= Math.max(1, Math.round(tq*0.25)));
+  const ended = !s.sample && (left <= 0 || q <= 0);
+  $("fcard").classList.toggle("ended", ended); $("fcEnded").textContent = q <= 0 ? "SOLD OUT" : "SALE OVER";
+}
+function saveSale(){ if (S.sale) LS.set("sale", S.sale); else LS.del("sale"); }
+function changeQty(d){ if (!S.sale) return; S.sale.qtyLeft = Math.max(0, Math.min(S.sale.qtyTotal, S.sale.qtyLeft + d)); saveSale(); tickSale(); }
+function endSale(){ S.sale = null; saveSale(); LS.del("img.sale"); renderVis(); }
+
+/* ---------- timer (absolute end time: survives an OBS refresh) ---------- */
+const timerLeft = () => !S.tm ? 0 : (S.tm.paused ? S.tm.pausedLeft : Math.max(0, (S.tm.endsAt - Date.now())/1000));
+function renderTimer(){
+  const tm = S.tm || (S.edit ? { totalSec:300, endsAt:0, paused:true, pausedLeft:300, label:"TIMER", sample:true } : null); if (!tm) return;
+  const left = tm.sample ? 300 : (tm.paused ? tm.pausedLeft : Math.max(0, (tm.endsAt - Date.now())/1000)), el = $("timer");
+  el.classList.toggle("paused", !!tm.paused && !tm.sample); el.classList.toggle("low", left <= 10 && left > 0 && !tm.paused);
+  $("tmLabel").textContent = tm.label || "TIMER"; $("tmClock").textContent = left <= 0 ? "TIME!" : fmt(left);
+  $("tmBar").style.width = Math.min(100, (left / Math.max(1, tm.totalSec)) * 100) + "%";
+}
+function startTimer(sec, label){ sec = Math.max(1, Math.round(sec)); S.tm = { totalSec:sec, endsAt:Date.now()+sec*1000, paused:false, pausedLeft:sec, label:label||"TIMER" }; LS.set("timer", S.tm); S.vis.timer = true; saveVis(); renderVis(); renderTimer(); }
+function pauseTimer(){ if (!S.tm) return; if (S.tm.paused){ S.tm.paused = false; S.tm.endsAt = Date.now() + S.tm.pausedLeft*1000; } else { S.tm.pausedLeft = timerLeft(); S.tm.paused = true; } LS.set("timer", S.tm); renderTimer(); }
+function clearTimer(){ S.tm = null; LS.del("timer"); renderVis(); }
+
+/* ---------- dragging + resizing (only while "Move / resize" is on) ---------- */
+function vw(){ return window.innerWidth; } function vh(){ return window.innerHeight; }
+function initWidgetDrag(){
+  document.querySelectorAll(".w").forEach(el => {
+    const k = el.dataset.k;
+    el.addEventListener("pointerdown", (e) => {
+      if (!S.edit || e.target.classList.contains("rz")) return;
+      e.preventDefault(); el.setPointerCapture(e.pointerId);
+      const L = S.layout[k], sx = e.clientX, sy = e.clientY, ox = L.x, oy = L.y;
+      const mv = (ev) => { const r = el.getBoundingClientRect(); const mx = Math.max(0, 1 - r.width/vw()), my = Math.max(0, 1 - r.height/vh());
+        L.x = Math.max(0, Math.min(mx, ox + (ev.clientX - sx)/vw())); L.y = Math.max(0, Math.min(my, oy + (ev.clientY - sy)/vh())); place(k); };
+      const up = () => { el.removeEventListener("pointermove", mv); el.removeEventListener("pointerup", up); saveLayout(); };
+      el.addEventListener("pointermove", mv); el.addEventListener("pointerup", up);
+    });
+    const rz = el.querySelector(".rz");
+    rz.addEventListener("pointerdown", (e) => {
+      e.preventDefault(); e.stopPropagation(); rz.setPointerCapture(e.pointerId);
+      const L = S.layout[k], r = el.getBoundingClientRect();
+      const mv = (ev) => {
+        if (k === "promo"){ L.w = Math.max(0.15, Math.min(1.2, (ev.clientX - r.left)/vw())); L.h = Math.max(0.04, Math.min(0.5, (ev.clientY - r.top)/vh())); }
+        else { const base = 340; L.s = Math.max(0.3, Math.min(3, (ev.clientX - r.left)/base)); }
+        place(k);
+      };
+      const up = () => { rz.removeEventListener("pointermove", mv); rz.removeEventListener("pointerup", up); saveLayout(); };
+      rz.addEventListener("pointermove", mv); rz.addEventListener("pointerup", up);
+    });
+  });
+}
+
+/* ---------- control panel: drag by title bar, resize by corner, collapse, close ---------- */
+function placePanel(){
+  const p = $("panel"), L = S.layout.panel;
+  if (CONTROLS_ONLY){ p.classList.add("dock","open"); p.style.left = p.style.top = p.style.width = p.style.height = ""; return; }
+  p.style.left = Math.max(0, Math.min(vw()-120, L.x*vw())) + "px"; p.style.top = Math.max(0, Math.min(vh()-40, L.y*vh())) + "px";
+  p.style.width = L.w + "px"; p.style.height = L.min ? "auto" : L.h + "px";
+  p.classList.toggle("min", !!L.min);
+}
+function initPanel(){
+  const p = $("panel");
+  $("pClose").addEventListener("click", () => { p.classList.remove("open"); });
+  $("pMin").addEventListener("click", () => { S.layout.panel.min = !S.layout.panel.min; saveLayout(); placePanel(); });
+  if (CONTROLS_ONLY){ $("pClose").style.display = "none"; $("pMin").style.display = "none"; $("panelRz").style.display = "none"; return; }
+  $("panelHead").addEventListener("pointerdown", (e) => {
+    if (e.target.tagName === "BUTTON") return; e.preventDefault(); $("panelHead").setPointerCapture(e.pointerId);
+    const L = S.layout.panel, sx = e.clientX, sy = e.clientY, ox = L.x*vw(), oy = L.y*vh();
+    const mv = (ev) => { L.x = Math.max(0, (ox + ev.clientX - sx)/vw()); L.y = Math.max(0, (oy + ev.clientY - sy)/vh()); placePanel(); };
+    const up = () => { $("panelHead").removeEventListener("pointermove", mv); $("panelHead").removeEventListener("pointerup", up); saveLayout(); };
+    $("panelHead").addEventListener("pointermove", mv); $("panelHead").addEventListener("pointerup", up);
+  });
+  $("panelRz").addEventListener("pointerdown", (e) => {
+    e.preventDefault(); $("panelRz").setPointerCapture(e.pointerId);
+    const L = S.layout.panel, sx = e.clientX, sy = e.clientY, ow = L.w, oh = L.h;
+    const mv = (ev) => { L.w = Math.max(280, ow + ev.clientX - sx); L.h = Math.max(160, oh + ev.clientY - sy); placePanel(); };
+    const up = () => { $("panelRz").removeEventListener("pointermove", mv); $("panelRz").removeEventListener("pointerup", up); saveLayout(); };
+    $("panelRz").addEventListener("pointermove", mv); $("panelRz").addEventListener("pointerup", up);
+  });
+  $("hot").addEventListener("click", () => p.classList.toggle("open"));
+  document.addEventListener("keydown", (e) => { if ((e.key === "c" || e.key === "C") && !/INPUT|TEXTAREA/.test((e.target||{}).tagName||"")) p.classList.toggle("open"); });
+  if (Q.get("panel") === "1") p.classList.add("open");
+}
+
+/* ---------- image helpers (resized, quota safe; logo keeps transparency) ---------- */
+function resizeToDataUrl(file, maxEdge, maxBytes, asPng){
+  return new Promise((resolve, reject) => {
+    const rd = new FileReader(); rd.onerror = () => reject(new Error("Could not read that file."));
+    rd.onload = () => { const img = new Image(); img.onerror = () => reject(new Error("That file is not an image the browser can open."));
+      img.onload = () => { try{
+        const w = img.naturalWidth, h = img.naturalHeight; if (!w || !h) return reject(new Error("That image has no dimensions."));
+        const sc = Math.min(1, maxEdge/Math.max(w,h)); const c = document.createElement("canvas"); c.width = Math.max(1,Math.round(w*sc)); c.height = Math.max(1,Math.round(h*sc));
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        let out = asPng ? c.toDataURL("image/png") : "";
+        if (!asPng){ for (const q of [0.88,0.78,0.68,0.58,0.48]){ out = c.toDataURL("image/jpeg", q); if (out.length <= maxBytes) break; } }
+        if (out.length > maxBytes) return reject(new Error("That image is too large even after resizing. Try a smaller one."));
+        resolve(out); }catch(_){ reject(new Error("Could not process that image.")); } };
+      img.src = rd.result; };
+    rd.readAsDataURL(file);
+  });
+}
+function note(id, msg, kind){ const n = $(id); n.textContent = msg; n.className = "note" + (kind ? " "+kind : ""); }
+
+/* ---------- boot + wiring ---------- */
+function renderAll(){ loadState(); renderVis(); renderMode(); renderSale(); renderTimer(); applyImages(); startPromo(); placePanel(); }
+
+document.addEventListener("DOMContentLoaded", () => {
+  if (CONTROLS_ONLY) document.body.classList.add("controls-only");
+  loadState(); initWidgetDrag(); initPanel(); renderAll();
+  setInterval(() => { tickSale(); renderTimer(); }, 250);
+  window.addEventListener("storage", (e) => { if (e.key && e.key.startsWith(CLIENT_ID + ".")) renderAll(); });   // the dock and the stream source stay in sync
+  window.addEventListener("resize", () => { placePanel(); });
+
+  document.querySelectorAll("[data-vis]").forEach(b => b.addEventListener("click", () => { const k = b.dataset.vis; S.vis[k] = !S.vis[k]; saveVis(); renderVis(); }));
+  $("editBtn").addEventListener("click", () => { S.edit = !S.edit; LS.set("edit", S.edit ? "1" : "0"); renderVis(); renderMode(); renderSale(); renderTimer(); });
+  $("resetLayoutBtn").addEventListener("click", () => { const pn = S.layout.panel; S.layout = JSON.parse(JSON.stringify(DEF_LAYOUT)); S.layout.panel = pn; saveLayout(); renderVis(); note("layoutNote", "Widgets are back in their starting places.", "ok"); });
+
+  // promo
+  $("promoLinesInput").value = S.promoLines.join("\n"); $("promoSecsInput").value = String(S.promoSecs);
+  $("applyPromo").addEventListener("click", () => {
+    const lines = $("promoLinesInput").value.split("\n").map(s => s.trim()).filter(Boolean).slice(0,30), s = parseInt($("promoSecsInput").value,10);
+    S.promoLines = lines.length ? lines : DEFAULT_PROMO.slice(); S.promoSecs = (Number.isFinite(s) && s>=2 && s<=60) ? s : 6;
+    LS.set("promoLines", S.promoLines); LS.set("promoSecs", String(S.promoSecs)); startPromo(); note("imgNote", "Messages saved.", "ok");
+  });
+  let imgTarget = "logo";
+  const pick = (t) => { imgTarget = t; $("imgFile").click(); };
+  $("logoBtn").addEventListener("click", () => pick("logo")); $("pbgBtn").addEventListener("click", () => pick("promoBg"));
+  $("logoClear").addEventListener("click", () => { LS.del("img.logo"); applyImages(); note("imgNote", "Logo cleared.", "ok"); });
+  $("pbgClear").addEventListener("click", () => { LS.del("img.promoBg"); applyImages(); note("imgNote", "Background cleared.", "ok"); });
+  $("imgFile").addEventListener("change", async (e) => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return; note("imgNote", "Working on it...", "");
+    try{
+      const url = imgTarget === "logo" ? await resizeToDataUrl(f, 600, 900000, true) : await resizeToDataUrl(f, 1600, 1500000, false);
+      const ok = LS.set(imgTarget === "logo" ? "img.logo" : "img.promoBg", url); applyImages();
+      note("imgNote", ok ? "Saved." : "Applied, but this browser source is out of storage so it will not survive a restart. Try a smaller image.", ok ? "ok" : "err");
+    }catch(err){ note("imgNote", (err && err.message) || "Could not set that image.", "err"); }
+  });
+
+  // fire sale
+  const calc = () => { const was = parseFloat($("sWas").value), now = parseFloat($("sNow").value);
+    if (Number.isFinite(was) && Number.isFinite(now) && was > 0){ if (now >= was) note("saleCalc", "Sale price should be lower than the regular price.", "err"); else note("saleCalc", `${pctOff(was, now)}% off. Saves ${money(Math.round((was-now)*100)/100)} per item.`, "ok"); }
+    else note("saleCalc", "Percent off is worked out for you.", ""); };
+  ["sWas","sNow"].forEach(id => $(id).addEventListener("input", calc));
+  if (S.sale){ $("sName").value = S.sale.name; $("sItem").value = S.sale.item || ""; $("sQty").value = S.sale.qtyTotal; $("sWas").value = S.sale.was; $("sNow").value = S.sale.now; $("sMin").value = Math.round(S.sale.totalSec/60); calc(); }
+  $("saleImgBtn").addEventListener("click", () => $("saleFile").click());
+  $("saleFile").addEventListener("change", async (e) => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (!f) return;
+    try{ LS.set("img.sale", await resizeToDataUrl(f, 700, 400000, false)); note("saleCalc", "Product photo added.", "ok"); renderSale(); }catch(err){ note("saleCalc", (err && err.message) || "Could not use that photo.", "err"); } });
+  $("saleImgClear").addEventListener("click", () => { LS.del("img.sale"); renderSale(); });
+  $("startSale").addEventListener("click", () => {
+    const name = $("sName").value.trim(), item = $("sItem").value.trim(), was = parseFloat($("sWas").value), now = parseFloat($("sNow").value), qty = parseInt($("sQty").value,10), min = parseFloat($("sMin").value);
+    if (!name || !(was > 0) || !(now >= 0) || !(now < was) || !(qty >= 1) || !(min > 0)){ note("saleCalc", "Fill in the product, both prices (sale lower than regular), quantity and minutes.", "err"); return; }
+    const sec = Math.round(min*60); S.sale = { name, item, was, now, qtyTotal:qty, qtyLeft:qty, totalSec:sec, endsAt:Date.now()+sec*1000 };
+    saveSale(); S.vis.card = true; saveVis(); if (!S.mode) setMode("fire"); renderVis(); renderSale(); note("saleCalc", "Fire sale is live.", "ok");
+  });
+  $("qtyMinusBtn").addEventListener("click", () => changeQty(-1)); $("qtyPlusBtn").addEventListener("click", () => changeQty(1));
+  $("saleEndBtn").addEventListener("click", () => { endSale(); if (S.mode === "fire") setMode(""); });
+
+  // mode + timer
+  document.querySelectorAll("[data-mode]").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  $("modeOff").addEventListener("click", () => setMode(""));
+  const preset = (s) => { $("tMin").value = Math.floor(s/60); $("tSec").value = s%60; };
+  $("tp30").addEventListener("click", () => preset(30)); $("tp60").addEventListener("click", () => preset(60)); $("tp300").addEventListener("click", () => preset(300)); $("tp600").addEventListener("click", () => preset(600));
+  $("tStart").addEventListener("click", () => { const m = parseInt($("tMin").value,10)||0, s = parseInt($("tSec").value,10)||0; if (m*60+s < 1) return; startTimer(m*60+s, $("tLabel").value.trim().toUpperCase() || "TIMER"); });
+  $("tPause").addEventListener("click", pauseTimer); $("tHide").addEventListener("click", clearTimer);
+});
+</script>
+</body>
+</html>

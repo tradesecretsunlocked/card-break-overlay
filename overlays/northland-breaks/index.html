@@ -7,6 +7,10 @@
 
   <style>
 :root{
+  --autoOff:#b3261e;
+  --autoOffGlow: rgba(179,38,30,0.55);
+  --mixerOn:#1f7a3a;
+  --mixerOnGlow: rgba(31,122,58,0.55);
 
   /* ===== NORTHLAND BREAKS (Minnesota black & yellow) ===== */
 
@@ -1314,6 +1318,9 @@ min-height:95px;
   }
 }
 
+    /* Automation / Mixer mode toggles (2026-09-27) */
+    .mode-toggle.is-off{ background: linear-gradient(180deg, var(--autoOff), rgba(0,0,0,0.35)); border-color: var(--autoOff); box-shadow: 0 0 10px var(--autoOffGlow); color: var(--text); }
+    .mode-toggle.is-on{ background: linear-gradient(180deg, var(--mixerOn), rgba(0,0,0,0.35)); border-color: var(--mixerOn); box-shadow: 0 0 10px var(--mixerOnGlow); color: var(--text); }
   </style>
 </head>
 
@@ -1407,6 +1414,8 @@ min-height:95px;
   <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="openPromoPopup()">EDIT PROMO</button>
   <button class="btn ghost" style="padding:8px 12px; font-size:12px;" onclick="openChasePopup()">⭐ CHASE TEAMS</button>
   <button class="btn" style="padding:8px 12px; font-size:12px;" onclick="openExportPopup()">EXPORT TSV</button>
+  <button class="btn ghost mode-toggle" id="autoToggleBtn" style="padding:8px 12px; font-size:12px;" onclick="toggleAutomation()" title="Turn Whatnot automation on/off. Manual clicks always work.">AUTO: ON</button>
+  <button class="btn ghost mode-toggle" id="mixerToggleBtn" style="padding:8px 12px; font-size:12px;" onclick="toggleMixer()" title="Lock the board to the sport showing now and read multi-sport titles by their first team.">MIXER: OFF</button>
 
   <div class="sse" id="sseStatus">
     SSE <span class="dot" id="sseDot"></span><span id="sseText">OFF</span>
@@ -2356,7 +2365,7 @@ setHighBid(loadHighBid());
     const tile = document.querySelector(`[data-team-code="${code}"]`);
     if (!tile) return;
 
-    const listIndex = soldTeamsList.findIndex(e => e.code === code);
+    const listIndex = soldTeamsList.findIndex(e => e.code === code && (e.sport || currentBreakType) === currentBreakType);
     const currentSportSold = soldTeamsBySport[currentBreakType];
 
     if (currentSportSold.has(code)){
@@ -2372,7 +2381,7 @@ setHighBid(loadHighBid());
         setTimeout(() => tile.classList.remove("flash"), 280);
       }, 420);
 
-      if (listIndex === -1) soldTeamsList.push({ code, buyer: buyerFromAutomation || "" });
+      if (listIndex === -1) soldTeamsList.push({ code, buyer: buyerFromAutomation || "", sport: currentBreakType });
     }
     updateStats();
     updateSoldList();
@@ -2391,6 +2400,7 @@ setHighBid(loadHighBid());
     const currentBreak = breakTypes[currentBreakType];
 
     soldTeamsList.forEach(entry => {
+      if (entry.sport && entry.sport !== currentBreakType) return;
       const team = currentBreak.teams.find(t => t.code === entry.code);
       if (!team) return;
 
@@ -2459,6 +2469,7 @@ function newBreak(){
     const idx = types.indexOf(currentBreakType);
     currentBreakType = types[(idx + 1) % types.length];
     buildLayout();
+    if (mixerSport){ mixerSport = currentBreakType; lsSet(MIXER_KEY, mixerSport); renderModeButtons(); }
   }
 
 function setSport(type){
@@ -2466,6 +2477,142 @@ function setSport(type){
   currentBreakType = type;
   buildLayout();
   updateTickerMarquee(); // <-- ensure ticker swaps to that sport's stored scores
+}
+
+/******************************************************************
+ * AUTOMATION ON/OFF + MIXER MODE + RESPIN REASSIGNMENT (2026-09-27)
+ * - AUTO OFF: sale events from the bridge are ignored; manual clicks still work.
+ * - MIXER: board locked to the sport showing when MIXER was pressed.
+ *   Titles like "Bears/Bulls/Cubs" resolve by their FIRST team against that
+ *   sport only; "A/B/C, D/E/F" marks every group. Incoming sport is ignored.
+ * - RESPIN: the latest title for a sale id REPLACES that sale's earlier
+ *   team(s) (Stash or Pass, respins). Placeholder titles (#4) never clear a
+ *   real assignment. A change arriving > RESPIN_WINDOW_MS after the sale's
+ *   first real team is treated as a stale re-poll and ignored.
+ ******************************************************************/
+const MODE_NS = "northland." + (location.pathname.indexOf("northland-breaks-2") !== -1 ? "s2." : "s1.");
+const AUTO_KEY  = MODE_NS + "automationEnabled";
+const MIXER_KEY = MODE_NS + "mixerSport";
+const RESPIN_WINDOW_MS = 20 * 60 * 1000;
+
+function lsGet(k){ try { return localStorage.getItem(k); } catch(_) { return null; } }
+function lsSet(k, v){ try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch(_){} }
+
+let automationEnabled = (() => {
+  const q = String(getParam("auto") || "").toLowerCase();
+  if (q === "0" || q === "off") return false;
+  if (q === "1" || q === "on") return true;
+  return lsGet(AUTO_KEY) !== "0";
+})();
+
+let mixerSport = (() => {
+  const q = String(getParam("mixer") || "").toLowerCase().trim();
+  if (q === "0" || q === "off") return "";
+  if (q && breakTypes[q]) return q;
+  const st = String(lsGet(MIXER_KEY) || "").toLowerCase();
+  return breakTypes[st] ? st : "";
+})();
+
+function renderModeButtons(){
+  const a = document.getElementById("autoToggleBtn");
+  if (a){ a.textContent = automationEnabled ? "AUTO: ON" : "AUTO: OFF"; a.classList.toggle("is-off", !automationEnabled); }
+  const m = document.getElementById("mixerToggleBtn");
+  if (m){ m.textContent = mixerSport ? ("MIXER: " + breakTypes[mixerSport].name) : "MIXER: OFF"; m.classList.toggle("is-on", !!mixerSport); }
+}
+
+function toggleAutomation(){
+  automationEnabled = !automationEnabled;
+  lsSet(AUTO_KEY, automationEnabled ? "1" : "0");
+  console.log("[Northland] automation", automationEnabled ? "ON" : "OFF");
+  renderModeButtons();
+}
+
+function toggleMixer(){
+  if (mixerSport){ mixerSport = ""; lsSet(MIXER_KEY, null); }
+  else { mixerSport = currentBreakType; lsSet(MIXER_KEY, mixerSport); }
+  console.log("[Northland] mixer", mixerSport || "OFF");
+  renderModeButtons();
+}
+
+function escRe(w){ return String(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+function matchAnchorTeam(text, teams){
+  const t = " " + normalizeTitleForMatch(text) + " ";
+  if (!t.trim()) return "";
+  let best = "", bestLen = 0;
+  for (const team of teams){
+    const code = String(team.code || "").toUpperCase();
+    const name = normalizeTitleForMatch(team.name);
+    if (name && new RegExp("\\s" + escRe(name) + "\\s").test(t) && name.length > bestLen){ best = code; bestLen = name.length; }
+  }
+  if (!best){
+    const bare = t.trim();
+    const hit = teams.find(tm => String(tm.code || "").toLowerCase() === bare);
+    if (hit) best = String(hit.code).toUpperCase();
+  }
+  return best;
+}
+
+function resolveMixerCodes(title, sport){
+  const teams = breakTypes[sport]?.teams || [];
+  const out = [];
+  String(title || "").split(",").forEach(group => {
+    let code = matchAnchorTeam(group.split("/")[0], teams);   // first team in the group wins
+    if (!code) code = matchAnchorTeam(group, teams);            // fallback: anywhere in the group
+    if (code && !out.includes(code)) out.push(code);
+  });
+  return out;
+}
+
+function codeHeldByOtherSale(code, sport, exceptKey){
+  for (const [k, v] of lastCodeByListingKey){
+    if (k !== exceptKey && v.sport === sport && v.codes.includes(code)) return true;
+  }
+  return false;
+}
+
+function applySaleAssignment(key, sport, codes, buyer){
+  if (!codes.length) return;   // placeholder / unmatched title: never clears a real assignment
+  const now = Date.now();
+  const prev = key ? lastCodeByListingKey.get(key) : null;
+
+  if (prev){
+    const same = prev.sport === sport && prev.codes.length === codes.length && prev.codes.every(c => codes.includes(c));
+    if (!same){
+      if (now - prev.firstAt > RESPIN_WINDOW_MS){
+        console.warn("[Northland] ignored late reassignment (stale re-poll)", key, prev.codes, "->", codes);
+        return;
+      }
+      prev.codes
+        .filter(c => !(prev.sport === sport && codes.includes(c)))
+        .filter(c => !codeHeldByOtherSale(c, prev.sport, key))
+        .forEach(c => sseMarkUnsold(c, prev.sport));
+      console.log("[Northland] respin", key, prev.codes, "->", codes);
+    }
+  }
+
+  codes.forEach(c => sseMarkSold(c, buyer, sport));
+  if (key) lastCodeByListingKey.set(key, { sport, codes: codes.slice(), firstAt: prev ? prev.firstAt : now });
+}
+
+function handleSaleEvent(data){
+  const buyer = getBuyerFromPayload(data);
+  let sport, codes;
+  if (mixerSport){
+    sport = mixerSport;
+    codes = resolveMixerCodes(data.title || data.rawTitle, sport);
+  } else {
+    const ps = getSportFromPayload(data);
+    if (ps && ps !== currentBreakType && breakTypes[ps]) setSport(ps);
+    sport = currentBreakType;
+    let code = getCodeFromPayload(data);
+    if (!code) code = inferTeamCodeFromSaleTitle(data.title, sport);
+    codes = code ? [code] : [];
+  }
+  const onBoard = new Set((breakTypes[sport]?.teams || []).map(t => String(t.code).toUpperCase()));
+  codes = codes.filter(c => onBoard.has(c));
+  if (!codes.length && !mixerSport) console.warn("[TSU automation] no team code inferred", data);
+  applySaleAssignment(data.saleId || data.id || data.listingId || null, sport, codes, buyer);
 }
 
   /******************************************************************
@@ -2477,8 +2624,8 @@ function setSport(type){
 
   const BRIDGE_KEY = (() => {
     const q = getParam("key");
-    if (q && q.trim()) { localStorage.setItem("tsu.bridgeKey", q.trim()); return q.trim(); }
-    return (localStorage.getItem("tsu.bridgeKey") || BRIDGE_KEY_DEFAULT).trim();
+    if (q && q.trim()) return q.trim();   // debug override for this load only, never persisted
+    return BRIDGE_KEY_DEFAULT;
   })();
 
   const CHANNELS = (() => {
@@ -2990,7 +3137,13 @@ if (data.type === "high_bid"){
     }
 
     if (data.type === "set_sport"){
+      if (mixerSport) return;   // mixer locks the board
       if (data.sport) setSport(String(data.sport).toLowerCase());
+      return;
+    }
+
+    // AUTOMATION OFF: ignore every sale-driven event; manual clicks still work
+    if (!automationEnabled && ["reset","buyer","buyer_update","team_sold","team_unsold","whatnot_purchase","purchase"].includes(data.type)){
       return;
     }
 
@@ -3013,52 +3166,18 @@ if (data.type === "high_bid"){
     // Team sold
 // Team sold (supports reassignment by same saleId)
 if (data.type === "team_sold") {
-  const sport = getSportFromPayload(data);
-
-  // optional: auto-switch sport if included
-  if (sport && sport !== currentBreakType && breakTypes[sport]) {
-    setSport(sport);
-  }
-
-  let code = getCodeFromPayload(data);
-  const buyer = getBuyerFromPayload(data);
-
-  // infer code from title if missing
-  if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
-
-  // ✅ IMPORTANT:
-  // Prefer a UNIQUE purchase key first (saleId/id). listingId can be reused.
-  const listingKey = data.saleId || data.id || data.listingId || null;
-
-  // ✅ Overlay-only reassignment rule:
-  // If we see the SAME purchase key again but with a DIFFERENT team,
-  // unsell the previous team automatically.
-  if (listingKey && code) {
-    const prevCode = lastCodeByListingKey.get(listingKey);
-    if (prevCode && prevCode !== code) {
-      sseMarkUnsold(prevCode);
-    }
-    lastCodeByListingKey.set(listingKey, code);
-  }
-
-  if (code) sseMarkSold(code, buyer);
+  handleSaleEvent(data);
   return;
 }
 
     // Team unsold
     if (data.type === "team_unsold") {
-      let code = getCodeFromPayload(data);
-      if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
-
-      // ✅ IMPORTANT: do NOT use productId here
-      const listingKey = data.listingId || data.saleId || data.id || null;
-
-      if (code) sseMarkUnsold(code);
-
-      if (listingKey) {
-        const cur = lastCodeByListingKey.get(listingKey);
-        if (!cur || cur === code) lastCodeByListingKey.delete(listingKey);
-      }
+      const sport = mixerSport || currentBreakType;
+      let codes;
+      if (mixerSport) codes = resolveMixerCodes(data.title, sport);
+      else { let c = getCodeFromPayload(data); if (!c) c = inferTeamCodeFromSaleTitle(data.title, sport); codes = c ? [c] : []; }
+      codes.forEach(c => sseMarkUnsold(c, sport));
+      [data.saleId, data.id, data.listingId].forEach(k => { if (k) lastCodeByListingKey.delete(k); });
       return;
     }
     // Whatnot purchase automation (robust)
@@ -3066,49 +3185,34 @@ if (data.type === "team_sold") {
     // {type:"whatnot_purchase", sport:"nba", code:"LAL", buyer:"Mike"}
     // {type:"purchase", sport:"nfl", team:"DAL", buyerName:"Mike"}
 if (data.type === "whatnot_purchase" || data.type === "purchase"){
-  const sport = getSportFromPayload(data);
-
-  if (sport && sport !== currentBreakType && breakTypes[sport]) {
-    setSport(sport);
-  }
-
-  let code = getCodeFromPayload(data);
-  const buyer = getBuyerFromPayload(data);
-
-  if (!code) code = inferTeamCodeFromSaleTitle(data.title, currentBreakType);
-
-  if (code){
-    sseMarkSold(code, buyer);
-  } else {
-    console.warn("[TSU automation] no team code inferred", data);
-  }
+  handleSaleEvent(data);
   return;
 }
 
     // stream_stats etc can be ignored safely
   }
 
-  function sseMarkSold(code, buyer=""){
-    if (!code) return;
+  function sseMarkSold(code, buyer="", sport=currentBreakType){
+    if (!code || !soldTeamsBySport[sport]) return;
 
-    const currentSportSold = soldTeamsBySport[currentBreakType];
-    if (!currentSportSold.has(code)){
-      currentSportSold.add(code);
-      if (!soldTeamsList.some(x => x.code === code)) {
-        soldTeamsList.push({ code, buyer: buyer || "" });
+    const sportSold = soldTeamsBySport[sport];
+    if (!sportSold.has(code)){
+      sportSold.add(code);
+      if (!soldTeamsList.some(x => x.code === code && (x.sport || sport) === sport)) {
+        soldTeamsList.push({ code, buyer: buyer || "", sport });
       }
 
-      const tile = document.querySelector(`[data-team-code="${code}"]`);
-      playSoldAnimation(code);
-
-      if (tile){
-        setTimeout(() => {
-          tile.classList.add("sold", "flash");
-          setTimeout(() => tile.classList.remove("flash"), 280);
-        }, 110);
+      if (sport === currentBreakType){
+        const tile = document.querySelector(`[data-team-code="${code}"]`);
+        playSoldAnimation(code);
+        if (tile){
+          setTimeout(() => {
+            tile.classList.add("sold", "flash");
+            setTimeout(() => tile.classList.remove("flash"), 280);
+          }, 110);
+        }
       }
     } else if (buyer){
-      // already sold; just update buyer if provided
       sseUpdateBuyer(code, buyer);
     }
 
@@ -3116,13 +3220,15 @@ if (data.type === "whatnot_purchase" || data.type === "purchase"){
     updateSoldList();
   }
 
-  function sseMarkUnsold(code){
-    if (!code) return;
-    soldTeamsBySport[currentBreakType].delete(code);
-    soldTeamsList = soldTeamsList.filter(t => t.code !== code);
+  function sseMarkUnsold(code, sport=currentBreakType){
+    if (!code || !soldTeamsBySport[sport]) return;
+    soldTeamsBySport[sport].delete(code);
+    soldTeamsList = soldTeamsList.filter(t => !(t.code === code && (t.sport || sport) === sport));
 
-    const tile = document.querySelector(`[data-team-code="${code}"]`);
-    if (tile) tile.classList.remove("sold");
+    if (sport === currentBreakType){
+      const tile = document.querySelector(`[data-team-code="${code}"]`);
+      if (tile) tile.classList.remove("sold");
+    }
 
     updateStats();
     updateSoldList();
@@ -3189,9 +3295,11 @@ window.tsuTestReset = function(){
     // REQUIRED: subscribe to sport via ?sport= (and only allow known breakTypes)
     const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
     if (qSport && breakTypes[qSport]) currentBreakType = qSport;
+    if (mixerSport) currentBreakType = mixerSport;
 
     setBreakNumber(loadBreakNumber());
 buildLayout();
+renderModeButtons();
 initPromoBar();
 verifyShatterAssets();
 

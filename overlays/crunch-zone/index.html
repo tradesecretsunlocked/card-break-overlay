@@ -835,6 +835,18 @@ body.draft-mode .soldPanel{ order:5; }
           </div>
         </div>
       </div>
+      <div id="czShowPopup" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(3,8,18,.72);align-items:center;justify-content:center;">
+        <div style="width:min(620px,94vw);background:#0c1322;border:1px solid rgba(104,206,255,.5);border-radius:12px;padding:16px 18px;box-shadow:0 20px 50px rgba(0,0,0,.6);">
+          <h2 style="margin:0 0 6px;color:#68ceff;font-size:18px;letter-spacing:1px;">SHOWS</h2>
+          <div style="font-size:12px;opacity:.85;color:#cfe6ff;margin:0 0 8px">The board follows ONE show. Sales from any other show are held here and never touch the board. Pick a show to switch the board to it; its sold spots and buyers come back exactly as they were.</div>
+          <div id="czShowList" style="max-height:260px;overflow:auto;"></div>
+          <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:10px;">
+            <button class="btn" id="czAutoBtn" onclick="czToggleAuto()">AUTO-FOLLOW: ON</button>
+            <button class="btn" onclick="closeShowPopup()">Close</button>
+          </div>
+          <div style="font-size:11px;opacity:.7;color:#cfe6ff;margin-top:6px">Auto-follow moves the board to a different show only when the current one has had no sale for 6 hours. Turn it off to switch by hand only.</div>
+        </div>
+      </div>
       <div class="grid" id="grid"></div>
       <div id="dfBoard" class="dfBoard"></div>
       <div class="tickerBar">
@@ -859,6 +871,7 @@ body.draft-mode .soldPanel{ order:5; }
 <button class="btn" onclick="openTitlePopup()">TITLE</button>
 <button class="btn" onclick="openDraftPopup()">DRAFT</button>
 <button class="btn" onclick="openCustomPopup()">CUSTOM</button>
+<button class="btn" id="czShowBtn" onclick="openShowPopup()">SHOW</button>
 
 
             <div class="sseStatus" id="sseStatus">
@@ -1521,6 +1534,7 @@ function resetAll(){
   document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
   updateStats();
   updateSoldList();
+  if (typeof czLogClear === "function") czLogClear();   // board and the active show's log stay in step
 }
 
 function resetSoldState(){
@@ -1936,6 +1950,7 @@ function handleSSEEvent(data){
   const type = String(data?.type || "").toLowerCase();
 
   if (!breakIdMatches(data)) return;
+  if (!czShowGate(data, type)) return;   // show lock: other shows' sales are held, not applied
 
   if (type === "reset"){
     resetAll();
@@ -2145,6 +2160,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   setHeader();
   buildGrid();
+  czShowInit();                            // restore the active show's board from its log
 
   // SSE
   connectBridgeSSE({
@@ -2159,6 +2175,153 @@ document.addEventListener("DOMContentLoaded", () => {
   bridgeWarmup({ breakId: computeBreakId(), breakType: currentSport });
 });
 
+
+/* ===== TSU SHOW LOCK (Crunchzone, 2026-10-06) =====
+   Two scheduled shows on one key fed one board: a sale in the other show overwrote a buyer on the live one.
+   Every sale / unsold / buyer event carries liveId. The board follows ONE active show; events from any other
+   show are logged per show (localStorage crunchzone.shows.v1) and held until the seller switches to it.
+   The log mirrors the board: any local reset (RESET, NEW BREAK, sport change) clears the active show's log. */
+const CZ_SHOWS_LS = "crunchzone.shows.v1";
+const CZ_IDLE_MS = 6 * 60 * 60 * 1000, CZ_MAX_EV = 400, CZ_MAX_SHOWS = 6, CZ_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
+const CZ_SALE_TYPES = ["team_sold","sale","sold","purchase","whatnot_purchase"];
+const CZ_OTHER_TYPES = ["team_unsold","unsold","buyer","buyer_update"];
+let czShows = {}, czActive = "", czAuto = true, czReplaying = false;
+
+function czSave(){ try{ localStorage.setItem(CZ_SHOWS_LS, JSON.stringify({active:czActive, auto:czAuto, shows:czShows})); }catch(_){ } }
+function czLoad(){
+  try{
+    const o = JSON.parse(localStorage.getItem(CZ_SHOWS_LS) || "null");
+    if (o && typeof o === "object"){ czShows = (o.shows && typeof o.shows === "object") ? o.shows : {}; czActive = String(o.active || ""); czAuto = o.auto !== false; }
+  }catch(_){ czShows = {}; czActive = ""; }
+  const now = Date.now();
+  Object.keys(czShows).forEach(k => { if (k !== czActive && now - (czShows[k].seen || 0) > CZ_KEEP_MS) delete czShows[k]; });
+  Object.keys(czShows).sort((a,b) => (czShows[b].seen||0) - (czShows[a].seen||0)).slice(CZ_MAX_SHOWS).forEach(k => { if (k !== czActive) delete czShows[k]; });
+  if (czActive && !czShows[czActive]) czActive = "";
+}
+function czEntry(L){
+  let s = czShows[L];
+  if (!s) s = czShows[L] = { first:Date.now(), seen:Date.now(), last:0, held:0, label:"", ev:[] };
+  s.seen = Date.now();
+  return s;
+}
+function czCode(d){ return String(d.code || d.teamCode || ""); }
+function czKey(d, t){ return [t, d.saleId || d.id || "", czCode(d), d.buyer || d.buyerName || ""].join("|"); }
+function czCompact(d){
+  const o = {};
+  ["type","saleId","id","code","teamCode","buyer","buyerName","sport","title","rawTitle","spot","spotNumber","liveId"].forEach(k => { if (d[k] != null) o[k] = d[k]; });
+  return o;
+}
+function czLogClear(){
+  if (czReplaying || !czActive || !czShows[czActive]) return;
+  czShows[czActive].ev = []; czShows[czActive].held = 0;
+  czSave(); czRenderBtn();
+}
+
+// returns true when the event belongs to the active show (apply it), false when it is held
+function czShowGate(d, t){
+  if (czReplaying) return true;
+  const L = String((d && d.liveId) || "").trim();
+  if (!L) return true;                                   // no liveId (manual / test posts): behave as before
+  if (t === "overlay_warmup"){ const w = czEntry(L); if (d.showTitle) w.title = String(d.showTitle).slice(0, 60); czSave(); czRenderBtn(); return true; }
+  const isSale = CZ_SALE_TYPES.indexOf(t) >= 0;
+  if (!isSale && CZ_OTHER_TYPES.indexOf(t) < 0) return true;
+  const s = czEntry(L);
+  const k = czKey(d, t), code = czCode(d);
+  let prev = null;
+  for (let i = s.ev.length - 1; i >= 0; i--){ if (s.ev[i].c === code){ prev = s.ev[i]; break; } }
+  const dup = !!(prev && prev.k === k);                  // a replayed copy of the latest event for that spot
+  if (!dup){
+    s.ev.push({ k:k, c:code, d:czCompact(d) });
+    if (s.ev.length > CZ_MAX_EV) s.ev.splice(0, s.ev.length - CZ_MAX_EV);
+    if (isSale) s.last = Date.now();
+  }
+  if (!czActive) czActive = L;                           // first show to sell pins the board
+  if (L === czActive){ czSave(); czRenderBtn(); return true; }
+  if (czAuto && isSale && !dup){
+    const act = czShows[czActive];
+    if (!act || Date.now() - (act.last || act.first || 0) > CZ_IDLE_MS){ czSwitch(L); return false; }   // the logged event is replayed by the switch
+  }
+  if (isSale && !dup) s.held = (s.held || 0) + 1;
+  czSave(); czRenderBtn();
+  return false;
+}
+
+function czReplay(L){
+  const s = czShows[L]; if (!s) return;
+  const pa = window.playCzSoldAnimation;
+  czReplaying = true;
+  try{
+    window.playCzSoldAnimation = function(){};
+    resetAll();
+    s.ev.forEach(e => { try{ handleSSEEvent(Object.assign({}, e.d)); }catch(_){ } });
+  }finally{
+    window.playCzSoldAnimation = pa; czReplaying = false;
+  }
+}
+function czSwitch(L){
+  if (!czShows[L]) return;
+  czActive = L; czShows[L].held = 0;
+  czReplay(L);
+  czSave(); czRenderBtn();
+}
+function czShowInit(){
+  czLoad();
+  if (czActive) czReplay(czActive);
+  czRenderBtn();
+}
+function czToggleAuto(){ czAuto = !czAuto; czSave(); czRenderBtn(); }
+function czSetLabel(L, v){ if (czShows[L]){ czShows[L].label = String(v || "").trim().slice(0, 28); czSave(); } }
+function czFmtTime(ms){
+  if (!ms) return "no sales yet";
+  try{ return new Date(ms).toLocaleString([], { weekday:"short", hour:"numeric", minute:"2-digit" }); }catch(_){ return ""; }
+}
+function czRenderBtn(){
+  const b = document.getElementById("czShowBtn");
+  if (b){
+    let held = 0;
+    Object.keys(czShows).forEach(k => { if (k !== czActive) held += czShows[k].held || 0; });
+    b.textContent = held > 0 ? "SHOW (" + held + ")" : "SHOW";
+    b.style.outline = held > 0 ? "2px solid #ffb020" : "";
+    b.title = held > 0 ? held + " sale(s) held from another show - click to review" : "Shows";
+  }
+  const p = document.getElementById("czShowPopup");
+  if (p && p.style.display !== "none") czRenderPopup();
+}
+function czRenderPopup(){
+  const host = document.getElementById("czShowList"); if (!host) return;
+  const ae = document.activeElement;
+  if (ae && ae.id && ae.id.indexOf("czLbl-") === 0) return;   // never steal focus while typing a label
+  host.innerHTML = "";
+  const ids = Object.keys(czShows).sort((a,b) => (czShows[b].last||czShows[b].seen||0) - (czShows[a].last||czShows[a].seen||0));
+  if (!ids.length){
+    const e = document.createElement("div"); e.style.cssText = "color:#cfe6ff;font-size:13px;padding:8px 0"; e.textContent = "No shows seen yet. A show appears here the first time it sends a sale.";
+    host.appendChild(e);
+  }
+  ids.forEach(L => {
+    const s = czShows[L], isAct = (L === czActive);
+    const sales = s.ev.filter(e => CZ_SALE_TYPES.indexOf(String(e.d.type||"").toLowerCase()) >= 0).length;
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px;align-items:center;padding:7px 8px;margin:0 0 6px;border-radius:8px;border:1px solid " + (isAct ? "#68ceff" : "rgba(255,255,255,.15)") + ";background:" + (isAct ? "rgba(104,206,255,.12)" : "#141c2e");
+    const inp = document.createElement("input");
+    inp.id = "czLbl-" + L; inp.type = "text"; inp.maxLength = 28; inp.value = s.label || "";
+    inp.placeholder = s.title || "Name this show (e.g. Friday)";
+    inp.style.cssText = "flex:1 1 150px;min-width:0;background:#0c1322;border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:5px 7px;font-size:13px;font-weight:700;";
+    inp.addEventListener("change", () => czSetLabel(L, inp.value));
+    const meta = document.createElement("div");
+    meta.style.cssText = "flex:2 1 170px;font-size:12px;color:#cfe6ff;line-height:1.35";
+    meta.textContent = "..." + L.slice(-4) + " · " + sales + " sale" + (sales === 1 ? "" : "s") + " · last " + czFmtTime(s.last) + (!isAct && s.held ? " · " + s.held + " held" : "");
+    const btn = document.createElement("button");
+    btn.className = "btn"; btn.style.minWidth = "78px";
+    if (isAct){ btn.textContent = "ACTIVE"; btn.disabled = true; }
+    else { btn.textContent = "SWITCH"; btn.addEventListener("click", () => { czSwitch(L); }); }
+    row.appendChild(inp); row.appendChild(meta); row.appendChild(btn);
+    host.appendChild(row);
+  });
+  const ab = document.getElementById("czAutoBtn"); if (ab) ab.textContent = "AUTO-FOLLOW: " + (czAuto ? "ON" : "OFF");
+}
+function openShowPopup(){ const p = document.getElementById("czShowPopup"); if (p){ p.style.display = "flex"; czRenderPopup(); } }
+function closeShowPopup(){ const p = document.getElementById("czShowPopup"); if (p) p.style.display = "none"; }
+/* ===== /TSU SHOW LOCK ===== */
 
 /* ===== TSU DRAFT LAYOUT ENGINE (additive) ===== */
 function openCustomPopup(){ const box=document.getElementById('czCustomBox'); if(box) box.value=(czLoadCustomNames()||[]).join('\n'); const p=document.getElementById('czCustomPopup'); if(p) p.style.display='flex'; }
