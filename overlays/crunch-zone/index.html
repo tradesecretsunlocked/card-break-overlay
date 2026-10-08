@@ -835,6 +835,17 @@ body.draft-mode .soldPanel{ order:5; }
           </div>
         </div>
       </div>
+      <div id="czConfirmPopup" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(3,8,18,.78);align-items:center;justify-content:center;">
+        <div role="alertdialog" aria-modal="true" style="width:min(520px,92vw);background:#0c1322;border:2px solid #ffb020;border-radius:12px;padding:18px 20px;box-shadow:0 20px 50px rgba(0,0,0,.7);">
+          <h2 id="czConfirmTitle" style="margin:0 0 8px;color:#ffb020;font-size:20px;letter-spacing:1px;">CONFIRM</h2>
+          <div id="czConfirmBody" style="font-size:14px;line-height:1.45;color:#e6f2ff;margin:0 0 6px"></div>
+          <div id="czConfirmWarn" style="font-size:13px;line-height:1.4;color:#ffb020;font-weight:800;margin:0 0 12px"></div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;">
+            <button class="btn" id="czConfirmNo" onclick="czConfirmClose()">CANCEL</button>
+            <button class="btn" id="czConfirmYes" style="background:#b3261e;border-color:#ff6b61;color:#fff" onclick="czConfirmRun()">CONFIRM</button>
+          </div>
+        </div>
+      </div>
       <div id="czShowPopup" style="display:none;position:fixed;inset:0;z-index:99998;background:rgba(3,8,18,.72);align-items:center;justify-content:center;">
         <div style="width:min(620px,94vw);background:#0c1322;border:1px solid rgba(104,206,255,.5);border-radius:12px;padding:16px 18px;box-shadow:0 20px 50px rgba(0,0,0,.6);">
           <h2 style="margin:0 0 6px;color:#68ceff;font-size:18px;letter-spacing:1px;">SHOWS</h2>
@@ -862,8 +873,8 @@ body.draft-mode .soldPanel{ order:5; }
           <div class="soldTitle">SOLD TEAMS</div>
 
           <div class="controls">
-<button class="btn" onclick="clearDraftNames();resetAll()">RESET</button>
-<button class="btn" onclick="newBreak()">NEW BREAK</button>
+<button class="btn" onclick="czAskReset()">RESET</button>
+<button class="btn" onclick="czAskNewBreak()">NEW BREAK</button>
 <button class="btn" onclick="cycleSport()">SPORT</button>
 
 <button class="btn" onclick="openBreakPopup()">BREAK #</button>
@@ -935,7 +946,8 @@ let _czLastTicker = "";
 function czBuildTickerText(){
   const msgs = String(loadTicker()).split(/\s*\|\|\s*|\r?\n/).map(s => s.trim()).filter(Boolean);
   const baseMsgs = msgs.length ? msgs : [DEFAULT_TICKER];
-  const order = ["mlb"];   // CrunchZone: baseball only (Mike 07-16)
+  const on = czLoadScoreToggles();   // per-sport switches in the ticker modal (default: MLB only)
+  const order = CZ_SCORE_ORDER.filter(s => on[s]);
   const scores = order
     .filter(s => isFreshSportScore(s) && SCORES_BY_SPORT[s])
     .map(s => s.toUpperCase() + ":  " + SCORES_BY_SPORT[s]);
@@ -1478,6 +1490,7 @@ function toggleTeam(code, buyerFromSSE){
     if (idx === -1) soldList.push({ code, buyer: buyerFromSSE || "" });
     playCzSoldAnimation(code);
   }
+  czLogManualToggle(code, soldSet.has(code));
 
   updateStats();
   updateSoldList();
@@ -1514,6 +1527,7 @@ function updateSoldList(){
     input.value = entry.buyer || "";
     input.addEventListener("input", (e) => {
       entry.buyer = e.target.value;
+      czLogManualBuyer(entry.code, entry.buyer);
       // optional outbound buyer update:
       // bridgePost({ type:"buyer", breakId: computeBreakId(), breakType: currentSport, teamCode: entry.code, buyerName: entry.buyer });
     });
@@ -1549,17 +1563,17 @@ function cycleSport(){
   const idx = order.indexOf(currentSport);
   currentSport = order[(idx + 1) % order.length];
 
-  // clear board on local sport switch (per your normal behavior)
-  resetAll();
+  // v2: switching layouts never clears anything - the new layout's own board is rebuilt from its saved state
   buildGrid();
+  czReplay(czTarget());
   bridgeWarmup({ breakId: computeBreakId() });
 }
 
 function setSport(s){
   if (!breakTypes[s]) return;
   currentSport = s;
-  resetAll();
   buildGrid();
+  czReplay(czTarget());
   bridgeWarmup({ breakId: computeBreakId() });
 }
 
@@ -1727,7 +1741,6 @@ function czIsCurrentDate(status){
 function normalizeScorePayloadToText(data){
   const sport = String(data?.sport || "").toLowerCase();
   if (!sport || !SCORES_BY_SPORT.hasOwnProperty(sport)) return;
-  if (sport !== "mlb") return;   // CrunchZone: baseball scores only (Mike 07-16)
   let text = "";
   if (data.text) {
     text = String(data.text);
@@ -2064,6 +2077,7 @@ function openModal(mode){
 
     const ti = document.getElementById("modalTickerInput");
     if (ti) ti.value = loadTicker();
+    czFillScoreToggles();
 
     const s = loadTickerSpeedSec();
     const sr = document.getElementById("modalSpeed");
@@ -2112,6 +2126,7 @@ function saveModal(){
     const text = (document.getElementById("modalTickerInput")?.value || "").trim();
     const sec = parseInt(document.getElementById("modalSpeed")?.value || "22", 10);
     saveTickerSpeedSec(sec);
+    czSaveScoreToggles(czReadScoreToggles());
     setTicker(text || DEFAULT_TICKER);
   }
 
@@ -2180,12 +2195,20 @@ document.addEventListener("DOMContentLoaded", () => {
    Two scheduled shows on one key fed one board: a sale in the other show overwrote a buyer on the live one.
    Every sale / unsold / buyer event carries liveId. The board follows ONE active show; events from any other
    show are logged per show (localStorage crunchzone.shows.v1) and held until the seller switches to it.
-   The log mirrors the board: any local reset (RESET, NEW BREAK, sport change) clears the active show's log. */
+   v2 (2026-10-07): the log is also each LAYOUT's memory. Entries carry the layout (sp = nba/nfl/mlb/custom); a layout's
+   board is rebuilt from its own entries, so switching layouts never resets anything. Only RESET / NEXT BREAK (or the
+   remote reset / next_break commands) clear a layout, and only the layout that is active at that moment.
+   Manual tile clicks and manual buyer edits are logged too so they survive a layout switch. With no show pinned yet
+   everything goes to the "_local" pseudo-show (hidden from the SHOW list). */
 const CZ_SHOWS_LS = "crunchzone.shows.v1";
 const CZ_IDLE_MS = 6 * 60 * 60 * 1000, CZ_MAX_EV = 400, CZ_MAX_SHOWS = 6, CZ_KEEP_MS = 7 * 24 * 60 * 60 * 1000;
 const CZ_SALE_TYPES = ["team_sold","sale","sold","purchase","whatnot_purchase"];
 const CZ_OTHER_TYPES = ["team_unsold","unsold","buyer","buyer_update"];
+const CZ_LOCAL = "_local";
 let czShows = {}, czActive = "", czAuto = true, czReplaying = false;
+function czSportOf(d){ try{ return normalizeSport(d) || currentSport; }catch(_){ return currentSport; } }
+function czTarget(){ return czActive || CZ_LOCAL; }
+function czRealIds(){ return Object.keys(czShows).filter(k => k.charAt(0) !== "_"); }
 
 function czSave(){ try{ localStorage.setItem(CZ_SHOWS_LS, JSON.stringify({active:czActive, auto:czAuto, shows:czShows})); }catch(_){ } }
 function czLoad(){
@@ -2194,8 +2217,15 @@ function czLoad(){
     if (o && typeof o === "object"){ czShows = (o.shows && typeof o.shows === "object") ? o.shows : {}; czActive = String(o.active || ""); czAuto = o.auto !== false; }
   }catch(_){ czShows = {}; czActive = ""; }
   const now = Date.now();
-  Object.keys(czShows).forEach(k => { if (k !== czActive && now - (czShows[k].seen || 0) > CZ_KEEP_MS) delete czShows[k]; });
-  Object.keys(czShows).sort((a,b) => (czShows[b].seen||0) - (czShows[a].seen||0)).slice(CZ_MAX_SHOWS).forEach(k => { if (k !== czActive) delete czShows[k]; });
+  Object.keys(czShows).forEach(k => {
+    const sh = czShows[k];
+    if (!sh || !Array.isArray(sh.ev)){ delete czShows[k]; return; }
+    sh.ev.forEach(e => {                                   // v1 -> v2 migration: tag entries with their layout
+      if (!e.sp){ e.sp = (e.d && normalizeSport(e.d)) || "mlb"; e.c = e.sp + ":" + String(e.c || ""); }
+    });
+  });
+  Object.keys(czShows).forEach(k => { if (k !== czActive && k !== CZ_LOCAL && now - (czShows[k].seen || 0) > CZ_KEEP_MS) delete czShows[k]; });
+  czRealIds().sort((a,b) => (czShows[b].seen||0) - (czShows[a].seen||0)).slice(CZ_MAX_SHOWS).forEach(k => { if (k !== czActive) delete czShows[k]; });
   if (czActive && !czShows[czActive]) czActive = "";
 }
 function czEntry(L){
@@ -2211,32 +2241,65 @@ function czCompact(d){
   ["type","saleId","id","code","teamCode","buyer","buyerName","sport","title","rawTitle","spot","spotNumber","liveId"].forEach(k => { if (d[k] != null) o[k] = d[k]; });
   return o;
 }
+// RESET / NEXT BREAK: forget ONLY the layout that is on screen right now; every other layout keeps its board
 function czLogClear(){
-  if (czReplaying || !czActive || !czShows[czActive]) return;
-  czShows[czActive].ev = []; czShows[czActive].held = 0;
+  if (czReplaying) return;
+  const s = czShows[czTarget()]; if (!s) return;
+  s.ev = s.ev.filter(e => e.sp !== currentSport);
   czSave(); czRenderBtn();
+}
+function czPushRaw(s, e){
+  s.ev.push(e);
+  if (s.ev.length > CZ_MAX_EV) s.ev.splice(0, s.ev.length - CZ_MAX_EV);
+}
+// manual tile click on the live layout: logged so the layout can be rebuilt after a switch
+function czLogManualToggle(code, nowSold){
+  if (czReplaying || !code) return;
+  const s = czEntry(czTarget()), sp = currentSport;
+  czPushRaw(s, { k:"m|" + Date.now() + "|" + code, c:sp + ":" + code, sp:sp, d:{ type: nowSold ? "team_sold" : "team_unsold", code:code, sport:sp, manual:1 } });
+  czSave();
+}
+// manual buyer typing: coalesce keystrokes into one entry per spot
+function czLogManualBuyer(code, buyer){
+  if (czReplaying || !code) return;
+  const s = czEntry(czTarget()), sp = currentSport, c = sp + ":" + code;
+  let last = null;
+  for (let i = s.ev.length - 1; i >= 0; i--){ if (s.ev[i].c === c){ last = s.ev[i]; break; } }
+  if (last && last.d && last.d.type === "buyer" && last.d.manual){ last.d.buyer = buyer; }
+  else czPushRaw(s, { k:"mb|" + Date.now() + "|" + code, c:c, sp:sp, d:{ type:"buyer", code:code, buyer:buyer, sport:sp, manual:1 } });
+  czSave();
 }
 
 // returns true when the event belongs to the active show (apply it), false when it is held
 function czShowGate(d, t){
   if (czReplaying) return true;
   const L = String((d && d.liveId) || "").trim();
-  if (!L) return true;                                   // no liveId (manual / test posts): behave as before
-  if (t === "overlay_warmup"){ const w = czEntry(L); if (d.showTitle) w.title = String(d.showTitle).slice(0, 60); czSave(); czRenderBtn(); return true; }
+  if (t === "overlay_warmup"){
+    if (!L) return true;
+    const w = czEntry(L); if (d.showTitle) w.title = String(d.showTitle).slice(0, 60); czSave(); czRenderBtn(); return true;
+  }
   const isSale = CZ_SALE_TYPES.indexOf(t) >= 0;
   if (!isSale && CZ_OTHER_TYPES.indexOf(t) < 0) return true;
-  const s = czEntry(L);
-  const k = czKey(d, t), code = czCode(d);
+  const sp = czSportOf(d);
+  const target = L || czTarget();                        // no liveId (manual / test posts): follow the board as before
+  const s = czEntry(target);
+  const code = czCode(d), c = sp + ":" + code, k = czKey(d, t);
   let prev = null;
-  for (let i = s.ev.length - 1; i >= 0; i--){ if (s.ev[i].c === code){ prev = s.ev[i]; break; } }
+  for (let i = s.ev.length - 1; i >= 0; i--){ if (s.ev[i].c === c){ prev = s.ev[i]; break; } }
   const dup = !!(prev && prev.k === k);                  // a replayed copy of the latest event for that spot
   if (!dup){
-    s.ev.push({ k:k, c:code, d:czCompact(d) });
-    if (s.ev.length > CZ_MAX_EV) s.ev.splice(0, s.ev.length - CZ_MAX_EV);
-    if (isSale) s.last = Date.now();
+    const cd = czCompact(d); if (!cd.sport) cd.sport = sp;
+    czPushRaw(s, { k:k, c:c, sp:sp, d:cd });
+    if (isSale && L) s.last = Date.now();
   }
-  if (!czActive) czActive = L;                           // first show to sell pins the board
-  if (L === czActive){ czSave(); czRenderBtn(); return true; }
+  if (!L){ czSave(); return sp === currentSport; }       // other layouts keep it for when they are shown
+  if (!czActive){                                        // first show to sell pins the board
+    czActive = L;
+    const loc = czShows[CZ_LOCAL];
+    if (loc && loc.ev.length){ s.ev = loc.ev.concat(s.ev).slice(-CZ_MAX_EV); }
+    delete czShows[CZ_LOCAL];
+  }
+  if (L === czActive){ czSave(); czRenderBtn(); return sp === currentSport; }
   if (czAuto && isSale && !dup){
     const act = czShows[czActive];
     if (!act || Date.now() - (act.last || act.first || 0) > CZ_IDLE_MS){ czSwitch(L); return false; }   // the logged event is replayed by the switch
@@ -2246,14 +2309,15 @@ function czShowGate(d, t){
   return false;
 }
 
+// rebuild the board for the CURRENT layout from log L (resets the screen state only, not the stored logs)
 function czReplay(L){
-  const s = czShows[L]; if (!s) return;
+  const s = czShows[L];
   const pa = window.playCzSoldAnimation;
   czReplaying = true;
   try{
     window.playCzSoldAnimation = function(){};
     resetAll();
-    s.ev.forEach(e => { try{ handleSSEEvent(Object.assign({}, e.d)); }catch(_){ } });
+    if (s) s.ev.forEach(e => { if (e.sp === currentSport){ try{ handleSSEEvent(Object.assign({}, e.d)); }catch(_){ } } });
   }finally{
     window.playCzSoldAnimation = pa; czReplaying = false;
   }
@@ -2261,12 +2325,12 @@ function czReplay(L){
 function czSwitch(L){
   if (!czShows[L]) return;
   czActive = L; czShows[L].held = 0;
-  czReplay(L);
+  czReplay(czTarget());
   czSave(); czRenderBtn();
 }
 function czShowInit(){
   czLoad();
-  if (czActive) czReplay(czActive);
+  czReplay(czTarget());
   czRenderBtn();
 }
 function czToggleAuto(){ czAuto = !czAuto; czSave(); czRenderBtn(); }
@@ -2279,7 +2343,7 @@ function czRenderBtn(){
   const b = document.getElementById("czShowBtn");
   if (b){
     let held = 0;
-    Object.keys(czShows).forEach(k => { if (k !== czActive) held += czShows[k].held || 0; });
+    czRealIds().forEach(k => { if (k !== czActive) held += czShows[k].held || 0; });
     b.textContent = held > 0 ? "SHOW (" + held + ")" : "SHOW";
     b.style.outline = held > 0 ? "2px solid #ffb020" : "";
     b.title = held > 0 ? held + " sale(s) held from another show - click to review" : "Shows";
@@ -2292,14 +2356,14 @@ function czRenderPopup(){
   const ae = document.activeElement;
   if (ae && ae.id && ae.id.indexOf("czLbl-") === 0) return;   // never steal focus while typing a label
   host.innerHTML = "";
-  const ids = Object.keys(czShows).sort((a,b) => (czShows[b].last||czShows[b].seen||0) - (czShows[a].last||czShows[a].seen||0));
+  const ids = czRealIds().sort((a,b) => (czShows[b].last||czShows[b].seen||0) - (czShows[a].last||czShows[a].seen||0));
   if (!ids.length){
     const e = document.createElement("div"); e.style.cssText = "color:#cfe6ff;font-size:13px;padding:8px 0"; e.textContent = "No shows seen yet. A show appears here the first time it sends a sale.";
     host.appendChild(e);
   }
   ids.forEach(L => {
     const s = czShows[L], isAct = (L === czActive);
-    const sales = s.ev.filter(e => CZ_SALE_TYPES.indexOf(String(e.d.type||"").toLowerCase()) >= 0).length;
+    const sales = s.ev.filter(e => !e.d.manual && CZ_SALE_TYPES.indexOf(String(e.d.type||"").toLowerCase()) >= 0).length;
     const row = document.createElement("div");
     row.style.cssText = "display:flex;gap:8px;align-items:center;padding:7px 8px;margin:0 0 6px;border-radius:8px;border:1px solid " + (isAct ? "#68ceff" : "rgba(255,255,255,.15)") + ";background:" + (isAct ? "rgba(104,206,255,.12)" : "#141c2e");
     const inp = document.createElement("input");
@@ -2322,6 +2386,74 @@ function czRenderPopup(){
 function openShowPopup(){ const p = document.getElementById("czShowPopup"); if (p){ p.style.display = "flex"; czRenderPopup(); } }
 function closeShowPopup(){ const p = document.getElementById("czShowPopup"); if (p) p.style.display = "none"; }
 /* ===== /TSU SHOW LOCK ===== */
+
+/* ===== TSU RESET CONFIRM (Crunchzone, 2026-10-07) =====
+   RESET and NEW BREAK ask first. Cancel is focused by default, Enter does not confirm, Escape / outside click cancels.
+   Only the layout currently on screen is cleared; the other layouts keep their boards. */
+let _czConfirmFn = null;
+function czLayoutName(){ try{ return (breakTypes[currentSport] && breakTypes[currentSport].name) || String(currentSport).toUpperCase(); }catch(_){ return String(currentSport).toUpperCase(); } }
+function czConfirm(title, body, warn, yesLabel, fn){
+  const p = document.getElementById("czConfirmPopup");
+  if (!p){ fn(); return; }
+  _czConfirmFn = fn;
+  document.getElementById("czConfirmTitle").textContent = title;
+  document.getElementById("czConfirmBody").textContent = body;
+  document.getElementById("czConfirmWarn").textContent = warn;
+  document.getElementById("czConfirmYes").textContent = yesLabel;
+  p.style.display = "flex";
+  setTimeout(() => { const n = document.getElementById("czConfirmNo"); if (n) n.focus(); }, 0);
+}
+function czConfirmClose(){ const p = document.getElementById("czConfirmPopup"); if (p) p.style.display = "none"; _czConfirmFn = null; }
+function czConfirmRun(){ const f = _czConfirmFn; czConfirmClose(); if (f) f(); }
+function czAskReset(){
+  const n = czLayoutName();
+  czConfirm("RESET " + n + " BOARD?",
+    "This clears every sold spot and buyer name on the " + n + " board that is on screen right now.",
+    "This cannot be undone. Other layouts are not touched, and the break number does not change.",
+    "YES, RESET " + n,
+    () => { clearDraftNames(); resetAll(); });
+}
+function czAskNewBreak(){
+  const n = czLayoutName();
+  let bn = ""; try{ bn = getDisplayBreakNumber(); }catch(_){ }
+  czConfirm("START NEXT BREAK?",
+    "This clears the " + n + " board (all sold spots and buyers) and moves the break number on from " + (bn || "the current one") + ".",
+    "This cannot be undone. The break number is shared by all layouts. Other layouts' boards are not cleared.",
+    "YES, NEXT BREAK",
+    () => { newBreak(); });
+}
+document.addEventListener("keydown", (ev) => {
+  const p = document.getElementById("czConfirmPopup");
+  if (p && p.style.display !== "none" && ev.key === "Escape"){ ev.preventDefault(); czConfirmClose(); }
+});
+document.addEventListener("click", (ev) => {
+  const p = document.getElementById("czConfirmPopup");
+  if (p && ev.target === p) czConfirmClose();
+});
+/* ===== /TSU RESET CONFIRM ===== */
+
+/* ===== TSU SCORE TOGGLES (Crunchzone, 2026-10-07) =====
+   Per-sport on/off for live scores in the ticker. Default = MLB on, NFL and NBA off (the 07-16 baseball-only rule).
+   Scores for every sport are still received; this only decides what the ticker shows. Saved with the ticker modal's SAVE. */
+const CZ_SCORE_LS = "crunchzone.scoreSports.v1";
+const CZ_SCORE_ORDER = ["nfl","nba","mlb"];
+function czScoreDefaults(){ return { nfl:false, nba:false, mlb:true }; }
+function czLoadScoreToggles(){
+  const o = czScoreDefaults();
+  try{ const r = JSON.parse(localStorage.getItem(CZ_SCORE_LS) || "null"); if (r && typeof r === "object") CZ_SCORE_ORDER.forEach(k => { if (typeof r[k] === "boolean") o[k] = r[k]; }); }catch(_){ }
+  return o;
+}
+function czSaveScoreToggles(o){ try{ localStorage.setItem(CZ_SCORE_LS, JSON.stringify(o)); }catch(_){ } }
+function czFillScoreToggles(){
+  const o = czLoadScoreToggles();
+  CZ_SCORE_ORDER.forEach(k => { const el = document.getElementById("czScore-" + k); if (el) el.checked = !!o[k]; });
+}
+function czReadScoreToggles(){
+  const o = czLoadScoreToggles();
+  CZ_SCORE_ORDER.forEach(k => { const el = document.getElementById("czScore-" + k); if (el) o[k] = !!el.checked; });
+  return o;
+}
+/* ===== /TSU SCORE TOGGLES ===== */
 
 /* ===== TSU DRAFT LAYOUT ENGINE (additive) ===== */
 function openCustomPopup(){ const box=document.getElementById('czCustomBox'); if(box) box.value=(czLoadCustomNames()||[]).join('\n'); const p=document.getElementById('czCustomPopup'); if(p) p.style.display='flex'; }
@@ -2425,6 +2557,14 @@ function endDraft(){ draft.active=false; document.body.classList.remove('draft-m
       <div style="font-weight:900; opacity:0.9; font-size:12px; letter-spacing:1px; text-transform:uppercase;">
         Duration: <span id="modalSpeedVal">22</span>s
       </div>
+
+      <div class="modalLabel">Live Scores In Ticker</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-weight:900;letter-spacing:1px;cursor:pointer;"><input type="checkbox" id="czScore-mlb" style="width:20px;height:20px;"> MLB</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-weight:900;letter-spacing:1px;cursor:pointer;"><input type="checkbox" id="czScore-nfl" style="width:20px;height:20px;"> NFL</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-weight:900;letter-spacing:1px;cursor:pointer;"><input type="checkbox" id="czScore-nba" style="width:20px;height:20px;"> NBA</label>
+      </div>
+      <div style="font-weight:700; opacity:0.75; font-size:11px; letter-spacing:.5px;">Checked sports show their live scores between your ticker messages. Unchecked = never shown. Applies when you press SAVE.</div>
     </div>
 
     <div class="modalActions">
