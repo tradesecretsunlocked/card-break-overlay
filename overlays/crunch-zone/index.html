@@ -510,11 +510,12 @@ z-index: 1;
 
     .soldGrid{
       display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px 12px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));   /* 4 per row (Mike 10-07) */
+      gap: 8px 8px;
     }
 
     .soldRow{
+      min-width:0;
       display:flex;
       align-items:center;
       gap: 8px;
@@ -534,7 +535,7 @@ z-index: 1;
     }
 
     .soldTeam{
-      min-width: 64px;
+      min-width: 40px;
       font-weight: 900;
       text-transform: uppercase;
       font-size: 12px;
@@ -546,6 +547,7 @@ z-index: 1;
 
     .buyerInput{
       flex:1;
+      min-width:0;
       height: 34px;
       border-radius: 10px;
       border: 2px solid rgba(255,255,255,0.12);
@@ -2446,7 +2448,11 @@ function czLoadScoreToggles(){
 function czSaveScoreToggles(o){ try{ localStorage.setItem(CZ_SCORE_LS, JSON.stringify(o)); }catch(_){ } }
 function czFillScoreToggles(){
   const o = czLoadScoreToggles();
-  CZ_SCORE_ORDER.forEach(k => { const el = document.getElementById("czScore-" + k); if (el) el.checked = !!o[k]; });
+  CZ_SCORE_ORDER.forEach(k => {
+    const el = document.getElementById("czScore-" + k); if (el) el.checked = !!o[k];
+    const h = document.getElementById("czScoreHint-" + k);
+    if (h){ const live = isFreshSportScore(k) && !!SCORES_BY_SPORT[k]; h.textContent = live ? "live now" : "no games today"; h.style.color = live ? "#3cff8a" : "#9fb4cc"; }
+  });
 }
 function czReadScoreToggles(){
   const o = czLoadScoreToggles();
@@ -2560,11 +2566,11 @@ function endDraft(){ draft.active=false; document.body.classList.remove('draft-m
 
       <div class="modalLabel">Live Scores In Ticker</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;">
-        <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-weight:900;letter-spacing:1px;cursor:pointer;"><input type="checkbox" id="czScore-mlb" style="width:20px;height:20px;"> MLB</label>
-        <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-weight:900;letter-spacing:1px;cursor:pointer;"><input type="checkbox" id="czScore-nfl" style="width:20px;height:20px;"> NFL</label>
-        <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-weight:900;letter-spacing:1px;cursor:pointer;"><input type="checkbox" id="czScore-nba" style="width:20px;height:20px;"> NBA</label>
+        <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-weight:900;letter-spacing:1px;cursor:pointer;"><input type="checkbox" id="czScore-mlb" style="width:20px;height:20px;"> MLB <span id="czScoreHint-mlb" style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:none;opacity:.9"></span></label>
+        <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-weight:900;letter-spacing:1px;cursor:pointer;"><input type="checkbox" id="czScore-nfl" style="width:20px;height:20px;"> NFL <span id="czScoreHint-nfl" style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:none;opacity:.9"></span></label>
+        <label style="display:flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-weight:900;letter-spacing:1px;cursor:pointer;"><input type="checkbox" id="czScore-nba" style="width:20px;height:20px;"> NBA <span id="czScoreHint-nba" style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:none;opacity:.9"></span></label>
       </div>
-      <div style="font-weight:700; opacity:0.75; font-size:11px; letter-spacing:.5px;">Checked sports show their live scores between your ticker messages. Unchecked = never shown. Applies when you press SAVE.</div>
+      <div style="font-weight:700; opacity:0.75; font-size:11px; letter-spacing:.5px;">Checked sports show their live scores between your ticker messages. Unchecked = never shown. A sport with no games today or live shows nothing even when checked. Applies when you press SAVE.</div>
     </div>
 
     <div class="modalActions">
