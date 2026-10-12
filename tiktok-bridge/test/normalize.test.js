@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { orderToEvents, productStatsToBoard, toCents, normalizeStatus } from "../src/normalize.js";
+import { readFileSync } from "node:fs";
+import { orderToEvents, productStatsToBoard, toCents, normalizeStatus, detectSaleFormat } from "../src/normalize.js";
+import { validateSaleEvent, saleKey } from "../src/eventContract.js";
 
 /**
  * The reference event is a REAL production row read out of bridge_events on
@@ -12,6 +14,8 @@ const WHATNOT_REFERENCE_KEYS = [
   "saleId", "channel", "currency", "teamCode", "buyerName", "listingId",
   "productId", "overlay_id", "amountCents",
 ];
+// Contract v2 and TikTok additions. Additive only: the Whatnot set above must stay a subset.
+const ADDITIVE_KEYS = ["v", "platform", "saleFormat"];
 
 const order = (over = {}) => ({
   id: "5789xxxxxxxxx",
@@ -31,9 +35,44 @@ const order = (over = {}) => ({
   ...over,
 });
 
-test("emitted payload has exactly the same keys as a live Whatnot team_sold event", () => {
+test("emitted payload is the Whatnot production key set plus only the additive v2 keys", () => {
   const [e] = orderToEvents(order(), { overlayId: "northland-breaks-overlay", sport: "nfl" });
-  assert.deepEqual(Object.keys(e.payload).sort(), [...WHATNOT_REFERENCE_KEYS].sort());
+  assert.deepEqual(Object.keys(e.payload).sort(), [...WHATNOT_REFERENCE_KEYS, ...ADDITIVE_KEYS].sort());
+});
+
+test("every emitted event passes the shared contract in strict mode", () => {
+  const [e] = orderToEvents(order(), { overlayId: "northland-breaks-overlay", sport: "nfl" });
+  const r = validateSaleEvent(e.payload, { platform: "tiktok", strict: true });
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.warnings, []);
+  assert.equal(e.payload.v, 3);
+  assert.equal(e.payload.platform, "tiktok");
+});
+
+test("src/eventContract.js is a byte copy of shared/eventContract.js", () => {
+  const here = readFileSync(new URL("../src/eventContract.js", import.meta.url), "utf8");
+  let shared;
+  try { shared = readFileSync(new URL("../../shared/eventContract.js", import.meta.url), "utf8"); }
+  catch { return; } // Render builds only tiktok-bridge/, the monorepo copy is absent there
+  assert.equal(here, shared, "contract drifted, re-copy shared/eventContract.js into tiktok-bridge/src/");
+});
+
+test("LIVE auction orders are tagged saleFormat auction and otherwise identical", () => {
+  const [a] = orderToEvents(order({ order_type: "AUCTION" }), { sport: "nfl" });
+  const [f] = orderToEvents(order(), { sport: "nfl" });
+  assert.equal(a.payload.saleFormat, "auction");
+  assert.equal(f.payload.saleFormat, "fixed");
+  assert.equal(a.payload.code, f.payload.code);
+  assert.equal(detectSaleFormat({}), "fixed");
+});
+
+test("identity grain is saleId plus code, not saleId alone", () => {
+  const o = order({ line_items: [
+    { id: "li_a", sku_name: "Arizona Cardinals", sale_price: "3.00" },
+    { id: "li_b", sku_name: "Minnesota Vikings", sale_price: "3.00" },
+  ]});
+  const keys = orderToEvents(o, { sport: "nfl" }).map((e) => saleKey(e.payload));
+  assert.equal(new Set(keys).size, 2);
 });
 
 test("resolves the team code identically to the Whatnot extension", () => {
@@ -175,4 +214,10 @@ test("one order spanning many teams yields one event per tile, all sharing the b
   assert.deepEqual(events.map((e) => e.payload.code), ["ARI", "MIN", "BAL", "ATL"]);
   assert.equal(new Set(events.map((e) => e.payload.saleId)).size, 4);
   assert.ok(events.every((e) => e.payload.buyer === "whale"));
+});
+
+test("a saleFormat outside fixed or auction is rejected by the contract", () => {
+  const [e] = orderToEvents(order(), { sport: "nfl" });
+  const r = validateSaleEvent({ ...e.payload, saleFormat: "bogus" }, { platform: "tiktok" });
+  assert.equal(r.ok, false);
 });

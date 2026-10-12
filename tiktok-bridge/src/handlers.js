@@ -239,3 +239,51 @@ export async function handleInventoryChange({ shopId, data }) {
     payload,
   });
 }
+
+/**
+ * Topic 71, inventory changed by shop (2026-09). Complements topic 27.
+ *
+ * 27 says WHEN stock is low or gone. 71 says HOW MANY, after every change, with the
+ * trigger_source (order_created, manual_adjustment, creator_lock, ...). That makes it
+ * the clean source for the overlay's "remaining" number and for telling an oversell
+ * from a seller who simply restocked mid-break.
+ *
+ * Emitted as `inventory_change` (additive, overlays ignore unknown types).
+ * `remaining` is in_shop_quantity: available stock NOT locked by a campaign or creator.
+ */
+export async function handleInventoryDelta({ shopId, data }) {
+  const auth = await getShopAuthByShopId(shopId);
+  if (!auth || auth.status !== "active") return;
+  if (!(await isTikTokProvisioned(auth.bridge_key))) return;
+
+  const ctx = await getClientContext(auth.bridge_key);
+  const snap = data?.quantity_snapshot_after_change ?? {};
+  const detail = Array.isArray(data?.change_detail) ? data.change_detail : [];
+
+  const payload = {
+    type: "inventory_change",
+    v: 3,
+    platform: "tiktok",
+    ts: Date.now(),
+    eventId: data?.event_id ?? null,
+    productId: data?.product_id != null ? String(data.product_id) : null,
+    skuId: data?.sku_id != null ? String(data.sku_id) : null,
+    remaining: Number(snap?.in_shop_quantity ?? 0),
+    available: Number(snap?.total_available_quantity ?? 0),
+    committed: Number(snap?.total_committed_quantity ?? 0),
+    campaignLocked: Number(snap?.campaign_locked_quantity ?? 0),
+    creatorLocked: Number(snap?.creator_locked_quantity ?? 0),
+    sources: detail.map((d) => d?.trigger_source).filter(Boolean),
+    overlay_id: ctx.overlayId,
+    channel: "main",
+  };
+
+  broadcast(auth.bridge_key, payload, "main");
+  await recordEvent({
+    bridgeKey: auth.bridge_key,
+    clientName: ctx.clientName,
+    channel: "main",
+    eventType: "inventory_change",
+    payload,
+  });
+}

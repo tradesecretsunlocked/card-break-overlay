@@ -6,7 +6,7 @@ import { log } from "./src/log.js";
 import { authRouter } from "./src/auth.js";
 import { webhookRouter } from "./src/webhook.js";
 import { addClient, clientCount, connectedKeys } from "./src/sse.js";
-import { isActiveBridgeKey, isTikTokProvisioned, getShopAuthByBridgeKey, db } from "./src/store.js";
+import { isActiveBridgeKey, isTikTokProvisioned, getShopAuthByBridgeKey, getCreatorAuthByBridgeKey, db } from "./src/store.js";
 import { startWorkers, reconcileAll } from "./src/poller.js";
 import { ensureFreshToken, listWebhooks, putWebhook } from "./src/tiktokClient.js";
 import { inferCodeFromTitle, stripPrefixTitle, isBadTitle } from "./src/teamCodes.js";
@@ -127,7 +127,15 @@ app.post("/admin/webhooks/:bridgeKey", requireAdmin, async (req, res) => {
 
     const fresh = await ensureFreshToken(auth);
     const address = `${PUBLIC_BASE_URL}/tiktok/webhook`;
-    const topics = ["ORDER_STATUS_CHANGE", "SELLER_DEAUTHORIZATION", "UPCOMING_AUTHORIZATION_EXPIRATION"];
+    // Default set is the three the bridge depends on. Optional body {topics:[...]} lets
+    // an admin try more. The Update Shop Webhook enum omits the inventory topics (27,
+    // 68, 71), so subscribe those in Partner Center Console (App & Service > app >
+    // Basic Information > Developing > Event subscriptions). Per TikTok's Configuration
+    // guide the API and the Console edit the SAME subscription config, so they are not
+    // exclusive, but keep one source of truth per topic. Verify with /admin/webhook-health.
+    const DEFAULT_TOPICS = ["ORDER_STATUS_CHANGE", "SELLER_DEAUTHORIZATION", "UPCOMING_AUTHORIZATION_EXPIRATION"];
+    const asked = Array.isArray(req.body?.topics) ? req.body.topics.map((t) => String(t).toUpperCase()) : null;
+    const topics = asked?.length ? asked : DEFAULT_TOPICS;
 
     const results = [];
     for (const eventType of topics) {
@@ -150,6 +158,128 @@ app.post("/admin/webhooks/:bridgeKey", requireAdmin, async (req, res) => {
     });
 
     res.json({ address, results, current });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * WEBHOOK HEALTH. Answers "is this seller actually receiving what we need?".
+ * API-registered topics come from Get Shop Webhooks. Console-registered inventory topics
+ * (27, 71) are not listable by API, so they are proven by DELIVERY: counts from the
+ * dedupe ledger over the last 24h. Read only.
+ *
+ *   GET /admin/webhook-health/:bridgeKey
+ */
+app.get("/admin/webhook-health/:bridgeKey", requireAdmin, async (req, res) => {
+  try {
+    const auth = await getShopAuthByBridgeKey(req.params.bridgeKey);
+    if (!auth) return res.status(404).json({ error: "no active authorization" });
+    const fresh = await ensureFreshToken(auth);
+    const current = await listWebhooks({ accessToken: fresh.access_token, shopCipher: fresh.shop_cipher });
+    const registered = new Set((current?.webhooks ?? current ?? []).map?.((w) => w.event_type) ?? []);
+    const wantApi = ["ORDER_STATUS_CHANGE", "SELLER_DEAUTHORIZATION", "UPCOMING_AUTHORIZATION_EXPIRATION"];
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data: rows } = await db
+      .from("tiktok_webhook_log")
+      .select("event_type")
+      .eq("shop_id", auth.shop_id)
+      .gte("received_at", since);
+    const delivered24h = {};
+    for (const r of rows ?? []) delivered24h[r.event_type] = (delivered24h[r.event_type] || 0) + 1;
+    res.json({
+      address_expected: `${PUBLIC_BASE_URL}/tiktok/webhook`,
+      api_topics: wantApi.map((t) => ({ topic: t, registered: registered.has(t) })),
+      console_topics_note: "27 (inventory status) and 71 (inventory by shop) are console-only. A count below proves delivery; zero after a stock change means it is not subscribed.",
+      delivered_last_24h_by_type: delivered24h,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * SELLER ONBOARDING, step 1. Provisions TikTok for an EXISTING TSU client.
+ * Additive and idempotent: upserts one client_platforms row, never deletes, never
+ * touches the client's other platforms. The bridge key must already exist
+ * (created by the provision-client edge function, see docs/SOP-TIKTOK-PROVISIONING.md).
+ *
+ *   POST /admin/provision/:bridgeKey   body: { sport?: "nfl", overlay_id?: "...", notes?: "..." }
+ */
+app.post("/admin/provision/:bridgeKey", requireAdmin, async (req, res) => {
+  try {
+    const bridgeKey = req.params.bridgeKey;
+    if (!(await isActiveBridgeKey(bridgeKey))) {
+      return res.status(404).json({ error: "bridge key not found or inactive, run provision-client first" });
+    }
+    const row = {
+      bridge_key: bridgeKey,
+      platform: "tiktok",
+      entitled: true,
+      enabled: true,
+      updated_at: new Date().toISOString(),
+    };
+    if (req.body?.sport) row.default_sport = String(req.body.sport);
+    if (req.body?.overlay_id) row.overlay_id = String(req.body.overlay_id);
+    if (req.body?.notes) row.notes = String(req.body.notes);
+    const { error } = await db.from("client_platforms").upsert(row, { onConflict: "bridge_key,platform" });
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true, bridge_key: bridgeKey, authorize_url: `${PUBLIC_BASE_URL}/tiktok/authorize?bridge_key=${encodeURIComponent(bridgeKey)}` });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * SELLER ONBOARDING, checklist. One call answers "where is this seller stuck?".
+ * Read only. Never returns tokens.
+ *
+ *   GET /admin/onboarding/:bridgeKey
+ */
+app.get("/admin/onboarding/:bridgeKey", requireAdmin, async (req, res) => {
+  try {
+    const bridgeKey = req.params.bridgeKey;
+    const [active, provisioned, auth] = await Promise.all([
+      isActiveBridgeKey(bridgeKey),
+      isTikTokProvisioned(bridgeKey),
+      getShopAuthByBridgeKey(bridgeKey),
+    ]);
+    const last = async (eventType) => {
+      const { data } = await db
+        .from("bridge_events")
+        .select("occurred_at")
+        .eq("bridge_key", bridgeKey)
+        .eq("event_type", eventType)
+        .order("occurred_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data?.occurred_at ?? null;
+    };
+    const [warmup, sold] = await Promise.all([last("overlay_warmup"), last("team_sold")]);
+
+    const steps = [
+      { step: "1 bridge key exists", done: Boolean(active) },
+      { step: "2 tiktok provisioned (entitled + enabled)", done: Boolean(provisioned) },
+      { step: "3 seller authorized the app", done: auth?.status === "active", detail: auth?.shop_name ?? null },
+      { step: "4 overlay has connected (warmup seen)", done: Boolean(warmup), detail: warmup },
+      { step: "5 first sale reached the board", done: Boolean(sold), detail: sold },
+    ];
+    const creator = await getCreatorAuthByBridgeKey(bridgeKey);
+    const next = steps.find((x) => !x.done);
+    res.json({
+      bridge_key: bridgeKey,
+      steps,
+      next_action: next ? next.step : "complete",
+      authorize_url: provisioned ? `${PUBLIC_BASE_URL}/tiktok/authorize?bridge_key=${encodeURIComponent(bridgeKey)}` : null,
+      auth_status: auth?.status ?? null,
+      // Optional leg, not a blocking step. Only needed for live viewer stats.
+      creator_leg: {
+        connected: creator?.status === "active",
+        authorize_url: provisioned ? `${PUBLIC_BASE_URL}/tiktok/creator/authorize?bridge_key=${encodeURIComponent(bridgeKey)}` : null,
+      },
+      auth_error: auth?.last_error ?? null,
+      access_expires_at: auth?.access_expires_at ?? null,
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

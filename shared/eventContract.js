@@ -1,5 +1,5 @@
 /**
- * TSU BRIDGE EVENT CONTRACT, v2. Single source of truth.
+ * TSU BRIDGE EVENT CONTRACT, v3. Single source of truth.
  *
  * Every emitter validates against this before putting an event on the wire:
  * the Whatnot extension, the Loupe extension, and the TikTok bridge.
@@ -24,7 +24,16 @@
  * self-contained single-file browser sources.
  */
 
-export const CONTRACT_VERSION = 2;
+export const CONTRACT_VERSION = 3;
+
+/**
+ * v3 (2026-10-12): adds the OPTIONAL `saleFormat` field. Additive only, nothing renamed.
+ *   "fixed"   a normal sale
+ *   "auction" a LIVE auction sale (TikTok Shop, 2026)
+ * Absent means "fixed". Overlays ignore it; it exists for analytics. v2 emitters
+ * (the Whatnot and Loupe extensions) remain valid and need no change.
+ */
+export const SALE_FORMATS = ["fixed", "auction"];
 
 export const PLATFORMS = ["whatnot", "loupe", "tiktok"];
 export const CHANNELS = ["main", "sports"];
@@ -112,9 +121,14 @@ export function validateSaleEvent(payload, { platform, strict = false } = {}) {
   }
   if (p.platform && !PLATFORMS.includes(p.platform)) errors.push(`unknown platform field "${p.platform}"`);
 
+  // ---- v3 additions ------------------------------------------------------
+  if (p.saleFormat !== undefined && !SALE_FORMATS.includes(p.saleFormat)) {
+    errors.push(`saleFormat must be one of ${SALE_FORMATS.join(", ")} (got "${p.saleFormat}")`);
+  }
+
   // ---- v2 additions ------------------------------------------------------
   // Warnings not errors: v1 emitters are still in the field and must keep working.
-  if (p.v === undefined) warnings.push("v missing, add v:2 so old shapes stay measurable");
+  if (p.v === undefined) warnings.push("v missing, add v so old shapes stay measurable");
   if (p.platform === undefined) warnings.push("platform missing, liveId is ambiguous without it");
 
   const failing = strict ? errors.concat(warnings) : errors;

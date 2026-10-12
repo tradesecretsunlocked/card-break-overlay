@@ -3,7 +3,7 @@ import { APP_KEY, APP_SECRET } from "./config.js";
 import { verifyWebhookSignature } from "./sign.js";
 import { log } from "./log.js";
 import { claimNotification, getShopAuthByShopId, markAuthRevoked } from "./store.js";
-import { handleOrderStatusChange, handleInventoryChange } from "./handlers.js";
+import { handleOrderStatusChange, handleInventoryChange, handleInventoryDelta } from "./handlers.js";
 
 export const webhookRouter = express.Router();
 
@@ -19,6 +19,8 @@ export const TOPIC = {
   UPCOMING_AUTHORIZATION_EXPIRATION: 7,
   SHOPPABLE_CONTENT_POSTING: 17,
   INVENTORY_STATUS_CHANGE: 27,
+  INVENTORY_CHANGED_SELLER: 68, // seller level (seller_id, no shop_id). Logged only.
+  INVENTORY_CHANGED_SHOP: 71, // shop level, carries shop_id. Drives the remaining count.
   COMBINED_LISTING_CHANGE: 42,
 };
 
@@ -47,8 +49,9 @@ webhookRouter.post("/", (req, res) => {
   });
 
   if (!ok) {
-    // The signature is the ONLY authentication on this endpoint. TikTok publishes no
-    // source IP range, so a bad signature is the whole defence.
+    // The signature is the primary authentication on this endpoint. TikTok now also
+    // publishes its egress IP ranges (Dev Guide, 2026-10), so an optional network
+    // allowlist at the edge is possible as a second layer, but never a replacement.
     log.warn("rejected webhook with invalid signature");
     return res.status(401).end();
   }
@@ -94,6 +97,19 @@ async function processEvent(event) {
 
     case TOPIC.INVENTORY_STATUS_CHANGE:
       await handleInventoryChange({ shopId, data });
+      break;
+
+    case TOPIC.INVENTORY_CHANGED_SHOP:
+      await handleInventoryDelta({ shopId, data });
+      break;
+
+    case TOPIC.INVENTORY_CHANGED_SELLER:
+      // Seller-level twin of 71 with seller_id instead of shop_id. One seller can own
+      // several shops, so mapping it to a bridge key is ambiguous. 71 does the work.
+      log.info("seller level inventory change (not acted on, 71 is authoritative)", {
+        event_id: data?.event_id,
+        sku_id: data?.sku_id,
+      });
       break;
 
     case TOPIC.SELLER_DEAUTHORIZATION: {

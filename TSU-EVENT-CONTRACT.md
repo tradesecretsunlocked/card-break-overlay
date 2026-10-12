@@ -61,6 +61,10 @@ One client emitted without `teamCode` and `buyerName` for months, 28 percent of 
 
 Both are **warnings, not errors**, in the validator. v1 emitters are still in the field and must keep working.
 
+### v3 addition (2026-10-12)
+
+`saleFormat` (optional): `"fixed"` or `"auction"`. Absent means `"fixed"`. Emitted by the TikTok bridge for LIVE auction orders. Overlays ignore it. Additive, so v2 emitters stay valid. The validator rejects any other value.
+
 ### Legacy mirrors, emitted but never read
 
 | Mirror | Mirrors | 

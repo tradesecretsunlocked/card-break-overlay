@@ -1,8 +1,8 @@
 import express from "express";
-import { AUTHORIZE_BASE, SERVICE_ID, PUBLIC_BASE_URL } from "./config.js";
+import { AUTHORIZE_BASE, CREATOR_AUTHORIZE_BASE, APP_KEY, SERVICE_ID, PUBLIC_BASE_URL } from "./config.js";
 import { makeState } from "./sign.js";
 import { exchangeAuthCode, getAuthorizedShops } from "./tiktokClient.js";
-import { putOAuthState, consumeOAuthState, saveShopAuth, isActiveBridgeKey } from "./store.js";
+import { putOAuthState, consumeOAuthStateRow, saveShopAuth, saveCreatorAuth, isActiveBridgeKey, isTikTokProvisioned } from "./store.js";
 import { log } from "./log.js";
 
 export const authRouter = express.Router();
@@ -33,6 +33,28 @@ authRouter.get("/authorize", async (req, res) => {
 });
 
 /**
+ * CREATOR LEG (optional, needed only for live viewer stats via live_rooms/*).
+ * Different endpoint and parameter from the seller link: app_key, not service_id, and
+ * `state` is REQUIRED. The creator token is a different credential from the seller
+ * token and is stored separately. Both legs return to the same Redirect URL, so the
+ * callback tells them apart by the `kind` recorded with the state.
+ * Creator capability may be beta/allowlist: expect it to be refused until TikTok
+ * enables it for the app.
+ */
+authRouter.get("/creator/authorize", async (req, res) => {
+  const bridgeKey = String(req.query.bridge_key || "").trim();
+  if (!bridgeKey) return res.status(400).json({ error: "bridge_key is required" });
+  if (!(await isActiveBridgeKey(bridgeKey)) || !(await isTikTokProvisioned(bridgeKey))) {
+    return res.status(403).json({ error: "unknown, inactive or not TikTok provisioned" });
+  }
+  const state = makeState();
+  await putOAuthState(state, bridgeKey, "creator");
+  const url = `${CREATOR_AUTHORIZE_BASE}?${new URLSearchParams({ app_key: APP_KEY, state })}`;
+  log.info("starting tiktok creator authorization", { bridge_key: bridgeKey });
+  res.redirect(url);
+});
+
+/**
  * Step 2. TikTok redirects back with ?code=&state=.
  *
  * This URL must match the Redirect URL configured in Partner Center exactly.
@@ -47,7 +69,8 @@ authRouter.get("/callback", async (req, res) => {
     return res.status(400).send(renderPage("Authorization failed", "Missing code or state in the callback."));
   }
 
-  const bridgeKey = await consumeOAuthState(state);
+  const stateRow = await consumeOAuthStateRow(state);
+  const bridgeKey = stateRow?.bridge_key;
   if (!bridgeKey) {
     log.warn("rejected callback with unknown, used, or expired state");
     return res.status(400).send(renderPage("Authorization failed", "This link has already been used or has expired. Please start again."));
@@ -55,6 +78,26 @@ authRouter.get("/callback", async (req, res) => {
 
   try {
     const tokens = await exchangeAuthCode(authCode);
+
+    if (stateRow.kind === "creator") {
+      await saveCreatorAuth({
+        bridge_key: bridgeKey,
+        open_id: tokens.open_id ?? null,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        access_expires_at: new Date(tokens.access_token_expire_in * 1000).toISOString(),
+        refresh_expires_at: tokens.refresh_token_expire_in
+          ? new Date(tokens.refresh_token_expire_in * 1000).toISOString()
+          : null,
+        granted_scopes: tokens.granted_scopes ?? null,
+        user_type: tokens.user_type ?? null,
+        status: "active",
+        last_refresh_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+      log.info("tiktok creator authorized", { bridge_key: bridgeKey });
+      return res.send(renderPage("Creator account connected", "Your TikTok creator account is connected for live stats. You can close this window."));
+    }
 
     // Every business call needs shop_cipher. Fetching it here means the rest of the
     // service never has to think about it. A missing cipher is error 106013.

@@ -94,16 +94,26 @@ export async function markAuthRevoked(shopId, reason) {
 /* OAuth state, single use                                             */
 /* ------------------------------------------------------------------ */
 
-export async function putOAuthState(state, bridgeKey) {
-  const { error } = await db.from("tiktok_oauth_state").insert({ state, bridge_key: bridgeKey });
+export async function putOAuthState(state, bridgeKey, kind = "seller") {
+  // `kind` is only sent for the creator leg, so seller flows keep working even before
+  // migration-002 has added the column.
+  const row = { state, bridge_key: bridgeKey };
+  if (kind !== "seller") row.kind = kind;
+  const { error } = await db.from("tiktok_oauth_state").insert(row);
   if (error) throw new Error(`putOAuthState: ${error.message}`);
 }
 
 /** Consumes the state. Returns the bridge_key, or null when unknown, used, or expired. */
 export async function consumeOAuthState(state) {
+  const r = await consumeOAuthStateRow(state);
+  return r ? r.bridge_key : null;
+}
+
+/** Same as consumeOAuthState but returns { bridge_key, kind } ("seller" | "creator"). */
+export async function consumeOAuthStateRow(state) {
   const { data, error } = await db
     .from("tiktok_oauth_state")
-    .select("state, bridge_key, created_at, consumed_at")
+    .select("*")
     .eq("state", state)
     .maybeSingle();
 
@@ -112,7 +122,19 @@ export async function consumeOAuthState(state) {
   if (Date.now() - new Date(data.created_at).getTime() > 30 * 60 * 1000) return null;
 
   await db.from("tiktok_oauth_state").update({ consumed_at: new Date().toISOString() }).eq("state", state);
-  return data.bridge_key;
+  return { bridge_key: data.bridge_key, kind: data.kind || "seller" };
+}
+
+/* Creator leg (migration-002). Tokens are secrets, never logged or returned. */
+export async function saveCreatorAuth(row) {
+  const { error } = await db.from("tiktok_creator_auth").upsert(row, { onConflict: "bridge_key" });
+  if (error) throw new Error(`saveCreatorAuth: ${error.message}`);
+}
+
+export async function getCreatorAuthByBridgeKey(bridgeKey) {
+  const { data, error } = await db.from("tiktok_creator_auth").select("*").eq("bridge_key", bridgeKey).maybeSingle();
+  if (error) return null; // table may not exist before migration-002
+  return data;
 }
 
 /* ------------------------------------------------------------------ */

@@ -14,6 +14,7 @@ export const SERVICE_ID = req("TIKTOK_SERVICE_ID");
 
 export const API_HOST = req("TIKTOK_API_HOST", "https://open-api.tiktokglobalshop.com");
 export const AUTH_HOST = req("TIKTOK_AUTH_HOST", "https://auth.tiktok-shops.com");
+export const CREATOR_AUTHORIZE_BASE = req("TIKTOK_CREATOR_AUTHORIZE_BASE", "https://shop.tiktok.com/alliance/creator/auth");
 export const AUTHORIZE_BASE = req("TIKTOK_AUTHORIZE_BASE", "https://services.us.tiktokshop.com/open/authorize");
 export const PUBLIC_BASE_URL = req("PUBLIC_BASE_URL", `http://localhost:${PORT}`);
 
@@ -50,8 +51,8 @@ export const V = {
   externalOrders: "202406", // POST /order/{v}/orders/external_orders
   webhooks: "202309", // GET|PUT|DELETE /event/{v}/webhooks
   liveRooms: "202502", // GET /analytics/{v}/live_rooms/{room}/...  CREATOR token (user_type=1)
-  shopLives: "202509", // GET /analytics/{v}/shop_lives/...
-  blindBox: "202511", // POST /order/{v}/orders/blind_box_result/callback
+  shopLives: "202609", // GET /analytics/{v}/shop_lives/...
+  blindBox: "202605", // POST /order/{v}/orders/blind_box_result/callback
   productSearch: "202502", // POST /product/{v}/products/search
 };
 
@@ -59,7 +60,7 @@ export const V = {
 export const V_CANDIDATES = {
   liveRooms: ["202502", "202309"], // RESOLVED to 202502, see the note above
   blindBox: ["202605", "202511"],
-  shopLives: ["202509", "202508", "202505"],
+  shopLives: ["202609", "202509", "202508", "202505"],
   orderDetail: ["202507", "202309"],
 };
 

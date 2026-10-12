@@ -1,15 +1,22 @@
 import { inferCodeFromTitle, stripPrefixTitle, isBadTitle } from "./teamCodes.js";
+import { withMirrors, validateSaleEvent, SALE_ID_PREFIX } from "./eventContract.js";
 
 /**
  * TikTok order  ->  TSU `team_sold` event.
  *
  * THE WHOLE POINT OF THIS FILE: an existing overlay must render a TikTok sale without
- * being modified. So the output shape here is copied field for field from a real
- * production Whatnot event read out of bridge_events on 2026-08-16:
+ * being modified. So the output shape here is the Whatnot production shape read out of
+ * bridge_events on 2026-08-16, PLUS the additive contract v2 fields (`v`, `platform`)
+ * and the additive TikTok field `saleFormat`. Nothing was removed or renamed.
  *
  *   { id, ts, code, type:"team_sold", buyer, sport, title, amount, liveId, saleId,
  *     channel:"main", currency, teamCode, buyerName, listingId, productId,
- *     overlay_id, amountCents }
+ *     overlay_id, amountCents, v:3, platform:"tiktok", saleFormat:"fixed"|"auction" }
+ *
+ * Every payload is built from canonical fields, passed through withMirrors() so the
+ * legacy mirrors are filled by the SAME function every platform uses, then validated
+ * against shared/eventContract.js. src/eventContract.js is a byte copy (a test fails
+ * if it drifts). An invalid payload is dropped and REPORTED, never emitted.
  *
  * Two TikTok specifics that shape the mapping:
  *
@@ -56,6 +63,17 @@ export function toCents(amount) {
 }
 
 /**
+ * LIVE auctions (2026) arrive as ordinary orders with order_type AUCTION. The board and
+ * overlay treat them identically; `saleFormat` is additive context for analytics only.
+ * UNVERIFIED against a real auction order (Dev Shop may not be auction eligible), so
+ * anything that is not clearly an auction is reported as "fixed".
+ */
+export function detectSaleFormat(order) {
+  const t = String(order?.order_type || order?.selling_format || "").toUpperCase();
+  return t === "AUCTION" ? "auction" : "fixed";
+}
+
+/**
  * Builds the sold and unsold events for one TikTok order.
  * Returns [] when the order is in a state the board does not care about.
  */
@@ -75,6 +93,7 @@ export function orderToEvents(order, ctx = {}) {
   if (!lineItems.length) return [];
 
   const buyer = order?.buyer_nickname || order?.buyer_user_id || "unknown";
+  const saleFormat = detectSaleFormat(order);
   const events = [];
 
   for (let idx = 0; idx < lineItems.length; idx++) {
@@ -117,31 +136,37 @@ export function orderToEvents(order, ctx = {}) {
     // The index is in the fallback deliberately. Two of the same SKU are two separate
     // line items, so an id-less fallback of order:sku would collide and the second
     // tile would be silently swallowed by the replay guard.
-    const saleId = `tt:${li?.id ?? `${order?.id}:${li?.sku_id}:${idx}`}`;
+    const saleId = `${SALE_ID_PREFIX.tiktok}${li?.id ?? `${order?.id}:${li?.sku_id}:${idx}`}`;
+    const type = lineIsUnsold || isUnsold ? "team_unsold" : "team_sold";
 
-    events.push({
-      eventType: lineIsUnsold || isUnsold ? "team_unsold" : "team_sold",
-      payload: {
-        id: saleId,
+    // Canonical fields only. withMirrors() fills id, teamCode, buyerName, amount, v, platform.
+    const payload = withMirrors(
+      {
+        saleId,
         ts: Date.now(),
         code,
-        type: lineIsUnsold || isUnsold ? "team_unsold" : "team_sold",
+        type,
         buyer,
         sport,
         title,
-        amount: cents / 100,
+        amountCents: cents,
         liveId: li?.room_id || order?.auto_combine_group_id || breakId || null,
-        saleId,
         channel: "main",
         currency: li?.currency || order?.payment?.currency || "USD",
-        teamCode: code,
-        buyerName: buyer,
         listingId: li?.sku_id ?? null,
         productId: li?.product_id ?? null,
         overlay_id: overlayId,
-        amountCents: cents,
+        saleFormat,
       },
-    });
+      "tiktok"
+    );
+
+    const check = validateSaleEvent(payload, { platform: "tiktok" });
+    if (!check.ok) {
+      drop("contract_violation", { ...dropContext, title, errors: check.errors });
+      continue;
+    }
+    events.push({ eventType: type, payload });
   }
 
   return events;
