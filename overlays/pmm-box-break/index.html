@@ -305,8 +305,8 @@
     }
 
     .team img{
-      width:140%;
-      height:120%;
+      width:100%;
+      height:100%;
       /* was cover, which CROPPED wide/tall logos. contain fits the whole badge
          inside the tile with no clipping. */
       object-fit: contain;
@@ -746,6 +746,7 @@
 }
 
 .promo-text{
+  font-family: var(--promoFont, "Arial Black", Arial, sans-serif);
   font-size:26px;
   font-weight:900;
   letter-spacing:2px;
@@ -1944,6 +1945,9 @@
   BRIDGE: "tsu.bridge",
   KEY: "tsu.key",
   PROMOS: "pmmbox.promos",
+  PROMO_SECS: "pmmbox.promoSecs",
+  PROMO_FONT: "pmmbox.promoFont",
+  SCORES_ON: "pmmbox.scoresOn",
   PROMO_ARTS: "pmmbox.promoArts",
   PROMO_TEXT_ON: "pmmbox.promoTextOn",
   PROMO_BG: "pmmbox.promoBg",
@@ -2022,7 +2026,24 @@ function syncTickerSpeedUI(){
 }
 
 let TICKER_LINES = loadTickerLines();
-let SCORE_LINES = [];
+/* 2026-10-14: scores are held PER LEAGUE. The producer posts one "scores" event per sport
+   milliseconds apart; a single shared array let the last league overwrite the others.
+   A league older than 20 minutes drops out so stale finals do not linger. */
+const SCORES_BY_SPORT   = {};
+const SCORES_UPDATED_AT = {};
+const SCORES_ORDER      = ["nfl", "mlb", "nba"];
+function loadScoresOn(){
+  try{ return localStorage.getItem(LS.SCORES_ON) !== "0"; }catch(_){ return true; }
+}
+function saveScoresOn(on){
+  try{ localStorage.setItem(LS.SCORES_ON, on ? "1" : "0"); }catch(_){}
+}
+function isFreshSportScore(sport){
+  return (Date.now() - (SCORES_UPDATED_AT[sport] || 0)) < 1000 * 60 * 20;
+}
+function clearScores(){
+  Object.keys(SCORES_BY_SPORT).forEach(k => { delete SCORES_BY_SPORT[k]; delete SCORES_UPDATED_AT[k]; });
+}
 
 function normalizeTickerArray(arr){
   return (Array.isArray(arr) ? arr : [])
@@ -2037,23 +2058,47 @@ function getCustomTickerText(){
     : DEFAULT_TICKER_LINES.join("   •   ");
 }
 
-function getScoresTickerText(){
-  const lines = normalizeTickerArray(SCORE_LINES);
-  return lines.length ? lines.join("   •   ") : "";
-}
-
+/* Output pattern: [client] . [NFL] . [client] . [MLB] . [client] . [NBA]. The seller's own
+   message is repeated between leagues so it is never buried behind a wall of scores. */
 function buildTickerLine(){
   const customText = getCustomTickerText();
-  const scoresText = getScoresTickerText();
+  if (!loadScoresOn()) return customText;
 
-  return scoresText
-    ? `${customText}   •   LIVE SCORES   •   ${scoresText}`
-    : customText;
+  const keys = Object.keys(SCORES_BY_SPORT);
+  const order = SCORES_ORDER.filter(k => keys.indexOf(k) >= 0)
+    .concat(keys.filter(k => SCORES_ORDER.indexOf(k) < 0));
+  const parts = [];
+  order.forEach(sport => {
+    const txt = String(SCORES_BY_SPORT[sport] || "").trim();
+    if (txt && isFreshSportScore(sport)){
+      parts.push(customText);
+      parts.push(txt);
+    }
+  });
+  return parts.length ? parts.join("   •   ") : customText;
 }
 
-function updateTickerMarquee(){
+let LAST_TICKER_LINE = null;
+let LAST_TICKER_SCROLL = null;
+let tickerCoalesceTimer = null;
+
+/* Score events arrive in bursts (one per league). Coalesce them, and never restart the
+   CSS animation when the composed text did not change: a restart snaps the scroll back to
+   position 0 and cuts the seller's message off partway. */
+function scheduleScoreTickerUpdate(){
+  if (tickerCoalesceTimer) return;
+  tickerCoalesceTimer = setTimeout(() => {
+    tickerCoalesceTimer = null;
+    updateTickerMarquee(true);
+  }, 250);
+}
+
+function updateTickerMarquee(skipIfUnchanged){
   const line = ` ${buildTickerLine()} `;
   const scrollOn = loadTickerScroll();
+  if (skipIfUnchanged === true && line === LAST_TICKER_LINE && scrollOn === LAST_TICKER_SCROLL) return;
+  LAST_TICKER_LINE = line;
+  LAST_TICKER_SCROLL = scrollOn;
 
   document.querySelectorAll(".ticker-track").forEach(track => {
     const copies = track.querySelectorAll(".ticker-copy");
@@ -2092,9 +2137,13 @@ function refreshTickerText(){
   updateTickerMarquee();
 }
 
-function setScoreLines(lines){
-  SCORE_LINES = normalizeTickerArray(lines);
-  updateTickerMarquee();
+function setScoreLinesForSport(sport, lines){
+  const key = String(sport || "all").toLowerCase().trim() || "all";
+  const text = normalizeTickerArray(lines).join("   •   ");
+  if (!text) return;   // an empty payload must not wipe a good bucket
+  SCORES_BY_SPORT[key]   = text;
+  SCORES_UPDATED_AT[key] = Date.now();
+  scheduleScoreTickerUpdate();
 }
 
 
@@ -2328,7 +2377,46 @@ function renderPromoNow(){
   if (el) el.style.opacity = 1;
 }
 
-setInterval(rotatePromo, 5000);
+/* 2026-10-14: seconds per promo message and the promo font are seller controls. Both persist.
+   Installed font stacks only: OBS Chromium has no network access for web fonts. */
+const PROMO_FONTS = {
+  "arial-black": { label: "Arial Black (default)", stack: '"Arial Black", Arial, sans-serif' },
+  "impact":      { label: "Impact",               stack: 'Impact, "Arial Narrow Bold", sans-serif' },
+  "trebuchet":   { label: "Trebuchet MS",         stack: '"Trebuchet MS", Arial, sans-serif' },
+  "verdana":     { label: "Verdana",              stack: 'Verdana, Geneva, sans-serif' },
+  "georgia":     { label: "Georgia",              stack: 'Georgia, "Times New Roman", serif' },
+  "courier":     { label: "Courier New",          stack: '"Courier New", Courier, monospace' },
+  "system":      { label: "System sans",          stack: 'system-ui, "Segoe UI", Arial, sans-serif' }
+};
+const PROMO_SECS_DEFAULT = 5, PROMO_SECS_MIN = 2, PROMO_SECS_MAX = 120;
+function loadPromoSecs(){
+  try{
+    const n = parseInt(localStorage.getItem(LS.PROMO_SECS) || String(PROMO_SECS_DEFAULT), 10);
+    return Number.isFinite(n) ? Math.min(PROMO_SECS_MAX, Math.max(PROMO_SECS_MIN, n)) : PROMO_SECS_DEFAULT;
+  }catch(_){ return PROMO_SECS_DEFAULT; }
+}
+function savePromoSecs(n){
+  const v = Math.min(PROMO_SECS_MAX, Math.max(PROMO_SECS_MIN, parseInt(n, 10) || PROMO_SECS_DEFAULT));
+  try{ localStorage.setItem(LS.PROMO_SECS, String(v)); }catch(_){}
+  return v;
+}
+function loadPromoFont(){
+  try{ const k = localStorage.getItem(LS.PROMO_FONT); return PROMO_FONTS[k] ? k : "arial-black"; }
+  catch(_){ return "arial-black"; }
+}
+function savePromoFont(k){
+  try{ localStorage.setItem(LS.PROMO_FONT, PROMO_FONTS[k] ? k : "arial-black"); }catch(_){}
+}
+function applyPromoFont(){
+  document.documentElement.style.setProperty("--promoFont", PROMO_FONTS[loadPromoFont()].stack);
+}
+let promoTimer = null;
+function startPromoTimer(){
+  if (promoTimer) clearInterval(promoTimer);
+  promoTimer = setInterval(rotatePromo, loadPromoSecs() * 1000);
+}
+startPromoTimer();
+applyPromoFont();
 
   let TITLE_OVERRIDE = loadTitleOverride();
 
@@ -2418,6 +2506,20 @@ function promoStatus(msg){
 }
 
 function syncPromoModalUI(){
+  const secsIn = document.getElementById("promoSecsInput");
+  const fontSel = document.getElementById("promoFontSel");
+  if (secsIn) secsIn.value = String(loadPromoSecs());
+  if (fontSel){
+    if (!fontSel.options.length){
+      Object.keys(PROMO_FONTS).forEach(k => {
+        const o = document.createElement("option");
+        o.value = k; o.textContent = PROMO_FONTS[k].label;
+        o.style.fontFamily = PROMO_FONTS[k].stack;
+        fontSel.appendChild(o);
+      });
+    }
+    fontSel.value = loadPromoFont();
+  }
   const grid   = document.getElementById("promoArtGrid");
   const chk    = document.getElementById("promoTextOnChk");
   const lbl    = document.getElementById("promoTextOnLabel");
@@ -3992,7 +4094,7 @@ function resetAll(){
   pendingBuyers = [];
   if (typeof refreshNextPickChip === 'function') refreshNextPickChip();
   clearOverlayState();
-  SCORE_LINES = [];
+  clearScores();
   document.querySelectorAll(".team").forEach(t => t.classList.remove("sold"));
   updateStats();
   updateSoldList();
@@ -4276,10 +4378,11 @@ function handleSportsEvent(data){
   data.__eventType ||
   ""
 ).toLowerCase();
-  if (type !== "scores") return;
+  if (type !== "scores" && type !== "scores_update") return;
 
   const lines = extractScoreLines(payload);
-  setScoreLines(lines);
+  const sport = String(payload.sport || payload.league || data.sport || data.league || "all").toLowerCase().trim();
+  setScoreLinesForSport(sport, lines);
 }
 
 let sse = null;
@@ -4892,6 +4995,14 @@ if (tickerSpeedSlider){
     updateTickerMarquee();
   });
 }
+const tickerScoresChk = document.getElementById("tickerScoresChk");
+if (tickerScoresChk){
+  tickerScoresChk.checked = loadScoresOn();
+  tickerScoresChk.addEventListener("change", (e) => {
+    saveScoresOn(!!e.target.checked);
+    updateTickerMarquee();
+  });
+}
 const tickerScrollChk = document.getElementById("tickerScrollChk");
 if (tickerScrollChk){
   tickerScrollChk.addEventListener("change", (e) => {
@@ -4903,6 +5014,19 @@ if (tickerScrollChk){
 // 2026-08-30: paint the promo bar once at boot so a saved banner art or replaced
 // background is on screen before the first 5 second rotation tick.
 renderPromoNow();
+(function(){
+  const secsIn = document.getElementById("promoSecsInput");
+  const fontSel = document.getElementById("promoFontSel");
+  if (secsIn) secsIn.addEventListener("change", () => {
+    const v = savePromoSecs(secsIn.value);
+    secsIn.value = String(v);
+    startPromoTimer();
+  });
+  if (fontSel) fontSel.addEventListener("change", () => {
+    savePromoFont(fontSel.value);
+    applyPromoFont();
+  });
+})();
 syncPromoModalUI();
     ["tickerModal","titleModal","breakModal","promoModal","customEntriesModal","chaseModal"].forEach(id => {
       const m = document.getElementById(id);
@@ -4967,6 +5091,11 @@ if (e.target === m){
         <label><input type="checkbox" id="tickerScrollChk" checked> SCROLL THE TICKER</label>
         <span style="font-size:11px; font-weight:700; opacity:0.85;">Uncheck to hold one static message in place.</span>
       </div>
+      <!-- 2026-10-14: live scores ride in the ticker, one league at a time. -->
+      <div class="promo-opt-row">
+        <label><input type="checkbox" id="tickerScoresChk" checked> SHOW LIVE SCORES IN THE TICKER</label>
+        <span style="font-size:11px; font-weight:700; opacity:0.85;">NFL, MLB and NBA games in progress. Nothing shows when no games are live.</span>
+      </div>
     </div>
 
     <div class="ticker-hint">
@@ -5006,6 +5135,12 @@ if (e.target === m){
       <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="triggerPromoBgBrowse()">REPLACE TEXT BANNER BACKGROUND</button>
       <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="resetPromoBg()">RESET BACKGROUND</button>
       <input class="custom-hidden-file" id="promoBgFile" type="file" accept="image/*" onchange="handlePromoBgFile(event)">
+    </div>
+
+    <div class="promo-opt-row">
+      <label>SECONDS PER MESSAGE <input type="number" id="promoSecsInput" min="2" max="120" step="1" style="width:74px; padding:6px 8px; border-radius:8px; border:1px solid rgba(0,229,204,0.6); background:#0b1626; color:#fff; font-weight:900;"></label>
+      <label>FONT <select id="promoFontSel" style="padding:6px 8px; border-radius:8px; border:1px solid rgba(0,229,204,0.6); background:#0b1626; color:#fff; font-weight:900;"></select></label>
+      <span style="font-size:11px; font-weight:700; opacity:0.85;">Both apply as soon as you change them.</span>
     </div>
 
     <div class="promo-status" id="promoStatus"></div>
