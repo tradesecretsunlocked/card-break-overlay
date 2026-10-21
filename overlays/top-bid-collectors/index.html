@@ -2022,6 +2022,8 @@ function syncTickerSpeedUI(){
 }
 
 let TICKER_LINES = loadTickerLines();
+/* LIVE SCORES kill switch (2026-10-21, Mike): off until Hayden decides how he wants scores. Set true to restore. */
+const SCORES_ENABLED = false;
 let SCORE_LINES = [];
 
 function normalizeTickerArray(arr){
@@ -2038,6 +2040,7 @@ function getCustomTickerText(){
 }
 
 function getScoresTickerText(){
+  if (!SCORES_ENABLED) return "";
   const lines = normalizeTickerArray(SCORE_LINES);
   return lines.length ? lines.join("   •   ") : "";
 }
@@ -4389,7 +4392,7 @@ function startSSE(){
   /* Standard sec 11: sales on the main bridge, scores on the scores bridge.
      Right channel + wrong host connects, never errors, never delivers a score. */
   connectSSE(normalizeBridge(BRIDGE_URL));
-  connectScoresSSE(normalizeBridge(SCORES_URL));
+  if (SCORES_ENABLED) connectScoresSSE(normalizeBridge(SCORES_URL));
 }
 
   async function warmupPing(){
