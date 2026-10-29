@@ -31,7 +31,7 @@
       --tileH: var(--tileHTeam);
 
       --gap: 5px;
-      --cols: 16;
+      --cols: 11;
 
       /* TSU brand aliases -> Top Bid Collectors (#000000 / #F8E337).
          These are ALIASES onto this layout family's own accent/background vars.
@@ -307,16 +307,16 @@
     .team img{
       width:100%;
       height:100%;
-      /* was cover, which CROPPED wide/tall logos. contain fits the whole badge
-         inside the tile with no clipping. */
-      object-fit: contain;
-      padding: 3px;
-      border-radius: 4px;
+      /* 2026-10-28 (Hayden): tile art now COVERS the whole spot, edge to edge, no inset.
+         The tile clips it (overflow hidden + radius). Was contain with 3px padding. */
+      object-fit: cover;
+      padding: 0;
+      border-radius: 0;
       transform-origin: 50% 50%;
       will-change: transform;
     }
 
-    .team img.nfl-small{ object-fit: contain; }
+    .team img.nfl-small{ object-fit: cover; }
 
     .team .fallback-code{
       color:#fff;
@@ -1082,14 +1082,14 @@
 /* ===== TICKER ROW MEMBERS (2026-08-29) =====
    The bottom row is MISC | ticker | SPOTS LEFT. Both flanking blocks span 2 tile columns
    and match the ticker's height exactly, so the row reads as one continuous bar. */
-.ticker-row .misc-spot,
+.misc-spot,
 .ticker-row .spots-left-box{
   height: var(--tileH);
   max-height: var(--tileH);
   align-self: stretch;
 }
 
-.ticker-row .misc-spot{
+.misc-spot{
   display:flex;
   align-items:center;
   justify-content:center;
@@ -1111,7 +1111,7 @@
   opacity: 0;
 }
 
-.ticker-row .misc-spot .custom-text{
+.misc-spot .custom-text{
   font-size: clamp(13px, calc(var(--tileH) * 0.30), 22px);
   line-height: 1.05;
   font-weight: 900;
@@ -1129,6 +1129,15 @@
   justify-content:center;
   font-size: clamp(16px, calc(var(--tileH) * 0.46), 30px);
   line-height: 1;
+}
+
+.ticker-row .stat-box.sold-count-box{
+  background: linear-gradient(318deg,#000000 0%,#1d1a06 9%,#6b5f14 21%,#FFF35C 49%,#6b5f14 64%,#1d1a06 88%,#000000 100%) !important;
+  cursor: default;
+}
+.ticker-row .stat-box.sold-count-box #teamsSold,
+.ticker-row .stat-box.sold-count-box .stat-label{
+  text-shadow: 0 1px 3px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9);
 }
 
 .ticker-row .spots-left-box .stat-label{
@@ -1828,7 +1837,6 @@
 <!-- 2026-08-29: the SOLD stat box was removed from the controls row. #teamsSold is kept
      here, permanently hidden, so updateStats() and every other writer keeps working with
      no null checks added. #teamsLeft now lives in the ticker row as SPOTS LEFT. -->
-<div id="teamsSold" hidden style="display:none">0</div>
   <div class="container">
     <!-- HEADER REMOVED 2026-08-29 at client request: the bar, the logo, the title and the
          Break # pill all came out together. setHeader() is kept but is now a no-op guarded
@@ -2879,7 +2887,7 @@ function clearOverlayState(){
   const breakTypes = {
     nfl: {
       name: "NFL",
-      cols: 16,
+      cols: 11,
       layout: "NFL_32",
       teams: [
         // AFC East
@@ -2927,7 +2935,7 @@ function clearOverlayState(){
 
     nba: {
       name: "NBA",
-      cols: 15,
+      cols: 11,
       layout: "NBA_MLB_30",
       teams: [
         { code:'ATL', name:'hawks', image: imgPathNBA('hawks.png') },
@@ -2965,7 +2973,7 @@ function clearOverlayState(){
 
     mlb: {
       name: "MLB",
-      cols: 15,
+      cols: 11,
       layout: "NBA_MLB_30",
       teams: [
         { code:'ARI', name:'diamondbacks', image: imgPathMLB('diamondbacks.png') },
@@ -3006,7 +3014,7 @@ function clearOverlayState(){
   // 2026-08-29: was 10, which put 30 teams on THREE tile rows and made the soccer board
   // 338px tall against 277px for every other sport. 15 gives 2 rows of 15, matching
   // NBA and MLB exactly, so the OBS footprint is the same on every board.
-  cols: 15,
+  cols: 11,
   layout: "SOCCER_20",
   teams: [
     { code:'ATL', name:'atlanta united', image: imgPathSOC('atlutd.png') },
@@ -3046,7 +3054,7 @@ function clearOverlayState(){
 
 custom: {
   name: "CUSTOM",
-  cols: 16,
+  cols: 11,
   layout: "CUSTOM_30",
   teams: []
 }
@@ -3280,8 +3288,9 @@ custom: {
    The row is now: MISC custom spot (2 tile widths) | ticker | SPOTS LEFT (2 tile widths).
    makeTickerRow() is the single builder every layout calls, so the shape stays identical
    across NFL / NBA / MLB / SOCCER / CUSTOM instead of each branch assembling its own. */
-const MISC_SPOT_SPAN = 2;
-const SPOTS_LEFT_SPAN = 2;
+const MISC_SPOT_SPAN = 1;   // 2026-10-29: MISC is now the last tile of the grid (Hayden's 3x11 layout)
+const SPOTS_LEFT_SPAN = 1;   // 2026-10-28 (Hayden): stat tiles shrink to one spot each
+const SOLD_BOX_SPAN = 1;
 
 /* Resolves the badge art for a spot code out of the SPOTS table, which is the single place
    spot artwork is declared. SPOTS is declared further down the script, so this is called at
@@ -3297,7 +3306,7 @@ function spotArtFor(code){
   return code === "MISC" ? (BASE + "images/logos/lh-misc-logo.png") : "";
 }
 
-function makeMiscSpot(){
+function makeMiscSpot(span){
   // Exactly ONE custom spot, defaulting to MISC. If the seller has picked a spot in the
   // SPOTS modal we use its name and code; otherwise this is the plain MISC catch-all.
   let sp = null;
@@ -3324,7 +3333,7 @@ function makeMiscSpot(){
 
   const el = document.createElement("div");
   el.className = "team custom-team misc-spot";
-  el.style.gridColumn = `span ${MISC_SPOT_SPAN}`;
+  el.style.gridColumn = `span ${span || MISC_SPOT_SPAN}`;
   el.dataset.teamCode = code;
   el.dataset.code = code;
 
@@ -3399,15 +3408,64 @@ function toggleMiscSpot(){ setMiscSpotEnabled(!miscSpotEnabled()); }
 window.toggleMiscSpot = toggleMiscSpot;
 window.miscSpotEnabled = miscSpotEnabled;
 
+/* 2026-10-29 (Hayden): ticker row is now SOLD | SPOTS LEFT | ticker, the two stat tiles
+   side by side on the left and the ticker running from the data boxes to the right edge of
+   the grid. MISC left this row and is the last tile of the team grid (appendTileGrid). */
+function makeSoldBox(){
+  const box = document.createElement("div");
+  box.className = "stat-box spots-left-box sold-count-box";
+  box.style.gridColumn = `span ${SOLD_BOX_SPAN}`;
+  const val = document.createElement("div");
+  val.id = "teamsSold";
+  val.textContent = "0";
+  const lab = document.createElement("div");
+  lab.className = "stat-label";
+  lab.textContent = "SOLD";
+  box.appendChild(val); box.appendChild(lab);
+  return box;
+}
+
 function makeTickerRow(totalCols){
   const row = document.createElement("div");
   row.className = "row-grid ticker-row";
-  const showMisc = miscSpotEnabled();
-  const span = Math.max(2, totalCols - (showMisc ? MISC_SPOT_SPAN : 0) - SPOTS_LEFT_SPAN);
-  if (showMisc) row.appendChild(makeMiscSpot());
-  row.appendChild(makeTickerSlot(span));
+  const span = Math.max(2, totalCols - SOLD_BOX_SPAN - SPOTS_LEFT_SPAN);   // 11 - 1 - 1 = 9
+  row.appendChild(makeSoldBox());
   row.appendChild(makeSpotsLeftBox());
+  row.appendChild(makeTickerSlot(span));
   return row;
+}
+
+/* Packs tile elements into rows of `cols` columns. When the MISC spot is on, it takes the
+   remaining cells of the final row (capped at 3 wide) so it sits in the bottom right corner:
+   NFL 32 + MISC = 3 x 11 exactly, NBA/MLB 30 + MISC spans the last 3 cells. */
+function appendTileGrid(container, teams, cols, mk){
+  const n = teams.length;
+  const showMisc = miscSpotEnabled();
+  const rows = Math.max(1, Math.ceil((n + (showMisc ? 1 : 0)) / cols));
+  const cells = teams.map(t => mk(t));
+  if (showMisc){
+    const rem = rows * cols - n;
+    const span = Math.max(1, Math.min(rem, 3));
+    if (rem > span){
+      const sp = document.createElement("div");
+      sp.style.gridColumn = `span ${rem - span}`;
+      cells.push(sp);
+    }
+    cells.push(makeMiscSpot(span));
+  }
+  let row = null, used = 0;
+  cells.forEach(el => {
+    const m = /span (\d+)/.exec(el.style.gridColumn || "");
+    const w = m ? parseInt(m[1], 10) : 1;
+    if (!row || used + w > cols){
+      row = document.createElement("div");
+      row.className = "row-grid";
+      container.appendChild(row);
+      used = 0;
+    }
+    row.appendChild(el);
+    used += w;
+  });
 }
 
 function makeTickerSlot(spanCols){
@@ -3736,28 +3794,13 @@ function buildSpotSelector(){
 
 
     if (config.layout === "NBA_MLB_30"){
-      let idx = 0;
-      const C = config.cols;   // rows always fill the full grid width
-
-      // Logo slot removed — the 2 columns it occupied are now team spots
-      const r1 = document.createElement("div");
-      r1.className = "row-grid";
-      for (let i=0;i<C && idx<teams.length;i++) r1.appendChild(makeTeamDiv(teams[idx++]));
-      wrap.appendChild(r1);
-
-      while (idx < teams.length){
-        const row = document.createElement("div");
-        row.className = "row-grid";
-        for (let i=0;i<C && idx<teams.length;i++) row.appendChild(makeTeamDiv(teams[idx++]));
-        wrap.appendChild(row);
-      }
-
+      const C = config.cols;   // 11 columns; MISC takes the last cells (appendTileGrid)
+      appendTileGrid(wrap, teams, C, makeTeamDiv);
       wrap.appendChild(makeTickerRow(C));
     }
 
 if (config.layout === "CUSTOM_30"){
-  let idx = 0;
-  const C = config.cols;   // rows always fill the full grid width
+  const C = config.cols;
 
   const shell = document.createElement("div");
   shell.className = "custom-board-shell";
@@ -3765,26 +3808,7 @@ if (config.layout === "CUSTOM_30"){
   const tilesScroll = document.createElement("div");
   tilesScroll.className = "custom-tiles-scroll";
 
-  // Logo slot removed — the 2 columns it occupied are now team spots
-  const topRow = document.createElement("div");
-  topRow.className = "row-grid";
-
-  for (let i = 0; i < C; i++){
-    if (teams[idx]) topRow.appendChild(makeCustomTeamDiv(teams[idx++]));
-  }
-
-  tilesScroll.appendChild(topRow);
-
-  while (idx < teams.length){
-    const row = document.createElement("div");
-    row.className = "row-grid";
-
-    for (let i = 0; i < C && idx < teams.length; i++){
-      row.appendChild(makeCustomTeamDiv(teams[idx++]));
-    }
-
-    tilesScroll.appendChild(row);
-  }
+  appendTileGrid(tilesScroll, teams, C, makeCustomTeamDiv);
 
   const tickerRow = makeTickerRow(C);
   tickerRow.classList.add("custom-fixed-ticker");
@@ -3795,16 +3819,8 @@ if (config.layout === "CUSTOM_30"){
 }
 
     if (config.layout === "NFL_32"){
-      let idx = 0;
-      const C = config.cols;   // rows always fill the full grid width (16 = 2 rows of NFL)
-
-      // Client reference layout: team tiles fill whole rows, ticker bar sits under them.
-      while (idx < teams.length){
-        const row = document.createElement("div");
-        row.className = "row-grid";
-        for (let i=0;i<C && idx<teams.length;i++) row.appendChild(makeTeamDiv(teams[idx++]));
-        wrap.appendChild(row);
-      }
+      const C = config.cols;   // 11 = 3 rows of NFL with MISC as the 33rd tile
+      appendTileGrid(wrap, teams, C, makeTeamDiv);
 
       // Custom add-on spots (if any) share the ticker row; empty pool = full-width ticker.
       const spotPool = getSelectedSpotObjs().map(sp => ({ code: sp.code, name: sp.name, image: BASE + "images/logos/" + sp.logo }));
@@ -3813,17 +3829,8 @@ if (config.layout === "CUSTOM_30"){
     }
 
     if (config.layout === "SOCCER_20"){
-      let idx = 0;
-      const C = config.cols;   // rows always fill the full grid width
-
-      // Logo slot removed — the 2 columns it occupied are now team spots
-      while (idx < teams.length){
-        const row = document.createElement("div");
-        row.className = "row-grid";
-        for (let i=0;i<C && idx<teams.length;i++) row.appendChild(makeTeamDiv(teams[idx++]));
-        wrap.appendChild(row);
-      }
-
+      const C = config.cols;
+      appendTileGrid(wrap, teams, C, makeTeamDiv);
       wrap.appendChild(makeTickerRow(C));
     }
 
