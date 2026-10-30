@@ -74,6 +74,23 @@ export function detectSaleFormat(order) {
 }
 
 /**
+ * BOARD WINDOW (added 2026-10-30). The board shows the break in progress. TikTok fires an
+ * order event for EVERY status change (shipped, delivered, completed) and the poller
+ * re-reads anything updated in the last 16 hours, so an order from a show weeks ago can
+ * arrive today and, once its title resolves to a team, light a tile. Only orders created
+ * inside this window may reach the board. Older ones are recorded as revenue only.
+ * A missing create_time is treated as fresh so a real sale is never silently held back.
+ */
+export const DEFAULT_BOARD_WINDOW_MS = 6 * 3600 * 1000;
+
+export function isOutsideBoardWindow(order, now = Date.now(), windowMs = DEFAULT_BOARD_WINDOW_MS) {
+  const t = Number(order?.create_time ?? 0);
+  if (!Number.isFinite(t) || t <= 0) return false;
+  const ms = t < 1e12 ? t * 1000 : t; // TikTok sends unix seconds
+  return now - ms > windowMs;
+}
+
+/**
  * Builds the sold and unsold events for one TikTok order.
  * Returns [] when the order is in a state the board does not care about.
  */

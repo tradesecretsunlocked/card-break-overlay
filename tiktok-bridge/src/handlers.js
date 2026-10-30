@@ -1,5 +1,5 @@
 import { getOrders, ensureFreshToken } from "./tiktokClient.js";
-import { orderToEvents } from "./normalize.js";
+import { orderToEvents, isOutsideBoardWindow } from "./normalize.js";
 import { broadcast } from "./sse.js";
 import { log } from "./log.js";
 import {
@@ -164,6 +164,40 @@ export async function emitOrder(order, auth) {
         channel: "main",
       },
     });
+  }
+
+  // BOARD WINDOW (2026-10-30). An order created outside the window is history, not the
+  // break on screen. Its sale is recorded once as revenue (unmatched_sale, reason
+  // outside_board_window, which v_revenue_all already counts) and NEVER broadcast or written
+  // as team_sold. Old cancellations are ignored so they cannot unmark a current tile.
+  const windowMs = Number(process.env.BOARD_WINDOW_HOURS || 6) * 3600 * 1000;
+  if (events.length && isOutsideBoardWindow(order, Date.now(), windowMs)) {
+    for (const ev of events) {
+      if (ev.eventType !== "team_sold") continue;
+      const p = ev.payload;
+      if (await alreadyEmitted(auth.bridge_key, p.saleId, p.code)) continue;
+      if (await alreadyRecordedUnmatched(auth.bridge_key, p.saleId)) continue;
+      await recordEvent({
+        bridgeKey: auth.bridge_key,
+        clientName: ctx.clientName,
+        channel: "main",
+        eventType: "unmatched_sale",
+        payload: {
+          ...p,
+          type: "unmatched_sale",
+          reason: "outside_board_window",
+          productName: p.title ?? null,
+          normalizedTitle: p.title ?? null,
+          resolvedCode: p.code,
+          code: null,
+          teamCode: null,
+          orderId: order?.id ?? null,
+          orderCreateTime: order?.create_time ?? null,
+          ts: Date.now(),
+        },
+      });
+    }
+    events.length = 0;
   }
 
   if (!events.length) return 0;

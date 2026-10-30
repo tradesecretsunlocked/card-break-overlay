@@ -258,3 +258,21 @@ test("both names Default or empty is unusable_title", () => {
   assert.equal(events.length, 0);
   assert.equal(drops[0].reason, "unusable_title");
 });
+
+
+/* 2026-10-30: old orders must never reach the board */
+import { isOutsideBoardWindow } from "../src/normalize.js";
+test("board window: an order from weeks ago is outside, one from minutes ago is inside", () => {
+  const now = Date.now();
+  assert.equal(isOutsideBoardWindow({ create_time: Math.floor((now - 20 * 86400e3) / 1000) }, now), true);
+  assert.equal(isOutsideBoardWindow({ create_time: Math.floor((now - 5 * 60e3) / 1000) }, now), false);
+});
+test("board window: edges, ms timestamps, and a missing create_time stays fresh", () => {
+  const now = 1_800_000_000_000;
+  const w = 6 * 3600 * 1000;
+  assert.equal(isOutsideBoardWindow({ create_time: (now - w + 1000) / 1000 }, now, w), false);
+  assert.equal(isOutsideBoardWindow({ create_time: (now - w - 1000) / 1000 }, now, w), true);
+  assert.equal(isOutsideBoardWindow({ create_time: now - w - 1000 }, now, w), true); // ms form
+  assert.equal(isOutsideBoardWindow({}, now, w), false);
+  assert.equal(isOutsideBoardWindow({ create_time: "garbage" }, now, w), false);
+});
