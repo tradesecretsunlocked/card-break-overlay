@@ -1563,6 +1563,7 @@
         <button class="btn ghost" style="padding:2px 4px; font-size:14px;" onclick="openPrizeEditor()">🏆 PRIZES</button>
         <button class="btn ghost" style="padding:2px 4px; font-size:14px;" onclick="openChaseModal()">⭐ CHASE</button>
         <button class="btn ghost" style="padding:2px 4px; font-size:14px;" onclick="openCustomEntriesEditor()">✏ SPOTS</button>
+        <button class="btn ghost" id="copySoldBtn" style="padding:2px 4px; font-size:14px;" onclick="openExportModal()" title="Copy buyer / team assignments as tab-delimited text for Sheets or Excel">📋 COPY SOLD</button>
         <button class="btn ghost" id="soldDetachBtn" style="padding:2px 4px; font-size:14px;" onclick="toggleSoldDetach()">⇱ DETACH</button>
       </div>
     </div>
@@ -3558,6 +3559,38 @@ function buildExportTSV(){
   return lines.join("\n");
 }
 
+  function openExportModal(){
+    const modal = document.getElementById("exportModal");
+    const ta = document.getElementById("exportModalText");
+    if (!modal || !ta) return;
+    ta.value = buildExportTSV();
+    modal.classList.add("open");
+    setTimeout(() => { ta.focus(); ta.select(); }, 0);
+  }
+  function closeExportModal(){
+    const modal = document.getElementById("exportModal");
+    if (modal) modal.classList.remove("open");
+  }
+  async function copyExportTSV(){
+    const ta = document.getElementById("exportModalText");
+    const btn = document.getElementById("exportCopyBtn");
+    if (!ta) return;
+    const text = ta.value;
+    let ok = false;
+    try{
+      if (navigator.clipboard && navigator.clipboard.writeText){ await navigator.clipboard.writeText(text); ok = true; }
+    }catch(_){}
+    if (!ok){
+      try{ ta.focus(); ta.select(); ok = document.execCommand("copy"); }catch(_){}
+    }
+    if (btn){
+      const old = btn.textContent;
+      btn.textContent = ok ? "COPIED" : "PRESS CTRL+C";
+      setTimeout(() => { btn.textContent = old; }, 1400);
+    }
+    if (!ok){ ta.focus(); ta.select(); }
+  }
+
 
   /* =========================
      OBS-safe toast
@@ -4060,6 +4093,25 @@ if (e.target === m){
 
     <div class="ticker-hint">
       Tip: Leave blank to revert to the default like <b>NFL BOX BREAK</b>.
+    </div>
+  </div>
+</div>
+
+<!-- ===== Export (Copy Sold) Modal ===== -->
+<div class="modal-backdrop" id="exportModal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Copy Sold List">
+    <div class="modal-head">
+      <div class="modal-title">Copy Sold List</div>
+      <div class="modal-actions">
+        <button class="btn secondary" id="exportCopyBtn" style="padding:8px 10px; font-size:12px;" onclick="copyExportTSV()">COPY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeExportModal()">CLOSE</button>
+      </div>
+    </div>
+    <div class="ticker-editor">
+      <textarea id="exportModalText" readonly spellcheck="false" wrap="off" style="min-height:220px; white-space:pre; font-family:monospace;"></textarea>
+    </div>
+    <div class="ticker-hint" id="exportHint">
+      Tab-delimited: <b>Spot, Buyer, Break #, Date</b>. Click COPY, then paste into cell A1 in Sheets or Excel and each value lands in its own column. If COPY is blocked here, click inside the box, press Ctrl+A then Ctrl+C.
     </div>
   </div>
 </div>
