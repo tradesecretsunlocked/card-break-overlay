@@ -212,6 +212,25 @@ export async function alreadyEmitted(bridgeKey, saleId, code) {
   return (data?.length ?? 0) > 0;
 }
 
+/**
+ * True when an `unmatched_sale` row already exists for this line item. Unmatched rows have
+ * no code, so alreadyEmitted() is not enough for them and the drop branch used to write a
+ * new row on every webhook and poll. A fail-open lookup error returns false, same as
+ * alreadyEmitted(): a duplicate row is better than a lost revenue record.
+ */
+export async function alreadyRecordedUnmatched(bridgeKey, saleId) {
+  const { data, error } = await db
+    .from("bridge_events")
+    .select("id")
+    .eq("bridge_key", bridgeKey)
+    .eq("platform", "tiktok")
+    .eq("event_type", "unmatched_sale")
+    .eq("payload->>saleId", saleId)
+    .limit(1);
+  if (error) return false;
+  return (data?.length ?? 0) > 0;
+}
+
 /* ------------------------------------------------------------------ */
 /* Live sessions                                                       */
 /* ------------------------------------------------------------------ */

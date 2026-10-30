@@ -102,13 +102,44 @@ export function orderToEvents(order, ctx = {}) {
     const liStatus = normalizeStatus(li?.display_status || status);
     const lineIsUnsold = UNSOLD_STATUSES.has(liStatus);
 
-    const rawTitle = li?.sku_name || li?.product_name || "";
+    // TITLE SOURCE (fixed 2026-10-30). A TikTok line item has TWO names: `sku_name` (the
+    // variant, which is the literal string "Default" on every single-variant listing) and
+    // `product_name` (the listing title, e.g. "Minnesota Vikings"). The old code took
+    // `sku_name || product_name`, and "Default" is truthy, so the real title was never
+    // read and every sale from a single-variant listing was dropped as no_matching_tile.
+    // Now each candidate is tried in order (variant first, so sellers who put the team in
+    // the variant keep working) and the first one that resolves to a board tile wins.
+    // "Default" is never a usable name.
+    const candidates = [li?.sku_name, li?.product_name]
+      .map((s) => String(s ?? "").trim())
+      .filter((s) => s && s.toLowerCase() !== "default" && !isBadTitle(s));
+    let rawTitle = "";
+    let resolvedTitle = "";
+    let resolvedCode = "";
+    for (const cand of candidates) {
+      const t = stripPrefixTitle(cand);
+      const c = inferCodeFromTitle(t, sport);
+      if (c) {
+        rawTitle = cand;
+        resolvedTitle = t;
+        resolvedCode = c;
+        break;
+      }
+    }
+    if (!resolvedCode) {
+      // Nothing resolved: keep the best human-readable name so the unmatched report shows
+      // what the seller actually called the product instead of "Default".
+      rawTitle = candidates[0] || String(li?.product_name ?? li?.sku_name ?? "").trim();
+    }
     const cents = toCents(li?.sale_price ?? li?.original_price);
     // Money travels with the drop report. A sale that cannot light a tile is still
     // REAL REVENUE and must remain countable, so the caller gets everything it needs
     // to record it for reporting even though nothing goes to the board.
     const dropContext = {
       rawTitle,
+      // Both raw names, so an unmatched report always shows what TikTok actually sent.
+      skuName: li?.sku_name ?? null,
+      listingTitle: li?.product_name ?? null,
       lineItemId: li?.id ?? null,
       skuId: li?.sku_id ?? null,
       productId: li?.product_id ?? null,
@@ -124,8 +155,8 @@ export function orderToEvents(order, ctx = {}) {
       continue;
     }
 
-    const title = stripPrefixTitle(rawTitle);
-    const code = inferCodeFromTitle(title, sport);
+    const title = resolvedTitle || stripPrefixTitle(rawTitle);
+    const code = resolvedCode;
     // No resolvable code means the board has no tile to light. Emitting anyway would
     // put an untargeted event on the wire, so it is dropped and REPORTED.
     if (!code) {

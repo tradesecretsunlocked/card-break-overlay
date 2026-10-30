@@ -7,6 +7,7 @@ import {
   isTikTokProvisioned,
   recordEvent,
   alreadyEmitted,
+  alreadyRecordedUnmatched,
   upsertLiveSession,
   db,
 } from "./store.js";
@@ -124,6 +125,11 @@ export async function emitOrder(order, auth) {
     // reporting side can still count it. A sale TSU cannot draw is still a sale TSU
     // must report. See `v_sales_unmatched` and `v_revenue_all`.
     const saleId = `tt:${d.lineItemId ?? `${order?.id}:${d.skuId}:${d.idx}`}`;
+    // DEDUPE (fixed 2026-10-30). Matched sales already get the alreadyEmitted() guard, but
+    // this branch recorded a fresh row on every webhook and every poll of the same order.
+    // One Coldcollector shop wrote about 131 copies per order (991k rows in 2.5 days).
+    // One unmatched row per line item is enough: the revenue is counted once.
+    if (await alreadyRecordedUnmatched(auth.bridge_key, saleId)) continue;
     await recordEvent({
       bridgeKey: auth.bridge_key,
       clientName: ctx.clientName,
@@ -136,6 +142,8 @@ export async function emitOrder(order, auth) {
         // why it did not reach the board
         reason: d.reason,
         productName: d.rawTitle ?? null,
+        skuName: d.skuName ?? null,
+        listingTitle: d.listingTitle ?? null,
         normalizedTitle: d.title ?? null,
         code: null,
         // the revenue, in the same shape a team_sold uses so reporting can union them

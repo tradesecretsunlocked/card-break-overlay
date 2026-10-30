@@ -221,3 +221,40 @@ test("a saleFormat outside fixed or auction is rejected by the contract", () => 
   const r = validateSaleEvent({ ...e.payload, saleFormat: "bogus" }, { platform: "tiktok" });
   assert.equal(r.ok, false);
 });
+
+/* ---- 2026-10-30: sku_name "Default" must not hide the listing title ---- */
+const dflt = (over = {}) => order({ line_items: [{ id: "li_d", product_id: "p_d", sku_id: "sku_d", sku_name: "Default", product_name: "Minnesota Vikings", sale_price: "5.00", ...over }] });
+
+test("single-variant listing: sku_name Default falls back to product_name", () => {
+  const events = orderToEvents(dflt(), { overlayId: "x", sport: "nfl" });
+  assert.equal(events.length, 1);
+  assert.equal(events[0].payload.code, "MIN");
+  assert.equal(events[0].payload.title, "Minnesota Vikings");
+});
+
+test("nickname-only product_name resolves with Default sku", () => {
+  const events = orderToEvents(dflt({ product_name: "Vikings" }), { overlayId: "x", sport: "nfl" });
+  assert.equal(events[0].payload.code, "MIN");
+});
+
+test("variant that names the team still wins over the listing title", () => {
+  const events = orderToEvents(dflt({ sku_name: "Arizona Cardinals", product_name: "Surprise Break Spot" }), { overlayId: "x", sport: "nfl" });
+  assert.equal(events[0].payload.code, "ARI");
+});
+
+test("unresolvable listing reports the real product name, not Default", () => {
+  const drops = [];
+  const events = orderToEvents(dflt({ product_name: "Mystery Repack Box" }), { overlayId: "x", sport: "nfl", onDrop: (reason, d) => drops.push({ reason, ...d }) });
+  assert.equal(events.length, 0);
+  assert.equal(drops[0].reason, "no_matching_tile");
+  assert.equal(drops[0].rawTitle, "Mystery Repack Box");
+  assert.equal(drops[0].skuName, "Default");
+  assert.equal(drops[0].listingTitle, "Mystery Repack Box");
+});
+
+test("both names Default or empty is unusable_title", () => {
+  const drops = [];
+  const events = orderToEvents(dflt({ product_name: "" }), { overlayId: "x", sport: "nfl", onDrop: (reason, d) => drops.push({ reason, ...d }) });
+  assert.equal(events.length, 0);
+  assert.equal(drops[0].reason, "unusable_title");
+});
