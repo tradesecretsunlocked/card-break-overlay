@@ -1191,7 +1191,57 @@
     transform: scale(1.28);
   }
 }
-  </style>
+  
+/* ===== OVERLAY SIZE LOCK + CHARACTER BREAK (2026-11-06) ===== */
+:root{ --boardH: 328px; }
+.teams-wrapper{ height: var(--boardH); }
+.char-ghost{ height: var(--tileH); visibility:hidden; }
+.sold-team-name{ color:#fff; font-weight:900; font-size:14px; letter-spacing:.4px; text-transform:uppercase; white-space:nowrap; padding:0 8px; text-align:left; min-width:0; max-width:230px; overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 4px rgba(0,0,0,.8); }
+.sold-team-name .star{ color:#ffd34d; }
+#soldList.sold-list-hidden{ display:none !important; }
+body.mode-char .sold-team-name{ flex:0 0 auto; max-width:128px; font-size:13px; padding:0 6px; }
+body.mode-char .sold-row{ min-width:0; overflow:hidden; }
+body.mode-char .sold-buyer-input{ flex:1 1 0; width:auto; min-width:56px; font-size:16px; }
+:root{ --tickH: 44px; }
+/* Character layout: the ticker is a slim banner, NOT a tile row, and the board gap comes from row margins only */
+.char-shell{ gap:0; }
+.char-ticker-row .ticker-slot{ height: var(--tickH); }
+.char-ticker-row .ticker-copy{ font-size:20px; }
+/* the logo is anchored to its own row, which now sits one banner lower, so lift it by the banner height to land where it does on every other layout */
+.char-shell .logo-slot img{ top: calc(-70px - var(--tickH) - 6px); }
+.char-tile{ position:relative; }
+.char-tile .char-art{ position:absolute; inset:0; z-index:0; background-size:cover; background-position:center; background-repeat:no-repeat; display:none; }
+.char-tile.has-art .char-art{ display:block; }
+.char-tile .char-shade{ position:absolute; inset:0; z-index:1; display:none; background:linear-gradient(180deg, rgba(0,0,0,0.10) 0%, rgba(0,0,0,0.62) 100%); }
+.char-tile.has-art .char-shade{ display:block; }
+.char-tile .custom-text{ position:relative; z-index:3; }
+.char-tile.sold .char-art{ filter: grayscale(100%) brightness(0.35); }
+.char-tile.sold.has-art .custom-text{ opacity:.55; }
+.stat-single{ display:flex; flex-direction:column; justify-content:center; width:100%; }
+.stat-dual{ display:none; width:100%; align-items:stretch; }
+.sd-cell{ flex:1 1 0; display:flex; flex-direction:column; justify-content:center; min-width:0; }
+.sd-cell + .sd-cell{ border-left:1px solid rgba(255,255,255,0.25); }
+.sd-num{ font-size:22px; font-weight:900; line-height:1.1; }
+.sd-label{ font-size:11px; letter-spacing:.6px; background:rgba(0,0,0,0.35); color:#f9fafb; padding:0 2px; white-space:nowrap; }
+body.mode-char .stat-single{ display:none; }
+body.mode-char .stat-dual{ display:flex; }
+body.mode-char .controls-row{ grid-template-columns: 1fr 600px 1fr; gap: 5px; }
+.char-only{ display:none !important; }
+body.mode-char .char-only{ display:flex !important; }
+body.mode-char .team-only{ display:none !important; }
+.char-two{ display:flex; gap:10px; }
+.char-two > div{ flex:1 1 0; min-width:0; }
+.char-lbl{ color:#fff; font-weight:900; font-size:13px; letter-spacing:.8px; margin:8px 0 4px; text-transform:uppercase; }
+.char-lbl small{ color:rgba(255,255,255,0.65); font-weight:700; margin-left:6px; }
+.char-two textarea, .char-input{ width:100%; min-height:210px; resize:none; padding:10px 12px; border-radius:10px; border:2px solid rgba(255,255,255,0.85); background:rgba(0,0,0,0.35); color:#fff; font-weight:900; outline:none; font-family:Arial,sans-serif; font-size:16px; }
+.char-input{ min-height:0; height:40px; }
+.char-art-rows{ max-height:230px; overflow-y:auto; border:2px solid rgba(255,255,255,0.35); border-radius:10px; padding:6px; background:rgba(0,0,0,0.25); }
+.char-art-row{ display:flex; align-items:center; gap:6px; padding:3px 0; border-bottom:1px solid rgba(255,255,255,0.10); }
+.char-art-row .nm{ flex:0 0 190px; color:#fff; font-weight:900; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-transform:uppercase; }
+.char-art-row .th{ flex:0 0 56px; height:34px; border-radius:5px; border:1px solid rgba(255,255,255,0.5); background:#000 center/cover no-repeat; }
+.char-art-row input{ flex:1 1 auto; min-width:0; height:30px; padding:0 8px; border-radius:6px; border:2px solid rgba(255,255,255,0.6); background:rgba(0,0,0,0.35); color:#fff; font-weight:700; font-size:12px; outline:none; }
+.char-art-row .btn{ padding:3px 8px; font-size:12px; }
+</style>
 </head>
 
 <body>
@@ -1219,8 +1269,11 @@
       <!-- ✅ Remaining (left) | Promo placeholder (middle) | Sold (right) -->
       <div class="controls-row" id="controlsRow">
         <div class="stat-box">
-          <div id="teamsLeft">0</div>
-          <div class="stat-label">REMAINING</div>
+          <div class="stat-single"><div id="teamsLeft">0</div><div class="stat-label">REMAINING</div></div>
+          <div class="stat-dual">
+            <div class="sd-cell"><div class="sd-num" id="cSpotsLeft">0</div><div class="sd-label">SPOTS LEFT</div></div>
+            <div class="sd-cell"><div class="sd-num" id="cChaseLeft">0</div><div class="sd-label">CHASES LEFT</div></div>
+          </div>
         </div>
 
        <div class="promo-box" id="promoFlipSlot">
@@ -1232,8 +1285,11 @@
 </div>
 
         <div class="stat-box" style="cursor:pointer;" onclick="toggleSoldControls()" title="Toggle controls">
-          <div id="teamsSold">0</div>
-          <div class="stat-label">SOLD</div>
+          <div class="stat-single"><div id="teamsSold">0</div><div class="stat-label">SOLD</div></div>
+          <div class="stat-dual">
+            <div class="sd-cell"><div class="sd-num" id="cSpotsSold">0</div><div class="sd-label">SPOTS SOLD</div></div>
+            <div class="sd-cell"><div class="sd-num" id="cChaseSold">0</div><div class="sd-label">CHASES SOLD</div></div>
+          </div>
         </div>
       </div>
     </div>
@@ -1254,8 +1310,10 @@
 
         
 <button class="btn ghost" style="padding:2px 2px; font-size:14px;" onclick="openPromoEditor()">🎁 PROMO</button>
+        <button class="btn ghost" id="soldListToggleBtn" style="padding:2px 2px; font-size:14px;" onclick="toggleSoldListVisible()">👁 SOLD LIST</button>
         <button class="btn ghost" style="padding:2px 2px; font-size:14px;" onclick="copySoldListTSV()">📋 COPY SOLD</button>
-        <button class="btn ghost" style="padding:2px 2px; font-size:14px;" onclick="openChaseModal()">⭐ CHASE</button>
+        <button class="btn ghost team-only" style="padding:2px 2px; font-size:14px;" onclick="openChaseModal()">⭐ CHASE</button>
+        <button class="btn ghost char-only" style="padding:2px 2px; font-size:14px;" onclick="openCharListsEditor()">🎴 LISTS</button>
       </div>
     </div>
 
@@ -1418,12 +1476,18 @@ function updateTickerMarquee(){
 
 function applyTickerMarquee(){
   const line = ` ${buildTickerLine()} `;
+  const pxPerSec = loadTickerSpeed();
+  const key = line + "|" + pxPerSec;
 
   // Restarting the CSS animation snaps the scroll back to position 0, which cut the
   // client's message off partway through every time a score event landed. Only pay
-  // that cost when the rendered text genuinely changed.
-  if (line === LAST_TICKER_LINE) return;
-  LAST_TICKER_LINE = line;
+  // that cost when the rendered text OR the speed genuinely changed...
+  // ...but a rebuilt board has brand-new EMPTY tracks, so the text is unchanged yet nothing is painted.
+  // That was the "ticker blank after switching layouts" bug.
+  const needsPaint = Array.from(document.querySelectorAll(".ticker-track"))
+    .some(tr => { const c = tr.querySelector(".ticker-copy"); return !c || !c.textContent; });
+  if (key === LAST_TICKER_LINE && !needsPaint) return;
+  LAST_TICKER_LINE = key;
 
   document.querySelectorAll(".ticker-track").forEach(track => {
     const copies = track.querySelectorAll(".ticker-copy");
@@ -1433,14 +1497,23 @@ function applyTickerMarquee(){
     copies[1].textContent = line;
 
     requestAnimationFrame(() => {
-      const firstWidth = copies[0].getBoundingClientRect().width;
-      if (!firstWidth) return;
-
-      const pxPerSec = loadTickerSpeed();
-      const duration = Math.max(12, Math.round(firstWidth / pxPerSec));
+      // The old code clamped the duration to a 12s floor, so a short message always crawled at
+      // width/12 px/s and the speed slider did nothing. Repeat the message until one copy is wider
+      // than the slot, then duration = width / speed exactly.
+      const slot = track.parentElement;
+      const slotW = slot ? slot.clientWidth : 0;
+      let w = copies[0].getBoundingClientRect().width;
+      if (!w) return;
+      if (slotW && w < slotW){
+        const reps = Math.ceil((slotW + 1) / w);
+        copies[0].textContent = line.repeat(reps);
+        copies[1].textContent = line.repeat(reps);
+        w = copies[0].getBoundingClientRect().width;
+      }
+      const duration = Math.max(2, w / pxPerSec);
 
       track.style.animation = "none";
-      track.style.setProperty("--tickerShift", `${firstWidth}px`);
+      track.style.setProperty("--tickerShift", `${w}px`);
       track.style.setProperty("--tickerDur", `${duration}s`);
       void track.offsetWidth;
       track.style.animation = `tickerMarquee ${duration}s linear infinite`;
@@ -1595,6 +1668,9 @@ function setHeader(){
   if (currentBreakType === "custom") {
     base = loadCustomTitle() || "CUSTOM ENTRY BOARD";
   }
+  if (currentBreakType === CHAR_KEY) {
+    base = loadCharTitle();
+  }
 
   const title = TITLE_OVERRIDE ? TITLE_OVERRIDE : base;
   document.getElementById("headerText").textContent = title;
@@ -1718,6 +1794,346 @@ function makeCustomTeamDiv(team){
 
   if (soldTeams.has(team.code)) d.classList.add("sold");
   return d;
+}
+
+// ===== CHARACTER BREAK layout (2026-11-06) =====
+// Two lists, same mechanics as the EnergyVault character breaks:
+//   CHASERS  -> shown as tiles, counted as chases sold / left
+//   SPOTS    -> never displayed, used for automation and the spots sold / left counts
+// A sale is matched by the text after the LAST " - " in the Whatnot title (the set-name prefix repeats
+// on every listing and must never match). Codes are derived from the name so editing the lists mid-break
+// never shifts which entry is sold.
+const CHAR_KEY = "charbreak";
+const CHAR_LS = {
+  CHASERS: "breakz4dayz2.charChasers",
+  REGULAR: "breakz4dayz2.charRegular",
+  TITLE:   "breakz4dayz2.charTitle"
+};
+function charLoad(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : v; }catch(_){ return d; } }
+function charSave(k, v){ try{ localStorage.setItem(k, String(v)); return true; }catch(_){ tsuToast("Storage is full. The lists were not saved."); return false; } }
+function loadCharTitle(){ return String(charLoad(CHAR_LS.TITLE, "CHARACTER BREAK") || "CHARACTER BREAK").trim() || "CHARACTER BREAK"; }
+function charKeyOf(label){ return norm(label).toUpperCase().replace(/\s+/g, "_"); }
+
+function parseCharList(raw, prefix, kind){
+  const lines = String(raw || "").replace(/\r/g, "").split("\n").map(s => s.trim()).filter(Boolean);
+  const seen = {};
+  return lines.map((line, idx) => {
+    const aliases = line.split(",").map(x => x.trim()).filter(Boolean);
+    const label = aliases[0] || line;
+    const base = prefix + (charKeyOf(label) || ("X" + (idx + 1)));
+    seen[base] = (seen[base] || 0) + 1;
+    const code = seen[base] > 1 ? base + "#" + seen[base] : base;
+    return { code, name: label, label, aliases, sourceTitle: line, kind };
+  });
+}
+function getCharChasers(){ return parseCharList(charLoad(CHAR_LS.CHASERS, ""), "CH:", "chase"); }
+function getCharRegular(){ return parseCharList(charLoad(CHAR_LS.REGULAR, ""), "RG:", "spot"); }
+function getCharEntries(){ return getCharChasers().concat(getCharRegular()); }
+
+function activeEntries(){
+  if (currentBreakType === "custom") return getCustomEntries();
+  if (currentBreakType === CHAR_KEY) return getCharEntries();
+  return currentTileList();
+}
+
+function charCounts(){
+  const ch = getCharChasers(), rg = getCharRegular();
+  const chSold = ch.filter(e => soldTeams.has(e.code)).length;
+  const rgSold = rg.filter(e => soldTeams.has(e.code)).length;
+  return { chTotal: ch.length, chSold, chLeft: ch.length - chSold, rgTotal: rg.length, rgSold, rgLeft: rg.length - rgSold };
+}
+
+function extractTrailingLabel(title){
+  const s = String(title || "").trim();
+  const i = s.lastIndexOf(" - ");
+  return i >= 0 ? s.slice(i + 3).trim() : s;
+}
+function matchCharEntry(text){
+  const t = norm(text);
+  if (!t) return "";
+  let best = null, bestScore = 0;
+  getCharEntries().forEach(e => {
+    let sc = 0;
+    (e.aliases && e.aliases.length ? e.aliases : [e.label]).forEach(a => {
+      const na = norm(a);
+      if (!na) return;
+      let s = 0;
+      if (t === na) s = 1000 + na.length;
+      else if (na.length >= 3 && hasWord(t, na)) s = 100 + na.length;
+      else if (t.length >= 3 && hasWord(na, t)) s = 10 + t.length;
+      if (s > sc) sc = s;
+    });
+    if (!sc) return;
+    // best score wins; among equal scores prefer an entry that is still unsold, then list order
+    if (sc > bestScore || (sc === bestScore && best && soldTeams.has(best.code) && !soldTeams.has(e.code))){
+      best = e; bestScore = sc;
+    }
+  });
+  return best ? best.code : "";
+}
+function inferCharCode(title){
+  const s = String(title || "").trim();
+  return matchCharEntry(extractTrailingLabel(s)) || null;
+}
+function charResolveFromPayload(payload){
+  const cands = [payload.rawTitle, payload.title, payload.itemTitle, payload.listingTitle];
+  for (const c of cands){
+    const s = String(c || "").trim();
+    if (!s) continue;
+    const hit = matchCharEntry(extractTrailingLabel(s));
+    if (hit) return hit;
+  }
+  return "";
+}
+
+// ---- layout ----
+function makeCharTile(team){
+  const d = document.createElement("div");
+  d.className = "team custom-team char-tile";
+  d.dataset.teamCode = String(team.code || "");
+  d.dataset.artKey = "tile:" + charKeyOf(team.label);
+  d.onclick = () => toggleTeam(team.code);
+
+  const art = document.createElement("div"); art.className = "char-art"; d.appendChild(art);
+  const shade = document.createElement("div"); shade.className = "char-shade"; d.appendChild(shade);
+
+  const txt = document.createElement("div");
+  txt.className = "custom-text";
+  txt.textContent = team.label;
+  // size by the longest word so a name wraps at spaces and never splits mid-word (tile is about 127px wide)
+  const longest = Math.max(3, ...String(team.label).split(/\s+/).map(w => w.length));
+  const lines = String(team.label).split(/\s+/).length;
+  txt.style.fontSize = Math.max(11, Math.min(26, Math.floor(108 / (longest * 0.84)), lines > 2 ? 15 : 26)) + "px";
+  txt.style.overflowWrap = "normal";
+  txt.style.wordBreak = "normal";
+  d.appendChild(txt);
+
+  if (soldTeams.has(team.code)) d.classList.add("sold");
+  paintCharArt(d);
+  return d;
+}
+function buildCharLayout(wrap){
+  const chasers = getCharChasers();
+  const shell = document.createElement("div");
+  shell.className = "custom-board-shell char-shell";
+  const scroll = document.createElement("div");
+  scroll.className = "custom-tiles-scroll char-tiles";
+
+  // Ticker sits first, directly under the header. The logo row comes next and the logo overhangs
+  // the ticker, so the text scrolls behind it.
+  const tickerRow = document.createElement("div");
+  tickerRow.className = "row-grid custom-fixed-ticker char-ticker-row";
+  tickerRow.appendChild(makeTickerSlot(8));
+
+  let idx = 0;
+  const top = document.createElement("div");
+  top.className = "row-grid row-logo";
+  const addTop = () => {
+    if (chasers[idx]) top.appendChild(makeCharTile(chasers[idx++]));
+    else { const g = document.createElement("div"); g.className = "char-ghost"; top.appendChild(g); }
+  };
+  for (let i = 0; i < 3; i++) addTop();
+  top.appendChild(makeLogoSlot(2));
+  for (let i = 0; i < 3; i++) addTop();
+
+  while (idx < chasers.length){
+    const row = document.createElement("div");
+    row.className = "row-grid";
+    const n = Math.min(8, chasers.length - idx);
+    if (n < 8){
+      row.style.gridTemplateColumns = "repeat(" + n + ", calc((100% - 7 * var(--gap)) / 8))";
+      row.style.justifyContent = "center";
+    }
+    for (let i = 0; i < n; i++) row.appendChild(makeCharTile(chasers[idx++]));
+    scroll.appendChild(row);
+  }
+
+  shell.appendChild(tickerRow);
+  shell.appendChild(top);
+  shell.appendChild(scroll);
+  wrap.appendChild(shell);
+}
+
+// Every layout ends at the same pixel: the board is a fixed --boardH and the tile height flexes to fill it.
+// A scrolling board (character / legacy custom) only scrolls when tiles would drop below 47px.
+function lockBoardHeight(wrap){
+  const INNER = 320, GAP = 6;
+  const scrollEl = wrap.querySelector(".custom-tiles-scroll");
+  const isChar = !!wrap.querySelector(".char-ticker-row");
+  const banner = isChar ? 44 + GAP : 0;                       // slim ticker banner above the tiles (char layout only)
+  const rows = Math.max(1, wrap.querySelectorAll(".row-grid").length - (isChar ? 1 : 0));
+  let h = Math.floor((INNER - banner - GAP * rows) / rows);
+  if (scrollEl){
+    if (h >= 47){
+      scrollEl.style.maxHeight = "none";
+      scrollEl.style.overflow = "visible";
+      scrollEl.style.paddingRight = "0";
+    } else {
+      h = 50;
+      const fixedRows = isChar ? 1 : 1;                        // char: the logo row; legacy custom: its bottom ticker
+      scrollEl.style.maxHeight = (INNER - banner - fixedRows * (h + GAP) - GAP) + "px";
+      scrollEl.style.overflowY = "auto";
+      scrollEl.style.overflowX = "hidden";
+      scrollEl.style.paddingRight = "4px";
+    }
+  }
+  h = Math.max(40, Math.min(80, h));
+  document.documentElement.style.setProperty("--tileH", h + "px");
+}
+
+// ---- tile art (IndexedDB: localStorage caps at about 5 MB per origin and cannot be raised) ----
+const ART_DB_NAME = "breakz4dayz2-art-v1", ART_STORE = "art";
+let ART_CACHE = {};
+let ART_DBP = null;
+function artDB(){
+  if (ART_DBP) return ART_DBP;
+  ART_DBP = new Promise((res, rej) => {
+    try{
+      const r = indexedDB.open(ART_DB_NAME, 1);
+      r.onupgradeneeded = () => r.result.createObjectStore(ART_STORE);
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    }catch(e){ rej(e); }
+  });
+  return ART_DBP;
+}
+async function artLoadAll(){
+  try{
+    const db = await artDB();
+    await new Promise(done => {
+      const rq = db.transaction(ART_STORE, "readonly").objectStore(ART_STORE).openCursor();
+      rq.onsuccess = () => { const c = rq.result; if (c){ ART_CACHE[c.key] = c.value; c.continue(); } else done(); };
+      rq.onerror = () => done();
+    });
+  }catch(_){}
+  applyCharArt();
+}
+async function artPut(k, v){
+  ART_CACHE[k] = v;
+  try{
+    const db = await artDB();
+    await new Promise((res, rej) => { const tx = db.transaction(ART_STORE, "readwrite"); tx.objectStore(ART_STORE).put(v, k); tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+    return true;
+  }catch(_){ tsuToast("Art could not be saved here. It lasts until this page reloads."); return false; }
+}
+async function artDel(k){
+  delete ART_CACHE[k];
+  try{
+    const db = await artDB();
+    await new Promise(res => { const tx = db.transaction(ART_STORE, "readwrite"); tx.objectStore(ART_STORE).delete(k); tx.oncomplete = res; tx.onerror = res; });
+  }catch(_){}
+}
+async function artClearAll(){
+  ART_CACHE = {};
+  try{
+    const db = await artDB();
+    await new Promise(res => { const tx = db.transaction(ART_STORE, "readwrite"); tx.objectStore(ART_STORE).clear(); tx.oncomplete = res; tx.onerror = res; });
+  }catch(_){}
+}
+function charArtFor(team){
+  if (!team || !team.kind) return "";
+  return ART_CACHE["tile:" + charKeyOf(team.label)] || ART_CACHE["default"] || "";
+}
+function paintCharArt(d){
+  const src = ART_CACHE[d.dataset.artKey] || ART_CACHE["default"] || "";
+  const art = d.querySelector(".char-art");
+  if (!art) return;
+  if (src){ art.style.backgroundImage = 'url("' + String(src).replace(/"/g, "%22") + '")'; d.classList.add("has-art"); }
+  else { art.style.backgroundImage = ""; d.classList.remove("has-art"); }
+}
+function applyCharArt(){ document.querySelectorAll(".char-tile").forEach(paintCharArt); }
+
+function artFileToDataUrl(file){
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type || "")) return reject(new Error("That file is not an image."));
+    if (file.size > 12 * 1024 * 1024) return reject(new Error("Image is over 12 MB."));
+    const fr = new FileReader();
+    fr.onerror = () => reject(new Error("Could not read the file."));
+    fr.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Could not decode the image."));
+      img.onload = () => {
+        const sc = Math.min(1, 480 / img.width, 360 / img.height);
+        const cv = document.createElement("canvas");
+        cv.width = Math.max(1, Math.round(img.width * sc));
+        cv.height = Math.max(1, Math.round(img.height * sc));
+        cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+        resolve(cv.toDataURL(file.type === "image/png" ? "image/png" : "image/jpeg", 0.86));
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  });
+}
+function pickArtFile(key){
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "image/*";
+  inp.onchange = async () => {
+    const f = inp.files && inp.files[0];
+    if (!f) return;
+    try{ await artPut(key, await artFileToDataUrl(f)); applyCharArt(); renderCharArtRows(); tsuToast("Art saved."); }
+    catch(e){ tsuToast(String(e && e.message || e)); }
+  };
+  inp.click();
+}
+async function useArtLink(key, val){
+  const v = String(val || "").trim();
+  if (!v) return tsuToast("Paste an image link or a path like images/tiles/card.png first.");
+  await artPut(key, v); applyCharArt(); renderCharArtRows(); tsuToast("Art set.");
+}
+async function clearCharArt(key){ await artDel(key); applyCharArt(); renderCharArtRows(); }
+async function clearAllCharArt(){ await artClearAll(); applyCharArt(); renderCharArtRows(); tsuToast("All tile art cleared."); }
+
+// ---- editor ----
+function renderCharArtRows(){
+  const host = document.getElementById("charArtRows");
+  if (!host) return;
+  host.innerHTML = "";
+  const ta = document.getElementById("charChasersTa");
+  const chasers = parseCharList(ta ? ta.value : charLoad(CHAR_LS.CHASERS, ""), "CH:", "chase").slice(0, 200);
+  const rows = [{ key: "default", label: "ALL TILES (default)" }].concat(chasers.map(c => ({ key: "tile:" + charKeyOf(c.label), label: c.label })));
+  rows.forEach(r => {
+    const row = document.createElement("div"); row.className = "char-art-row";
+    const th = document.createElement("div"); th.className = "th";
+    if (ART_CACHE[r.key]) th.style.backgroundImage = 'url("' + String(ART_CACHE[r.key]).replace(/"/g, "%22") + '")';
+    const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = r.label;
+    const br = document.createElement("button"); br.className = "btn ghost"; br.textContent = "BROWSE"; br.onclick = () => pickArtFile(r.key);
+    const li = document.createElement("input"); li.type = "text"; li.placeholder = "image link or images/... path";
+    const us = document.createElement("button"); us.className = "btn ghost"; us.textContent = "USE"; us.onclick = () => useArtLink(r.key, li.value);
+    const cl = document.createElement("button"); cl.className = "btn ghost"; cl.textContent = "CLEAR"; cl.onclick = () => clearCharArt(r.key);
+    [th, nm, br, li, us, cl].forEach(x => row.appendChild(x));
+    host.appendChild(row);
+  });
+}
+function updateCharCounts(){
+  const a = document.getElementById("charChasersTa"), b = document.getElementById("charRegularTa");
+  const ca = document.getElementById("charChaseCount"), cb = document.getElementById("charSpotCount");
+  if (a && ca) ca.textContent = parseCharList(a.value, "CH:", "chase").length + " chasers";
+  if (b && cb) cb.textContent = parseCharList(b.value, "RG:", "spot").length + " spots";
+}
+let _charArtTimer = null;
+function openCharListsEditor(){
+  const modal = document.getElementById("charListsModal");
+  if (!modal) return;
+  const ta = document.getElementById("charChasersTa"), tb = document.getElementById("charRegularTa"), ti = document.getElementById("charTitleInput");
+  ta.value = charLoad(CHAR_LS.CHASERS, ""); tb.value = charLoad(CHAR_LS.REGULAR, ""); ti.value = loadCharTitle();
+  ta.oninput = () => { updateCharCounts(); clearTimeout(_charArtTimer); _charArtTimer = setTimeout(renderCharArtRows, 400); };
+  tb.oninput = updateCharCounts;
+  updateCharCounts(); renderCharArtRows();
+  modal.classList.add("open");
+}
+function closeCharListsEditor(){
+  const modal = document.getElementById("charListsModal");
+  if (modal) modal.classList.remove("open");
+}
+function applyCharListsFromModal(){
+  const ta = document.getElementById("charChasersTa"), tb = document.getElementById("charRegularTa"), ti = document.getElementById("charTitleInput");
+  if (!ta || !tb || !ti) return;
+  charSave(CHAR_LS.CHASERS, ta.value || "");
+  charSave(CHAR_LS.REGULAR, tb.value || "");
+  charSave(CHAR_LS.TITLE, (ti.value || "").trim() || "CHARACTER BREAK");
+  closeCharListsEditor();
+  if (currentBreakType === CHAR_KEY) buildLayout();
 }
 
 function openCustomEntriesEditor(){
@@ -2156,6 +2572,13 @@ custom: {
   cols: 8,
   layout: "CUSTOM_30",
   teams: []
+},
+
+charbreak: {
+  name: "CHARACTER",
+  cols: 8,
+  layout: "CHAR_BREAK",
+  teams: []
 }
   };
 
@@ -2235,6 +2658,21 @@ function makeTickerSlot(spanCols){
 
 // ===== CHASE TEAMS =====
 let soldControlsVisible = true;
+const SOLD_LIST_HIDDEN_KEY = "breakz4dayz2.soldListHidden";
+function applySoldListVisibility(){
+  let hidden = false;
+  try{ hidden = localStorage.getItem(SOLD_LIST_HIDDEN_KEY) === "1"; }catch(_){}
+  const el = document.getElementById("soldList");
+  if (el) el.classList.toggle("sold-list-hidden", hidden);
+  const b = document.getElementById("soldListToggleBtn");
+  if (b) b.textContent = hidden ? "🙈 SOLD LIST" : "👁 SOLD LIST";
+}
+function toggleSoldListVisible(){
+  let hidden = false;
+  try{ hidden = localStorage.getItem(SOLD_LIST_HIDDEN_KEY) === "1"; }catch(_){}
+  try{ localStorage.setItem(SOLD_LIST_HIDDEN_KEY, hidden ? "0" : "1"); }catch(_){}
+  applySoldListVisibility();
+}
 function toggleSoldControls(){
   const bar = document.querySelector(".sold-controls");
   if (!bar) return;
@@ -2338,6 +2776,7 @@ function applyChaseTeams(){
     wrap.classList.remove("custom-scroll");
 
     const config = breakTypes[currentBreakType];
+    document.body.classList.toggle("mode-char", currentBreakType === CHAR_KEY);
     document.documentElement.style.setProperty("--cols", String(config.cols));
     applyTileSizing();
 
@@ -2414,6 +2853,10 @@ if (config.layout === "CUSTOM_30"){
   wrap.appendChild(shell);
 }
 
+    if (config.layout === "CHAR_BREAK"){
+      buildCharLayout(wrap);
+    }
+
     if (config.layout === "NFL_32"){
       let idx = 0;
       const r1 = document.createElement("div");
@@ -2459,6 +2902,7 @@ r1.className = "row-grid row-logo";
       wrap.appendChild(r3);
     }
 
+    lockBoardHeight(wrap);
     setHeader();
     refreshTickerText();
     updateStats();
@@ -2529,9 +2973,15 @@ r1.className = "row-grid row-logo";
   }
 
 function updateStats(){
-  const currentTeams = currentBreakType === "custom"
-    ? getCustomEntries()
-    : currentTileList();
+  if (currentBreakType === CHAR_KEY){
+    const c = charCounts();
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
+    set("cSpotsLeft", c.rgLeft); set("cChaseLeft", c.chLeft);
+    set("cSpotsSold", c.rgSold); set("cChaseSold", c.chSold);
+    set("teamsLeft", c.rgLeft + c.chLeft); set("teamsSold", c.rgSold + c.chSold);
+    return;
+  }
+  const currentTeams = activeEntries();
 
   const total = currentTeams.length;
   const sold = soldTeams.size;
@@ -2546,9 +2996,7 @@ function updateStats(){
   function updateSoldList(){
     const soldListDiv = document.getElementById("soldList");
     soldListDiv.innerHTML = "";
-    const currentTeams = currentBreakType === "custom"
-  ? getCustomEntries()
-  : currentTileList();
+    const currentTeams = activeEntries();
 
 soldTeamsList.forEach(entry => {
   const team = currentTeams.find(t => t.code === entry.code);
@@ -2576,7 +3024,11 @@ if (team.image){
 
       const name = document.createElement("span");
       name.className = "sold-team-name";
-     
+      if (team.kind){
+        if (team.kind === "chase"){ const st = document.createElement("span"); st.className = "star"; st.textContent = "\u2605 "; name.appendChild(st); }
+        name.appendChild(document.createTextNode(team.label || team.name || ""));
+        name.title = team.sourceTitle || team.label || "";
+      }
       row.appendChild(name);
 
       const input = document.createElement("input");
@@ -2613,7 +3065,7 @@ function resetAll(){
     incrementBreak();
   }
 
- const SPORT_ORDER = ["nfl","nba","mlb"];
+ const SPORT_ORDER = ["nfl","nba","mlb","charbreak"];
 
   function cycleSport(){
     const idx = SPORT_ORDER.indexOf(currentBreakType);
@@ -2650,6 +3102,7 @@ function inferCodeFromTitle(title, sportHint){
   const rawTitle = String(title || "").trim();
   const t = norm(rawTitle);
   if (!t) return null;
+  if (sportHint === CHAR_KEY || currentBreakType === CHAR_KEY) return inferCharCode(rawTitle);
 
   // Custom row alias matching first
   if (sportHint === "custom" || currentBreakType === "custom"){
@@ -2749,7 +3202,7 @@ const OVERLAY_ID = "breakz4dayz-overlay";
 // Hostname appears ONCE on purpose: the Standard's audit is grep -c and expects 1.
 const SCORES_BRIDGE_BASE = "https://tsu-scores-bridge.onrender.com";
 
-const TSU_BUILD = "Breakz4Dayz v2 _drafts/breakz4dayz-v2/index.html - 2026-11-05 - brought to current standard: breakIdMatches first, lastCodeByListingKey, buildExportTSV, getScoresChannel, soldTeams const, load/saveSoldState, NFKD norm + whole-word matching, rawTitle fallback, baked key with no overrides, toast not dialog, own storage prefix breakz4dayz2 with read-only migration. Look unchanged.";
+const TSU_BUILD = "Breakz4Dayz v2 _drafts/breakz4dayz-v2/index.html - 2026-11-06 - CHARACTER BREAK layout (chaser tiles + hidden spots list, tile art), every layout locked to one overlay height. Look of NFL/NBA/MLB unchanged except NFL tiles now fill the locked board.";
 console.log("%c[TSU] " + TSU_BUILD, "background:#3a0d0c;color:#ffb3ae;padding:2px 6px;border-radius:3px");
 
 // Lenient on purpose: only rejects an event explicitly stamped for a DIFFERENT overlay.
@@ -3087,7 +3540,7 @@ function handleSSEEvent(data){
       ""
     ).trim();
 
-    let code = getCodeFromPayload(payload);
+    let code = (currentBreakType === CHAR_KEY) ? "" : getCodeFromPayload(payload);
 
     if (!code && currentBreakType === "custom"){
       const rawTitle = String(payload.title || payload.itemTitle || payload.listingTitle || "").trim();
@@ -3136,6 +3589,10 @@ function handleSSEEvent(data){
     const buyer = getBuyerFromPayload(payload);
 
     let code = getCodeFromPayload(payload);
+    if (currentBreakType === CHAR_KEY){
+      // Character break: the listing title decides. A team code the extension guessed is ignored.
+      code = charResolveFromPayload(payload);
+    }
     if (!code){
       code = inferCodeFromTitle(
         payload.title || payload.itemTitle || payload.listingTitle || "",
@@ -3148,7 +3605,7 @@ function handleSSEEvent(data){
     }
 
     // if payload explicitly says another supported sport, switch board
-    if (sport && breakTypes[sport] && sport !== currentBreakType){
+    if (sport && breakTypes[sport] && sport !== currentBreakType && currentBreakType !== CHAR_KEY){
       currentBreakType = sport;
       buildLayout();
     }
@@ -3187,9 +3644,7 @@ function handleSSEEvent(data){
 }
 /* ===== SOLD FX (Northland-style card travel + 3D spin + stamp) ===== */
 function playSoldAnimation(code){
-  const currentTeams = currentBreakType === "custom"
-    ? getCustomEntries()
-    : currentTileList();
+  const currentTeams = activeEntries();
   const team = currentTeams.find(t => t.code === code);
   if (!team) return;
 
@@ -3248,9 +3703,9 @@ function playSoldAnimation(code){
     <div class="sold-fx-spin">
       <div class="sold-fx-inner">
         <div class="sold-fx-burst"></div>
-        ${team.image ? `<img class="sold-fx-team-img" src="${team.image}" alt="${team.name || team.code}" onerror="this.remove()">` : ""}
+        ${(team.image || charArtFor(team)) ? `<img class="sold-fx-team-img" src="${team.image || charArtFor(team)}" alt="${team.name || team.code}" onerror="this.remove()">` : ""}
         <div class="sold-fx-stamp">SOLD</div>
-        <div class="sold-fx-name">${team.code}</div>
+        <div class="sold-fx-name">${team.kind ? (team.label || team.name) : team.code}</div>
       </div>
     </div>
   `;
@@ -3270,9 +3725,7 @@ function playSoldAnimation(code){
 function sseMarkSold(code, buyer=""){
   if (!code) return;
 
-  const currentTeams = currentBreakType === "custom"
-    ? getCustomEntries()
-    : currentTileList();
+  const currentTeams = activeEntries();
 
   const exists = currentTeams.some(t => t.code === code);
   if (!exists) return;
@@ -3339,14 +3792,12 @@ function buildExportTSV(){
   const lines = [];
   lines.push(["Spot", "Buyer", "Break #", "Date"].join("\t"));
 
-  const currentTeams = currentBreakType === "custom"
-    ? getCustomEntries()
-    : currentTileList();
+  const currentTeams = activeEntries();
 
   soldTeamsList.forEach(e => {
     if (!e || !e.code) return;
     const team = currentTeams.find(t => t.code === e.code);
-    const spot = team?.name ? team.name : e.code;
+    const spot = team?.name ? (team.name + (team.kind === "chase" ? " [CHASE]" : "")) : e.code;
     const buyer = String(e.buyer || "").trim();
     lines.push([spot, buyer, breakNum, dateStr].join("\t"));
   });
@@ -3420,6 +3871,8 @@ if (currentBreakType === "custom" && !getCustomEntries().length) {
 }
 
  
+artLoadAll();
+applySoldListVisibility();
 setTickerLines(loadTickerLines());
 syncTickerSpeedUI();
 setBreakNumber(loadBreakNumber());
@@ -3434,6 +3887,7 @@ document.addEventListener("keydown", (e) => {
   closeBreakEditor();
   closePromoEditor();
   closeCustomEntriesEditor();
+  closeCharListsEditor();
 });
 const tickerSpeedSlider = document.getElementById("tickerSpeedSlider");
 if (tickerSpeedSlider){
@@ -3570,6 +4024,39 @@ if (e.target === m){
   </div>
 </div>
 
+
+<!-- ===== CHARACTER BREAK LISTS ===== -->
+<div class="modal-backdrop" id="charListsModal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Character Break Lists" style="width:980px; max-height:calc(100vh - 20px); overflow:auto;">
+    <div class="modal-head">
+      <div class="modal-title">Character Break Lists</div>
+      <div class="modal-actions">
+        <button class="btn secondary" style="padding:8px 10px; font-size:12px;" onclick="applyCharListsFromModal()">APPLY</button>
+        <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="closeCharListsEditor()">CLOSE</button>
+      </div>
+    </div>
+    <div class="char-lbl" style="margin-top:0">Board title</div>
+    <input id="charTitleInput" class="char-input" type="text" placeholder="CHARACTER BREAK">
+    <div class="char-two">
+      <div>
+        <div class="char-lbl">Chasers (shown as tiles)<small id="charChaseCount">0</small></div>
+        <textarea id="charChasersTa" placeholder="One chaser per line&#10;Add alternate names with commas&#10;&#10;Rotom, Rotom SIR&#10;Gengar&#10;Flygon IR"></textarea>
+      </div>
+      <div>
+        <div class="char-lbl">Spots (hidden, automation and counts)<small id="charSpotCount">0</small></div>
+        <textarea id="charRegularTa" placeholder="One spot per line, same format&#10;Never displayed. Sold and remaining are counted from this list.&#10;&#10;Pikachu&#10;Eevee&#10;Snorlax"></textarea>
+      </div>
+    </div>
+    <div class="char-lbl">Tile background art<small>default applies to every chaser tile, a row overrides it for that tile</small></div>
+    <div class="char-art-rows" id="charArtRows"></div>
+    <div class="custom-upload-row">
+      <button class="btn ghost" style="padding:8px 10px; font-size:12px;" onclick="clearAllCharArt()">CLEAR ALL ART</button>
+    </div>
+    <div class="ticker-hint">
+      Sales match by the name after the last " - " in the Whatnot title, so list names the way the pull is titled. Duplicate names are counted once each. BROWSE opens a file picker (works in an OBS Custom Browser Dock or Chrome, not inside the OBS source itself). In a source, paste an image link or a repo path such as images/tiles/card.png and press USE.
+    </div>
+  </div>
+</div>
 
 <!-- ===== Break # Editor Modal ===== -->
 <div class="modal-backdrop" id="breakModal">
