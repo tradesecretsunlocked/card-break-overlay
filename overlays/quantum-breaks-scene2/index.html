@@ -191,17 +191,17 @@
     .conference::-webkit-scrollbar{ display:none; }
 
     .conference-title{
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 900;
       text-align:center;
       text-transform: uppercase;
       letter-spacing: 1px;
       border-bottom:  solid 1px rgb(234 215 158);
-      padding-bottom: 4px;
+      padding-bottom: 1px;
       color: var(--steel1);
     }
 
-    .division{ margin-top: 4px; }
+    .division{ margin-top: 1px; }
 
     .division-name{
       font-size: 13px;
@@ -1344,8 +1344,8 @@
     .control-bar.has-chasers{ padding-top:6px; padding-bottom:6px; }
     .control-bar.has-chasers .btn{ padding:6px 8px; font-size:19px; }
     .control-bar.has-chasers .stat-box{ padding:3px 4px; }
-    .control-bar.has-chasers .stat-box .value{ font-size:19px; }
-    .control-bar.has-chasers .stat-box .label{ font-size:11px; }
+    .control-bar.has-chasers .stat-box .value{ font-size:25px; }
+    .control-bar.has-chasers .stat-box .label{ font-size:12px; }
     .control-bar.has-chasers .brand-logo{ transform:scale(.8); margin:-6px 0; }
     .chaser-stat{ border-color: rgba(255,208,0,0.95) !important; }
     .chaser-stat .value{ color:#ffd000 !important; }
@@ -1380,7 +1380,28 @@
       overflow: hidden; word-break: normal; overflow-wrap: normal; line-height: 1.04;
     }
     .nil-dyn.nil-nosub .nil-sub{ display:none; }
-    .team.has-art img{ filter: brightness(0.62) contrast(1.05) !important; }
+
+    /* ===== QB 2026-11-08: safe storage, storage screen, darkness + text size, banner B video ===== */
+    .pill-btn.st-warn{ border-color:#ff5a4d !important; color:#ffb4ac !important; animation:stPulse 1.6s ease-in-out infinite; }
+    @keyframes stPulse{ 0%,100%{ box-shadow:0 0 0 0 rgba(255,90,77,0.0);} 50%{ box-shadow:0 0 0 5px rgba(255,90,77,0.35);} }
+    .st-meter{ height:14px; border-radius:8px; background:rgba(255,255,255,0.10); overflow:hidden; margin:6px 0 4px 0; }
+    .st-meter > i{ display:block; height:100%; width:0; background:linear-gradient(90deg,#4ccf7a,#ffd65c,#ff5a4d); background-size:300% 100%; }
+    .st-row{ display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid rgba(240,240,192,0.10); font-size:13px; }
+    .st-row .st-k{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:rgba(240,240,192,0.92); }
+    .st-row .st-s{ width:74px; text-align:right; color:#ffd65c; font-weight:900; }
+    .st-tag{ font-size:10px; font-weight:900; letter-spacing:.6px; text-transform:uppercase; padding:1px 6px; border-radius:6px; background:rgba(255,255,255,0.12); }
+    .st-tag.own{ background:rgba(76,207,122,0.28); }
+    .st-tag.oth{ background:rgba(255,90,77,0.30); }
+    .promo-b{ --bd:0.38; }
+    .promo-b .pb-cell.has-bg::before{ background:rgba(0,0,0,var(--bd,0.38)); }
+    .promo-b.has-bar-bg .pb-cell:not(.has-bg):not(.pb-cam){ background:rgba(0,0,0,calc(var(--bd,0.38) * 0.8)); }
+    .promo-b .pb-cam video{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; }
+    .promo-b .pb-cam.has-vid{ background:#000; }
+    .promo-b .pb-cam.has-vid::before{ content:''; position:absolute; inset:0; background:rgba(0,0,0,var(--bd,0.38)); z-index:1; }
+    #promoBg{ filter:brightness(var(--ak,1)); }
+    .team.has-art img{ filter: brightness(calc(0.62 * var(--tile-k,1))) contrast(1.05) !important; }
+    .team.nil:not(.has-art):not(.sold) img{ filter: brightness(var(--tile-k,1)) drop-shadow(0 10px 16px rgba(0,0,0,0.55)); }
+    .vid-note{ font-size:12px; line-height:1.35; color:rgba(240,240,192,0.70); margin:6px 0 0 0; }
     .team.has-art.sold img{ filter: grayscale(1) brightness(0.35) !important; }
     .stat-sub{ font-size:11px; font-weight:900; letter-spacing:.6px; text-transform:uppercase;
       color: rgba(240,188,45,0.95); margin-top:2px; }
@@ -1860,7 +1881,7 @@
       <div class="promo-text" id="promoTextB"></div>
     </div>
   </div>
-  <div class="pb-cell pb-cam" id="promoCamBox"></div>
+  <div class="pb-cell pb-cam" id="promoCamBox"><video id="promoCamVid" muted loop autoplay playsinline disablepictureinpicture preload="auto" style="display:none;"></video></div>
   <div class="pb-cell" id="promoRightCell">
     <img class="pb-img" id="promoRightImg" alt="" style="display:none;" />
     <div class="pb-msg" id="promoRightMsg">
@@ -1883,6 +1904,7 @@
 <button id="customSpotsBtn" class="pill-btn" style="display:none;" onclick="openCustomSpotsModal()">⚡ Spots</button>
 <button id="chaseBtn" class="pill-btn" style="display:none;" onclick="openChaseModal()">⭐ Chase</button>
 <button class="pill-btn" onclick="openPromoModal()">✏️Promo</button>
+<button class="pill-btn" id="storageBtn" onclick="openStorageModal()">💾 Storage</button>
 
           <div class="sse-status" id="sseStatus">
             SSE:
@@ -2005,6 +2027,9 @@
             <div class="pm-size"><span>Text size</span>
               <input type="range" id="fontA" min="60" max="140" step="5" value="100" />
               <span class="pm-size-v"><span id="fontAVal">100</span>%</span></div>
+            <div class="pm-size"><span>Picture darkness</span>
+              <input type="range" id="darkA" min="0" max="80" step="5" value="0" />
+              <span class="pm-size-v"><span id="darkAVal">0</span>%</span></div>
           </div>
         </div>
 
@@ -2012,6 +2037,15 @@
           <div class="pm-card">
             <h3>Banner background</h3>
             <div class="pm-pick" id="pickBB"></div>
+            <div class="pm-size"><span>Picture darkness</span>
+              <input type="range" id="darkB" min="0" max="85" step="5" value="38" />
+              <span class="pm-size-v"><span id="darkBVal">38</span>%</span></div>
+            <p class="vid-note">Darkness applies to every Banner B picture and to the center video, so text stands out.</p>
+          </div>
+          <div class="pm-card">
+            <h3>Center video (loops)</h3>
+            <div class="pm-pick" id="pickBVid"></div>
+            <p class="vid-note">Plays muted and loops forever behind the center. Best: MP4 (H.264) or WebM, 1280x720 or smaller, 5 to 15 seconds, under 30 MB. It sits where the camera area is, so put your camera source above this overlay in OBS.</p>
           </div>
           <div class="pm-card">
             <h3>Left side</h3>
@@ -2040,10 +2074,31 @@
       </div>
 
       <input id="promoPickFile" type="file" accept="image/*" style="display:none;" />
+      <input id="promoVidFile" type="file" accept="video/mp4,video/webm,video/*" style="display:none;" />
       <div class="ta-status" id="promoBStatus"></div>
       <div class="promo-modal-actions">
         <button class="pm-cancel" onclick="closePromoModal()">Cancel</button>
         <button class="pm-ok"     onclick="applyPromoModal()">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Storage modal -->
+  <div id="storageModal" class="ta-modal hidden">
+    <div class="ta-inner">
+      <h2>💾 Storage</h2>
+      <p class="ta-desc">Your settings are saved in this browser. The browser gives every TSU overlay on the same web address one shared 5 MB pool. When it fills up, nothing new can be saved. This screen shows what is using it.</p>
+      <div class="ta-status" id="stStatus"></div>
+      <div class="st-meter"><i id="stBar"></i></div>
+      <div id="stSummary" class="ta-desc" style="margin:0 0 8px 0;"></div>
+      <div id="stList"></div>
+      <hr class="ta-sep" />
+      <div class="cs-modal-actions" style="justify-content:space-between;flex-wrap:wrap;">
+        <span style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="ta-btn gold" id="stFreeBtn" onclick="storageFreeOthers()">Free space: clear other overlays' data</button>
+          <button class="ta-btn" onclick="storageTest()">Test saving</button>
+        </span>
+        <button class="cs-ok" onclick="closeStorageModal()">Done</button>
       </div>
     </div>
   </div>
@@ -2053,6 +2108,16 @@
     <div class="ta-inner">
       <h2>🖼 Tile Art</h2>
       <p class="ta-desc">Set one default picture for every custom spot, and override any spot with its own. Spots listed here are the ones already applied on this board. Pictures are shrunk and stored in this browser.</p>
+      <div class="pm-card" style="margin-bottom:10px;">
+        <h3>Look</h3>
+        <div class="pm-size"><span>Tile text size</span>
+          <input type="range" id="lookFs" min="60" max="160" step="5" value="100" />
+          <span class="pm-size-v"><span id="lookFsVal">100</span>%</span></div>
+        <div class="pm-size"><span>Picture darkness</span>
+          <input type="range" id="lookDark" min="0" max="70" step="5" value="0" />
+          <span class="pm-size-v"><span id="lookDarkVal">0</span>%</span></div>
+        <p class="vid-note">Text grows only as far as the tile can hold it, then it shrinks to fit. Darker pictures make the text pop.</p>
+      </div>
       <div class="ta-status" id="taStatus"></div>
       <div id="taDefaultRow"></div>
       <hr class="ta-sep" />
@@ -2099,6 +2164,35 @@
   </div>
 
   <script>
+    /* =========================
+       Safe storage: a full or blocked browser store can never break a button again.
+       Writes that fail are kept in memory for this session and the Storage pill turns red.
+    ========================== */
+    const LSX = (function(){
+      const mem = new Map();
+      let failed = false;
+      const api = {
+        onFail: null,
+        real(){ try{ return window.localStorage; }catch(_){ return null; } },
+        getItem(k){
+          if (mem.has(k)) return mem.get(k);
+          try{ const r = api.real(); return r ? r.getItem(k) : null; }catch(_){ return null; }
+        },
+        setItem(k, v){
+          v = String(v);
+          try{ const r = api.real(); if (!r) throw new Error('blocked'); r.setItem(k, v); mem.delete(k); return true; }
+          catch(_){ mem.set(k, v); failed = true; try{ api.onFail && api.onFail(k); }catch(__){} return false; }
+        },
+        removeItem(k){ mem.delete(k); try{ const r = api.real(); if (r) r.removeItem(k); }catch(_){} },
+        get length(){ try{ const r = api.real(); return r ? r.length : 0; }catch(_){ return 0; } },
+        key(i){ try{ const r = api.real(); return r ? r.key(i) : null; }catch(_){ return null; } },
+        hasFailed(){ return failed; },
+        clearFailed(){ failed = false; },
+        pending(){ return mem.size; }
+      };
+      return api;
+    })();
+
     /* =========================
        Paths (standard BASE)
     ========================== */
@@ -2149,14 +2243,14 @@ const LS = {
     const DEFAULT_TITLE_SUB  = 'WELCOME TO QUANTUM BREAKS';
 
     function loadTitles(){
-      const main = localStorage.getItem(LS.TITLE_MAIN) || DEFAULT_TITLE_MAIN;
-      const sub  = localStorage.getItem(LS.TITLE_SUB)  || DEFAULT_TITLE_SUB;
+      const main = LSX.getItem(LS.TITLE_MAIN) || DEFAULT_TITLE_MAIN;
+      const sub  = LSX.getItem(LS.TITLE_SUB)  || DEFAULT_TITLE_SUB;
       return { main, sub };
     }
 
     function saveTitles(main, sub){
-      localStorage.setItem(LS.TITLE_MAIN, main);
-      localStorage.setItem(LS.TITLE_SUB, sub);
+      LSX.setItem(LS.TITLE_MAIN, main);
+      LSX.setItem(LS.TITLE_SUB, sub);
     }
 
     function applyTitles(main, sub){
@@ -2208,13 +2302,13 @@ const LS = {
 const TICKER_SPORTS_SECONDS = 8;
 
 function loadTickerSpeed(){
-  const raw = parseInt(localStorage.getItem(LS.TICKER_SPEED) || '90', 10);
+  const raw = parseInt(LSX.getItem(LS.TICKER_SPEED) || '90', 10);
   return Number.isFinite(raw) ? Math.max(30, Math.min(220, raw)) : 90;
 }
 
 function saveTickerSpeed(value){
   const safe = Math.max(30, Math.min(220, parseInt(value, 10) || 90));
-  localStorage.setItem(LS.TICKER_SPEED, String(safe));
+  LSX.setItem(LS.TICKER_SPEED, String(safe));
   return safe;
 }
 
@@ -2235,19 +2329,19 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
     function loadPromoLines(){
       try{
         // Migrate legacy single-line format on first load
-        if (!localStorage.getItem(PROMO_LINES_KEY)){
-          const oldText   = localStorage.getItem('quantum2.promoText');
-          const oldKicker = localStorage.getItem('quantum2.promoKicker');
+        if (!LSX.getItem(PROMO_LINES_KEY)){
+          const oldText   = LSX.getItem('quantum2.promoText');
+          const oldKicker = LSX.getItem('quantum2.promoKicker');
           if (oldText || oldKicker){
             const migrated = [
               { kicker: oldKicker || 'QUANTUM BREAKS LLC', text: oldText || '' },
               { kicker: '', text: '' },
               { kicker: '', text: '' }
             ];
-            localStorage.setItem(PROMO_LINES_KEY, JSON.stringify(migrated));
+            LSX.setItem(PROMO_LINES_KEY, JSON.stringify(migrated));
           }
         }
-        const raw = localStorage.getItem(PROMO_LINES_KEY);
+        const raw = LSX.getItem(PROMO_LINES_KEY);
         if (!raw) return DEFAULT_PROMO_LINES.map(l => ({...l}));
         const arr = JSON.parse(raw);
         const result = [];
@@ -2262,16 +2356,16 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
     }
 
     function savePromoLines(lines){
-      localStorage.setItem(PROMO_LINES_KEY, JSON.stringify(lines));
+      LSX.setItem(PROMO_LINES_KEY, JSON.stringify(lines));
     }
 
     function loadPromoTimerSecV2(){
-      const raw = parseInt(localStorage.getItem(PROMO_TIMER_KEY_V2) || '', 10);
+      const raw = parseInt(LSX.getItem(PROMO_TIMER_KEY_V2) || '', 10);
       return Number.isFinite(raw) && raw >= 3 ? raw : DEFAULT_PROMO_TIMER_SEC;
     }
 
     function savePromoTimerSecV2(s){
-      localStorage.setItem(PROMO_TIMER_KEY_V2, String(s));
+      LSX.setItem(PROMO_TIMER_KEY_V2, String(s));
     }
 
     let promoLines       = [];
@@ -2368,6 +2462,7 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
 
     function closePromoModal(){
       document.getElementById('promoModal')?.classList.add('hidden');
+      try{ renderPromoAll(); }catch(_){}   // drops any unsaved live preview (darkness, video)
     }
 
     function applyPromoModal(){
@@ -2408,17 +2503,19 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
     let promoDraft = { aBg:'', bBg:'', bLBg:'', bRBg:'', bRImg:'', rMode:'text' };
 
     let promoStyleMem = null;   // kept in memory too, so a full or blocked localStorage cannot freeze the choice
-    function loadPromoStyle(){ if (promoStyleMem) return promoStyleMem; try{ return localStorage.getItem(PROMO_STYLE_KEY) === 'B' ? 'B' : 'A'; }catch(_){ return 'A'; } }
+    function loadPromoStyle(){ if (promoStyleMem) return promoStyleMem; try{ return LSX.getItem(PROMO_STYLE_KEY) === 'B' ? 'B' : 'A'; }catch(_){ return 'A'; } }
+    function clampDark(v, dflt, max){ v = parseInt(v, 10); return Number.isFinite(v) ? Math.max(0, Math.min(max, v)) : dflt; }
     function clampFont(v){ v = parseInt(v, 10); return Number.isFinite(v) ? Math.max(60, Math.min(140, v)) : 100; }
     function loadPromoCfg(){
       try{
-        const o = JSON.parse(localStorage.getItem(PROMO_CFG_KEY) || '{}') || {};
-        return { aBg: String(o.aBg||''), aFont: clampFont(o.aFont||100), bBg: String(o.bBg||''), bLBg: String(o.bLBg||''), bLFont: clampFont(o.bLFont||100), bRFont: clampFont(o.bRFont||100) };
-      }catch(_){ return { aBg:'', aFont:100, bBg:'', bLBg:'', bLFont:100, bRFont:100 }; }
+        const o = JSON.parse(LSX.getItem(PROMO_CFG_KEY) || '{}') || {};
+        return { aBg: String(o.aBg||''), aFont: clampFont(o.aFont||100), bBg: String(o.bBg||''), bLBg: String(o.bLBg||''), bLFont: clampFont(o.bLFont||100), bRFont: clampFont(o.bRFont||100),
+                 aDark: clampDark(o.aDark, 0, 80), bDark: clampDark(o.bDark, 38, 85), bVid: String(o.bVid||'') };
+      }catch(_){ return { aBg:'', aFont:100, bBg:'', bLBg:'', bLFont:100, bRFont:100, aDark:0, bDark:38, bVid:'' }; }
     }
     function loadPromoB(){
       try{
-        const o = JSON.parse(localStorage.getItem(PROMO_B_KEY) || '{}') || {};
+        const o = JSON.parse(LSX.getItem(PROMO_B_KEY) || '{}') || {};
         const img = String(o.img || ''), text = String(o.text || ''), kicker = String(o.kicker || '');
         const mode = (o.mode === 'image' || o.mode === 'text') ? o.mode : ((img && !text && !kicker) ? 'image' : 'text');
         return { kicker, text, img, bg: String(o.bg || ''), mode };
@@ -2431,10 +2528,11 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
       // Banner A
       const A = document.getElementById('promoBar'), abg = document.getElementById('promoBg');
       if (abg) abg.src = artSrc(c.aBg) || DEFAULT_PROMO_BG;
-      if (A) A.style.setProperty('--pf', String(c.aFont / 100));
+      if (A){ A.style.setProperty('--pf', String(c.aFont / 100)); A.style.setProperty('--ak', String(1 - c.aDark / 100)); }
       // Banner B whole-bar picture
       const BB = document.getElementById('promoBarB');
       if (BB){
+        BB.style.setProperty('--bd', String(c.bDark / 100));
         const bs = artSrc(c.bBg);
         if (bs){ BB.style.backgroundImage = cssUrl(bs); BB.classList.add('has-bar-bg'); }
         else { BB.style.backgroundImage = ''; BB.classList.remove('has-bar-bg'); }
@@ -2461,6 +2559,7 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
         if (b.mode === 'image' && artSrc(b.img)){ im.src = artSrc(b.img); im.style.display = ''; } else { im.removeAttribute('src'); im.style.display = 'none'; }
       }
       if (msg) msg.style.display = (b.mode === 'image') ? 'none' : '';
+      renderCamVideo(c.bVid);
     }
     function renderPromoB(){ renderPromoAll(); }
 
@@ -2484,7 +2583,7 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
     }
     function setPromoStyle(st){
       promoStyleMem = (st === 'B') ? 'B' : 'A';
-      try{ localStorage.setItem(PROMO_STYLE_KEY, promoStyleMem); }catch(_){ promoStatus('Saved for this session only. Browser storage is full, clear some pictures.'); }
+      LSX.setItem(PROMO_STYLE_KEY, promoStyleMem);
       applyPromoStyle();
     }
 
@@ -2546,15 +2645,120 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
       if (sl) sl.oninput = () => { if (vl) vl.textContent = sl.value; };
     }
 
+
+    /* ===== Banner B center video (looping). Files live in IndexedDB, links are used as-is. ===== */
+    const VID_URL = new Map();
+    let vidToken = 0;
+    function artGetIdb(id){
+      return artOpen().then(db => new Promise((res) => {
+        if (!db) return res(null);
+        try{ const rq = db.transaction(ART_STORE, 'readonly').objectStore(ART_STORE).get(id); rq.onsuccess = () => res(rq.result || null); rq.onerror = () => res(null); }
+        catch(_){ res(null); }
+      }));
+    }
+    function vidSrc(ref){
+      ref = String(ref || '');
+      if (!ref) return Promise.resolve('');
+      if (!ref.startsWith('vid:')) return Promise.resolve(/^https?:\/\//i.test(ref) ? ref : '');
+      if (VID_URL.has(ref)) return Promise.resolve(VID_URL.get(ref));
+      return artGetIdb(ref).then(b => { if (!b) return ''; const u = URL.createObjectURL(b); VID_URL.set(ref, u); return u; });
+    }
+    function setCamVideo(u){
+      const vid = document.getElementById('promoCamVid'), cam = document.getElementById('promoCamBox');
+      if (!vid || !cam) return;
+      if (!u){
+        if (vid.dataset.src){ vid.pause(); vid.removeAttribute('src'); try{ vid.load(); }catch(_){} delete vid.dataset.src; }
+        vid.style.display = 'none'; cam.classList.remove('has-vid'); return;
+      }
+      if (vid.dataset.src !== u){ vid.dataset.src = u; vid.src = u; }
+      vid.loop = true; vid.muted = true;
+      vid.style.display = ''; cam.classList.add('has-vid');
+      if (loadPromoStyle() === 'B'){ const p = vid.play(); if (p && p.catch) p.catch(() => {}); } else { vid.pause(); }
+    }
+    function renderCamVideo(ref){
+      const my = ++vidToken;
+      vidSrc(ref).then(u => { if (my === vidToken) setCamVideo(u); }, () => { if (my === vidToken) setCamVideo(''); });
+    }
+    (function(){
+      document.addEventListener('DOMContentLoaded', () => {
+        const vid = document.getElementById('promoCamVid');
+        if (!vid) return;
+        vid.addEventListener('error', () => { vid.style.display = 'none'; document.getElementById('promoCamBox')?.classList.remove('has-vid'); delete vid.dataset.src; promoStatus('That video could not be played. Try an MP4 (H.264) or WebM file, or a different link.'); });
+        vid.addEventListener('ended', () => { try{ vid.currentTime = 0; vid.play(); }catch(_){} });
+      });
+    })();
+    const VID_MAX_MB = 30;
+    function paintVidPicker(host){
+      const lab = host.querySelector('.vid-name'); if (!lab) return;
+      const v = promoDraft.bVid || '';
+      lab.textContent = !v ? 'No video set' : (v.startsWith('vid:') ? ('Video file ready' + (promoDraft.bVidName ? ': ' + promoDraft.bVidName : '')) : 'Video link: ' + v.slice(0, 48) + (v.length > 48 ? '...' : ''));
+    }
+    function mountVideoPicker(){
+      const host = document.getElementById('pickBVid'); if (!host) return;
+      host.innerHTML = '';
+      const row = document.createElement('div'); row.className = 'ta-row';
+      const lab = document.createElement('div'); lab.className = 'vid-name'; lab.style.cssText = 'flex:1;min-width:0;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:rgba(240,240,192,0.9);'; row.appendChild(lab);
+      const bc = document.createElement('button'); bc.type = 'button'; bc.className = 'ta-btn gold'; bc.textContent = 'Choose video';
+      bc.onclick = () => {
+        const inp = document.getElementById('promoVidFile'); inp.value = '';
+        inp.onchange = () => {
+          const f = inp.files && inp.files[0]; if (!f) return;
+          if (f.size > VID_MAX_MB * 1048576){ promoStatus('That video is ' + (f.size / 1048576).toFixed(0) + ' MB. Keep it under ' + VID_MAX_MB + ' MB: trim it to 5 to 15 seconds and export at 1280x720.'); return; }
+          if (f.type && !/^video\//i.test(f.type)){ promoStatus('That file is not a video. Use an MP4 or WebM file.'); return; }
+          const ref = 'vid:' + Date.now().toString(36);
+          VID_URL.set(ref, URL.createObjectURL(f));
+          promoDraft.bVid = ref; promoDraft.bVidName = f.name;
+          artPutIdb(ref, f).then(ok => { if (!ok) promoStatus('This browser cannot keep the video after a reload. Use a video link instead.'); });
+          paintVidPicker(host); renderCamVideo(ref);
+          promoStatus('Video chosen. Press Apply to keep it.');
+        };
+        inp.click();
+      };
+      row.appendChild(bc);
+      const br = document.createElement('button'); br.type = 'button'; br.className = 'ta-btn'; br.textContent = 'Remove';
+      br.onclick = () => { promoDraft.bVid = ''; promoDraft.bVidName = ''; url.value = ''; paintVidPicker(host); renderCamVideo(''); promoStatus('Video removed. Press Apply to save.'); };
+      row.appendChild(br);
+      host.appendChild(row);
+      const row2 = document.createElement('div'); row2.className = 'ta-row'; row2.style.marginTop = '6px';
+      const url = document.createElement('input'); url.className = 'ta-url'; url.type = 'text'; url.placeholder = 'Or paste a video link (https://... .mp4 or .webm)'; row2.appendChild(url);
+      const bu = document.createElement('button'); bu.type = 'button'; bu.className = 'ta-btn'; bu.textContent = 'Use link';
+      bu.onclick = () => {
+        const raw = String(url.value || '').trim();
+        if (!raw){ promoStatus('Paste a video link first. A video picked with Choose video is already set, just press Apply.'); return; }
+        if (!/^https?:\/\//i.test(raw)){ promoStatus('That is not a video link. It must start with https://'); return; }
+        promoDraft.bVid = raw; promoDraft.bVidName = ''; paintVidPicker(host); renderCamVideo(raw);
+        promoStatus('Link set. Press Apply to save it.');
+      };
+      row2.appendChild(bu);
+      host.appendChild(row2);
+      paintVidPicker(host);
+    }
+    function bindDark(id, kind){
+      const sl = document.getElementById(id), vl = document.getElementById(id + 'Val');
+      if (!sl) return;
+      sl.oninput = () => {
+        if (vl) vl.textContent = sl.value;
+        const n = parseInt(sl.value, 10) / 100;
+        if (kind === 'A') document.getElementById('promoBar')?.style.setProperty('--ak', String(1 - n));
+        else document.getElementById('promoBarB')?.style.setProperty('--bd', String(n));
+      };
+    }
+
     function fillPromoBModal(){
       const c = loadPromoCfg(), b = loadPromoB();
-      promoDraft = { aBg: c.aBg, bBg: c.bBg, bLBg: c.bLBg, bRBg: b.bg, bRImg: b.img, rMode: b.mode };
+      promoDraft = { aBg: c.aBg, bBg: c.bBg, bLBg: c.bLBg, bRBg: b.bg, bRImg: b.img, rMode: b.mode, bVid: c.bVid, bVidName: '' };
       document.getElementById('promoBKicker').value = b.kicker;
       document.getElementById('promoBText').value = b.text;
       [['fontA', c.aFont], ['fontBL', c.bLFont], ['fontBR', c.bRFont]].forEach(([id, v]) => {
         const sl = document.getElementById(id), vl = document.getElementById(id + 'Val');
         if (sl) sl.value = String(v); if (vl) vl.textContent = String(v); bindFont(id);
       });
+      [['darkA', c.aDark], ['darkB', c.bDark]].forEach(([id, v]) => {
+        const sl = document.getElementById(id), vl = document.getElementById(id + 'Val');
+        if (sl) sl.value = String(v); if (vl) vl.textContent = String(v);
+      });
+      bindDark('darkA', 'A'); bindDark('darkB', 'B');
+      mountVideoPicker();
       mountPicker('pickA',    'One picture behind the whole bar', 'aBg',  1200, 'Use default');
       mountPicker('pickBB',   'One picture behind the whole banner', 'bBg', 1400, 'Remove');
       mountPicker('pickBL',   'Picture behind the left text', 'bLBg', 800, 'Use default');
@@ -2567,27 +2771,23 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
     }
     function savePromoBFromModal(){
       const curC = loadPromoCfg(), curB = loadPromoB();
+      const oldVid = curC.bVid;
       const cfg = {
         aBg: artRef(promoDraft.aBg), aFont: clampFont(document.getElementById('fontA')?.value),
         bBg: artRef(promoDraft.bBg), bLBg: artRef(promoDraft.bLBg), bLFont: clampFont(document.getElementById('fontBL')?.value),
-        bRFont: clampFont(document.getElementById('fontBR')?.value)
+        bRFont: clampFont(document.getElementById('fontBR')?.value),
+        aDark: clampDark(document.getElementById('darkA')?.value, 0, 80), bDark: clampDark(document.getElementById('darkB')?.value, 38, 85),
+        bVid: String(promoDraft.bVid || '')
       };
       const right = {
         kicker: String(document.getElementById('promoBKicker')?.value || '').trim(),
         text:   String(document.getElementById('promoBText')?.value || '').trim(),
         img: artRef(promoDraft.bRImg), bg: artRef(promoDraft.bRBg), mode: promoDraft.rMode
       };
-      let failed = false;
-      try{ localStorage.setItem(PROMO_CFG_KEY, JSON.stringify(cfg)); }
-      catch(_){ failed = true; cfg.aBg = curC.aBg; cfg.bBg = curC.bBg; cfg.bLBg = curC.bLBg; try{ localStorage.setItem(PROMO_CFG_KEY, JSON.stringify(cfg)); }catch(__){} }
-      try{ localStorage.setItem(PROMO_B_KEY, JSON.stringify(right)); }
-      catch(_){ failed = true; right.img = curB.img; right.bg = curB.bg; try{ localStorage.setItem(PROMO_B_KEY, JSON.stringify(right)); }catch(__){} }
+      LSX.setItem(PROMO_CFG_KEY, JSON.stringify(cfg));
+      LSX.setItem(PROMO_B_KEY, JSON.stringify(right));
+      if (oldVid && oldVid !== cfg.bVid && oldVid.startsWith('vid:')){ artDelIdb(oldVid); const u = VID_URL.get(oldVid); if (u){ try{ URL.revokeObjectURL(u); }catch(_){} VID_URL.delete(oldVid); } }
       renderPromoAll();
-      if (failed){
-        let used = 0; try{ for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); used += (k.length + (localStorage.getItem(k) || '').length) * 2; } }catch(_){}
-        promoStatus('Browser storage is full (' + (used / 1048576).toFixed(1) + ' MB used). Your text was kept for this session only. Reload the overlay once so pictures move to the larger store, then Apply again.');
-        return false;
-      }
       return true;
     }
 
@@ -2604,7 +2804,7 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
 
     function loadTickerLines(){
       try{
-        const raw = localStorage.getItem(LS.TICKER);
+        const raw = LSX.getItem(LS.TICKER);
         if (!raw) return DEFAULT_TICKER_LINES.slice();
         const arr = JSON.parse(raw);
         if (Array.isArray(arr) && arr.length) return arr.map(s => String(s));
@@ -2613,7 +2813,7 @@ let TICKER_PX_PER_SEC = loadTickerSpeed();
     }
 
     function saveTickerLines(lines){
-      localStorage.setItem(LS.TICKER, JSON.stringify(lines));
+      LSX.setItem(LS.TICKER, JSON.stringify(lines));
     }
 
     let TICKER_LINES = loadTickerLines();
@@ -2729,13 +2929,13 @@ function startTickerRotation(){
        Break number
     ========================== */
     function loadBreakNumber(){
-      const raw = localStorage.getItem(LS.BREAK_NUMBER);
+      const raw = LSX.getItem(LS.BREAK_NUMBER);
       const n = parseInt(raw || '1', 10);
       return Number.isFinite(n) && n > 0 ? n : 1;
     }
 
     function saveBreakNumber(n){
-      localStorage.setItem(LS.BREAK_NUMBER, String(n));
+      LSX.setItem(LS.BREAK_NUMBER, String(n));
     }
 
     function setBreakNumber(n){
@@ -2769,7 +2969,7 @@ function startTickerRotation(){
     ========================== */
     function loadNilEntries(){
       try{
-        const raw = localStorage.getItem(LS.NIL_ENTRIES);
+        const raw = LSX.getItem(LS.NIL_ENTRIES);
         const arr = raw ? JSON.parse(raw) : [];
         if (!Array.isArray(arr)) return [];
 
@@ -2786,7 +2986,7 @@ function startTickerRotation(){
     }
 
     function saveNilEntries(entries){
-      localStorage.setItem(LS.NIL_ENTRIES, JSON.stringify(entries || []));
+      LSX.setItem(LS.NIL_ENTRIES, JSON.stringify(entries || []));
     }
 
     function makeCodeFromName(name, idx){
@@ -2797,7 +2997,7 @@ function startTickerRotation(){
 
     function loadNilChasers(){
       try{
-        const raw = localStorage.getItem(LS.NIL_CHASERS);
+        const raw = LSX.getItem(LS.NIL_CHASERS);
         const arr = raw ? JSON.parse(raw) : [];
         if (!Array.isArray(arr)) return [];
         return arr.map((e) => ({
@@ -2809,7 +3009,7 @@ function startTickerRotation(){
       }catch{ return []; }
     }
     function saveNilChasers(entries){
-      localStorage.setItem(LS.NIL_CHASERS, JSON.stringify(entries || []));
+      LSX.setItem(LS.NIL_CHASERS, JSON.stringify(entries || []));
     }
 
     function nilSpotFrom(e, idx){
@@ -2954,7 +3154,7 @@ function startTickerRotation(){
       const codes = CUSTOM_SPOT_CODES_BY[sport];
       if (!codes) return [];
       try{
-        const raw = localStorage.getItem(CUSTOM_SPOTS_KEYS[sport]);
+        const raw = LSX.getItem(CUSTOM_SPOTS_KEYS[sport]);
         if (!raw) return buildDefaultCustomSpots(sport);
         const arr = JSON.parse(raw);
         if (!Array.isArray(arr)) return buildDefaultCustomSpots(sport);
@@ -2967,7 +3167,7 @@ function startTickerRotation(){
     }
     function saveCustomSpots(sport, spots){
       if (!CUSTOM_SPOTS_KEYS[sport]) return;
-      localStorage.setItem(CUSTOM_SPOTS_KEYS[sport], JSON.stringify(spots));
+      LSX.setItem(CUSTOM_SPOTS_KEYS[sport], JSON.stringify(spots));
     }
     function loadCustomNflSpots(){ return loadCustomSpots('nfl'); }
     function saveCustomNflSpots(spots){ saveCustomSpots('nfl', spots); }
@@ -3013,9 +3213,9 @@ function startTickerRotation(){
         title:   String(document.getElementById(`csTitle${i}`)?.value   || '').trim(),
         enabled: !!(document.getElementById(`csEnabled${i}`)?.checked)
       }));
-      saveCustomSpots(sport, spots);
-      renderTeams();
-      refreshWheelEntries();
+      try{ saveCustomSpots(sport, spots); }catch(e){ console.warn('custom spots save', e); }
+      try{ renderTeams(); }catch(e){ console.warn('custom spots render', e); }
+      try{ refreshWheelEntries(); }catch(e){ console.warn('custom spots wheel', e); }
       closeCustomSpotsModal();
     }
 
@@ -3025,6 +3225,7 @@ function startTickerRotation(){
     ========================== */
     const ART_DB_NAME = 'quantum2-art-v1', ART_STORE = 'img';
     const ART_CACHE = new Map();
+    const VID_KEYS = [];
     let ART_DB_OK = false, artDbP = null;
 
     function artOpen(){
@@ -3080,18 +3281,18 @@ function startTickerRotation(){
     function artRefsInUse(){
       const used = new Set();
       try{
-        const a = JSON.parse(localStorage.getItem('quantum2.tileArt.v1') || '{}') || {};
+        const a = JSON.parse(LSX.getItem('quantum2.tileArt.v1') || '{}') || {};
         if (a.def) used.add(a.def); Object.values(a.spots || {}).forEach(v => used.add(v));
-        const c = JSON.parse(localStorage.getItem('quantum2.promoCfg.v1') || '{}') || {};
-        used.add(c.aBg); used.add(c.bBg); used.add(c.bLBg);
-        const b = JSON.parse(localStorage.getItem('quantum2.promoB.v1') || '{}') || {};
+        const c = JSON.parse(LSX.getItem('quantum2.promoCfg.v1') || '{}') || {};
+        used.add(c.aBg); used.add(c.bBg); used.add(c.bLBg); used.add(c.bVid);
+        const b = JSON.parse(LSX.getItem('quantum2.promoB.v1') || '{}') || {};
         used.add(b.img); used.add(b.bg);
       }catch(_){}
       return used;
     }
     // Move any picture still sitting in localStorage into IndexedDB; this frees the space.
     async function artMigrateKey(key, fields){
-      let o; try{ o = JSON.parse(localStorage.getItem(key) || 'null'); }catch(_){ return; }
+      let o; try{ o = JSON.parse(LSX.getItem(key) || 'null'); }catch(_){ return; }
       if (!o || typeof o !== 'object') return;
       let changed = false;
       const move = async (holder, name) => {
@@ -3103,7 +3304,7 @@ function startTickerRotation(){
       };
       for (const f of fields) await move(o, f);
       if (key === 'quantum2.tileArt.v1' && o.spots) for (const k of Object.keys(o.spots)) await move(o.spots, k);
-      if (changed){ try{ localStorage.setItem(key, JSON.stringify(o)); }catch(_){} }
+      if (changed){ try{ LSX.setItem(key, JSON.stringify(o)); }catch(_){} }
     }
     async function artInit(){
       const db = await artOpen();
@@ -3112,7 +3313,7 @@ function startTickerRotation(){
       await new Promise((res) => {
         try{
           const rq = db.transaction(ART_STORE, 'readonly').objectStore(ART_STORE).openCursor();
-          rq.onsuccess = () => { const c = rq.result; if (c){ ART_CACHE.set(String(c.key), c.value); c.continue(); } else res(); };
+          rq.onsuccess = () => { const c = rq.result; if (c){ const k = String(c.key); if (k.startsWith('vid:')) VID_KEYS.push(k); else ART_CACHE.set(k, c.value); c.continue(); } else res(); };
           rq.onerror = () => res();
         }catch(_){ res(); }
       });
@@ -3122,20 +3323,110 @@ function startTickerRotation(){
       // drop pictures nothing refers to any more
       const used = artRefsInUse();
       for (const id of Array.from(ART_CACHE.keys())){ if (!used.has(id)){ ART_CACHE.delete(id); artDelIdb(id); } }
+      for (const id of VID_KEYS){ if (!used.has(id)) artDelIdb(id); }
     }
 
     /* =========================
        Tile art (per-spot picture + one default)
     ========================== */
+
+
+    /* ===== Storage screen ===== */
+    const OWN_PREFIX = 'quantum2.';
+    function stKeys(){
+      const out = [];
+      try{ const r = LSX.real(); if (!r) return out;
+        for (let i = 0; i < r.length; i++){ const k = r.key(i); if (k == null) continue; let v = ''; try{ v = r.getItem(k) || ''; }catch(_){}
+          out.push({ k, bytes: (k.length + v.length) * 2 }); }
+      }catch(_){}
+      return out;
+    }
+    function stIsQuantum(k){ return /^quantum2?\./.test(k); }
+    function stSetWarn(on){ document.getElementById('storageBtn')?.classList.toggle('st-warn', !!on); }
+    LSX.onFail = () => stSetWarn(true);
+    function stProbe(){
+      try{ const r = LSX.real(); if (!r) return false; r.setItem('__tsu_probe', 'x'.repeat(2048)); r.removeItem('__tsu_probe'); return true; }
+      catch(_){ return false; }
+    }
+    function stRender(){
+      const list = document.getElementById('stList'); if (!list) return;
+      const keys = stKeys().sort((a, b) => b.bytes - a.bytes);
+      const total = keys.reduce((n, o) => n + o.bytes, 0);
+      const LIMIT = 5 * 1048576;
+      const bar = document.getElementById('stBar'); if (bar) bar.style.width = Math.min(100, Math.round(total / LIMIT * 100)) + '%';
+      const others = keys.filter(o => !stIsQuantum(o.k)).reduce((n, o) => n + o.bytes, 0);
+      const sum = document.getElementById('stSummary');
+      if (sum) sum.textContent = 'Using about ' + (total / 1048576).toFixed(2) + ' MB of roughly 5 MB. Other overlays and sites on this address: ' + (others / 1048576).toFixed(2) + ' MB.' + (LSX.pending() ? ' ' + LSX.pending() + ' unsaved change(s) are held in memory until space is freed.' : '');
+      list.innerHTML = '';
+      keys.slice(0, 14).forEach(o => {
+        const row = document.createElement('div'); row.className = 'st-row';
+        const tag = document.createElement('span'); tag.className = 'st-tag ' + (stIsQuantum(o.k) ? 'own' : 'oth'); tag.textContent = stIsQuantum(o.k) ? 'Quantum' : 'Other';
+        const nm = document.createElement('div'); nm.className = 'st-k'; nm.textContent = o.k; nm.title = o.k;
+        const sz = document.createElement('div'); sz.className = 's st-s'; sz.className = 'st-s'; sz.textContent = o.bytes > 1048576 ? (o.bytes / 1048576).toFixed(2) + ' MB' : Math.max(1, Math.round(o.bytes / 1024)) + ' KB';
+        const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'ta-btn'; bt.textContent = 'Clear';
+        let armed = false;
+        bt.onclick = () => {
+          if (!armed){ armed = true; bt.textContent = 'Sure?'; setTimeout(() => { armed = false; bt.textContent = 'Clear'; }, 3000); return; }
+          LSX.removeItem(o.k); stRender(); stStatus('Cleared ' + o.k + '.');
+        };
+        row.appendChild(tag); row.appendChild(nm); row.appendChild(sz); row.appendChild(bt); list.appendChild(row);
+      });
+      if (!keys.length){ const p = document.createElement('div'); p.className = 'ta-desc'; p.textContent = 'Nothing is stored yet.'; list.appendChild(p); }
+      stSetWarn(!stProbe());
+    }
+    function stStatus(msg){ const e = document.getElementById('stStatus'); if (e) e.textContent = msg; }
+    function openStorageModal(){ stStatus(''); stRender(); document.getElementById('storageModal')?.classList.remove('hidden'); }
+    function closeStorageModal(){ document.getElementById('storageModal')?.classList.add('hidden'); }
+    let stFreeArmed = false;
+    function storageFreeOthers(){
+      const btn = document.getElementById('stFreeBtn');
+      if (!stFreeArmed){ stFreeArmed = true; const old = btn.textContent; btn.textContent = 'Click again to confirm';
+        setTimeout(() => { stFreeArmed = false; btn.textContent = old; }, 3500); return; }
+      stFreeArmed = false; btn.textContent = "Free space: clear other overlays' data";
+      const gone = stKeys().filter(o => !stIsQuantum(o.k));
+      gone.forEach(o => LSX.removeItem(o.k));
+      // flush anything that was held in memory
+      stRender();
+      stStatus(gone.length ? 'Cleared ' + gone.length + ' item(s) from other overlays. Your Quantum settings were not touched. Press Apply again on anything that did not save.' : 'No other overlay data found. Use Clear on a row above to free more space.');
+    }
+    function storageTest(){
+      const ok = stProbe();
+      stStatus(ok ? 'Saving works. You can use every Apply button normally.' : 'Saving is blocked or full right now. Clear some rows above, then test again.');
+      stSetWarn(!ok);
+    }
+
+    /* ===== Tile look: text size + picture darkness (custom tiles) ===== */
+    const LOOK_KEY = 'quantum2.look.v1';
+    let LOOK = { fs: 100, dark: 0 };
+    function loadLook(){
+      try{ const o = JSON.parse(LSX.getItem(LOOK_KEY) || '{}') || {};
+        LOOK = { fs: Math.max(60, Math.min(160, parseInt(o.fs, 10) || 100)), dark: Math.max(0, Math.min(70, Number.isFinite(parseInt(o.dark, 10)) ? parseInt(o.dark, 10) : 0)) };
+      }catch(_){ LOOK = { fs: 100, dark: 0 }; }
+      return LOOK;
+    }
+    function lookK(){ return LOOK.fs / 100; }
+    function applyLookVars(){ document.documentElement.style.setProperty('--tile-k', String(1 - LOOK.dark / 100)); }
+    function initLookSliders(){
+      loadLook();
+      const fs = document.getElementById('lookFs'), dk = document.getElementById('lookDark');
+      const fv = document.getElementById('lookFsVal'), dv = document.getElementById('lookDarkVal');
+      if (fs){ fs.value = String(LOOK.fs); if (fv) fv.textContent = String(LOOK.fs);
+        fs.oninput = () => { if (fv) fv.textContent = fs.value; };
+        fs.onchange = () => { LOOK.fs = parseInt(fs.value, 10) || 100; LSX.setItem(LOOK_KEY, JSON.stringify(LOOK)); try{ renderTeams(); }catch(_){} }; }
+      if (dk){ dk.value = String(LOOK.dark); if (dv) dv.textContent = String(LOOK.dark);
+        dk.oninput = () => { if (dv) dv.textContent = dk.value; LOOK.dark = parseInt(dk.value, 10) || 0; applyLookVars(); };
+        dk.onchange = () => { LOOK.dark = parseInt(dk.value, 10) || 0; LSX.setItem(LOOK_KEY, JSON.stringify(LOOK)); applyLookVars(); }; }
+    }
+
     const TILE_ART_KEY = 'quantum2.tileArt.v1';
     function loadTileArt(){
       try{
-        const o = JSON.parse(localStorage.getItem(TILE_ART_KEY) || '{}') || {};
+        const o = JSON.parse(LSX.getItem(TILE_ART_KEY) || '{}') || {};
         return { def: String(o.def || ''), spots: (o.spots && typeof o.spots === 'object') ? o.spots : {} };
       }catch(_){ return { def: '', spots: {} }; }
     }
     function saveTileArt(a){
-      try{ localStorage.setItem(TILE_ART_KEY, JSON.stringify(a)); return true; }catch(_){ return false; }
+      LSX.setItem(TILE_ART_KEY, JSON.stringify(a)); return true;
     }
     function tileArtOwn(title){ const k = norm(title); return k ? artSrc(loadTileArt().spots[k] || '') : ''; }
     function tileArtFor(title){ const a = loadTileArt(); const k = norm(title); return artSrc((k && a.spots[k]) || a.def || ''); }
@@ -3262,6 +3553,7 @@ function startTickerRotation(){
     }
     function openTileArtModal(){
       document.getElementById('taStatus').textContent = '';
+      initLookSliders();
       buildTileArtRows();
       document.getElementById('tileArtModal')?.classList.remove('hidden');
     }
@@ -3299,8 +3591,8 @@ function startTickerRotation(){
       root.dataset.nilTitleMax = String(Math.max(9, Math.min(20, Math.round(best.th * 0.3))));
     }
     function fitNilTitle(el, maxPx, minPx){
-      let size = maxPx; el.style.fontSize = size + 'px';
-      let guard = 20;
+      let size = Math.max(minPx, Math.round(maxPx * lookK())); el.style.fontSize = size + 'px';
+      let guard = 40;
       while (guard-- > 0 && size > minPx && (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)){
         size -= 1; el.style.fontSize = size + 'px';
       }
@@ -3867,7 +4159,7 @@ startWheelIdleSpin();
     function saveSoldState(){
       try{
         const payload = { sold: Array.from(soldTeams), list: soldTeamsList };
-        localStorage.setItem(soldStateKey(), JSON.stringify(payload));
+        LSX.setItem(soldStateKey(), JSON.stringify(payload));
       }catch(_){}
     }
 
@@ -3876,7 +4168,7 @@ startWheelIdleSpin();
       soldTeamsList = [];
 
       try{
-        const raw = localStorage.getItem(soldStateKey());
+        const raw = LSX.getItem(soldStateKey());
         if (!raw) return;
         const data = JSON.parse(raw);
         const s = Array.isArray(data?.sold) ? data.sold : [];
@@ -3952,12 +4244,12 @@ function updateHeader(){
       sport = sport || currentBreakType;
       if (!chaseCache[sport]){
         let arr = [];
-        try{ arr = JSON.parse(localStorage.getItem('quantum2.chase.' + sport) || '[]') || []; }catch(_){}
+        try{ arr = JSON.parse(LSX.getItem('quantum2.chase.' + sport) || '[]') || []; }catch(_){}
         chaseCache[sport] = new Set(arr.map(c => normalizeCode(c)));
       }
       return chaseCache[sport];
     }
-    function saveChase(sport){ try{ localStorage.setItem('quantum2.chase.' + sport, JSON.stringify(Array.from(chaseSet(sport)))); }catch(_){} }
+    function saveChase(sport){ try{ LSX.setItem('quantum2.chase.' + sport, JSON.stringify(Array.from(chaseSet(sport)))); }catch(_){} }
     function isChaseCode(code){ return currentBreakType !== 'nil' && chaseSet().has(normalizeCode(code)); }
     function boardTiles(){
       const cfg = breakTypes[currentBreakType]; const out = [];
@@ -4099,7 +4391,7 @@ function updateHeader(){
     }
     function fitCustomLabels(){
       document.querySelectorAll('.cust-grid .team-label').forEach(el => {
-        let size = 16; el.style.fontSize = size + 'px'; let guard = 14;
+        let size = Math.max(8, Math.round(16 * lookK())); el.style.fontSize = size + 'px'; let guard = 30;
         while (guard-- > 0 && size > 7 && (el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1)){ size -= 1; el.style.fontSize = size + 'px'; }
       });
     }
@@ -5421,7 +5713,7 @@ case 'set_title': {
       const mx = parseInt(root?.dataset.nilTitleMax || '16', 10);
       document.querySelectorAll('.team.nil .nil-title').forEach(el => {
         if (dyn) fitNilTitle(el, mx, 8);
-        else fitTextToWidth(el, 20, 10);
+        else fitTextToWidth(el, Math.round(20 * lookK()), 10);
       });
     }
 function initFloatingWheelDrag(){
@@ -5518,6 +5810,8 @@ function initFloatingWheelDrag(){
       const qSport = String(new URLSearchParams(location.search).get('sport') || '').toLowerCase();
       if (qSport && breakTypes[qSport]) currentBreakType = qSport;
 
+      loadLook(); applyLookVars();
+      stSetWarn(!stProbe());
       applyTilePreset(currentBreakType);
 
       loadSoldState();
@@ -5537,8 +5831,8 @@ function initFloatingWheelDrag(){
     document.addEventListener('DOMContentLoaded', () => {
       let booted = false;
       const go = () => { if (!booted){ booted = true; bootOverlay(); } };
-      artInit().then(go, go);
-      setTimeout(go, 2500);   // never hold the overlay hostage to the picture store
+      artInit().then(() => { const was = booted; go(); if (was){ try{ renderTeams(); renderPromoAll(); }catch(_){} } }, go);
+      setTimeout(go, 1500);   // never hold the overlay hostage to the picture store
     });
   </script>
 
