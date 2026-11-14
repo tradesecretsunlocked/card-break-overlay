@@ -4826,7 +4826,6 @@ if (speedSlider) speedSlider.oninput = null;
     let sse = null;
     let sseScores = null;
     const lastCodeByListingKey = new Map();
-    const respinAnimAt = new Map();
 
     // Dedup duplicate SSE deliveries of the same sale. The bridge can emit a
     // single sale under multiple aliased event types (sale + team_sold + sold...),
@@ -5401,22 +5400,12 @@ function markSold(code, buyer = '', opts = {}){
 
       // State stays idempotent (markSold is safe to call again); the animation
       // fires exactly once per sale — suppressed for duplicate deliveries AND reassignments.
-      // 2026-11-13: a respin (real team -> a different real team on the same sale, or a slot number
-      // that resolves to a real team) is a NEW team being sold, so it animates. Only a flapping
-      // title is held back: the same team on the same sale animates at most once per 20 s, and
-      // two respin animations on one sale are kept at least 3.5 s apart.
+      // 2026-11-14: EVERY respin animates. A respin is a different real team landing on the same
+      // sale, so it is never a duplicate delivery, however soon it follows the last event. Only an
+      // identical re-delivery (same code, handled by the duplicate window) and placeholder/slot
+      // codes stay silent.
       let animate = !duplicate && !isReassignment;
-      if (isReassignment && !duplicate && !codeIsCustom && listingKey){
-        const now = Date.now();
-        const kCode = listingKey + '|' + code;
-        const lastSame = respinAnimAt.get(kCode) || 0;
-        const lastAny = respinAnimAt.get(listingKey) || 0;
-        if ((now - lastSame) > 20000 && (now - lastAny) > 3500){
-          animate = true;
-          respinAnimAt.set(kCode, now); respinAnimAt.set(listingKey, now);
-          if (respinAnimAt.size > 300) respinAnimAt.clear();
-        }
-      }
+      if (isReassignment && !codeIsCustom) animate = true;
       markSold(code, buyer, { animate });
     }
 
@@ -5427,7 +5416,7 @@ function markSold(code, buyer = '', opts = {}){
       const listingKey = getListingKey(payload);
       const code = resolveCodeFromPayload(payload) || (listingKey ? lastCodeByListingKey.get(listingKey) : '');
 
-      if (listingKey) lastCodeByListingKey.delete(listingKey);
+      if (listingKey){ lastCodeByListingKey.delete(listingKey); recentSaleAnimations.delete(listingKey); }
       if (code) markUnsold(code);
     }
 
