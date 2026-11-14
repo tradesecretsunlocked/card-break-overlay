@@ -2092,6 +2092,8 @@
       <div class="st-meter"><i id="stBar"></i></div>
       <div id="stSummary" class="ta-desc" style="margin:0 0 8px 0;"></div>
       <div id="stList"></div>
+      <div class="ta-desc" style="margin:10px 0 2px 0;font-weight:900;">Recent sold events (for troubleshooting)</div>
+      <pre id="stLog" style="margin:0;max-height:140px;overflow:auto;font-size:11px;color:rgba(240,240,192,0.8);white-space:pre-wrap;"></pre>
       <hr class="ta-sep" />
       <div class="cs-modal-actions" style="justify-content:space-between;flex-wrap:wrap;">
         <span style="display:flex;gap:6px;flex-wrap:wrap;">
@@ -3374,8 +3376,12 @@ function startTickerRotation(){
       if (!keys.length){ const p = document.createElement('div'); p.className = 'ta-desc'; p.textContent = 'Nothing is stored yet.'; list.appendChild(p); }
       stSetWarn(!stProbe());
     }
+    function stRenderLog(){
+      const e = document.getElementById('stLog'); if (!e) return;
+      e.textContent = SOLD_LOG.length ? SOLD_LOG.slice().reverse().map(o => o.unsold ? (o.t + '  UNSOLD ' + o.code) : (o.t + '  SOLD ' + o.code + '  animate=' + o.animate + '  alreadySold=' + o.wasSold + '  respin=' + o.reassign + '  dup=' + o.dup)).join('\n') : 'No sold events received yet.';
+    }
     function stStatus(msg){ const e = document.getElementById('stStatus'); if (e) e.textContent = msg; }
-    function openStorageModal(){ stStatus(''); stRender(); document.getElementById('storageModal')?.classList.remove('hidden'); }
+    function openStorageModal(){ stStatus(''); stRender(); stRenderLog(); document.getElementById('storageModal')?.classList.remove('hidden'); }
     function closeStorageModal(){ document.getElementById('storageModal')?.classList.add('hidden'); }
     let stFreeArmed = false;
     function storageFreeOthers(){
@@ -4826,6 +4832,7 @@ if (speedSlider) speedSlider.oninput = null;
     let sse = null;
     let sseScores = null;
     const lastCodeByListingKey = new Map();
+    const SOLD_LOG = [];
 
     // Dedup duplicate SSE deliveries of the same sale. The bridge can emit a
     // single sale under multiple aliased event types (sale + team_sold + sold...),
@@ -5400,12 +5407,16 @@ function markSold(code, buyer = '', opts = {}){
 
       // State stays idempotent (markSold is safe to call again); the animation
       // fires exactly once per sale — suppressed for duplicate deliveries AND reassignments.
-      // 2026-11-14: EVERY respin animates. A respin is a different real team landing on the same
-      // sale, so it is never a duplicate delivery, however soon it follows the last event. Only an
-      // identical re-delivery (same code, handled by the duplicate window) and placeholder/slot
-      // codes stay silent.
-      let animate = !duplicate && !isReassignment;
-      if (isReassignment && !codeIsCustom) animate = true;
+      // 2026-11-14b: the animation follows the STATE, not timing. Any team that goes from
+      // not-sold to sold plays the sold animation, every time, however fast the respins come.
+      // A repeat delivery finds the team already sold, so it stays silent. Only a placeholder
+      // slot code that replaces a real team is kept quiet.
+      const wasSold = soldTeams.has(code);
+      let animate = !wasSold && !(isReassignment && codeIsCustom);
+      try{
+        SOLD_LOG.push({ t: new Date().toLocaleTimeString(), code, wasSold, reassign: isReassignment, dup: duplicate, animate });
+        if (SOLD_LOG.length > 20) SOLD_LOG.shift();
+      }catch(_){}
       markSold(code, buyer, { animate });
     }
 
@@ -5417,6 +5428,7 @@ function markSold(code, buyer = '', opts = {}){
       const code = resolveCodeFromPayload(payload) || (listingKey ? lastCodeByListingKey.get(listingKey) : '');
 
       if (listingKey){ lastCodeByListingKey.delete(listingKey); recentSaleAnimations.delete(listingKey); }
+      try{ SOLD_LOG.push({ t: new Date().toLocaleTimeString(), code, unsold: true }); if (SOLD_LOG.length > 20) SOLD_LOG.shift(); }catch(_){}
       if (code) markUnsold(code);
     }
 
