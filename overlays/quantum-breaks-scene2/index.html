@@ -1389,6 +1389,12 @@
     .st-row{ display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid rgba(240,240,192,0.10); font-size:13px; }
     .st-row .st-k{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:rgba(240,240,192,0.92); }
     .st-row .st-s{ width:74px; text-align:right; color:#ffd65c; font-weight:900; }
+    .st-modal{ align-items:flex-start; overflow:auto; }
+    .st-inner{ margin:8px auto; max-height:none; overflow:visible; width:min(760px,96vw); }
+    .st-top{ position:sticky; top:-16px; z-index:3; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; padding:8px 0; margin:-16px 0 6px 0; background:rgba(0,0,0,0.96); border-bottom:1px solid rgba(240,240,192,0.18); }
+    .st-btns{ display:flex; gap:6px; flex-wrap:wrap; }
+    .st-scroll{ overflow-y:auto; overscroll-behavior:contain; }
+    #stList{ max-height:34vh; min-height:60px; }
     .st-tag{ font-size:10px; font-weight:900; letter-spacing:.6px; text-transform:uppercase; padding:1px 6px; border-radius:6px; background:rgba(255,255,255,0.12); }
     .st-tag.own{ background:rgba(76,207,122,0.28); }
     .st-tag.oth{ background:rgba(255,90,77,0.30); }
@@ -2084,24 +2090,24 @@
   </div>
 
   <!-- Storage modal -->
-  <div id="storageModal" class="ta-modal hidden">
-    <div class="ta-inner">
-      <h2>💾 Storage</h2>
-      <p class="ta-desc">Your settings are saved in this browser. The browser gives every TSU overlay on the same web address one shared 5 MB pool. When it fills up, nothing new can be saved. This screen shows what is using it.</p>
+  <div id="storageModal" class="ta-modal st-modal hidden">
+    <div class="ta-inner st-inner">
+      <div class="st-top">
+        <h2 style="margin:0;">💾 Storage</h2>
+        <span class="st-btns">
+          <button class="ta-btn gold" id="stFreeBtn" onclick="storageFreeOthers()">Clear other overlays' data</button>
+          <button class="ta-btn" id="stClearOwnBtn" onclick="storageClearOwn()">Clear this overlay's settings</button>
+          <button class="ta-btn" id="stClearAllBtn" onclick="storageClearAll()">CLEAR ALL</button>
+          <button class="ta-btn" onclick="storageTest()">Test saving</button>
+          <button class="cs-ok" onclick="closeStorageModal()">Done</button>
+        </span>
+      </div>
       <div class="ta-status" id="stStatus"></div>
       <div class="st-meter"><i id="stBar"></i></div>
-      <div id="stSummary" class="ta-desc" style="margin:0 0 8px 0;"></div>
-      <div id="stList"></div>
-      <div class="ta-desc" style="margin:10px 0 2px 0;font-weight:900;">Recent sold events (for troubleshooting)</div>
-      <pre id="stLog" style="margin:0;max-height:140px;overflow:auto;font-size:11px;color:rgba(240,240,192,0.8);white-space:pre-wrap;"></pre>
-      <hr class="ta-sep" />
-      <div class="cs-modal-actions" style="justify-content:space-between;flex-wrap:wrap;">
-        <span style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button class="ta-btn gold" id="stFreeBtn" onclick="storageFreeOthers()">Free space: clear other overlays' data</button>
-          <button class="ta-btn" onclick="storageTest()">Test saving</button>
-        </span>
-        <button class="cs-ok" onclick="closeStorageModal()">Done</button>
-      </div>
+      <div id="stSummary" class="ta-desc" style="margin:0 0 6px 0;"></div>
+      <div id="stList" class="st-scroll"></div>
+      <div class="ta-desc" style="margin:8px 0 2px 0;font-weight:900;">Recent sold events (for troubleshooting)</div>
+      <pre id="stLog" class="st-scroll" style="margin:0;max-height:110px;font-size:11px;color:rgba(240,240,192,0.8);white-space:pre-wrap;"></pre>
     </div>
   </div>
 
@@ -3360,7 +3366,7 @@ function startTickerRotation(){
       const sum = document.getElementById('stSummary');
       if (sum) sum.textContent = 'Using about ' + (total / 1048576).toFixed(2) + ' MB of roughly 5 MB. Other overlays and sites on this address: ' + (others / 1048576).toFixed(2) + ' MB.' + (LSX.pending() ? ' ' + LSX.pending() + ' unsaved change(s) are held in memory until space is freed.' : '');
       list.innerHTML = '';
-      keys.slice(0, 14).forEach(o => {
+      keys.forEach(o => {
         const row = document.createElement('div'); row.className = 'st-row';
         const tag = document.createElement('span'); tag.className = 'st-tag ' + (stIsQuantum(o.k) ? 'own' : 'oth'); tag.textContent = stIsQuantum(o.k) ? 'Quantum' : 'Other';
         const nm = document.createElement('div'); nm.className = 'st-k'; nm.textContent = o.k; nm.title = o.k;
@@ -3394,6 +3400,33 @@ function startTickerRotation(){
       // flush anything that was held in memory
       stRender();
       stStatus(gone.length ? 'Cleared ' + gone.length + ' item(s) from other overlays. Your Quantum settings were not touched. Press Apply again on anything that did not save.' : 'No other overlay data found. Use Clear on a row above to free more space.');
+    }
+    function stArmBtn(id, label, run){
+      const btn = document.getElementById(id); if (!btn) return;
+      if (btn.dataset.armed !== '1'){ btn.dataset.armed = '1'; btn.dataset.lbl = btn.textContent; btn.textContent = 'Click again to confirm';
+        setTimeout(() => { if (btn.dataset.armed === '1'){ btn.dataset.armed = '0'; btn.textContent = btn.dataset.lbl; } }, 3500); return; }
+      btn.dataset.armed = '0'; btn.textContent = btn.dataset.lbl; run();
+    }
+    function stWipeIdb(){
+      return artOpen().then(db => new Promise((res) => {
+        if (!db) return res(false);
+        try{ const tx = db.transaction(ART_STORE, 'readwrite'); tx.objectStore(ART_STORE).clear(); tx.oncomplete = () => res(true); tx.onerror = () => res(false); tx.onabort = () => res(false); }
+        catch(_){ res(false); }
+      }));
+    }
+    function storageClearOwn(){
+      stArmBtn('stClearOwnBtn', '', () => {
+        const mine = stKeys().filter(o => o.k.startsWith(OWN_PREFIX) && !/\.(bridge|key)$/.test(o.k));
+        mine.forEach(o => LSX.removeItem(o.k));
+        stWipeIdb().then(() => { stStatus('Cleared this overlay\'s ' + mine.length + ' saved setting(s) and its pictures and video. Reloading...'); setTimeout(() => location.reload(), 900); });
+      });
+    }
+    function storageClearAll(){
+      stArmBtn('stClearAllBtn', '', () => {
+        const all = stKeys();
+        all.forEach(o => LSX.removeItem(o.k));
+        stWipeIdb().then(() => { stStatus('Cleared everything (' + all.length + ' item(s)) plus pictures and video. Reloading...'); setTimeout(() => location.reload(), 900); });
+      });
     }
     function storageTest(){
       const ok = stProbe();
