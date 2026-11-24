@@ -153,13 +153,21 @@
   .ctl{ font-size:calc(13px*var(--k)); letter-spacing:.5px; text-transform:uppercase; color:#fff; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.22); border-radius:999px; padding:8px 16px; cursor:pointer; white-space:nowrap; }
   .ctl:hover{ background:rgba(255,255,255,0.14); }
   .ctl.primary{ background:linear-gradient(180deg,#14d6bd,#087f78); border-color:#8cf5e8; font-weight:900; color:#00130f; }
-  .sold-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; max-height:360px; overflow-y:auto; }
-  .sold-item{ display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,0.06); border:1px solid rgba(0,229,204,0.4); }
+  .sold-wrap{ box-sizing:border-box; overflow:hidden; }
+  .sold-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; max-height:360px; overflow-y:auto; overflow-x:hidden; }
+  .sold-item{ display:flex; flex-direction:column; align-items:stretch; gap:1px; min-width:0; padding:3px 7px 4px; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(0,229,204,0.4); }
   .sold-item.ch{ border-color:var(--lineGold); }
-  .sold-item .nm{ font-size:15px; text-transform:uppercase; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:none; }
-  .sold-item input{ flex:1; min-width:0; border:none; outline:none; border-radius:999px; background:rgba(0,0,0,0.55); color:#fff; padding:4px 2px; max-width:220px; font-size:24px; font-weight:900; font-family:inherit; }
+  .sold-item .nm{ font-size:11px; letter-spacing:.4px; line-height:1.15; text-transform:uppercase; opacity:.85; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .sold-item input{ width:100%; min-width:0; box-sizing:border-box; border:none; outline:none; border-radius:8px; background:rgba(0,0,0,0.55); color:#fff; padding:2px 6px; font-size:24px; line-height:1.2; font-weight:900; font-family:inherit; }
   .sold-empty{ grid-column:1/-1; font-size:12px; opacity:.6; padding:4px 2px; }
   #adminToggle{ position:fixed; top:0; left:0; width:70px; height:44px; z-index:2147483647; cursor:pointer; opacity:0; }
+
+
+  /* ================= NON-CHASER SOLD POP ================= */
+  @keyframes soldPop{ 0%{ transform:scale(1); box-shadow:0 0 0 0 rgba(255,90,106,0.0); } 30%{ transform:scale(1.14); box-shadow:0 0 0 3px rgba(255,90,106,0.75), 0 0 16px 4px rgba(255,90,106,0.45); background-color:rgba(255,90,106,0.28); } 100%{ transform:scale(1); box-shadow:0 0 0 0 rgba(255,90,106,0); } }
+  @keyframes soldStrike{ from{ background-size:0% 2px; } to{ background-size:100% 2px; } }
+  .fitem.popSold, .litem.popSold{ animation:soldPop .9s ease-out 1; border-radius:6px; position:relative; z-index:2; }
+  .fitem.popSold .nm, .litem.popSold .nm{ background:linear-gradient(#ff5a6a,#ff5a6a) 0 55%/0% 2px no-repeat; animation:soldStrike .5s .15s ease-out forwards; }
 
   /* ================= SOLD CARD ANIMATION ================= */
   #soldFxLayer{ position:fixed; inset:0; z-index:999999; pointer-events:none; overflow:hidden; perspective:1600px; }
@@ -842,7 +850,14 @@ Generator|V.J. Edgecombe`;
     if(!IS_MAIN) return;
     const sp=spots[idx];
     if (sp.chaser && opts.fx){ fxQ.push(idx); runFx(); }
-    else toast('SOLD  ' + sp.name + (sp.buyer ? '  @'+sp.buyer : ''));
+    else {
+      toast('SOLD  ' + sp.name + (sp.buyer ? '  @'+sp.buyer : ''));
+      if (!sp.chaser){
+        const els=[...document.querySelectorAll('.fitem[data-i="'+idx+'"], .litem[data-i="'+idx+'"]')];
+        els.forEach(el=>{ el.classList.remove('popSold'); void el.offsetWidth; el.classList.add('popSold'); });
+        setTimeout(()=>els.forEach(el=>el.classList.remove('popSold')), 1300);
+      }
+    }
   }
   let toastT=null;
   function toast(txt){ const t=$('fToast'); if(!t) return; t.textContent=txt; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),3200); }
