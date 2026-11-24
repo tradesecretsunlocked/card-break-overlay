@@ -8,6 +8,11 @@
 //                             full:true  -> model renders the headline type too
 //                             full:false -> background art only, browser canvas letters it
 //
+// v13 (2026-11-24): server-side authorization of the active client key (bridge_key).
+//   Admin (app_admins) may act as any key. A client may only use a key linked in client_users,
+//   else falls back to their first linked key, else 403 no_client. The monthly cap is counted
+//   per client key for clients (per user for admins). Logged bridge_key is the authorized key.
+//
 // v11 (2026-10-20): Mike's rulings. gpt-image-2 is the ONLY image model.
 //   The per-request model override is gone. gpt-image-1.5 is used ONLY as an error fallback
 //   (provider error or 403). Cap is now MONTHLY (PROMO_IMAGE_MONTHLY_CAP, default 40,
@@ -225,12 +230,26 @@ Deno.serve(async (req) => {
     const { data: { user } } = await userClient.auth.getUser();
     if (!user) return json({ error: "Not authenticated" }, 401);
 
+    // v13 (2026-11-24): server-side authorization of the active client key.
+    // Admin ("Viewing as") may use any key; a client only a key linked in client_users.
+    const { data: cu } = await svc.from("client_users").select("bridge_key").eq("user_id", user.id);
+    const allowed: string[] = (cu ?? []).map((r: any) => r.bridge_key).filter(Boolean);
+    const { data: adm } = await svc.from("app_admins").select("user_id").eq("user_id", user.id).maybeSingle();
+    const isAdmin = !!adm;
+    const asked = b.bridge_key ? String(b.bridge_key).slice(0, 120) : "";
+    let authKey: string | null = null;
+    if (asked && (isAdmin || allowed.includes(asked))) authKey = asked;
+    else if (!isAdmin && allowed.length) authKey = allowed[0];
+    else if (!isAdmin) return json({ error: "No client account is linked to this login.", code: "no_client" }, 403);
+
     // Monthly cap (calendar month, UTC), so one seller cannot run up the image bill.
     const now = new Date();
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
-    const { count } = await svc.from("promo_generations")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id).gte("created_at", monthStart);
+    // Clients are capped per client key (shared across their logins); admins per own user.
+    let capQ = svc.from("promo_generations")
+      .select("id", { count: "exact", head: true }).gte("created_at", monthStart);
+    capQ = (!isAdmin && authKey) ? capQ.eq("bridge_key", authKey) : capQ.eq("user_id", user.id);
+    const { count } = await capQ;
     if ((count ?? 0) >= MONTHLY_CAP) {
       return json({
         error: `You've generated ${count} thumbnails this month, which is the current monthly limit of ${MONTHLY_CAP}. Your copy and titles still work. The limit resets on the 1st, or ask TSU about a top-up pack.`,
@@ -290,7 +309,7 @@ Deno.serve(async (req) => {
 
     await svc.from("promo_generations").insert({
       user_id: user.id,
-      bridge_key: b.bridge_key ? String(b.bridge_key).slice(0, 120) : null,
+      bridge_key: authKey,
       model: imageModel, quality: IMAGE_QUALITY, size: IMAGE_SIZE,
       est_cost_usd: COST[imageModel] ?? 0.3,
       image_path: path, image_url: imageUrl, prompt,
