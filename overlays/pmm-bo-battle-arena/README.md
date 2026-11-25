@@ -35,7 +35,7 @@ Spelling variants are aliased (NatureBoy, xPressDelivery, JuliusSeizer, Turbo GT
 Sale handling follows the Standard: dedup and respin key on saleId. A saleId can hold several spots; a respin releases the old spots that are not in the new set and plays the new spots' animations, an unsold releases the whole set. A buyer may hold any number of spots. `overlayIdMatches` and `breakIdMatches` guard every event.
 
 ## The list
-161 spots: 36 chasers plus 125 in the field. Names and tiers follow the official 2026 Update sell sheet and checklist that Mike shared 2026-11-21 (Autographs list, Base Set and Highlighted Heroes list). Athlete pairings come from the same sheet and from thecollectornation.com. Verify against a live break before air. Full list in `heroes.csv` (staged list, 161 rows); `observed-hobby-case.csv` is a reference transcription from a live hobby case break (title style, bundled spots, tiers), not the overlay list.
+161 spots: 40 chasers plus 121 in the field. Names and tiers follow the official 2026 Update sell sheet and checklist that Mike shared 2026-11-21 (Autographs list, Base Set and Highlighted Heroes list). Athlete pairings come from the same sheet and from thecollectornation.com. Verify against a live break before air. Full list in `heroes.csv` (staged list, 161 rows); `observed-hobby-case.csv` is a reference transcription from a live hobby case break (title style, bundled spots, tiers), not the overlay list.
 Tiers: signer (autograph list, 80 heroes), Highlighted (10: Alcatraz, Generator, Gladiator, Ionic, Larry The Builder, Maverick, McVillian, PB Buckets, A to Z, McBladed), base hero (the rest). Tile and card faces show a star for signers and HL for Highlighted.
 Chasers are every hero on Mike's two chase lists, 36 after overlap: the 23 top Graviton heroes plus the 20 on the Queen of Breaks board, overlaps first. Mike's instruction: use the Double-Mega and Blaster exclusives, not the Hobby exclusives. Per the official sheet, Graviton, Gum, the color foils, Full-Art Alt Art, Miami Ice, Fire Tracks and Mixtape are Hobby and Jumbo only, so no Power number and no fire or ghost flag is shown anywhere. Double-Mega and Blaster carry Great Grandma's Linoleum, Grillin', Chillin', Slime and the Icon Battlefoils (Brawl, Steel, Ice, Fire, Glow, Hex); Double-Mega only has Bonus Plays and Power Glove; Blaster only has the Headlines (Silver, Blue, Orange, Red). Exclusivity is by card treatment, not by hero, so the chaser list itself is the same for every box type. Edit it live from the Spots button (a Y in the Chaser column), or load a CSV with an optional sixth column Tier (F, H or P).
 
@@ -58,21 +58,16 @@ Logic tested in a DOM harness (all pass): the real live-break title shapes, bund
 
 ## Review and promote
 Promoted 2026-11-21: this folder (without `_to_delete/`) copied to `overlays/pmm-bo-battle-arena/`. No new Supabase rows: it reuses Mike's installed PMM identity (key above, already active in `bridge_keys`), and there is no `builds` row. Mike pushes main, then refresh the OBS browser-source cache.
-index.html md5 at promotion: 82d32a83bc178fb47bd7e1c9756493d3 (2026-11-21 sold tile and size tweak; previous 670c7445a8227add260ab51e1ef86acc 40 chaser layout; previous e5e0c31ec7f7c888847f5a7f36cbf3c7 readability revision; previous copy d891ff997c1c4518c6c65dfb0d2b2aba, before that md5 ad5d16b8e9bc4b946cc299fe175fba99, kept in `_to_delete/`).
+index.html md5 at promotion: d891ff997c1c4518c6c65dfb0d2b2aba (previous staged copy, md5 ad5d16b8e9bc4b946cc299fe175fba99, kept in `_to_delete/`).
 
+## Sold panel and non-chaser animation (2026-11-24)
+- Sold panel is 4 columns inside the 1080 px overlay (no horizontal scroll). Each entry stacks the small hero name over a full-width buyer input at 24 px (18 pt). The panel box now uses border-box, which removed the old 22 px overflow past the overlay edge. Verified in Chrome at 1080 wide: panel 0 to 1080, document scroll width 1080, 4 per row, inputs 24 px.
+- Non-chaser (Field) sales now play a short pop: a red ring and glow, a quick scale, and a red strike drawn through the name, on the Field box and the ?view=list page, plus the SOLD toast. Chasers keep the full card animation.
 
-## Readability revision (2026-11-21)
-- Display modal uses button groups instead of dropdowns (OBS interact window cannot open native selects): Spot title format, The Field style, Text and card size (Normal / Large default / Extra Large).
-- Size scale drives tile names, Field list (now 3 columns x 4 rows), card strip text and card size, metrics, ticker and modals. Large is about 1020 px tall at 1080 wide; Normal matches the old size.
-- Tile backgrounds for chaser spots: Display, "Tile background folder or URL". Default `tiles/` expects `tiles/<hero-name-with-dashes>.png` next to index.html (missing files fall back to the gradient). A single image path applies to every tile. A per spot override is the optional 7th Tile column in Spots (heroes.csv has the column). Tiles are darkened for legibility and sold tiles still grey out.
+## Whatnot box break widget spot lists (2026-11-24)
+Folder `whatnot/`: `1-chasers-40.csv`, `2-field-A-61.csv`, `3-field-B-60.csv` (and `ALL-161-reference.csv`, not for pasting). Columns: Spot Name, Price (blank, you set it), Description. Whatnot's help center says a custom spot list pastes into the Break builder spreadsheet from Sheets or Excel (spot name, price, description) with a cap of 75 custom spots per break, so 161 spots is split across three breaks. Spot names are `HERO - Athlete` (chasers) and `Hero - Inspired by Athlete` (field). All 161 names were run through the overlay matcher: each marks exactly one hero. Do not rename spots after pasting.
 
-## 40 chaser layout (2026-11-21)
-- Chase list is 40: the earlier 36 plus McBladed, Rumblin' Bumblin' Stumblin', Alcatraz and PB Buckets (Superfoil 1/1 power 195 to 200 in the checklist CSV; the same rule puts Superfoil 190+ plus BoJax at 32). Basis: official checklist CSV, hero Superfoil power tracks hero rank. No Mahomes set single sales data found yet.
-- Board is 8 columns x 5 rows; Field is 4 columns x 3 rows; strip and header shortened. At Large the overlay ends about 845 px tall (Normal about 706, Extra Large about 931).
-- Ticker has its own size control (Ticker modal: Small / Medium / Large / Extra Large).
-- Spelling fixed to the official names: McVillain, Carnevore (old spellings still match as aliases).
-- An OBS browser source that already saved its Spots list keeps the old 36 chasers: open Spots and press "Restore built in list" once, or New Break.
+Exact-name option (2026-11-24): `whatnot/ALL-161-exact-OBS-names.csv` uses the hero name exactly as the overlay spells it (for example `BoJax`) as the spot name, with the athlete and tier in the description. Cap check: Mike confirmed 2026-11-24 the Whatnot custom spot list now takes 250, so one paste of all 161 works and the three split files are optional. Verified: all 161 exact names mark exactly one hero. The `HERO - Athlete` files match functionally (the overlay finds the hero inside the title) but the strings are not identical to OBS.
 
-## Sold tile and size tweak (2026-11-21)
-- Sold tiles: the hero name is dimmed and struck through but the buyer name is full white, no longer shaded. Done with a dim layer behind the text instead of a filter on the whole tile.
-- Card strip cards about 12 percent larger; Field (scrolling names) font 13 to 15 base. Overlay ends about 859 px tall at Large.
+## Card images (2026-11-24)
+`cards/CARD-FILENAMES.txt` lists what is present and what is missing (24 of 40 chasers have a card, 16 missing). Newest file per name wins between `_drafts` and `overlays`. Stray files named `daly-drive.png` and `he-glide.png` match no hero and are unused.
